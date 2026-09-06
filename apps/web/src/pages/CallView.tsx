@@ -2,6 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { ThreadMessage, ThreadSnapshot } from "@rakazo/contracts";
 import { isSecretAskBlock, narrateTool, speechFromBlocks, spokenDecision } from "@rakazo/core";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@rakazo/ui-web";
+import FluidOrb from "@rakazo/ui-web/components/ui/fluid-orb";
 import { useEffect, useRef, useState } from "react";
 import { dictation } from "../lib/dictation";
 import { speaker } from "../lib/tts";
@@ -11,6 +12,7 @@ type Phase = "listening" | "thinking" | "speaking";
 export function CallView({
   botId,
   botName,
+  botColor,
   transcribe,
   snapshot,
   onSend,
@@ -20,6 +22,7 @@ export function CallView({
 }: {
   botId: string;
   botName: string;
+  botColor: string;
   transcribe: boolean;
   snapshot: ThreadSnapshot | null;
   onSend: (text: string) => Promise<void>;
@@ -31,6 +34,10 @@ export function CallView({
   const [phase, setPhase] = useState<Phase>("listening");
   const [caption, setCaption] = useState("");
   const [heard, setHeard] = useState("");
+  const [speechRevision, setSpeechRevision] = useState(0);
+  const sendingRef = useRef(false);
+  const callbacksRef = useRef({ onSend, onFollowUp, onAnswer });
+  callbacksRef.current = { onSend, onFollowUp, onAnswer };
   const [error, setError] = useState<string | null>(null);
   const phaseRef = useRef<Phase>("listening");
   const spokenMessage = useRef<string | null>(null);
@@ -84,7 +91,8 @@ export function CallView({
   }
 
   async function handleTranscript(text: string) {
-    if (closing.current || !text.trim()) {
+    if (closing.current || sendingRef.current) return;
+    if (!text.trim()) {
       void listen();
       return;
     }
@@ -96,6 +104,8 @@ export function CallView({
       setError(t`Hang up, then enter the code on screen.`);
       return;
     }
+    sendingRef.current = true;
+    setError(null);
     setHeard(text);
     setCallPhase("thinking");
     const askId = latestAskId(current);
@@ -103,30 +113,50 @@ export function CallView({
     try {
       if (askMessage) {
         const decision = spokenDecision(text);
-        await onAnswer(askMessage, decision ?? text);
+        await callbacksRef.current.onAnswer(askMessage, decision ?? text);
       } else if (current?.run && ["running", "queued", "leased"].includes(current.run.status)) {
-        await onFollowUp(text);
+        await callbacksRef.current.onFollowUp(text);
       } else {
-        await onSend(text);
+        await callbacksRef.current.onSend(text);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not send that`);
       void listen();
+    } finally {
+      sendingRef.current = false;
+      setSpeechRevision((revision) => revision + 1);
     }
   }
 
   useEffect(() => {
     closing.current = false;
-    spokenMessage.current = null;
-    narrated.current.clear();
+    // Opening a call must not replay historical messages or old tool progress.
+    spokenMessage.current =
+      [...(snapshotRef.current?.messages ?? [])].reverse().find((message) => message.role === "bot")
+        ?.id ?? null;
+    narrated.current = new Set(
+      (snapshotRef.current?.messages ?? []).flatMap((message) =>
+        message.blocks.flatMap((block) =>
+          block.kind === "progress" || block.kind === "subagent"
+            ? [
+                `${message.id}:${block.kind}:${block.kind === "subagent" ? block.status : block.text}`,
+              ]
+            : [],
+        ),
+      ),
+    );
+    let previousSpeechStatus = speaker.state.status;
     const unsubSpeech = speaker.subscribe((state) => {
       if (state.status === "speaking") {
         setCallPhase("speaking");
         setCaption(state.caption ?? "");
-      } else if (state.status === "idle" && phaseRef.current !== "listening") {
+      } else if (state.status === "idle" && previousSpeechStatus !== "idle" && !closing.current) {
         setCaption("");
-        void listen();
+        if (sendingRef.current || hasWorkingRun(snapshotRef.current)) setCallPhase("thinking");
+        else if (phaseRef.current !== "listening") void listen();
+        setSpeechRevision((revision) => revision + 1);
       }
+      previousSpeechStatus = state.status;
       if (state.error) setError(state.error);
     });
     const unsubDictation = dictation.subscribe((state) => {
@@ -161,7 +191,8 @@ export function CallView({
   }, []);
 
   useEffect(() => {
-    if (closing.current || phaseRef.current === "listening") return;
+    if (closing.current || sendingRef.current || speaker.state.status !== "idle") return;
+    if (phaseRef.current === "listening" && dictation.state.transcript.trim()) return;
     const messages = snapshot?.messages ?? [];
     const lastBot = [...messages].reverse().find((message) => message.role === "bot");
     if (lastBot && lastBot.id !== spokenMessage.current) {
@@ -170,7 +201,7 @@ export function CallView({
         (block) => block.kind === "ask" && block.status !== "answered",
       );
       const secretAsk = ask && isSecretAskBlock(ask);
-      if (text) {
+      if (text && (!hasWorkingRun(snapshot) || ask)) {
         spokenMessage.current = lastBot.id;
         dictation.stop("cancel");
         void speaker.speak(
@@ -186,15 +217,14 @@ export function CallView({
         );
         return;
       }
-      const runActive =
-        snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status);
+      const runActive = hasWorkingRun(snapshot);
       if (!runActive) {
         spokenMessage.current = lastBot.id;
         void listen();
         return;
       }
     }
-    if (snapshot?.run && ["running", "queued", "leased"].includes(snapshot.run.status)) {
+    if (hasWorkingRun(snapshot)) {
       const phrases: string[] = [];
       let lastKey = "";
       for (const message of messages) {
@@ -213,10 +243,12 @@ export function CallView({
         }
       }
       if (phrases.length) {
+        dictation.stop("cancel");
+        setCallPhase("thinking");
         void speaker.speak(phrases.join(". "), { botId, messageId: `narrate:${lastKey}` });
       }
     }
-  }, [snapshot, botId]);
+  }, [snapshot, botId, speechRevision]);
 
   useEffect(() => {
     if (!pendingSecretAsk(snapshot)) return;
@@ -242,7 +274,10 @@ export function CallView({
           </div>
           <DialogTitle className="text-[22px]">{botName}</DialogTitle>
         </DialogHeader>
-        <div className="mt-1 text-[15px] text-foreground/75">
+        <div className="mx-auto my-5" data-voice-phase={phase}>
+          <FluidOrb size={240} color={botColor} aria-hidden="true" />
+        </div>
+        <div role="status" className="mt-1 text-[15px] text-foreground/75">
           {phase === "listening" ? (
             <Trans>Listening…</Trans>
           ) : phase === "speaking" ? (
@@ -295,4 +330,10 @@ function speakableProgress(text: string): string | null {
   const trimmed = text.trim();
   if (!trimmed || trimmed.length > 80) return null;
   return trimmed;
+}
+
+function hasWorkingRun(snapshot: ThreadSnapshot | null) {
+  return [snapshot?.run, ...(snapshot?.activeRuns ?? [])].some(
+    (run) => run && ["running", "queued", "leased"].includes(run.status),
+  );
 }

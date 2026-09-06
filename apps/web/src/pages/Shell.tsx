@@ -2663,7 +2663,7 @@ export function ShellPage() {
         </div>
         <InputGroup
           data-testid="sidebar-search"
-          className={`mx-4 mb-3 w-auto rounded-full bg-card ${mobileSearchOpen || query ? "" : "hidden md:flex"}`}
+          className={`mx-4 md:mx-2.5 mb-3 w-auto rounded-full bg-card ${mobileSearchOpen || query ? "" : "hidden md:flex"}`}
         >
           <InputGroupAddon>
             <Search size={15} aria-hidden="true" />
@@ -2913,7 +2913,11 @@ export function ShellPage() {
                                 ) : null}
                               </span>
                               <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] text-muted-foreground/80">
-                                {!pinnedShelf ? (
+                                {desktopLayout &&
+                                item.kind === "bot" &&
+                                item.chat.status !== "idle" ? (
+                                  item.chat.status
+                                ) : !pinnedShelf ? (
                                   <time dateTime={item.chat.updatedAt}>
                                     {new Intl.DateTimeFormat(
                                       undefined,
@@ -4058,9 +4062,24 @@ export function ShellPage() {
           <CallView
             botId={active.id}
             botName={active.name}
+            botColor={active.color}
             transcribe={Boolean(voiceStatus?.transcribe)}
             snapshot={activeSnapshot}
-            onSend={sendMessage}
+            onSend={async (text) => {
+              const botId = active.id;
+              const sent = await rpc.threads.send({ botId, text, clientNonce: newClientNonce() });
+              if (activeBotId.current === botId) {
+                updateSnapshot((current) =>
+                  applyThreadSendReceipt(
+                    current,
+                    { botId, runId: sent.runId, taskId: sent.taskId },
+                    terminalRunReceipts.current,
+                  ),
+                );
+              }
+              await refreshThreadRef.current(botId);
+              void refreshBots().catch(() => undefined);
+            }}
             onFollowUp={followUpMessage}
             onAnswer={answerMessage}
             onClose={() => setCallOpen(false)}
