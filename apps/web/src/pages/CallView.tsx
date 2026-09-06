@@ -1,6 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ThreadMessage, ThreadSnapshot } from "@rakazo/contracts";
-import { isSecretAskBlock, narrateTool, speechFromBlocks, spokenDecision } from "@rakazo/core";
+import { isSecretAskBlock, speechFromBlocks, spokenDecision } from "@rakazo/core";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@rakazo/ui-web";
 import FluidOrb from "@rakazo/ui-web/components/ui/fluid-orb";
 import { useEffect, useRef, useState } from "react";
@@ -41,7 +41,6 @@ export function CallView({
   const [error, setError] = useState<string | null>(null);
   const phaseRef = useRef<Phase>("listening");
   const spokenMessage = useRef<string | null>(null);
-  const narrated = useRef(new Set<string>());
   const closing = useRef(false);
   const snapshotRef = useRef(snapshot);
   snapshotRef.current = snapshot;
@@ -134,17 +133,6 @@ export function CallView({
     spokenMessage.current =
       [...(snapshotRef.current?.messages ?? [])].reverse().find((message) => message.role === "bot")
         ?.id ?? null;
-    narrated.current = new Set(
-      (snapshotRef.current?.messages ?? []).flatMap((message) =>
-        message.blocks.flatMap((block) =>
-          block.kind === "progress" || block.kind === "subagent"
-            ? [
-                `${message.id}:${block.kind}:${block.kind === "subagent" ? block.status : block.text}`,
-              ]
-            : [],
-        ),
-      ),
-    );
     let previousSpeechStatus = speaker.state.status;
     const unsubSpeech = speaker.subscribe((state) => {
       if (state.status === "speaking") {
@@ -163,6 +151,7 @@ export function CallView({
       if (state.status === "listening") {
         setHeard(pendingSecretAsk(snapshotRef.current) ? "" : state.transcript);
       }
+      if (state.status === "transcribing") setCallPhase("thinking");
       if (state.error) setError(state.error);
     });
     void listen();
@@ -196,7 +185,9 @@ export function CallView({
     const messages = snapshot?.messages ?? [];
     const lastBot = [...messages].reverse().find((message) => message.role === "bot");
     if (lastBot && lastBot.id !== spokenMessage.current) {
-      const text = speechFromBlocks(lastBot.blocks);
+      const text = speechFromBlocks(
+        lastBot.blocks.filter((block) => block.kind !== "progress" && block.kind !== "meta"),
+      );
       const ask = lastBot.blocks.find(
         (block) => block.kind === "ask" && block.status !== "answered",
       );
@@ -222,30 +213,6 @@ export function CallView({
         spokenMessage.current = lastBot.id;
         void listen();
         return;
-      }
-    }
-    if (hasWorkingRun(snapshot)) {
-      const phrases: string[] = [];
-      let lastKey = "";
-      for (const message of messages) {
-        for (const block of message.blocks) {
-          if (block.kind !== "progress" && block.kind !== "subagent") continue;
-          const key = `${message.id}:${block.kind}:${block.kind === "subagent" ? block.status : block.text}`;
-          if (narrated.current.has(key)) continue;
-          const phrase =
-            block.kind === "subagent"
-              ? narrateTool("run_subagent")
-              : (narrateTool(block.text.split(/\s+/)[0] ?? "") ?? speakableProgress(block.text));
-          if (!phrase) continue;
-          narrated.current.add(key);
-          phrases.push(phrase);
-          lastKey = key;
-        }
-      }
-      if (phrases.length) {
-        dictation.stop("cancel");
-        setCallPhase("thinking");
-        void speaker.speak(phrases.join(". "), { botId, messageId: `narrate:${lastKey}` });
       }
     }
   }, [snapshot, botId, speechRevision]);
@@ -298,7 +265,7 @@ export function CallView({
             <Trans>Hang up</Trans>
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground/80">
+        <p className="hidden text-xs text-muted-foreground/80 sm:block">
           <Trans>Space interrupts · Esc hangs up</Trans>
         </p>
       </DialogContent>
@@ -324,12 +291,6 @@ function latestAskId(snapshot: ThreadSnapshot | null): string | null {
     }
   }
   return null;
-}
-
-function speakableProgress(text: string): string | null {
-  const trimmed = text.trim();
-  if (!trimmed || trimmed.length > 80) return null;
-  return trimmed;
 }
 
 function hasWorkingRun(snapshot: ThreadSnapshot | null) {

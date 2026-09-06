@@ -75,11 +75,20 @@ test("a spoken request executes computer tools and reads the result", async ({
       { timeout: 60_000 },
     )
     .toBe(true);
+  const completed = await rpc<ThreadSnapshot>(page, "threads/get", { botId });
+  const steps = completed.messages
+    .at(-1)
+    ?.blocks.flatMap((block) =>
+      block.kind === "steps" ? block.steps.map((step) => step.label) : [],
+    );
+  expect(steps).toEqual(expect.arrayContaining(["Computer observe", "Computer act"]));
   await expect
     .poll(() => spoken.some((text) => text.includes("using my screen now")), { timeout: 30_000 })
     .toBe(true);
   await expect(call.getByRole("status")).toHaveText("Listening…", { timeout: 30_000 });
   await page.getByRole("button", { name: "Hang up", exact: true }).click();
   await expect(call).toHaveCount(0);
-  await expect(page.getByText("using my screen now.", { exact: true })).toBeVisible();
+  await expect(
+    page.getByTestId("transcript").getByText("using my screen now.", { exact: true }),
+  ).toBeVisible();
 });
