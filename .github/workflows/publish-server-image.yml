@@ -103,6 +103,15 @@ jobs:
           mkdir -p desktop-screenshots
           docker cp desktop-smoke:/tmp/cadre-desktop.png desktop-screenshots/desktop.png
           docker cp desktop-smoke:/usr/share/cadre/cursor.svg desktop-screenshots/cursor.svg
+          # Catch distribution wallpaper overrides, even when desktop startup succeeds.
+          docker exec desktop-smoke python3 -c '
+          import subprocess
+          def metric(crop, expression):
+              return float(subprocess.check_output(["convert", "/tmp/cadre-desktop.png", "-crop", crop, "-format", expression, "info:"]))
+          assert metric("1280x300+0+0", "%[fx:mean]") < 0.15, "Expected charcoal wallpaper"
+          assert metric("400x200+440+300", "%[fx:maxima]") > 0.4, "Expected visible Cadre wordmark"
+          '
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: matrix.name == 'computer'
         with:
