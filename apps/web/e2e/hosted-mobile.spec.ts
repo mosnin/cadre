@@ -49,6 +49,30 @@ for (const width of [320, 375, 768]) {
     await expect(page.getByPlaceholder("Message New Bot")).toHaveValue("");
     // Creating a worker closes the mobile drawer and leaves its composer usable.
     if (width < 768) await expect(page.locator("aside").first()).toHaveAttribute("inert", "");
+    await page
+      .getByRole("combobox", { name: "Message New Bot" })
+      .fill("Keep working until I stop you");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    const stop = page.getByRole("button", { name: "Stop", exact: true });
+    await expect(stop).toBeVisible();
+    const stopBox = await stop.boundingBox();
+    expect(stopBox!.x + stopBox!.width).toBeLessThanOrEqual(width);
+    const inputBox = await page.getByRole("combobox", { name: "Message New Bot" }).boundingBox();
+    const sendBox = await page.getByRole("button", { name: "Send", exact: true }).boundingBox();
+    const overlapX = Math.max(
+      0,
+      Math.min(inputBox!.x + inputBox!.width, sendBox!.x + sendBox!.width) -
+        Math.max(inputBox!.x, sendBox!.x),
+    );
+    const overlapY = Math.max(
+      0,
+      Math.min(inputBox!.y + inputBox!.height, sendBox!.y + sendBox!.height) -
+        Math.max(inputBox!.y, sendBox!.y),
+    );
+    expect(overlapX * overlapY).toBe(0);
+    await captureScreenshot(page, testInfo, `hosted-running-${width}`);
+    await stop.click();
+    await expect(stop).toBeHidden();
     await page.locator("main").getByRole("button", { name: "New Bot", exact: true }).click();
     await expect(page.getByTestId("bot-settings")).toBeVisible();
     await captureScreenshot(page, testInfo, `hosted-settings-${width}`);

@@ -4837,7 +4837,7 @@ const Composer = memo(function Composer({
       ) : null}
       <div
         data-testid="composer-bar"
-        className="flex items-center gap-3.5 rounded-full border border-border bg-background py-[9px] pe-2.5 ps-3"
+        className="flex flex-wrap items-center gap-2 rounded-3xl border border-border bg-background py-[9px] pe-2.5 ps-3 sm:flex-nowrap sm:gap-3.5 sm:rounded-full"
       >
         <input
           ref={fileInputRef}
@@ -4883,7 +4883,7 @@ const Composer = memo(function Composer({
         >
           <Mic size={16} strokeWidth={1.8} />
         </Button>
-        <div className="flex min-w-0 flex-1 flex-wrap items-end gap-1.5">
+        <div className="order-first flex min-w-0 flex-1 basis-full flex-wrap items-end gap-1.5 px-2 sm:order-none sm:basis-auto sm:px-0">
           {selectedSkill ? (
             <span
               data-testid="skill-chip"
@@ -4993,7 +4993,7 @@ const Composer = memo(function Composer({
             autoComplete="off"
             dir="auto"
             rows={1}
-            className="max-h-32 min-h-[24px] min-w-[8rem] flex-1 resize-none overflow-y-auto bg-transparent py-0.5 text-[15.5px] leading-6 text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-40"
+            className="max-h-32 min-h-[24px] min-w-0 sm:min-w-[8rem] flex-1 resize-none overflow-y-auto bg-transparent py-0.5 text-base sm:text-[15.5px] leading-6 text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-40"
           />
         </div>
         {running ? (
@@ -5003,7 +5003,7 @@ const Composer = memo(function Composer({
               aria-label={t`Send`}
               disabled={sending || !canSend || disabled}
               onClick={send}
-              className="size-10 rounded-full"
+              className="ms-auto size-10 rounded-full"
             >
               <ArrowUp size={18} strokeWidth={2} />
             </Button>
@@ -5024,7 +5024,7 @@ const Composer = memo(function Composer({
             aria-label={t`Send`}
             disabled={sending || !canSend || disabled}
             onClick={send}
-            className="size-9 rounded-full"
+            className="ms-auto size-9 rounded-full"
           >
             <ArrowUp size={18} strokeWidth={2} />
           </Button>
