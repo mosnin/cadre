@@ -67,7 +67,7 @@ describe("window chrome", () => {
       'className="app-drag flex items-center justify-between border-b border-sidebar-border',
     );
     const header = shell.slice(
-      shell.indexOf('className="app-drag flex items-center justify-between'),
+      shell.indexOf("aria-hidden={mobileSidebarOpen"),
       shell.indexOf("<Transcript"),
     );
     const controls = header.match(/<button\b[\s\S]*?<\/button>/g) ?? [];
