@@ -2,7 +2,7 @@
 set -eu
 assets=/usr/share/cadre
 cursors=/usr/share/icons/Cadre/cursors
-mkdir -p "$cursors"
+install -d -m 755 "$assets" /usr/share/icons/Cadre "$cursors"
 convert -background none "$assets/wallpaper.svg" "$assets/wallpaper.png"
 for size in 24 32 48 64; do
   convert -background none "$assets/cursor.svg" -resize "${size}x${size}" "/tmp/cadre-cursor-$size.png"
@@ -13,4 +13,5 @@ for name in default arrow top_left_arrow; do
   ln -sf left_ptr "$cursors/$name"
 done
 printf '[Icon Theme]\nName=Cadre\nInherits=Adwaita\n' > /usr/share/icons/Cadre/index.theme
+chmod 644 "$assets/wallpaper.png" "$cursors/left_ptr" /usr/share/icons/Cadre/index.theme
 rm /tmp/cadre-cursor-*.png /tmp/cadre-cursor.conf
