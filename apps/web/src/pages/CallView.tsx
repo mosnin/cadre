@@ -114,7 +114,7 @@ export function CallView({
       if (askMessage) {
         const decision = spokenDecision(text);
         await callbacksRef.current.onAnswer(askMessage, decision ?? text);
-      } else if (current?.run && ["running", "queued", "leased"].includes(current.run.status)) {
+      } else if (hasWorkingRun(current)) {
         await callbacksRef.current.onFollowUp(text);
       } else {
         await callbacksRef.current.onSend(text);

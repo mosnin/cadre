@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { ThreadSnapshot } from "@rakazo/contracts";
 import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
 
 test("a spoken request executes computer tools and reads the result", async ({
@@ -61,14 +62,19 @@ test("a spoken request executes computer tools and reads the result", async ({
   await expect
     .poll(
       async () => {
-        const snapshot = await rpc<{ run: { status: string } | null }>(page, "threads/get", {
-          botId,
-        });
-        return snapshot.run?.status;
+        const snapshot = await rpc<ThreadSnapshot>(page, "threads/get", { botId });
+        const message = snapshot.messages.at(-1);
+        return (
+          !snapshot.run &&
+          message?.role === "bot" &&
+          message.blocks.some(
+            (block) => block.kind === "text" && block.text.includes("using my screen now"),
+          )
+        );
       },
       { timeout: 60_000 },
     )
-    .toBe("completed");
+    .toBe(true);
   await expect
     .poll(() => spoken.some((text) => text.includes("using my screen now")), { timeout: 30_000 })
     .toBe(true);
