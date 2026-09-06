@@ -60,7 +60,8 @@ WORKDIR /home/rakazo
 COPY --chmod=644 wallpaper.svg cursor.svg /usr/share/cadre/
 COPY --chmod=755 build-appearance.sh /usr/local/bin/cadre-build-appearance
 COPY --chmod=755 desktop-appearance.sh /usr/local/bin/cadre-desktop-appearance
-RUN cadre-build-appearance
+RUN cadre-build-appearance \
+  && ln -sfn /usr/local/bin/cadre-desktop-appearance /usr/bin/fbsetbg
 COPY --chmod=755 start.sh /usr/local/bin/rakazo-computer
 COPY --chmod=755 control.py /usr/local/bin/rakazo-computer-control
 COPY --from=capture-builder /build/librakazo-xcapture.so /usr/local/lib/librakazo-xcapture.so
