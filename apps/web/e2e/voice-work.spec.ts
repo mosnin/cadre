@@ -76,12 +76,49 @@ test("a spoken request executes computer tools and reads the result", async ({
     )
     .toBe(true);
   const completed = await rpc<ThreadSnapshot>(page, "threads/get", { botId });
-  const steps = completed.messages
-    .at(-1)
-    ?.blocks.flatMap((block) =>
-      block.kind === "steps" ? block.steps.map((step) => step.label) : [],
-    );
-  expect(steps).toEqual(expect.arrayContaining(["Computer observe", "Computer act"]));
+  const tools = await page.evaluate(
+    async ({ botId, runId }) => {
+      const abort = new AbortController();
+      const deadline = setTimeout(() => abort.abort(), 15_000);
+      const names: string[] = [];
+      try {
+        const response = await fetch("/rpc/threads/subscribe", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ json: { botId, cursor: -1 } }),
+          signal: abort.signal,
+        });
+        if (!response.ok || !response.body) throw new Error("Thread event replay unavailable");
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let pending = "";
+        while (names.length < 2) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          pending += decoder.decode(chunk.value, { stream: true });
+          const lines = pending.split("\n");
+          pending = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const event = JSON.parse(line.slice(6)).json;
+            if (
+              event.runId === runId &&
+              event.type === "agent.tool.called" &&
+              ["computer_observe", "computer_act"].includes(event.payload.name)
+            ) {
+              if (!names.includes(event.payload.name)) names.push(event.payload.name);
+            }
+          }
+        }
+        return names;
+      } finally {
+        clearTimeout(deadline);
+        abort.abort();
+      }
+    },
+    { botId, runId: completed.messages.at(-1)?.runId },
+  );
+  expect(tools).toEqual(expect.arrayContaining(["computer_observe", "computer_act"]));
   await expect
     .poll(() => spoken.some((text) => text.includes("using my screen now")), { timeout: 30_000 })
     .toBe(true);
