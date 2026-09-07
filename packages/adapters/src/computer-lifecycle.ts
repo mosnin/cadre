@@ -96,7 +96,12 @@ export async function provisionComputer(
       {
         botId: existing.homeKey,
         homePath,
-        providerRef: existing.providerRef ?? undefined,
+        providerRef:
+          deps.sandbox.describe?.().capabilities.persistentRunning &&
+          existing.kind !== deps.sandbox.describe().id &&
+          ["stopped", "suspended"].includes(existing.state)
+            ? undefined
+            : (existing.providerRef ?? undefined),
         providerKind: existing.kind as ComputerRef["kind"],
         workspaceSnapshot: await cachedWorkspaceSnapshot(
           deps.home,
