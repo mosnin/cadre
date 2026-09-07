@@ -137,3 +137,32 @@ it("waits for the provider backup to contain durable data before reporting a sna
     createdAt: "2026-09-06T00:00:00Z",
   });
 });
+
+it("verifies ownership and the durable home mount before skipping a stop checkpoint", async () => {
+  for (const state of ["started", "stopped"]) {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(json({ ...machine, state }));
+    await expect(
+      new FlySandboxProvider(options, request).preservesWorkspaceOnStop(ref, context),
+    ).resolves.toBe(true);
+    expect(request).toHaveBeenCalledOnce();
+  }
+  const missingMount = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(json({ ...machine, config: { ...machine.config, mounts: [] } }));
+  await expect(
+    new FlySandboxProvider(options, missingMount).preservesWorkspaceOnStop(ref, context),
+  ).resolves.toBe(false);
+  const wrongOwner = vi.fn<typeof fetch>().mockResolvedValue(json(machine));
+  await expect(
+    new FlySandboxProvider(options, wrongOwner).preservesWorkspaceOnStop(ref, {
+      ...context,
+      spaceId: "other",
+    }),
+  ).rejects.toThrow("Computer access denied");
+});
+
+it("accepts a repeated stop without contacting an already stopped desktop", async () => {
+  const request = vi.fn<typeof fetch>().mockResolvedValue(json({ ...machine, state: "stopped" }));
+  await new FlySandboxProvider(options, request).stop(ref, context);
+  expect(request).toHaveBeenCalledOnce();
+});

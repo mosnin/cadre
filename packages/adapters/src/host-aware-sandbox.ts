@@ -180,6 +180,12 @@ export class HostAwareSandbox implements SandboxProvider {
     );
   }
 
+  preservesWorkspaceOnStop(computer: ComputerRef, context: AdapterContext) {
+    return (
+      this.route(computer).preservesWorkspaceOnStop?.(computer, context) ?? Promise.resolve(false)
+    );
+  }
+
   stop(computer: ComputerRef, context: AdapterContext) {
     return this.route(computer).stop(computer, context);
   }

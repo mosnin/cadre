@@ -117,3 +117,18 @@ it("keeps live legacy machines on their original provider until their checkpoint
   await sandbox.provision({ botId: "home", homePath: "/tmp/home", providerKind: "modal" }, ctx);
   expect(newProvision).toHaveBeenCalledOnce();
 });
+
+it("uses the existing computer provider's stop durability during migration", async () => {
+  const primary = new FakeSandboxProvider();
+  const legacy = new FakeSandboxProvider();
+  vi.spyOn(primary, "describe").mockReturnValue({ ...primary.describe(), id: "fly" });
+  vi.spyOn(legacy, "describe").mockReturnValue({ ...legacy.describe(), id: "modal" });
+  const durable = Object.assign(primary, {
+    preservesWorkspaceOnStop: vi.fn().mockResolvedValue(true),
+  });
+  const sandbox = new HostAwareSandbox(durable, legacy, async () => false);
+  const ref = { id: "test", providerRef: "test", botId: "home", kind: "modal" as const };
+  await expect(sandbox.preservesWorkspaceOnStop(ref, ctx)).resolves.toBe(false);
+  expect(durable.preservesWorkspaceOnStop).not.toHaveBeenCalled();
+  await expect(sandbox.preservesWorkspaceOnStop({ ...ref, kind: "fly" }, ctx)).resolves.toBe(true);
+});

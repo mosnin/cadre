@@ -27,6 +27,7 @@ import {
   type ConnectorRegistry,
   cancelComputerRunWork,
   checkpointAndRecordComputerWorkspace,
+  checkpointBeforeComputerStop,
   clearInactiveUserComputerControl,
   computerSupportsUpdate,
   createVoiceProvider,
@@ -1416,7 +1417,7 @@ export function createRouter(deps: RouterDeps) {
             const ctx = computerContext(context.actor, bot.id, "stop");
             const ref = toComputerRef(bot.computer);
             try {
-              await checkpointAndRecordComputerWorkspace(deps, bot.computer, ref, ctx);
+              await checkpointBeforeComputerStop(deps, bot.computer, ref, ctx);
               await deps.sandbox.stop(ref, ctx);
             } catch (error) {
               if (!isSandboxGoneError(error)) throw error;

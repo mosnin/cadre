@@ -281,6 +281,13 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
     throw new Error("Computer backup is still being prepared");
   }
 
+  async preservesWorkspaceOnStop(computer: ComputerRef, ctx: AdapterContext) {
+    const machine = await this.owned(computer, ctx);
+    return Boolean(
+      machine.config.mounts?.some((mount) => mount.path === "/home/rakazo" && mount.volume),
+    );
+  }
+
   async stop(computer: ComputerRef, ctx: AdapterContext) {
     const machine = await this.owned(computer, ctx);
     if (machine.state !== "stopped") {
