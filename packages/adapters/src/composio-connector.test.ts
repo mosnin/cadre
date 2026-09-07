@@ -363,8 +363,10 @@ describe("composio tool mapping", () => {
     ).toEqual({ connectIds: ["row-gh"], revokeIds: [] });
   });
 
-  it("only fetches live Composio slugs when a Rakazo row is still pending or errored", () => {
-    expect(needsLivePluginSync([{ status: "connected" }, { status: "revoked" }])).toBe(false);
+  it("rechecks disconnected rows so a late OAuth completion can recover", () => {
+    expect(needsLivePluginSync([{ status: "connected" }])).toBe(false);
+    expect(needsLivePluginSync([])).toBe(false);
+    expect(needsLivePluginSync([{ status: "revoked" }])).toBe(true);
     expect(needsLivePluginSync([{ status: "pending" }])).toBe(true);
     expect(needsLivePluginSync([{ status: "error" }])).toBe(true);
   });
@@ -376,6 +378,20 @@ describe("composio tool mapping", () => {
         [],
       ),
     ).toEqual([{ provider: "github", displayName: "GitHub" }]);
+  });
+
+  it("keeps pending OAuth recoverable until the provider confirms the connection", () => {
+    const rows = [{ id: "row-gh", provider: "github", status: "pending", displayName: "GitHub" }];
+    expect(planLiveConnectionSync(rows, [])).toEqual({ connectIds: [], revokeIds: [] });
+    expect(mergeConnectedPlugins(rows, [])).toEqual([]);
+    expect(needsLivePluginSync(rows)).toBe(true);
+    expect(planLiveConnectionSync(rows, ["GITHUB"])).toEqual({
+      connectIds: ["row-gh"],
+      revokeIds: [],
+    });
+    expect(mergeConnectedPlugins(rows, ["GITHUB"])).toEqual([
+      { provider: "github", displayName: "GitHub" },
+    ]);
   });
 
   it("plans DB sync when Composio is connected but Rakazo is still pending", () => {
@@ -418,7 +434,7 @@ describe("composio tool mapping", () => {
     });
   });
 
-  it("revokes abandoned pending or error rows after a successful live listing", () => {
+  it("leaves unfinished OAuth attempts intact when another provider connects", () => {
     expect(
       planLiveConnectionSync(
         [
@@ -431,7 +447,7 @@ describe("composio tool mapping", () => {
       ),
     ).toEqual({
       connectIds: ["row-gmail"],
-      revokeIds: ["row-dup", "row-err"],
+      revokeIds: ["row-dup"],
     });
   });
 

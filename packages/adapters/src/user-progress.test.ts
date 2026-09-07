@@ -2,6 +2,7 @@ import type { MessageBlock } from "@rakazo/contracts";
 import { isToolActivityBlock } from "@rakazo/core";
 import { describe, expect, it } from "vitest";
 import {
+  alreadyPublishedProgress,
   botMessageOutcomeFromMidTurn,
   clampUserProgressMessage,
   extractNarrationText,
@@ -40,6 +41,25 @@ describe("extractNarrationText", () => {
 });
 
 describe("finalBlocksAfterMidTurnProgress", () => {
+  it("does not repeat an answer already delivered through message_user", () => {
+    const blocks: MessageBlock[] = [
+      { kind: "steps", steps: [{ label: "Message user", count: 1 }] },
+      { kind: "text", text: "The report is ready." },
+    ];
+    expect(finalBlocksAfterMidTurnProgress(blocks, true, ["The report is ready."])).toEqual([]);
+    expect(finalBlocksAfterMidTurnProgress(blocks, true, ["Preparing the report."])).toEqual(
+      blocks,
+    );
+  });
+
+  it("preserves nontext content when removing repeated final text", () => {
+    const blocks: MessageBlock[] = [
+      { kind: "text", text: "Done." },
+      { kind: "meta", text: "A separate receipt" },
+    ];
+    expect(finalBlocksAfterMidTurnProgress(blocks, true, ["Done."])).toEqual([blocks[1]]);
+  });
+
   it("drops a hollow final message that is only hidden tool activity", () => {
     const steps: MessageBlock = { kind: "steps", steps: [{ label: "Shell", count: 2 }] };
     expect(finalBlocksAfterMidTurnProgress([steps], true)).toEqual([]);
@@ -53,6 +73,17 @@ describe("finalBlocksAfterMidTurnProgress", () => {
     ];
     expect(finalBlocksAfterMidTurnProgress(blocks, true)).toEqual(blocks);
     expect(isToolActivityBlock(blocks[0]!)).toBe(true);
+  });
+});
+
+describe("alreadyPublishedProgress", () => {
+  it("recognizes repeats across tool calls and restored progress without hiding new updates", () => {
+    expect(alreadyPublishedProgress(" Checking tasks. ", ["Checking tasks."])).toBe(true);
+    expect(alreadyPublishedProgress("Checking tasks. Two are blocked.", ["Checking tasks."])).toBe(
+      false,
+    );
+    expect(alreadyPublishedProgress("", [""])).toBe(false);
+    expect(alreadyPublishedProgress("Same words in a new run.", [])).toBe(false);
   });
 });
 

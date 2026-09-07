@@ -140,6 +140,46 @@ describeWithDatabase("Composio catalog reconciliation", () => {
     await expect(statuses([pending.id])).resolves.toEqual([{ id: pending.id, status: "pending" }]);
   });
 
+  it("preserves in-flight OAuth during chat and recovers a late connection without reopening settings", async () => {
+    const cookie = await signup(app, `late-oauth-${stamp}@rakazo.test`, "Late OAuth");
+    const actor = await rpc<Actor>(app, cookie, "me");
+    const bot = await rpc<{ id: string }>(app, cookie, "bots/create", {
+      name: "Connection check",
+      title: "",
+      description: "",
+      notifyOnFinish: false,
+    });
+    const pending = await createConnection(actor, "GMAIL");
+    async function chat() {
+      const sent = await rpc<{ runId: string }>(app, cookie, "threads/send", {
+        botId: bot.id,
+        text: "say hello",
+      });
+      await expect
+        .poll(
+          async () =>
+            (await handles.prisma.run.findUniqueOrThrow({ where: { id: sent.runId } })).status,
+          { timeout: 15_000 },
+        )
+        .toBe("completed");
+    }
+    await chat();
+    await expect(statuses([pending.id])).resolves.toEqual([{ id: pending.id, status: "pending" }]);
+    // Simulate a row incorrectly revoked by an older executor, then a completed provider OAuth flow.
+    await handles.prisma.connection.update({
+      where: { id: pending.id },
+      data: { status: "revoked" },
+    });
+    await connectRemote(composio, actor, "GMAIL");
+    await chat();
+    await expect(statuses([pending.id])).resolves.toEqual([
+      { id: pending.id, status: "connected" },
+    ]);
+    await rpc(app, cookie, "connections/revoke", { connectionId: pending.id });
+    await chat();
+    await expect(statuses([pending.id])).resolves.toEqual([{ id: pending.id, status: "revoked" }]);
+  });
+
   it("revokes duplicate rows for the same provider without touching another provider", async () => {
     const cookie = await signup(
       app,

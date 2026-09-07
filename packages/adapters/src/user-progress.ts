@@ -53,10 +53,24 @@ export function extractNarrationText(
 export function finalBlocksAfterMidTurnProgress(
   blocks: MessageBlock[],
   publishedMidTurn: boolean,
+  priorTexts: readonly string[] = [],
 ): MessageBlock[] {
   if (!publishedMidTurn || blocks.length === 0) return blocks;
-  if (blocks.every((block) => isToolActivityBlock(block))) return [];
-  return blocks;
+  const text = blocks
+    .filter((block): block is Extract<MessageBlock, { kind: "text" }> => block.kind === "text")
+    .map((block) => block.text)
+    .join("");
+  const remaining = alreadyPublishedProgress(text, priorTexts)
+    ? blocks.filter((block) => block.kind !== "text")
+    : blocks;
+  if (remaining.every((block) => isToolActivityBlock(block))) return [];
+  return remaining;
+}
+
+/** Compare only exact text within this run; new information must still be delivered. */
+export function alreadyPublishedProgress(text: string, priorTexts: readonly string[]): boolean {
+  const normalized = text.trim();
+  return normalized.length > 0 && priorTexts.some((prior) => prior.trim() === normalized);
 }
 
 /** Outcome to return for a bot_message run after mid-turn progress posts. */
