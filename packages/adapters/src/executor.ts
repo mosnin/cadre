@@ -244,6 +244,7 @@ import {
 import { advanceToolCallLoopGuard } from "./tool-loop.js";
 import { textContentArg } from "./tool-text.js";
 import {
+  alreadyPublishedProgress,
   botMessageOutcomeFromMidTurn,
   clampUserProgressMessage,
   extractNarrationText,
@@ -1358,6 +1359,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           assembled = "";
           hasStreamedText = false;
           pendingProgress = "";
+          if (alreadyPublishedProgress(narration, midTurnUserTexts)) return;
           await publishMessage(
             deps,
             run,
@@ -2734,6 +2736,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             if (!text) return finish({ error: "message is required" });
             await flushProgress();
             await publishMidTurnNarration();
+            if (alreadyPublishedProgress(text, midTurnUserTexts)) return finish({ ok: true });
             await publishMessage(
               deps,
               run,
@@ -3416,6 +3419,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             : finalBlocksAfterMidTurnProgress(
                 redactBlocks(messageSegments, runSecrets),
                 publishedMidTurnUserMessage,
+                midTurnUserTexts,
               );
           const text = handedOff
             ? ""

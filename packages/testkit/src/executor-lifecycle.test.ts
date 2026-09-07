@@ -1,9 +1,10 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { ScriptedAgentRuntime } from "@rakazo/adapters";
 import { approvalEffectKey } from "@rakazo/core/node/approval-effect-key";
 import { createThreadEvents } from "@rakazo/db";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 process.env.WAKEUP_DRIVER = "memory";
 process.env.SANDBOX_PROVIDER = "fake";
@@ -34,6 +35,46 @@ describeIntegration("run executor lifecycle", () => {
     await handles?.stop();
     rmSync(dataDir, { recursive: true, force: true });
   });
+
+  it.each([false, true])(
+    "publishes repeated progress once and preserves a distinct final: %s",
+    async (distinctFinal) => {
+      const seeded = await seedRun(`duplicate-progress-${distinctFinal}`, "Prepare a report");
+      const progress = "The report is ready.";
+      const final = distinctFinal ? "The report contains three findings." : progress;
+      const runtime = vi
+        .spyOn(ScriptedAgentRuntime.prototype, "run")
+        .mockImplementation(async function* (request) {
+          for (let index = 0; index < 2; index++) {
+            yield {
+              type: "tool",
+              name: "message_user",
+              args: { message: progress },
+              executionId: `${request.runId}:progress:${index}`,
+            };
+          }
+          yield { type: "text", text: final };
+          yield { type: "done", text: final };
+        });
+      try {
+        await handles.executor.continueRun(seeded.run.id, "progress-worker");
+        const run = await handles.prisma.run.findUniqueOrThrow({ where: { id: seeded.run.id } });
+        expect(run.status).toBe("completed");
+        const messages = await handles.prisma.message.findMany({
+          where: { runId: seeded.run.id, role: "bot" },
+          orderBy: { seq: "asc" },
+        });
+        const texts = messages.flatMap((message) =>
+          (message.blocks as Array<{ kind: string; text?: string }>)
+            .filter((block) => block.kind === "text")
+            .map((block) => block.text),
+        );
+        expect(texts).toEqual(distinctFinal ? [progress, final] : [progress]);
+      } finally {
+        runtime.mockRestore();
+      }
+    },
+  );
 
   it("allows only one worker to claim a queued run", async () => {
     const seeded = await seedRun("concurrent", "write a file that says one-claim");
