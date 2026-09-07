@@ -32,6 +32,7 @@ def fence(value):
     except (ValueError, IndexError): return 0
 
 def demote():
+    os.umask(0o077)
     os.setgroups([]); os.setgid(1000); os.setuid(1000)
 
 def child_env(index, key):

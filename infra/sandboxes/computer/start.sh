@@ -24,7 +24,7 @@ fi
 
 rm -f "/tmp/.X$DISPLAY_NUMBER-lock" "/tmp/.X11-unix/X$DISPLAY_NUMBER"
 
-Xvfb "$DISPLAY" -screen 0 1280x800x24 -ac +extension RANDR +render -noreset >/tmp/rakazo/xvfb.log 2>&1 &
+Xvfb "$DISPLAY" -nolisten tcp -screen 0 1280x800x24 -ac +extension RANDR +render -noreset >/tmp/rakazo/xvfb.log 2>&1 &
 XVFB_PID=$!
 
 ready=0

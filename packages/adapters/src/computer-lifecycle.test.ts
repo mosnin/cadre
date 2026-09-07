@@ -33,6 +33,30 @@ const context = {
 } satisfies AdapterContext;
 
 describe("computer provisioning", () => {
+  it("does not let a queued warmup override a newer Stop", async () => {
+    const provision = vi.fn();
+    const updateMany = vi.fn();
+    const deps = {
+      prisma: {
+        computer: {
+          findUniqueOrThrow: vi.fn().mockResolvedValue({
+            id: "computer",
+            state: "stopped",
+            updatedAt: new Date("2026-09-06T00:01:00Z"),
+            controlLeaseId: null,
+          }),
+          updateMany,
+        },
+      },
+      sandbox: { provision },
+    } as unknown as Parameters<typeof provisionComputer>[0];
+    await expect(
+      provisionComputer(deps, "computer", context, "none", new Date("2026-09-06T00:00:00Z")),
+    ).rejects.toBeInstanceOf(ComputerBusyError);
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(provision).not.toHaveBeenCalled();
+  });
+
   it("stops a provider when archive invalidates its boot claim", async () => {
     const dataDir = await mkdtemp(path.join(tmpdir(), "rakazo-provision-race-"));
     const stop = vi.fn().mockResolvedValue(undefined);
