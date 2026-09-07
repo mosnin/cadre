@@ -140,6 +140,27 @@ describeWithDatabase("Composio catalog reconciliation", () => {
     await expect(statuses([pending.id])).resolves.toEqual([{ id: pending.id, status: "pending" }]);
   });
 
+  it("revokes duplicate rows for the same provider without touching another provider", async () => {
+    const cookie = await signup(
+      app,
+      `revoke-duplicates-${stamp}@rakazo.test`,
+      "Duplicate Connections",
+    );
+    const actor = await rpc<Actor>(app, cookie, "me");
+    const first = await createConnection(actor, "GMAIL");
+    const duplicate = await createConnection(actor, "GMAIL");
+    const other = await createConnection(actor, "SLACK");
+    await handles.prisma.connection.updateMany({
+      where: { id: { in: [first.id, duplicate.id, other.id] } },
+      data: { status: "connected" },
+    });
+    await rpc(app, cookie, "connections/revoke", { connectionId: first.id });
+    expect(
+      (await statuses([first.id, duplicate.id])).every((row) => row.status === "revoked"),
+    ).toBe(true);
+    await expect(statuses([other.id])).resolves.toEqual([{ id: other.id, status: "connected" }]);
+  });
+
   it("does not mutate local state when the provider catalog fails", async () => {
     const cookie = await signup(
       app,

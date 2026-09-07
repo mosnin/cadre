@@ -1,17 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { completeOnboarding, rpc, signup } from "./helpers";
 
-test("voice settings connect a key, speak a reply, and open a call", async ({ page }) => {
+test("voice settings configure spoken replies without call mode", async ({ page }) => {
   const stamp = Date.now();
   const userName = `Voice ${stamp}`;
   await signup(page, `voice-${stamp}@rakazo.test`, "password12", userName);
   await completeOnboarding(page);
-
-  await page.getByRole("button", { name: "Call" }).click();
-  await expect(page.getByTestId("voice-settings")).toBeVisible();
-  await expect(page.getByText("Not configured")).toBeVisible();
-  await page.getByRole("button", { name: "Close voice settings" }).click();
-  await expect(page.getByTestId("voice-settings")).toHaveCount(0);
 
   const preparedOff = await rpc<{ ready: boolean }>(page, "voice/prepare", {
     text: "Hello there.",
@@ -61,9 +55,6 @@ test("voice settings connect a key, speak a reply, and open a call", async ({ pa
   await speakReply.click();
   await replySpoken;
 
-  await page.getByRole("button", { name: "Call" }).click();
-  await expect(page.getByTestId("call-view")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Hang up" })).toBeVisible();
-  await page.getByRole("button", { name: "Hang up" }).click();
+  await expect(page.getByRole("button", { name: "Call", exact: true })).toHaveCount(0);
   await expect(page.getByTestId("call-view")).toHaveCount(0);
 });

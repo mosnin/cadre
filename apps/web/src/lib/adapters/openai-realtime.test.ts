@@ -30,13 +30,9 @@ describe("Realtime task bridge", () => {
     const { call, events } = fixture();
     await call.receive(task);
     await call.receive(task);
-    expect(events.tool).toHaveBeenCalledExactlyOnceWith(
-      "start_task",
-      {
-        request: "Create proof.txt",
-      },
-      "call-1",
-    );
+    expect(events.tool).toHaveBeenCalledExactlyOnceWith("start_task", {
+      request: "Create proof.txt",
+    });
   });
   it("does not dispatch malformed or unknown tool calls", async () => {
     const { call, events } = fixture();
@@ -61,39 +57,4 @@ describe("Realtime task bridge", () => {
     });
     expect(events.heard).not.toHaveBeenCalled();
   });
-});
-
-it("handles early function completion and the response summary only once", async () => {
-  const { call, events } = fixture();
-  await call.receive({ type: "response.created" });
-  await call.receive({ ...task.response.output[0], type: "response.function_call_arguments.done" });
-  await call.receive({ type: "response.output_item.done", item: task.response.output[0] });
-  await call.receive(task);
-  expect(events.tool).toHaveBeenCalledOnce();
-});
-it("executes parallel tool calls without serializing one behind another", async () => {
-  const { call, events } = fixture();
-  let resolve!: (value: unknown) => void;
-  events.tool.mockReturnValueOnce(
-    new Promise((r) => {
-      resolve = r;
-    }),
-  );
-  const received = call.receive({
-    type: "response.done",
-    response: {
-      output: [
-        task.response.output[0],
-        { ...task.response.output[0], call_id: "call-2", name: "list_agents", arguments: "{}" },
-      ],
-    },
-  });
-  expect(events.tool).toHaveBeenCalledTimes(2);
-  resolve({ accepted: true });
-  await received;
-});
-it("does not launch unfinished actions from a canceled response", async () => {
-  const { call, events } = fixture();
-  await call.receive({ ...task, response: { ...task.response, status: "cancelled" } });
-  expect(events.tool).not.toHaveBeenCalled();
 });

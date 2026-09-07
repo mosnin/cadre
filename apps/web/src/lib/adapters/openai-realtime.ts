@@ -1,5 +1,3 @@
-import { REALTIME_VOICE_TOOL_NAMES } from "@rakazo/core";
-import { withSpaceHeaders } from "../rpc";
 export type RealtimePhase = "connecting" | "listening" | "thinking" | "speaking";
 type ToolCall = { name: string; call_id: string; arguments: string };
 
@@ -15,8 +13,6 @@ export class OpenAIRealtimeCall {
   private responding = false;
   private requestedResponse = false;
   private inputEnabled = true;
-  private pendingTools = 0;
-  private userSpeaking = false;
   private meter: AudioContext | null = null;
   private meterTimer: ReturnType<typeof setInterval> | undefined;
   constructor(
@@ -26,7 +22,7 @@ export class OpenAIRealtimeCall {
       caption: (text: string) => void;
       error: (message: string) => void;
       level?: (level: number) => void;
-      tool: (name: string, args: unknown, callId: string) => Promise<unknown>;
+      tool: (name: string, args: unknown) => Promise<unknown>;
     },
   ) {}
 
@@ -64,9 +60,7 @@ export class OpenAIRealtimeCall {
       this.channel = channel;
       channel.onmessage = (event) => {
         try {
-          void this.receive(JSON.parse(event.data)).catch(() => {
-            if (!this.closed) this.events.error("Voice action failed. Try your request again.");
-          });
+          void this.receive(JSON.parse(event.data));
         } catch {
           this.events.error("Invalid voice event.");
         }
@@ -81,8 +75,7 @@ export class OpenAIRealtimeCall {
       await peer.setLocalDescription(offer);
       const response = await fetch("/api/voice/realtime", {
         method: "POST",
-        headers: withSpaceHeaders({ "content-type": "application/json" }),
-        credentials: "include",
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({ botId, sdp: offer.sdp }),
         signal: AbortSignal.any([this.abort.signal, AbortSignal.timeout(35_000)]),
       });
@@ -147,7 +140,7 @@ export class OpenAIRealtimeCall {
     }
   }
   private respond() {
-    if (this.responding || this.pendingTools > 0 || this.userSpeaking) {
+    if (this.responding) {
       this.requestedResponse = true;
       return;
     }
@@ -157,14 +150,11 @@ export class OpenAIRealtimeCall {
   async receive(event: Record<string, any>) {
     if (this.closed) return;
     if (event.type === "input_audio_buffer.speech_started") {
-      this.userSpeaking = true;
       this.events.heard("");
       this.events.caption("");
       this.events.phase("listening");
-    } else if (event.type === "input_audio_buffer.speech_stopped") {
-      this.userSpeaking = false;
-      this.events.phase("thinking");
-    } else if (
+    } else if (event.type === "input_audio_buffer.speech_stopped") this.events.phase("thinking");
+    else if (
       event.type === "conversation.item.input_audio_transcription.completed" &&
       this.inputEnabled
     )
@@ -180,56 +170,33 @@ export class OpenAIRealtimeCall {
       event.type === "output_audio_buffer.cleared"
     )
       this.events.phase("listening");
-    else if (event.type === "response.function_call_arguments.done") {
-      await this.callTool(event as ToolCall);
-      this.flushResponse();
-    } else if (
-      event.type === "response.output_item.done" &&
-      event.item?.type === "function_call" &&
-      event.item.status !== "incomplete"
-    ) {
-      await this.callTool(event.item);
-      this.flushResponse();
-    } else if (event.type === "response.done") {
+    else if (event.type === "response.done") {
       this.responding = false;
-      if (!["cancelled", "failed", "incomplete"].includes(event.response?.status))
-        await Promise.all(
-          (event.response?.output ?? [])
-            .filter((item: any) => item.type === "function_call")
-            .map((item: ToolCall) => this.callTool(item)),
-        );
+      for (const item of event.response?.output ?? [])
+        if (item.type === "function_call") await this.callTool(item);
       if (event.response?.status === "failed")
         this.events.error("The voice service could not respond. Reconnect to continue.");
-      this.flushResponse();
+      if (this.requestedResponse) {
+        this.requestedResponse = false;
+        this.respond();
+      }
     } else if (event.type === "error") {
-      if (
-        ["response_cancel_not_active", "conversation_already_has_active_response"].includes(
-          event.error?.code,
-        )
-      )
-        return;
+      if (event.error?.code === "response_cancel_not_active") return;
       this.responding = false;
       this.events.error(event.error?.message ?? "Voice request failed.");
-    }
-  }
-  private flushResponse() {
-    if (this.requestedResponse && !this.responding && !this.pendingTools && !this.userSpeaking) {
-      this.requestedResponse = false;
-      this.respond();
     }
   }
   private async callTool(call: ToolCall) {
     if (!call.call_id || this.handled.has(call.call_id)) return;
     this.handled.add(call.call_id);
-    this.pendingTools += 1;
     let result: unknown;
     try {
-      if (!REALTIME_VOICE_TOOL_NAMES.has(call.name)) throw new Error("Unknown voice action.");
-      result = await this.events.tool(call.name, JSON.parse(call.arguments || "{}"), call.call_id);
+      if (!["start_task", "task_status"].includes(call.name))
+        throw new Error("Unknown voice action.");
+      result = await this.events.tool(call.name, JSON.parse(call.arguments || "{}"));
     } catch (error) {
       result = { error: error instanceof Error ? error.message : "Task request failed." };
     }
-    this.pendingTools -= 1;
     if (this.closed) return;
     this.send({
       type: "conversation.item.create",
@@ -258,7 +225,6 @@ export class OpenAIRealtimeCall {
     for (const track of this.stream?.getAudioTracks() ?? []) track.enabled = enabled;
   }
   interrupt() {
-    this.requestedResponse = false;
     this.send({ type: "response.cancel" });
     this.send({ type: "output_audio_buffer.clear" });
     this.events.phase("listening");

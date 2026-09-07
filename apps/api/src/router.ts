@@ -3060,7 +3060,9 @@ export function createRouter(deps: RouterDeps) {
         }
         await deps.prisma.connection.updateMany({
           where: {
-            id: input.connectionId,
+            ...(row
+              ? { connectorId: row.connectorId, provider: row.provider }
+              : { id: input.connectionId }),
             spaceId: context.actor.spaceId,
             userId: context.actor.userId,
           },

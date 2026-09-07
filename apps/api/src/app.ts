@@ -84,7 +84,6 @@ import { createMessagingInboundHandler } from "./messaging-inbound.js";
 import { mountMessagingWebhookRoutes } from "./messaging-webhook.js";
 import { createRouter } from "./router.js";
 import { mountVoiceHttpRoutes } from "./voice.js";
-import { createVoiceToolExecutor } from "./voice-tools.js";
 import { mountWebhookHttpRoutes } from "./webhook.js";
 import { mountWorkforceRoutes } from "./workforce.js";
 
@@ -475,21 +474,17 @@ export async function createApp(
     if (matched) return c.newResponse(response.body, response);
     await next();
   });
-  mountVoiceHttpRoutes(
-    app,
-    { prisma, secrets, deploymentVoice, executeTool: createVoiceToolExecutor(router, prisma) },
-    async (c) => {
-      const session = await getSession(sessionHeaders(c.req.raw));
-      if (!session?.user) return null;
-      const actor = await requireMembership(
-        prisma,
-        session.user.id,
-        c.req.header("x-rakazo-space-id"),
-      ).catch(() => null);
-      if (actor) enrichLogContext({ "user.id": actor.userId, "space.id": actor.spaceId });
-      return actor;
-    },
-  );
+  mountVoiceHttpRoutes(app, { prisma, secrets, deploymentVoice }, async (c) => {
+    const session = await getSession(sessionHeaders(c.req.raw));
+    if (!session?.user) return null;
+    const actor = await requireMembership(
+      prisma,
+      session.user.id,
+      c.req.header("x-rakazo-space-id"),
+    ).catch(() => null);
+    if (actor) enrichLogContext({ "user.id": actor.userId, "space.id": actor.spaceId });
+    return actor;
+  });
   mountWorkforceRoutes(
     app,
     createCompanyOsWorkforce({
