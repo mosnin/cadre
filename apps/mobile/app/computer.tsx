@@ -129,11 +129,10 @@ export default function Computer() {
 
   async function openComputer() {
     if (!botId) return;
-    const needsTakeover = !(computer?.controlHolder === "user" && computer.controlBotId === botId);
     try {
       await bootComputer({
-        takeControl: needsTakeover,
-        overlay: needsTakeover || computer?.state !== "running",
+        takeControl: false,
+        overlay: computer?.state !== "running",
         force: computer?.state !== "running",
       });
       setComputerOpen(true);

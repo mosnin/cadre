@@ -8,6 +8,7 @@ import {
   expireComputerControl,
   extendActiveComputerControl,
   hasActiveComputerControl,
+  hasActiveComputerControlForBot,
   takeoverLeaseMs,
   teachingControlLeaseExpiresAt,
 } from "./computer-control.js";
@@ -371,3 +372,19 @@ function controlHarness(
     },
   };
 }
+
+it("isolates a human takeover to its bot screen, preserving orphan and same-screen guards", () => {
+  const now = new Date("2026-01-01");
+  const lease = {
+    controlHolder: "user",
+    controlLeaseId: "lease",
+    controlLeaseExpiresAt: new Date(now.getTime() + 1000),
+    controlBotId: "bot-a",
+  };
+  expect(hasActiveComputerControlForBot(lease, "bot-a", now)).toBe(true);
+  expect(hasActiveComputerControlForBot(lease, "bot-b", now)).toBe(false);
+  expect(hasActiveComputerControlForBot({ ...lease, controlBotId: null }, "bot-b", now)).toBe(true);
+  expect(
+    hasActiveComputerControlForBot({ ...lease, controlLeaseExpiresAt: now }, "bot-a", now),
+  ).toBe(false);
+});

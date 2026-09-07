@@ -80,6 +80,7 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await sidePanel.getByTestId("computer-preview").hover();
   await sidePanel.getByTestId("computer-preview-open").click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeVisible();
+  await page.getByRole("button", { name: "Take control", exact: true }).click();
   await page.getByTestId("computer-more-button").click();
   await expect(page.getByRole("menuitem", { name: "Skip", exact: true })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "I’m done", exact: true })).toBeVisible();
@@ -110,6 +111,7 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await expect(openComputer).toBeVisible({ timeout: 30_000 });
   await openComputer.click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeVisible();
+  await page.getByRole("button", { name: "Take control", exact: true }).click();
   await page.getByTestId("computer-more-button").click();
   await page.getByRole("menuitem", { name: "Skip", exact: true }).click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeHidden();

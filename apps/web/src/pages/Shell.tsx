@@ -2487,12 +2487,10 @@ export function ShellPage() {
 
   async function openComputer() {
     if (!active) return;
-    const needsTakeover = !userHoldsComputerControl(computer, active.id);
-    const blocked = computerTakeoverBlocked(computer, snapshot?.run?.status);
     try {
       await bootComputer({
-        takeControl: needsTakeover && !blocked,
-        overlay: (needsTakeover && !blocked) || computer?.state !== "running",
+        takeControl: false,
+        overlay: computer?.state !== "running",
         force: computer?.state !== "running",
       });
       setComputerOpen(true);
@@ -4062,6 +4060,7 @@ export function ShellPage() {
         ) : null}
         {callOpen && active ? (
           <CallView
+            onAgentsChanged={refreshBots}
             realtime={Boolean(voiceStatus?.realtime)}
             botId={active.id}
             botName={active.name}
@@ -4165,6 +4164,22 @@ export function ShellPage() {
                 </Button>
               ) : null}
               {recordingSkill ? <TeachStopButton busy={teachBusy} onStop={stopTeaching} /> : null}
+              {active &&
+              !recordingSkill &&
+              !hasControl &&
+              !computerTakeoverBlocked(computer, snapshot?.run?.status) ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={booting}
+                  onClick={() =>
+                    void bootComputer({ takeControl: true, overlay: false }).catch(() => undefined)
+                  }
+                >
+                  <Trans>Take control</Trans>
+                </Button>
+              ) : null}
               {active && !recordingSkill ? (
                 <ComputerNavigationControls
                   frameRef={computerFrameRef}

@@ -24,6 +24,7 @@ import {
 } from "@rakazo/ui-web";
 import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { reserveAuthorizationWindow } from "../lib/authorization-window";
 import { rpc } from "../lib/rpc";
 
 type SourceKind = "treg" | "mcp" | "api";
@@ -108,6 +109,7 @@ export function PluginsOverlay({
   async function connect(item: ConnectionCatalogItem) {
     connectionAttempt.current?.abort();
     const controller = new AbortController();
+    const authorization = reserveAuthorizationWindow(!item.noAuth);
     connectionAttempt.current = controller;
     setCatalogError(null);
     const key = itemKey(item);
@@ -118,14 +120,9 @@ export function PluginsOverlay({
         provider: item.slug,
         displayName: item.name,
       });
-      if (started.authorizationUrl)
-        window.open(started.authorizationUrl, "rakazo-plugin-connect", "noopener,noreferrer");
-      if (item.noAuth && !started.authorizationUrl) {
-        if (controller.signal.aborted) return;
-        setItemConnected(item, true);
-        void notifyAppConnected(item);
-        return;
-      }
+      if (controller.signal.aborted) return;
+      if (started.authorizationUrl) authorization.navigate(started.authorizationUrl);
+      else authorization.closeUnused();
       for (let i = 0; i < 45; i += 1) {
         if (controller.signal.aborted) return;
         const row = await rpc.connections
@@ -147,6 +144,7 @@ export function PluginsOverlay({
       if (controller.signal.aborted) return;
       setCatalogError(err instanceof Error ? err.message : t`Could not connect`);
     } finally {
+      authorization.closeUnused();
       if (connectionAttempt.current === controller) {
         connectionAttempt.current = null;
         setPending(null);

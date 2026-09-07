@@ -16,6 +16,7 @@ export function CallView(props: CallProps & { realtime?: boolean }) {
 }
 
 export type CallProps = {
+  onAgentsChanged?: () => Promise<unknown>;
   botId: string;
   botName: string;
   botColor: string;

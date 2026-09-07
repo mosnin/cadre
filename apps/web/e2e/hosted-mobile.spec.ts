@@ -92,6 +92,7 @@ for (const width of [320, 375, 768]) {
         true,
       );
       await captureScreenshot(page, testInfo, `hosted-computer-${width}`);
+      await page.getByRole("button", { name: "Take control", exact: true }).click();
       await page.getByTestId("computer-more-button").click();
       await page.getByRole("menuitem", { name: "Release", exact: true }).click();
     }

@@ -95,6 +95,11 @@ test("user control leaves another Team bot's screen available", async ({ page },
   await page.getByTestId("computer-preview").hover();
   await page.getByTestId("computer-preview-open").click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeVisible();
+  await expect(rpc<any>(page, "computer/status", { botId: chiefId })).resolves.not.toMatchObject({
+    controlHolder: "user",
+  });
+  await page.getByRole("button", { name: "Take control", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Take control", exact: true })).toBeHidden();
   await page.getByRole("button", { name: "Close computer" }).click();
 
   await openBot(page, "Worker");
@@ -196,10 +201,11 @@ test("an active Team bot must be stopped before user takeover", async ({ page },
     )
     .toBeNull();
 
-  // After stop, Open via hover is the takeover path (no Take control button).
+  // After stop, viewing stays passive; taking control requires an explicit action.
   await page.getByTestId("computer-preview").hover();
   await page.getByTestId("computer-preview-open").click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeVisible();
+  await page.getByRole("button", { name: "Take control", exact: true }).click();
   await expect(chrome.getByText("You have control", { exact: true })).toHaveCount(0);
   await expect(chrome.getByRole("button", { name: /Take control/i })).toHaveCount(0);
   await chrome.getByTestId("computer-more-button").click();

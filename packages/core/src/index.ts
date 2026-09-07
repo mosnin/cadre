@@ -33,3 +33,4 @@ export * from "./teach-playbook.js";
 export * from "./teach-recording.js";
 export * from "./text-direction.js";
 export * from "./tool-activity.js";
+export * from "./voice-tools.js";

@@ -115,7 +115,8 @@ test("realtime voice dispatches an actual task once and releases the microphone 
   await expect.poll(async () => Number(await orb.getAttribute("data-audio-level"))).toBe(0);
   const sends: string[] = [];
   page.on("request", (request) => {
-    if (request.url().endsWith("/rpc/threads/send")) sends.push(request.postDataJSON().json.text);
+    if (request.url().endsWith("/api/voice/tool") && request.postDataJSON().name === "start_task")
+      sends.push(request.postDataJSON().args.request);
   });
   await page.evaluate(() => {
     const fixture = (window as any).realtimeFixture;
@@ -152,6 +153,70 @@ test("realtime voice dispatches an actual task once and releases the microphone 
         (window as any).realtimeFixture.sent.some(
           (event: any) =>
             event.item?.type === "function_call_output" && JSON.parse(event.item.output).accepted,
+        ),
+      ),
+    )
+    .toBe(true);
+  // Audio transport is emulated; creation, authorization and tasks use the real API.
+  await page.evaluate(() => {
+    const event = {
+      type: "response.done",
+      response: {
+        output: [
+          {
+            type: "function_call",
+            name: "spawn_agent",
+            call_id: "voice-spawn-1",
+            arguments: JSON.stringify({ name: "Voice helper", request: "Reply with helper ready" }),
+          },
+        ],
+      },
+    };
+    (window as any).realtimeFixture.receive(event);
+    (window as any).realtimeFixture.receive(event);
+  });
+  let helperId = "";
+  await expect
+    .poll(async () => {
+      const bots = await rpc<any[]>(page, "bots/list", {});
+      const helpers = bots.filter((bot) => bot.name === "Voice helper");
+      helperId = helpers[0]?.id ?? "";
+      return helpers.length;
+    })
+    .toBe(1);
+  await expect
+    .poll(async () => {
+      const snapshot = await rpc<any>(page, "threads/get", { botId: helperId });
+      return snapshot.messages.filter(
+        (message: any) =>
+          message.role === "user" &&
+          message.blocks.some(
+            (block: any) => block.kind === "text" && block.text === "Reply with helper ready",
+          ),
+      ).length;
+    })
+    .toBe(1);
+  await page.evaluate((agentId) => {
+    (window as any).realtimeFixture.receive({
+      type: "response.done",
+      response: {
+        output: [
+          {
+            type: "function_call",
+            name: "task_status",
+            call_id: "voice-status-1",
+            arguments: JSON.stringify({ agentId }),
+          },
+        ],
+      },
+    });
+  }, helperId);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (window as any).realtimeFixture.sent.some(
+          (event: any) =>
+            event.item?.call_id === "voice-status-1" && JSON.parse(event.item.output).agentId,
         ),
       ),
     )

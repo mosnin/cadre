@@ -2877,7 +2877,7 @@ export function createRouter(deps: RouterDeps) {
               (provider): provider is NonNullable<typeof provider> => Boolean(provider),
             )
           : deps.connectors.managedProviders();
-        const catalogs = await Promise.all(
+        const catalogs = await Promise.allSettled(
           providers.map(async (provider): Promise<ConnectorCatalogItem[]> => {
             try {
               const items = await provider.catalog(adapterContext, input.query);
@@ -2895,13 +2895,35 @@ export function createRouter(deps: RouterDeps) {
                   );
                 });
               }
+              const noAuth = items.filter((item) => item.noAuth).map((item) => item.slug);
+              if (noAuth.length) {
+                const selected = await deps.prisma.connection.findMany({
+                  where: {
+                    spaceId: context.actor.spaceId,
+                    userId: context.actor.userId,
+                    connectorId: provider.describe().id,
+                    provider: { in: noAuth },
+                    status: "connected",
+                  },
+                  select: { provider: true },
+                });
+                const connected = new Set(selected.map((row) => row.provider));
+                return items.map((item) =>
+                  item.noAuth && connected.has(item.slug) ? { ...item, connected: true } : item,
+                );
+              }
               return items;
-            } catch {
-              return [];
+            } catch (error) {
+              throw new ORPCError("BAD_GATEWAY", { message: sanitizeComposioError(error) });
             }
           }),
         );
-        return catalogs.flat();
+        const fulfilled = catalogs.filter((result) => result.status === "fulfilled");
+        if (catalogs.length && !fulfilled.length) {
+          const failure = catalogs.find((result) => result.status === "rejected");
+          if (failure?.status === "rejected") throw failure.reason;
+        }
+        return fulfilled.flatMap((result) => result.value);
       }),
       list: authed.connections.list.handler(async ({ context }) => {
         const rows = await deps.prisma.connection.findMany({
@@ -2942,7 +2964,14 @@ export function createRouter(deps: RouterDeps) {
           await deps.prisma.connection.update({
             where: { id: row.id },
             data: {
-              status: auth.authorizationUrl ? "pending" : "connected",
+              status:
+                !auth.authorizationUrl &&
+                (await connector.connectionReady(
+                  connectionContext(context.actor, "connections.begin", context.signal),
+                  input.provider,
+                ))
+                  ? "connected"
+                  : "pending",
               providerRef: auth.state || null,
               metadata: { state: auth.state },
             },

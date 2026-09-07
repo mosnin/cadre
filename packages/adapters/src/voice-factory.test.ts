@@ -245,7 +245,7 @@ it("creates an OpenAI Realtime WebRTC call without returning its API key", async
   const session = JSON.parse(init.body.get("session"));
   expect(session).toMatchObject({
     type: "realtime",
-    model: "gpt-realtime",
+    model: "gpt-realtime-2",
     output_modalities: ["audio"],
     audio: { output: { voice: "marin" } },
   });

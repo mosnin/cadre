@@ -131,6 +131,7 @@ import {
   type PluginConnectionRow,
   planLiveConnectionSync,
 } from "./composio-connector.js";
+import { hasActiveComputerControlForBot } from "./computer-control.js";
 import { BACKGROUND_WORK_LAUNCH, scheduleComputerSleep } from "./computer-idle.js";
 import {
   acquireComputerExecutionLease,
@@ -1863,13 +1864,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
             }
             const liveComputer = await deps.prisma.computer.findUnique({
               where: { id: storedComputer.id },
-              select: { controlHolder: true, controlLeaseExpiresAt: true },
+              select: {
+                controlHolder: true,
+                controlLeaseId: true,
+                controlLeaseExpiresAt: true,
+                controlBotId: true,
+              },
             });
-            if (
-              liveComputer?.controlHolder === "user" &&
-              liveComputer.controlLeaseExpiresAt &&
-              liveComputer.controlLeaseExpiresAt.getTime() > Date.now()
-            )
+            if (liveComputer && hasActiveComputerControlForBot(liveComputer, run.botId))
               return {
                 error: "A person has control of the computer. Wait until they hand it back.",
               };

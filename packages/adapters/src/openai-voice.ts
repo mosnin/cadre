@@ -66,7 +66,9 @@ export class OpenAIVoiceProvider implements VoiceProvider {
       "session",
       JSON.stringify({
         type: "realtime",
-        model: "gpt-realtime",
+        model: "gpt-realtime-2",
+        reasoning: { effort: "low" },
+        parallel_tool_calls: true,
         output_modalities: ["audio"],
         audio: {
           input: {

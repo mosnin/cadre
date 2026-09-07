@@ -1,9 +1,9 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { speechFromBlocks, spokenDecision } from "@rakazo/core";
 import { Button } from "@rakazo/ui-web";
 import { useEffect, useRef, useState } from "react";
 import { OpenAIRealtimeCall, type RealtimePhase } from "../lib/adapters/openai-realtime";
-import { hasWorkingRun, latestAskId, pendingSecretAsk } from "../lib/call-task";
+import { pendingSecretAsk } from "../lib/call-task";
+import { withSpaceHeaders } from "../lib/rpc";
 import type { CallProps } from "./CallView";
 import { VoiceScreen } from "./VoiceScreen";
 
@@ -18,70 +18,40 @@ export function RealtimeCallView(props: CallProps) {
   const [caption, setCaption] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const reported = useRef<string | null>(null);
-  const dispatching = useRef(false);
+  const watched = useRef(new Set<string>());
+  const updates = useRef(new Map<string, string>());
   const secret = pendingSecretAsk(props.snapshot);
-
-  function status() {
-    const snapshot = current.current.snapshot;
-    if (pendingSecretAsk(snapshot))
-      return {
-        status: "waiting_input",
-        message: "Enter the secret using the protected on-screen input. Do not say it aloud.",
-      };
-    const latest = [...(snapshot?.messages ?? [])]
-      .reverse()
-      .find((message) => message.role === "bot");
-    return {
-      status: snapshot?.run?.status ?? (hasWorkingRun(snapshot) ? "running" : "idle"),
-      message: latest
-        ? speechFromBlocks(
-            latest.blocks.filter((block) => block.kind !== "progress" && block.kind !== "meta"),
-          )
-        : "No task result yet.",
-    };
+  async function execute(name: string, args: unknown, callId: string) {
+    const response = await fetch("/api/voice/tool", {
+      method: "POST",
+      credentials: "include",
+      headers: withSpaceHeaders({ "content-type": "application/json" }),
+      body: JSON.stringify({ botId: current.current.botId, name, args, callId }),
+      signal: AbortSignal.timeout(30000),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error ?? "Voice action failed.");
+    if (result.accepted && result.agentId) {
+      watched.current.add(result.agentId);
+      if (name === "spawn_agent") void current.current.onAgentsChanged?.().catch(() => undefined);
+      updates.current.set(result.agentId, "accepted");
+    }
+    return result;
   }
   useEffect(() => {
     setError(null);
     setLevel(0);
     setCaption("");
     setHeard("");
-    reported.current =
-      [...(current.current.snapshot?.messages ?? [])]
-        .reverse()
-        .find((message) => message.role === "bot")?.id ?? null;
+    watched.current = new Set([props.botId]);
+    updates.current.clear();
     const session = new OpenAIRealtimeCall({
       phase: setPhase,
       level: setLevel,
       heard: setHeard,
       caption: (text) => setCaption((previous) => (text ? previous + text : "")),
       error: setError,
-      tool: async (name, args) => {
-        if (name === "task_status") return status();
-        const request = (args as { request?: unknown })?.request;
-        if (typeof request !== "string" || !request.trim() || request.length > 32000)
-          throw new Error("A clear task request is required.");
-        if (pendingSecretAsk(current.current.snapshot))
-          throw new Error("Enter the secret using the protected on-screen input.");
-        if (dispatching.current)
-          throw new Error("A request is already being sent. Check task status before retrying.");
-        dispatching.current = true;
-        try {
-          const value = current.current;
-          const askId = latestAskId(value.snapshot);
-          const ask = value.snapshot?.messages.find((message) => message.id === askId);
-          if (ask) await value.onAnswer(ask, spokenDecision(request) ?? request);
-          else if (hasWorkingRun(value.snapshot)) await value.onFollowUp(request);
-          else await value.onSend(request);
-          return {
-            accepted: true,
-            message:
-              "Request accepted by the agent. Execution is not yet confirmed complete; wait for task updates.",
-          };
-        } finally {
-          dispatching.current = false;
-        }
-      },
+      tool: execute,
     });
     call.current = session;
     session.setInputEnabled(!pendingSecretAsk(current.current.snapshot));
@@ -95,15 +65,38 @@ export function RealtimeCallView(props: CallProps) {
   useEffect(() => {
     call.current?.setInputEnabled(!secret);
     if (secret) setHeard("");
-    const latest = [...(props.snapshot?.messages ?? [])]
-      .reverse()
-      .find((message) => message.role === "bot");
-    if (!latest || latest.id === reported.current || phase === "connecting") return;
-    const ask = latest.blocks.some((block) => block.kind === "ask" && block.status !== "answered");
-    if (hasWorkingRun(props.snapshot) && !ask) return;
-    reported.current = latest.id;
-    call.current?.taskUpdate(JSON.stringify(status()));
-  }, [props.snapshot, phase, secret]);
+  }, [secret]);
+
+  useEffect(() => {
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      for (const agentId of watched.current) {
+        if (disposed) return;
+        try {
+          const result = await execute("task_status", { agentId }, crypto.randomUUID());
+          if (disposed) return;
+          const key = JSON.stringify(result);
+          const previous = updates.current.get(agentId);
+          updates.current.set(agentId, key);
+          if (
+            previous &&
+            previous !== key &&
+            !["queued", "running", "leased"].includes(result.status)
+          )
+            call.current?.taskUpdate(key);
+        } catch {
+          /* Reconnect/status tools surface errors; a poll does not end the call. */
+        }
+      }
+      if (!disposed) timer = setTimeout(() => void poll(), 4000);
+    };
+    timer = setTimeout(() => void poll(), 1000);
+    return () => {
+      disposed = true;
+      clearTimeout(timer);
+    };
+  }, [props.botId, attempt]);
 
   function hangUp() {
     call.current?.close();

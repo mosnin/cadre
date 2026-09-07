@@ -154,7 +154,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
 
     await expect(
       rpc(app, cookie, "connections/catalog", { connectorId: "composio" }),
-    ).resolves.toEqual([]);
+    ).rejects.toThrow("connections/catalog 502");
     await expect(statuses([pending.id])).resolves.toEqual([{ id: pending.id, status: "pending" }]);
     failure.mockRestore();
   });
