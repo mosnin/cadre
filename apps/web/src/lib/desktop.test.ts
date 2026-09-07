@@ -71,7 +71,7 @@ describe("window chrome", () => {
       shell.indexOf("<Transcript"),
     );
     const controls = header.match(/<button\b[\s\S]*?<\/button>/g) ?? [];
-    expect(controls).toHaveLength(4);
+    expect(controls).toHaveLength(3);
     for (const control of controls) expect(control).toContain('className="app-no-drag ');
   });
 });
