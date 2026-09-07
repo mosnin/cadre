@@ -114,6 +114,23 @@ describe("noVNC proxy authorization", () => {
     ).toEqual({ upgrade: "websocket", "sec-websocket-key": "key" });
   });
 
+  it.each(["/", "/m/1234567890abcd/"])(
+    "preserves the sealed screen credential on WebSockets under %s",
+    (prefix) => {
+      const target = `https://computer.example${prefix}embed.html?cadre_token=screen-secret&screen=agent-screen&view_only=true`;
+      const capability = remotePath(2_000, "secret", target).replace(
+        /\/vnc\.html$/,
+        `${prefix}websockify?view_only=false&cadre_token=forged`,
+      );
+      expect(resolveNovncTarget(capability, "secret", 1_000)).toMatchObject({
+        path: `${prefix}websockify?cadre_token=screen-secret&screen=agent-screen&view_only=true`,
+        interactive: false,
+      });
+      const unrelated = capability.replace(`${prefix}websockify`, "/m/other/websockify");
+      expect(resolveNovncTarget(unrelated, "secret", 1_000)?.path).not.toContain("screen-secret");
+    },
+  );
+
   it("does not forward HTTP/2 pseudo-headers to the HTTP/1 upstream", () => {
     expect(
       safeProxyHeaders({

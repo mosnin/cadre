@@ -75,7 +75,8 @@ export function screenPolicyPath(requestedPath: string, interactive: boolean) {
 function remoteTargetPath(target: URL, requestedPath: string) {
   const requested = new URL(requestedPath, "https://screen.invalid");
   const path = requested.pathname || target.pathname || "/";
-  if (path === target.pathname || path === "/websockify") {
+  const socketPath = new URL("websockify", target).pathname;
+  if (path === target.pathname || path === socketPath) {
     return `${path}${target.search}`;
   }
   return `${path}${requested.search}`;
