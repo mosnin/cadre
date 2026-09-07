@@ -49,10 +49,10 @@ test("screen connection failures stay visible and can be retried", async ({ page
   await expect(preview.locator("iframe")).toHaveAttribute("src", screenUrl);
   await expect(preview.getByRole("alert")).toHaveCount(0);
 
-  await page.setViewportSize({ width: 375, height: 812 });
   failScreen = true;
   await preview.hover();
   await preview.getByTestId("computer-preview-open").click();
+  await page.setViewportSize({ width: 375, height: 812 });
   await expect(page.getByRole("button", { name: "Close computer" })).toBeVisible();
   await expect(page.locator('iframe[title="Bot screen"]')).toHaveAttribute("src", screenUrl);
   await expect(page.getByRole("alert")).toHaveCount(0);
