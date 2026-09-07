@@ -36,22 +36,55 @@ describeIntegration("run executor lifecycle", () => {
     rmSync(dataDir, { recursive: true, force: true });
   });
 
-  it.each([false, true])(
-    "publishes repeated progress once and preserves a distinct final: %s",
-    async (distinctFinal) => {
-      const seeded = await seedRun(`duplicate-progress-${distinctFinal}`, "Prepare a report");
+  it.each([
+    { distinctFinal: false, concurrent: false },
+    { distinctFinal: true, concurrent: false },
+    { distinctFinal: false, concurrent: true },
+    { distinctFinal: true, concurrent: true },
+  ])(
+    "deduplicates progress with distinctFinal=$distinctFinal, concurrent=$concurrent",
+    async ({ distinctFinal, concurrent }) => {
+      const seeded = await seedRun(
+        `duplicate-progress-${distinctFinal}-${concurrent}`,
+        "Prepare a report",
+      );
+      if (concurrent) {
+        await rpc(seeded.cookie, "models/connect", {
+          provider: "openrouter",
+          apiKey: "test-model-key",
+          label: "test",
+          modelId: "scripted",
+        });
+      }
       const progress = "The report is ready.";
       const final = distinctFinal ? "The report contains three findings." : progress;
+      const descriptor = ScriptedAgentRuntime.prototype.describe();
+      const describeRuntime = vi.spyOn(ScriptedAgentRuntime.prototype, "describe").mockReturnValue({
+        ...descriptor,
+        capabilities: { ...descriptor.capabilities, scripted: !concurrent },
+      });
       const runtime = vi
         .spyOn(ScriptedAgentRuntime.prototype, "run")
         .mockImplementation(async function* (request) {
-          for (let index = 0; index < 2; index++) {
-            yield {
-              type: "tool",
-              name: "message_user",
-              args: { message: progress },
-              executionId: `${request.runId}:progress:${index}`,
-            };
+          if (concurrent) {
+            await Promise.all(
+              [0, 1].map((index) =>
+                request.executeTool!(
+                  "message_user",
+                  { message: progress },
+                  `${request.runId}:progress:${index}`,
+                ),
+              ),
+            );
+          } else {
+            for (let index = 0; index < 2; index++) {
+              yield {
+                type: "tool",
+                name: "message_user",
+                args: { message: progress },
+                executionId: `${request.runId}:progress:${index}`,
+              };
+            }
           }
           yield { type: "text", text: final };
           yield { type: "done", text: final };
@@ -72,6 +105,7 @@ describeIntegration("run executor lifecycle", () => {
         expect(texts).toEqual(distinctFinal ? [progress, final] : [progress]);
       } finally {
         runtime.mockRestore();
+        describeRuntime.mockRestore();
       }
     },
   );

@@ -1350,6 +1350,25 @@ export function createRunExecutor(deps: ExecutorDeps) {
           pendingProgress = "";
           lastProgressAt = Date.now();
         };
+        // Runtime tool calls can arrive concurrently. Check and persist progress in one queue.
+        let pendingUserProgress = Promise.resolve();
+        const publishUserProgress = (text: string) => {
+          const publication = pendingUserProgress.then(async () => {
+            if (alreadyPublishedProgress(text, midTurnUserTexts)) return;
+            await publishMessage(
+              deps,
+              run,
+              "bot",
+              [{ kind: "text", text }],
+              undefined,
+              userProgressClientNonce(run.id, midTurnProgressCount++),
+            );
+            midTurnUserTexts.push(text);
+            publishedMidTurnUserMessage = true;
+          });
+          pendingUserProgress = publication.catch(() => undefined);
+          return publication;
+        };
         const publishMidTurnNarration = async () => {
           const extracted = extractNarrationText(messageSegments, currentTextSegment);
           const narration = clampUserProgressMessage(redactSecrets(extracted.text, runSecrets));
@@ -1359,17 +1378,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           assembled = "";
           hasStreamedText = false;
           pendingProgress = "";
-          if (alreadyPublishedProgress(narration, midTurnUserTexts)) return;
-          await publishMessage(
-            deps,
-            run,
-            "bot",
-            [{ kind: "text", text: narration }],
-            undefined,
-            userProgressClientNonce(run.id, midTurnProgressCount++),
-          );
-          midTurnUserTexts.push(narration);
-          publishedMidTurnUserMessage = true;
+          await publishUserProgress(narration);
         };
         const formatObservation = (
           observation: Awaited<ReturnType<SandboxProvider["observe"]>>,
@@ -2736,17 +2745,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             if (!text) return finish({ error: "message is required" });
             await flushProgress();
             await publishMidTurnNarration();
-            if (alreadyPublishedProgress(text, midTurnUserTexts)) return finish({ ok: true });
-            await publishMessage(
-              deps,
-              run,
-              "bot",
-              [{ kind: "text", text }],
-              undefined,
-              userProgressClientNonce(run.id, midTurnProgressCount++),
-            );
-            midTurnUserTexts.push(text);
-            publishedMidTurnUserMessage = true;
+            await publishUserProgress(text);
             return finish({ ok: true });
           }
           if (name === "message_bot") {
@@ -3182,16 +3181,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               if (assembled.trim()) {
                 const narration = clampUserProgressMessage(redactSecrets(assembled, runSecrets));
                 if (narration) {
-                  await publishMessage(
-                    deps,
-                    run,
-                    "bot",
-                    [{ kind: "text", text: narration }],
-                    undefined,
-                    userProgressClientNonce(run.id, midTurnProgressCount++),
-                  );
-                  midTurnUserTexts.push(narration);
-                  publishedMidTurnUserMessage = true;
+                  await publishUserProgress(narration);
                 }
                 assembled = "";
                 hasStreamedText = false;
