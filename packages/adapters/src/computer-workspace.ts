@@ -167,3 +167,16 @@ async function writePortableFile(root: string, file: PortableFile) {
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, file.content, { mode: file.executable ? 0o700 : 0o600 });
 }
+
+/** Reconcile an already stopped persistent VM without reading its unavailable desktop.
+ * Running computers still checkpoint so stopped file previews and migrations stay current.
+ */
+export async function checkpointBeforeComputerStop(
+  deps: { home: AgentHomeStore; sandbox: SandboxProvider; prisma: PrismaClient },
+  computerRecord: { id: string; homeKey: string },
+  computer: ComputerRef,
+  context: AdapterContext,
+): Promise<void> {
+  if (await deps.sandbox.isStoppedWithPersistentWorkspace?.(computer, context)) return;
+  await checkpointAndRecordComputerWorkspace(deps, computerRecord, computer, context);
+}

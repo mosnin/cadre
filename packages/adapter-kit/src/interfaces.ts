@@ -135,6 +135,11 @@ export interface SandboxProvider {
   suspendWhenIdle?(computer: ComputerRef): boolean;
   /** Drop a single-screen graphical claim for this bot so another Team bot can use the display. */
   releaseScreen?(computer: ComputerRef, context: AdapterContext): Promise<void>;
+  /** Verify that this owned computer is already stopped with its durable workspace intact. */
+  isStoppedWithPersistentWorkspace?(
+    computer: ComputerRef,
+    context: AdapterContext,
+  ): Promise<boolean>;
   stop(computer: ComputerRef, context: AdapterContext): Promise<void>;
   destroy(computer: ComputerRef, context: AdapterContext): Promise<void>;
 }

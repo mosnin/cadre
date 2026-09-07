@@ -137,3 +137,32 @@ it("waits for the provider backup to contain durable data before reporting a sna
     createdAt: "2026-09-06T00:00:00Z",
   });
 });
+
+it("only skips a checkpoint for an already stopped owned computer with a durable home", async () => {
+  for (const state of ["started", "stopped"]) {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(json({ ...machine, state }));
+    await expect(
+      new FlySandboxProvider(options, request).isStoppedWithPersistentWorkspace(ref, context),
+    ).resolves.toBe(state === "stopped");
+    expect(request).toHaveBeenCalledOnce();
+  }
+  const missingMount = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(json({ ...machine, config: { ...machine.config, mounts: [] } }));
+  await expect(
+    new FlySandboxProvider(options, missingMount).isStoppedWithPersistentWorkspace(ref, context),
+  ).resolves.toBe(false);
+  const wrongOwner = vi.fn<typeof fetch>().mockResolvedValue(json(machine));
+  await expect(
+    new FlySandboxProvider(options, wrongOwner).isStoppedWithPersistentWorkspace(ref, {
+      ...context,
+      spaceId: "other",
+    }),
+  ).rejects.toThrow("Computer access denied");
+});
+
+it("accepts a repeated stop without contacting an already stopped desktop", async () => {
+  const request = vi.fn<typeof fetch>().mockResolvedValue(json({ ...machine, state: "stopped" }));
+  await new FlySandboxProvider(options, request).stop(ref, context);
+  expect(request).toHaveBeenCalledOnce();
+});

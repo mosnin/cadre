@@ -1,9 +1,11 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import type { PrismaClient } from "@rakazo/db";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cachedWorkspaceSnapshot,
+  checkpointBeforeComputerStop,
   checkpointComputerWorkspace,
   ensureComputerWorkspaceLayout,
   restoreComputerWorkspace,
@@ -136,5 +138,77 @@ describe("provider-neutral computer workspace", () => {
       "native",
     );
     await expect(cachedWorkspaceSnapshot(home, provider, "bot", context)).resolves.toBeUndefined();
+  });
+});
+
+describe("stop workspace durability", () => {
+  async function fixture(durable?: boolean) {
+    const root = await mkdtemp(path.join(tmpdir(), "rakazo-stop-store-"));
+    roots.push(root);
+    const home = new LocalAgentHomeStore(root);
+    const sandbox = new FakeSandboxProvider();
+    if (durable !== undefined)
+      Object.assign(sandbox, {
+        isStoppedWithPersistentWorkspace: vi.fn().mockResolvedValue(durable),
+      });
+    const computer = await sandbox.provision({ botId: "stop-home", homePath: "/ignored" }, context);
+    await sandbox.writeFile(
+      computer,
+      { path: "saved.txt", content: new TextEncoder().encode("keep me") },
+      context,
+    );
+    const exported = vi.spyOn(sandbox, "exportWorkspace");
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const deps = { home, sandbox, prisma: { computer: { updateMany } } as unknown as PrismaClient };
+    return { deps, computer, exported, updateMany };
+  }
+  it("does not contact the desktop when the provider verifies an already stopped persistent computer", async () => {
+    const { deps, computer, exported, updateMany } = await fixture(true);
+    await checkpointBeforeComputerStop(
+      deps,
+      { id: computer.id, homeKey: computer.botId },
+      computer,
+      context,
+    );
+    expect(exported).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+  it.each([undefined, false])(
+    "retains a restorable checkpoint when durable stop is %s",
+    async (durable) => {
+      const { deps, computer, exported, updateMany } = await fixture(durable);
+      await checkpointBeforeComputerStop(
+        deps,
+        { id: computer.id, homeKey: computer.botId },
+        computer,
+        context,
+      );
+      expect(exported).toHaveBeenCalledOnce();
+      expect(updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { homeRevision: expect.stringMatching(/^rev-/) } }),
+      );
+      const files = [];
+      for await (const file of deps.home.exportHome(computer.botId, context)) files.push(file);
+      expect(
+        new TextDecoder().decode(files.find((file) => file.path === "saved.txt")?.content),
+      ).toBe("keep me");
+    },
+  );
+  it("fails closed when provider ownership or durability cannot be verified", async () => {
+    const { deps, computer, exported } = await fixture();
+    Object.assign(deps.sandbox, {
+      isStoppedWithPersistentWorkspace: vi
+        .fn()
+        .mockRejectedValue(new Error("Computer access denied")),
+    });
+    await expect(
+      checkpointBeforeComputerStop(
+        deps,
+        { id: computer.id, homeKey: computer.botId },
+        computer,
+        context,
+      ),
+    ).rejects.toThrow("Computer access denied");
+    expect(exported).not.toHaveBeenCalled();
   });
 });
