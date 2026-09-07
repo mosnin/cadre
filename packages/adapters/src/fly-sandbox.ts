@@ -7,7 +7,12 @@ type Machine = {
   state: string;
   config: { metadata?: Record<string, string>; mounts?: Array<{ volume: string; path: string }> };
 };
-type Volume = { id: string; name: string; attached_machine_id?: string | null };
+type Volume = {
+  id: string;
+  name: string;
+  state?: string;
+  attached_machine_id?: string | null;
+};
 export interface FlySandboxOptions {
   appName: string;
   apiToken: string;
@@ -184,10 +189,12 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
     if (!machine) {
       const volumeName = `home_${owner.slice(0, 24)}`;
       const volumes = (await this.api<Volume[]>("/volumes", "GET", undefined, ctx.signal)).filter(
-        (v) => v.name === volumeName,
+        (v) => v.name === volumeName && v.state !== "pending_destroy" && v.state !== "destroyed",
       );
       if (volumes.length > 1 || volumes.some((v) => v.attached_machine_id))
         throw new Error("Workspace disk is already attached");
+      if (volumes.some((v) => v.state && v.state !== "created"))
+        throw new Error("Workspace disk is not ready");
       const volume =
         volumes[0] ??
         (await this.api<Volume>(
