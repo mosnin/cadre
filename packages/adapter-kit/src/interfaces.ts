@@ -7,6 +7,7 @@ import type {
   ArtifactPut,
   BackgroundJob,
   BackgroundJobHandlers,
+  BrowserRequest,
   CommandRequest,
   ComputerActionRequest,
   ComputerActionResult,
@@ -104,6 +105,11 @@ export interface SandboxProvider {
     lease: ControlLeaseRef,
     context: AdapterContext,
   ): Promise<void>;
+  browser?(
+    computer: ComputerRef,
+    request: BrowserRequest,
+    context: AdapterContext,
+  ): Promise<Record<string, unknown>>;
   observe(computer: ComputerRef, context: AdapterContext): Promise<ComputerObservation>;
   act(
     computer: ComputerRef,

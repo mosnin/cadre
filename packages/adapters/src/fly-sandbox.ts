@@ -49,6 +49,7 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
       adapterVersion: "0.1.0",
       capabilities: {
         graphical: true,
+        browser: true,
         pty: false,
         snapshots: true,
         takeover: true,
