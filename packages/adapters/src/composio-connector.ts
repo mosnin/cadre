@@ -124,7 +124,9 @@ export type PluginConnectionRow = {
 };
 
 export function needsLivePluginSync(rows: { status: string }[]): boolean {
-  return rows.some((row) => row.status === "pending" || row.status === "error");
+  return rows.some(
+    (row) => row.status === "pending" || row.status === "error" || row.status === "revoked",
+  );
 }
 
 export function mergeConnectedPlugins(
@@ -171,10 +173,14 @@ export function planLiveConnectionSync(
     connectIds.push(reusable.id);
     connectedProviders.add(slug);
   }
+  // Deduplicate only a provider confirmed active. An absent account may still be in OAuth.
   const connectIdSet = new Set(connectIds);
   const revokeIds = rows
     .filter(
-      (row) => (row.status === "pending" || row.status === "error") && !connectIdSet.has(row.id),
+      (row) =>
+        (row.status === "pending" || row.status === "error") &&
+        live.has(composioSlugKey(row.provider)) &&
+        !connectIdSet.has(row.id),
     )
     .map((row) => row.id);
   return { connectIds, revokeIds };

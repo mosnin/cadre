@@ -40,7 +40,7 @@ test("spaces stay invisible by default and chat creation requires approval", asy
 
   const supportSpace = sidebar
     .locator('[data-sidebar-group^="space:"]')
-    .filter({ hasText: "Customer support" });
+    .filter({ has: page.getByRole("button", { name: "Open Customer support", exact: true }) });
   const supportSpaceGroup = await supportSpace.getAttribute("data-sidebar-group");
   const supportSpaceId = supportSpaceGroup?.split(":")[1];
   expect(supportSpaceId).toBeTruthy();
