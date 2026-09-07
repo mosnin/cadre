@@ -3454,3 +3454,7 @@ msgstr "Using the computer"
 #: src/components/ComputerNavigationControls.tsx:151
 msgid "Zoom"
 msgstr "Zoom"
+
+#: src/pages/Shell.tsx:4117
+msgid "Take control"
+msgstr "Take control"
