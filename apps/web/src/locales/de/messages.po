@@ -3453,3 +3453,7 @@ msgstr ""
 #: src/components/ComputerNavigationControls.tsx:151
 msgid "Zoom"
 msgstr ""
+
+#: src/pages/Shell.tsx:4117
+msgid "Take control"
+msgstr "Steuerung übernehmen"
