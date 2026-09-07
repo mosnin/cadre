@@ -252,14 +252,28 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
     const machine = await this.owned(computer, ctx);
     const volume = machine.config.mounts?.find((m) => m.path === "/home/rakazo")?.volume;
     if (!volume) throw new Error("Workspace disk is unavailable");
-    const snapshot = await this.api<{ id: string }>(
+    const result = await this.api<{ Msg?: { backup?: { graph_id?: string } } }>(
       `/volumes/${volume}/snapshots`,
       "POST",
-      {},
+      undefined,
       ctx.signal,
     );
-    return { id: snapshot.id, createdAt: new Date().toISOString() };
+    const id = result.Msg?.backup?.graph_id;
+    if (!id) throw new Error("Computer backup did not start");
+    const deadline = Date.now() + 120_000;
+    while (Date.now() < deadline) {
+      ctx.signal.throwIfAborted();
+      const snapshots = await this.api<
+        Array<{ id: string; digest: string; size: number; created_at: string; status?: string }>
+      >(`/volumes/${volume}/snapshots`, "GET", undefined, ctx.signal);
+      const snapshot = snapshots.find((entry) => entry.id === id);
+      if (snapshot?.digest && snapshot.size > 0) return { id, createdAt: snapshot.created_at };
+      if (snapshot?.status === "failed") throw new Error("Computer backup failed");
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    throw new Error("Computer backup is still being prepared");
   }
+
   async stop(computer: ComputerRef, ctx: AdapterContext) {
     const machine = await this.owned(computer, ctx);
     if (machine.state !== "stopped") {

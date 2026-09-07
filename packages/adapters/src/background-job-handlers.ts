@@ -2,6 +2,7 @@ import type {
   AgentHomeStore,
   AgentRuntime,
   BackgroundJobHandlers,
+  ComputerRef,
   JobPublisher,
   MessagingSurface,
   SandboxProvider,
@@ -93,7 +94,7 @@ export function createBackgroundJobHandlers(deps: {
         botId,
         signal: AbortSignal.timeout(180_000),
       };
-      let ref;
+      let ref: ComputerRef;
       try {
         ref = await provisionComputer(deps, computer.id, context, "none", new Date(version));
       } catch (error) {

@@ -85,3 +85,19 @@ describe("persistent Fly computers", () => {
     expect(request.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
   });
 });
+
+it("waits for the provider backup to contain durable data before reporting a snapshot", async () => {
+  const request = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(json(machine))
+    .mockResolvedValueOnce(json({ Msg: { backup: { graph_id: "vs_test" } } }))
+    .mockResolvedValueOnce(
+      json([
+        { id: "vs_test", digest: "backup-digest", size: 1024, created_at: "2026-09-06T00:00:00Z" },
+      ]),
+    );
+  await expect(new FlySandboxProvider(options, request).snapshot(ref, context)).resolves.toEqual({
+    id: "vs_test",
+    createdAt: "2026-09-06T00:00:00Z",
+  });
+});
