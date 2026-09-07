@@ -187,6 +187,10 @@ export class HostAwareSandbox implements SandboxProvider {
     return provider.browser(computer, request, context);
   }
 
+  persistWorkspace(computer: ComputerRef, context: AdapterContext) {
+    return this.route(computer).persistWorkspace?.(computer, context) ?? Promise.resolve(false);
+  }
+
   pauseWorkspaceForStop(computer: ComputerRef, context: AdapterContext) {
     return (
       this.route(computer).pauseWorkspaceForStop?.(computer, context) ??

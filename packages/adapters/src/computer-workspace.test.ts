@@ -5,6 +5,7 @@ import type { PrismaClient } from "@rakazo/db";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cachedWorkspaceSnapshot,
+  checkpointAfterComputerWork,
   checkpointBeforeComputerStop,
   checkpointComputerWorkspace,
   ensureComputerWorkspaceLayout,
@@ -230,4 +231,60 @@ it("quiesces browser profile writes before Stop and restores them if the checkpo
   ).rejects.toThrow("backup unavailable");
   expect(pause.mock.invocationCallOrder[0]).toBeLessThan(exported.mock.invocationCallOrder[0]!);
   expect(resume).toHaveBeenCalledOnce();
+});
+
+describe("task checkpoints on persistent computers", () => {
+  const computer = { id: "vm", providerRef: "vm", botId: "home", kind: "fly" as const };
+  it("flushes durable storage without exporting the entire running browser profile", async () => {
+    const exportWorkspace = vi.fn();
+    const persistWorkspace = vi.fn().mockResolvedValue(true);
+    const updateMany = vi.fn();
+    await checkpointAfterComputerWork(
+      {
+        sandbox: { persistWorkspace, exportWorkspace } as never,
+        home: {} as never,
+        prisma: { computer: { updateMany } } as never,
+      },
+      { id: "db", homeKey: "home" },
+      computer,
+      context,
+    );
+    expect(persistWorkspace).toHaveBeenCalledWith(computer, context);
+    expect(exportWorkspace).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+  it("does not acknowledge a failed durable flush", async () => {
+    const persistWorkspace = vi.fn().mockRejectedValue(new Error("disk failed"));
+    await expect(
+      checkpointAfterComputerWork(
+        { sandbox: { persistWorkspace } as never, home: {} as never, prisma: {} as never },
+        { id: "db", homeKey: "home" },
+        computer,
+        context,
+      ),
+    ).rejects.toThrow("disk failed");
+  });
+  it("retains portable checkpoints when the provider cannot persist in place", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "rakazo-task-checkpoint-"));
+    roots.push(root);
+    const home = new LocalAgentHomeStore(root);
+    const provider = new FakeSandboxProvider();
+    const ref = await provider.provision({ botId: "home", homePath: "/ignored" }, context);
+    await provider.writeFile(
+      ref,
+      { path: "proof.txt", content: new TextEncoder().encode("saved") },
+      context,
+    );
+    const updateMany = vi.fn();
+    await checkpointAfterComputerWork(
+      { home, sandbox: provider, prisma: { computer: { updateMany } } as never },
+      { id: "db", homeKey: "home" },
+      ref,
+      context,
+    );
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: "db" },
+      data: { homeRevision: expect.stringMatching(/^rev-/) },
+    });
+  });
 });

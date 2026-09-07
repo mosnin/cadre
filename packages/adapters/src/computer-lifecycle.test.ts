@@ -18,6 +18,7 @@ import {
   renewComputerExecutionLease,
   replaceComputer,
   screenLeaseIdForRun,
+  waitForComputerReady,
 } from "./computer-lifecycle.js";
 import { checkpointComputerWorkspace } from "./computer-workspace.js";
 import { FakeSandboxProvider } from "./fake-sandbox.js";
@@ -31,6 +32,123 @@ const context = {
   botId: "bot-1",
   signal: new AbortController().signal,
 } satisfies AdapterContext;
+
+describe("joining computer startup", () => {
+  function waitingComputer(state = "booting") {
+    const row = {
+      id: "computer-1",
+      state,
+      providerRef: "provider-1",
+      updatedAt: new Date(),
+    };
+    const findUniqueOrThrow = vi.fn().mockImplementation(async () => ({ ...row }));
+    const prisma = { computer: { findUniqueOrThrow } } as unknown as PrismaClient;
+    return { row, prisma, findUniqueOrThrow };
+  }
+
+  it("joins a startup longer than ten seconds without taking ownership", async () => {
+    vi.useFakeTimers();
+    try {
+      const { row, prisma, findUniqueOrThrow } = waitingComputer();
+      const result = waitForComputerReady(prisma, row.id, context);
+      await vi.advanceTimersByTimeAsync(15_000);
+      row.state = "running";
+      await vi.advanceTimersByTimeAsync(250);
+      await expect(result).resolves.toMatchObject({ state: "running" });
+      expect(findUniqueOrThrow).toHaveBeenCalledWith({
+        where: { id: row.id, bots: { some: { id: context.botId, archivedAt: null } } },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each(["stopped", "suspended", "error"])(
+    "waits for a lease-owning task to start a %s computer",
+    async (state) => {
+      vi.useFakeTimers();
+      try {
+        const { row, prisma } = waitingComputer(state);
+        const result = waitForComputerReady(prisma, row.id, context, { waitForStart: true });
+        await vi.advanceTimersByTimeAsync(250);
+        row.state = "booting";
+        await vi.advanceTimersByTimeAsync(250);
+        row.state = "running";
+        await vi.advanceTimersByTimeAsync(250);
+        await expect(result).resolves.toMatchObject({ state: "running" });
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+
+  it.each(["stopped", "suspending", "error"])(
+    "does not restart a startup owner that transitions to %s",
+    async (state) => {
+      vi.useFakeTimers();
+      try {
+        const { row, prisma } = waitingComputer();
+        const result = waitForComputerReady(prisma, row.id, context);
+        const rejected = expect(result).rejects.toThrow("startup was interrupted");
+        await vi.advanceTimersByTimeAsync(250);
+        row.state = state;
+        await vi.advanceTimersByTimeAsync(250);
+        await rejected;
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+
+  it("does not follow a newer Stop while a task has not begun startup", async () => {
+    vi.useFakeTimers();
+    try {
+      const { row, prisma } = waitingComputer("stopped");
+      const result = waitForComputerReady(prisma, row.id, context, { waitForStart: true });
+      const rejected = expect(result).rejects.toThrow("startup was interrupted");
+      await vi.advanceTimersByTimeAsync(250);
+      row.updatedAt = new Date();
+      await vi.advanceTimersByTimeAsync(250);
+      await rejected;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("bounds a stalled startup to three minutes", async () => {
+    vi.useFakeTimers();
+    try {
+      const { row, prisma } = waitingComputer();
+      const result = waitForComputerReady(prisma, row.id, context);
+      const rejected = expect(result).rejects.toThrow("taking longer than expected");
+      await vi.advanceTimersByTimeAsync(180_000);
+      await rejected;
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("aborts only the follower and removes its timer", async () => {
+    vi.useFakeTimers();
+    try {
+      const { row, prisma } = waitingComputer();
+      const controller = new AbortController();
+      const result = waitForComputerReady(prisma, row.id, {
+        ...context,
+        signal: controller.signal,
+      });
+      const rejected = expect(result).rejects.toThrow("viewer closed");
+      await vi.advanceTimersByTimeAsync(0);
+      controller.abort(new Error("viewer closed"));
+      await rejected;
+      expect(row.state).toBe("booting");
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
 
 describe("computer provisioning", () => {
   it("does not let a queued warmup override a newer Stop", async () => {
@@ -963,6 +1081,136 @@ function leasePrisma(options: {
 }
 
 describe("computer replacement", () => {
+  it.each([
+    ["running", "recover"],
+    ["stopped", "recover"],
+    ["error", "recover"],
+    ["running", "update"],
+    ["stopped", "update"],
+    ["error", "update"],
+  ] as const)(
+    "preserves a persistent %s volume when %s cannot checkpoint it",
+    async (state, mode) => {
+      const row = {
+        id: "computer-1",
+        homeKey: "home-1",
+        providerRef: "persistent-provider-1",
+        kind: "fly",
+        scope: "team",
+        state,
+        controlLeaseId: null,
+        homeRevision: "older-backup",
+      };
+      const update = vi.fn();
+      const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+      const prisma = {
+        computer: { findUniqueOrThrow: vi.fn().mockResolvedValue(row), update, updateMany },
+        run: { findFirst: vi.fn().mockResolvedValue(null) },
+      } as unknown as PrismaClient;
+      const failure = Object.assign(new Error("persistent computer unavailable"), {
+        name: "SandboxNotFoundError",
+      });
+      const exportWorkspace = vi.fn().mockImplementation(() => {
+        throw failure;
+      });
+      const destroy = vi.fn();
+      const resume = vi.fn().mockResolvedValue(undefined);
+      const pauseWorkspaceForStop = vi.fn().mockResolvedValue(resume);
+      const descriptor = new FakeSandboxProvider().describe();
+      const sandbox = {
+        describe: () => ({
+          ...descriptor,
+          capabilities: { ...descriptor.capabilities, persistentRunning: true },
+        }),
+        exportWorkspace,
+        destroy,
+        pauseWorkspaceForStop,
+      } as unknown as SandboxProvider;
+
+      await expect(
+        replaceComputer(
+          {
+            prisma,
+            sandbox,
+            home: {} as AgentHomeStore,
+            jobs: {} as JobPublisher,
+            events: {} as ThreadEvents,
+          },
+          row.id,
+          mode,
+          context,
+        ),
+      ).rejects.toBe(failure);
+      expect(exportWorkspace).toHaveBeenCalledOnce();
+      expect(destroy).not.toHaveBeenCalled();
+      expect(update).not.toHaveBeenCalled();
+      expect(updateMany).toHaveBeenLastCalledWith({
+        where: { id: row.id },
+        data: { state: "error" },
+      });
+      expect(row.providerRef).toBe("persistent-provider-1");
+      expect(pauseWorkspaceForStop).toHaveBeenCalledTimes(state === "running" ? 1 : 0);
+      expect(resume).toHaveBeenCalledTimes(state === "running" ? 1 : 0);
+    },
+  );
+
+  it("keeps a persistent ref when destruction fails after a fresh checkpoint", async () => {
+    const row = {
+      id: "computer-1",
+      homeKey: "home-1",
+      providerRef: "persistent-provider-1",
+      kind: "fly",
+      scope: "team",
+      state: "running",
+      controlLeaseId: null,
+    };
+    const update = vi.fn();
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = {
+      computer: { findUniqueOrThrow: vi.fn().mockResolvedValue(row), update, updateMany },
+      run: { findFirst: vi.fn().mockResolvedValue(null) },
+    } as unknown as PrismaClient;
+    const commit = vi.fn().mockResolvedValue("fresh-backup");
+    const destroy = vi.fn().mockImplementation(async () => {
+      expect(commit).toHaveBeenCalledOnce();
+      throw new Error("destroy unavailable");
+    });
+    const resume = vi.fn().mockResolvedValue(undefined);
+    const descriptor = new FakeSandboxProvider().describe();
+    const sandbox = {
+      describe: () => ({
+        ...descriptor,
+        capabilities: { ...descriptor.capabilities, persistentRunning: true },
+      }),
+      exportWorkspace: async function* () {
+        yield { path: "new.txt", content: new TextEncoder().encode("newer than backup") };
+      },
+      destroy,
+      pauseWorkspaceForStop: vi.fn().mockResolvedValue(resume),
+    } as unknown as SandboxProvider;
+    await expect(
+      replaceComputer(
+        {
+          prisma,
+          sandbox,
+          home: { commit } as unknown as AgentHomeStore,
+          jobs: {} as JobPublisher,
+          events: {} as ThreadEvents,
+        },
+        row.id,
+        "recover",
+        context,
+      ),
+    ).rejects.toThrow("destroy unavailable");
+    expect(destroy).toHaveBeenCalledOnce();
+    expect(resume).toHaveBeenCalledOnce();
+    expect(update).not.toHaveBeenCalled();
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: row.id },
+      data: { homeRevision: "fresh-backup" },
+    });
+  });
+
   it("exposes update availability by sandbox kind", () => {
     expect(computerSupportsUpdate("e2b")).toBe(true);
     expect(computerSupportsUpdate("desktop")).toBe(false);
