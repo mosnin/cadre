@@ -40,6 +40,7 @@ test("teach a task records interaction and saves a draft", async ({ page }, test
   }
   await captureScreenshot(page, testInfo, "teach-computer-chrome");
 
+  await page.getByRole("button", { name: "Take control", exact: true }).click();
   await more.click();
   await expect(page.getByRole("menuitem", { name: "Release", exact: true })).toBeVisible();
   const teachStart = page.getByTestId("teach-start-button");

@@ -61,6 +61,6 @@ test("screen connection failures stay visible and can be retried", async ({ page
   await expect(chrome.getByText("You have control")).toHaveCount(0);
   await captureScreenshot(page, testInfo, "computer-mobile-stable-stream");
   await page.getByTestId("computer-more-button").click();
-  await expect(page.getByRole("menuitem", { name: "Release", exact: true })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Release", exact: true })).toHaveCount(0);
   await captureScreenshot(page, testInfo, "computer-mobile-actions-menu");
 });
