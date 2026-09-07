@@ -223,3 +223,31 @@ describe("ScriptedVoiceProvider", () => {
     ).resolves.toEqual({ text: SCRIPTED_TRANSCRIPT });
   });
 });
+
+it("creates an OpenAI Realtime WebRTC call without returning its API key", async () => {
+  const request = vi.fn().mockResolvedValue(new Response("v=0\r\nanswer"));
+  vi.stubGlobal("fetch", request);
+  const provider = new OpenAIVoiceProvider();
+  const answer = await provider.connectRealtime(
+    {
+      sdp: "v=0\r\noffer",
+      apiKey: "private-test-key",
+      voiceId: "nova",
+      instructions: "Use the task tool.",
+      tools: [],
+    },
+    ctx,
+  );
+  expect(answer).toEqual({ sdp: "v=0\r\nanswer" });
+  const [url, init] = request.mock.calls[0]!;
+  expect(url).toBe("https://api.openai.com/v1/realtime/calls");
+  expect(init.headers.authorization).toBe("Bearer private-test-key");
+  const session = JSON.parse(init.body.get("session"));
+  expect(session).toMatchObject({
+    type: "realtime",
+    model: "gpt-realtime",
+    output_modalities: ["audio"],
+    audio: { output: { voice: "marin" } },
+  });
+  expect(JSON.stringify(answer)).not.toContain("private-test-key");
+});

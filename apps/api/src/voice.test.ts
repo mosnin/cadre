@@ -165,3 +165,48 @@ describe("deployment supplied voice", () => {
     expect(prisma.spaceVoicePreference.findFirst).not.toHaveBeenCalled();
   });
 });
+
+describe("realtime call authorization", () => {
+  it("rejects unauthenticated calls before contacting OpenAI", async () => {
+    const app = new Hono();
+    mountVoiceHttpRoutes(app, {} as VoiceDeps, async () => null);
+    expect(
+      (
+        await app.request("/api/voice/realtime", {
+          method: "POST",
+          body: JSON.stringify({ botId: "bot", sdp: "v=0" }),
+        })
+      ).status,
+    ).toBe(401);
+  });
+  it("rejects a bot outside the authenticated tenant", async () => {
+    const app = new Hono();
+    const deps = {
+      prisma: { bot: { findFirst: vi.fn().mockResolvedValue(null) } },
+    } as unknown as VoiceDeps;
+    mountVoiceHttpRoutes(app, deps, async () => ({ userId: "u", spaceId: "s" }) as Actor);
+    expect(
+      (
+        await app.request("/api/voice/realtime", {
+          method: "POST",
+          body: JSON.stringify({ botId: "other-bot", sdp: "v=0" }),
+        })
+      ).status,
+    ).toBe(404);
+    expect(deps.prisma.bot.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "other-bot", spaceId: "s", userId: "u" } }),
+    );
+  });
+  it("rejects an oversized session request", async () => {
+    const app = new Hono();
+    mountVoiceHttpRoutes(
+      app,
+      {} as VoiceDeps,
+      async () => ({ userId: "u", spaceId: "s" }) as Actor,
+    );
+    expect(
+      (await app.request("/api/voice/realtime", { method: "POST", body: "x".repeat(65537) }))
+        .status,
+    ).toBe(413);
+  });
+});

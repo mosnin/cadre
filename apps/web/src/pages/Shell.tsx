@@ -4062,6 +4062,7 @@ export function ShellPage() {
         ) : null}
         {callOpen && active ? (
           <CallView
+            realtime={Boolean(voiceStatus?.realtime)}
             botId={active.id}
             botName={active.name}
             botColor={active.color}

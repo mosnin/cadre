@@ -176,7 +176,14 @@ export async function checkpointBeforeComputerStop(
   computerRecord: { id: string; homeKey: string },
   computer: ComputerRef,
   context: AdapterContext,
-): Promise<void> {
+): Promise<(() => Promise<void>) | undefined> {
   if (await deps.sandbox.isStoppedWithPersistentWorkspace?.(computer, context)) return;
-  await checkpointAndRecordComputerWorkspace(deps, computerRecord, computer, context);
+  const resume = await deps.sandbox.pauseWorkspaceForStop?.(computer, context);
+  try {
+    await checkpointAndRecordComputerWorkspace(deps, computerRecord, computer, context);
+    return resume;
+  } catch (error) {
+    await resume?.();
+    throw error;
+  }
 }

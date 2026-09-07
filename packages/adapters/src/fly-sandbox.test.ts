@@ -166,3 +166,16 @@ it("accepts a repeated stop without contacting an already stopped desktop", asyn
   await new FlySandboxProvider(options, request).stop(ref, context);
   expect(request).toHaveBeenCalledOnce();
 });
+
+it("flushes and pauses browsers before a stop checkpoint and can restore them on failure", async () => {
+  const request = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(json(machine))
+    .mockResolvedValueOnce(json({ ok: true }))
+    .mockResolvedValueOnce(json(machine))
+    .mockResolvedValueOnce(json({ ok: true }));
+  const resume = await new FlySandboxProvider(options, request).pauseWorkspaceForStop(ref, context);
+  expect(JSON.parse(String(request.mock.calls[1]![1]?.body))).toEqual({ op: "restoreBegin" });
+  await resume();
+  expect(JSON.parse(String(request.mock.calls[3]![1]?.body))).toEqual({ op: "restoreEnd" });
+});

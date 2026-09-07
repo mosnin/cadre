@@ -1417,8 +1417,13 @@ export function createRouter(deps: RouterDeps) {
             const ctx = computerContext(context.actor, bot.id, "stop");
             const ref = toComputerRef(bot.computer);
             try {
-              await checkpointBeforeComputerStop(deps, bot.computer, ref, ctx);
-              await deps.sandbox.stop(ref, ctx);
+              const resume = await checkpointBeforeComputerStop(deps, bot.computer, ref, ctx);
+              try {
+                await deps.sandbox.stop(ref, ctx);
+              } catch (error) {
+                await resume?.();
+                throw error;
+              }
             } catch (error) {
               if (!isSandboxGoneError(error)) throw error;
               // A terminated computer cannot checkpoint again. Keep its last durable home.

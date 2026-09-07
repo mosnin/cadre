@@ -4,12 +4,30 @@ import { isSecretAskBlock, speechFromBlocks, spokenDecision } from "@rakazo/core
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@rakazo/ui-web";
 import FluidOrb from "@rakazo/ui-web/components/ui/fluid-orb";
 import { useEffect, useRef, useState } from "react";
+import { hasWorkingRun, latestAskId, pendingSecretAsk } from "../lib/call-task";
 import { dictation } from "../lib/dictation";
 import { speaker } from "../lib/tts";
+import { RealtimeCallView } from "./RealtimeCallView";
 
 type Phase = "listening" | "thinking" | "speaking";
 
-export function CallView({
+export function CallView(props: CallProps & { realtime?: boolean }) {
+  return props.realtime ? <RealtimeCallView {...props} /> : <RecordedCallView {...props} />;
+}
+
+export type CallProps = {
+  botId: string;
+  botName: string;
+  botColor: string;
+  transcribe: boolean;
+  snapshot: ThreadSnapshot | null;
+  onSend: (text: string) => Promise<void>;
+  onFollowUp: (text: string) => Promise<void>;
+  onAnswer: (message: ThreadMessage, text: string) => Promise<void>;
+  onClose: () => void;
+};
+
+function RecordedCallView({
   botId,
   botName,
   botColor,
@@ -270,31 +288,5 @@ export function CallView({
         </p>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function pendingSecretAsk(snapshot: ThreadSnapshot | null) {
-  const askId = latestAskId(snapshot);
-  const askMessage = snapshot?.messages.find((message) => message.id === askId);
-  return askMessage?.blocks.some(
-    (block) => block.kind === "ask" && isSecretAskBlock(block) && block.status !== "answered",
-  );
-}
-
-function latestAskId(snapshot: ThreadSnapshot | null): string | null {
-  if (snapshot?.run?.status !== "waiting_input") return null;
-  for (let index = snapshot.messages.length - 1; index >= 0; index -= 1) {
-    const message = snapshot.messages[index];
-    if (message?.runId !== snapshot.run.id) continue;
-    if (message.blocks.some((block) => block.kind === "ask" && block.status !== "answered")) {
-      return message.id;
-    }
-  }
-  return null;
-}
-
-function hasWorkingRun(snapshot: ThreadSnapshot | null) {
-  return [snapshot?.run, ...(snapshot?.activeRuns ?? [])].some(
-    (run) => run && ["running", "queued", "leased"].includes(run.status),
   );
 }
