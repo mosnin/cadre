@@ -79,6 +79,25 @@ export class OpenAIRealtimeCall {
       if (!response.ok) throw new Error(result.error ?? "Could not connect voice.");
       if (this.closed) return;
       await peer.setRemoteDescription({ type: "answer", sdp: result.sdp });
+      if (channel.readyState !== "open")
+        await new Promise<void>((resolve, reject) => {
+          const finish = (error?: Error) => {
+            clearTimeout(timer);
+            channel.removeEventListener("open", ready);
+            this.abort.signal.removeEventListener("abort", cancelled);
+            if (error) reject(error);
+            else resolve();
+          };
+          const ready = () => finish();
+          const cancelled = () => finish(new Error("Voice call ended."));
+          const timer = setTimeout(
+            () => finish(new Error("Voice connection timed out. Reconnect to continue.")),
+            20_000,
+          );
+          channel.addEventListener("open", ready, { once: true });
+          this.abort.signal.addEventListener("abort", cancelled, { once: true });
+          if (this.abort.signal.aborted) cancelled();
+        });
     } catch (error) {
       if (this.closed) return;
       this.close();
