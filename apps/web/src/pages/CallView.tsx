@@ -1,13 +1,13 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ThreadMessage, ThreadSnapshot } from "@rakazo/contracts";
 import { isSecretAskBlock, speechFromBlocks, spokenDecision } from "@rakazo/core";
-import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@rakazo/ui-web";
-import FluidOrb from "@rakazo/ui-web/components/ui/fluid-orb";
+import { Button } from "@rakazo/ui-web";
 import { useEffect, useRef, useState } from "react";
 import { hasWorkingRun, latestAskId, pendingSecretAsk } from "../lib/call-task";
 import { dictation } from "../lib/dictation";
 import { speaker } from "../lib/tts";
 import { RealtimeCallView } from "./RealtimeCallView";
+import { VoiceScreen } from "./VoiceScreen";
 
 type Phase = "listening" | "thinking" | "speaking";
 
@@ -242,51 +242,31 @@ function RecordedCallView({
   }, [snapshot]);
 
   return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) hangUp();
-      }}
-    >
-      <DialogContent
-        data-testid="call-view"
-        showCloseButton={false}
-        className="max-w-[420px] rounded-3xl p-6 text-center sm:max-w-[420px]"
-      >
-        <DialogHeader className="items-center gap-2">
-          <div className="text-[13px] uppercase tracking-[0.12em] text-muted-foreground/80">
-            <Trans>Call</Trans>
-          </div>
-          <DialogTitle className="text-[22px]">{botName}</DialogTitle>
-        </DialogHeader>
-        <div className="mx-auto my-5" data-voice-phase={phase}>
-          <FluidOrb size={240} color={botColor} aria-hidden="true" />
-        </div>
-        <div role="status" className="mt-1 text-[15px] text-foreground/75">
-          {phase === "listening" ? (
-            <Trans>Listening…</Trans>
-          ) : phase === "speaking" ? (
-            <Trans>Speaking…</Trans>
-          ) : (
-            <Trans>Working…</Trans>
-          )}
-        </div>
-        <p className="min-h-[3.2em] text-[14.5px] leading-[1.5] text-muted-foreground">
-          {phase === "listening" ? heard || t`Say something. Silence sends it.` : caption}
-        </p>
-        {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
-        <div className="mt-2 flex justify-center gap-3">
-          <Button variant="outline" className="rounded-full" onClick={interrupt}>
-            <Trans>Interrupt</Trans>
-          </Button>
-          <Button variant="destructive" className="rounded-full" onClick={hangUp}>
-            <Trans>Hang up</Trans>
-          </Button>
-        </div>
-        <p className="hidden text-xs text-muted-foreground/80 sm:block">
-          <Trans>Space interrupts · Esc hangs up</Trans>
-        </p>
-      </DialogContent>
-    </Dialog>
+    <VoiceScreen name={botName} color={botColor} phase={phase} onClose={hangUp}>
+      <div role="status" className="mt-1 text-[15px] text-foreground/75">
+        {phase === "listening" ? (
+          <Trans>Listening…</Trans>
+        ) : phase === "speaking" ? (
+          <Trans>Speaking…</Trans>
+        ) : (
+          <Trans>Working…</Trans>
+        )}
+      </div>
+      <p className="max-h-[18dvh] min-h-[3.2em] w-full overflow-y-auto text-[14.5px] leading-[1.5] text-muted-foreground">
+        {phase === "listening" ? heard || t`Say something. Silence sends it.` : caption}
+      </p>
+      {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
+      <div className="mt-2 flex justify-center gap-3">
+        <Button variant="outline" className="h-12 rounded-full px-6" onClick={interrupt}>
+          <Trans>Interrupt</Trans>
+        </Button>
+        <Button variant="destructive" className="h-12 rounded-full px-6" onClick={hangUp}>
+          <Trans>Hang up</Trans>
+        </Button>
+      </div>
+      <p className="hidden text-xs text-muted-foreground/80 sm:block">
+        <Trans>Space interrupts · Esc hangs up</Trans>
+      </p>
+    </VoiceScreen>
   );
 }

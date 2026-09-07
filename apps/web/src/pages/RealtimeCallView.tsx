@@ -1,17 +1,18 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { speechFromBlocks, spokenDecision } from "@rakazo/core";
-import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@rakazo/ui-web";
-import FluidOrb from "@rakazo/ui-web/components/ui/fluid-orb";
+import { Button } from "@rakazo/ui-web";
 import { useEffect, useRef, useState } from "react";
 import { OpenAIRealtimeCall, type RealtimePhase } from "../lib/adapters/openai-realtime";
 import { hasWorkingRun, latestAskId, pendingSecretAsk } from "../lib/call-task";
 import type { CallProps } from "./CallView";
+import { VoiceScreen } from "./VoiceScreen";
 
 export function RealtimeCallView(props: CallProps) {
   const { t } = useLingui();
   const current = useRef(props);
   current.current = props;
   const call = useRef<OpenAIRealtimeCall | null>(null);
+  const [level, setLevel] = useState(0);
   const [phase, setPhase] = useState<RealtimePhase>("connecting");
   const [heard, setHeard] = useState("");
   const [caption, setCaption] = useState("");
@@ -42,6 +43,7 @@ export function RealtimeCallView(props: CallProps) {
   }
   useEffect(() => {
     setError(null);
+    setLevel(0);
     setCaption("");
     setHeard("");
     reported.current =
@@ -50,6 +52,7 @@ export function RealtimeCallView(props: CallProps) {
         .find((message) => message.role === "bot")?.id ?? null;
     const session = new OpenAIRealtimeCall({
       phase: setPhase,
+      level: setLevel,
       heard: setHeard,
       caption: (text) => setCaption((previous) => (text ? previous + text : "")),
       error: setError,
@@ -120,79 +123,68 @@ export function RealtimeCallView(props: CallProps) {
     return () => window.removeEventListener("keydown", key);
   }, []);
   return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) hangUp();
-      }}
+    <VoiceScreen
+      name={props.botName}
+      color={props.botColor}
+      phase={phase}
+      level={secret ? 0 : level}
+      realtime
+      onClose={hangUp}
     >
-      <DialogContent
-        data-testid="call-view"
-        data-voice-transport="realtime"
-        showCloseButton={false}
-        className="max-w-[420px] rounded-3xl p-6 text-center sm:max-w-[420px]"
-      >
-        <DialogHeader className="items-center gap-2">
-          <DialogTitle className="text-[22px]">{props.botName}</DialogTitle>
-        </DialogHeader>
-        <div className="mx-auto my-5" data-voice-phase={phase}>
-          <FluidOrb size={240} color={props.botColor} aria-hidden="true" />
-        </div>
-        <div role="status" className="mt-1 text-[15px] text-foreground/75">
-          {phase === "connecting"
-            ? t`Connecting…`
-            : phase === "speaking"
-              ? t`Speaking…`
-              : phase === "thinking"
-                ? t`Thinking…`
-                : t`Listening…`}
-        </div>
-        <p className="min-h-[3.2em] text-[14.5px] leading-[1.5] text-muted-foreground">
-          {secret ? t`Enter the code on screen. Your microphone is muted.` : caption || heard}
+      <div role="status" className="mt-1 text-[15px] text-foreground/75">
+        {phase === "connecting"
+          ? t`Connecting…`
+          : phase === "speaking"
+            ? t`Speaking…`
+            : phase === "thinking"
+              ? t`Thinking…`
+              : t`Listening…`}
+      </div>
+      <p className="max-h-[18dvh] min-h-[3.2em] w-full overflow-y-auto text-[14.5px] leading-[1.5] text-muted-foreground">
+        {secret ? t`Enter the code on screen. Your microphone is muted.` : caption || heard}
+      </p>
+      {error ? (
+        <p role="alert" className="text-[13px] text-destructive">
+          {error}
         </p>
+      ) : null}
+      <div className="mt-2 flex flex-wrap justify-center gap-3">
         {error ? (
-          <p role="alert" className="text-[13px] text-destructive">
-            {error}
-          </p>
-        ) : null}
-        <div className="mt-2 flex flex-wrap justify-center gap-3">
-          {error ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  call.current?.close();
-                  setAttempt((value) => value + 1);
-                }}
-              >
-                <Trans>Reconnect</Trans>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  void call.current
-                    ?.resumeAudio()
-                    .then(() => setError(null))
-                    .catch(() => setError(t`Audio could not resume.`))
-                }
-              >
-                <Trans>Resume audio</Trans>
-              </Button>
-            </>
-          ) : (
+          <>
             <Button
               variant="outline"
-              className="rounded-full"
-              onClick={() => call.current?.interrupt()}
+              onClick={() => {
+                call.current?.close();
+                setAttempt((value) => value + 1);
+              }}
             >
-              <Trans>Interrupt</Trans>
+              <Trans>Reconnect</Trans>
             </Button>
-          )}
-          <Button variant="destructive" className="rounded-full" onClick={hangUp}>
-            <Trans>Hang up</Trans>
+            <Button
+              variant="outline"
+              onClick={() =>
+                void call.current
+                  ?.resumeAudio()
+                  .then(() => setError(null))
+                  .catch(() => setError(t`Audio could not resume.`))
+              }
+            >
+              <Trans>Resume audio</Trans>
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="outline"
+            className="h-12 rounded-full px-6"
+            onClick={() => call.current?.interrupt()}
+          >
+            <Trans>Interrupt</Trans>
           </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        )}
+        <Button variant="destructive" className="h-12 rounded-full px-6" onClick={hangUp}>
+          <Trans>Hang up</Trans>
+        </Button>
+      </div>
+    </VoiceScreen>
   );
 }

@@ -9,14 +9,28 @@ test("realtime voice dispatches an actual task once and releases the microphone 
   await page.addInitScript(() => {
     const fixture = { sent: [] as unknown[], stopped: false, receive: (_event: unknown) => {} };
     Object.assign(window, { realtimeFixture: fixture });
-    const track = {
-      enabled: true,
-      stop: () => {
-        fixture.stopped = true;
-      },
-    };
     Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
-      value: async () => ({ getTracks: () => [track], getAudioTracks: () => [track] }),
+      value: async () => {
+        const audio = new AudioContext();
+        await audio.resume();
+        const oscillator = audio.createOscillator();
+        const gain = audio.createGain();
+        gain.gain.value = 0;
+        const destination = audio.createMediaStreamDestination();
+        oscillator.connect(gain).connect(destination);
+        oscillator.start();
+        Object.assign(fixture, { gain });
+        for (const track of destination.stream.getTracks()) {
+          const stop = track.stop.bind(track);
+          track.stop = () => {
+            fixture.stopped = true;
+            stop();
+            oscillator.stop();
+            void audio.close();
+          };
+        }
+        return destination.stream;
+      },
     });
     class Peer {
       connectionState = "connected";
@@ -74,6 +88,31 @@ test("realtime voice dispatches an actual task once and releases the microphone 
   const call = page.getByTestId("call-view");
   await expect(call).toHaveAttribute("data-voice-transport", "realtime");
   await expect(call.getByRole("status")).toHaveText("Listening…");
+  await expect
+    .poll(async () => {
+      const bounds = await call.boundingBox();
+      return (
+        bounds && [
+          Math.round(bounds.x),
+          Math.round(bounds.y),
+          Math.round(bounds.width),
+          Math.round(bounds.height),
+        ]
+      );
+    })
+    .toEqual([0, 0, 390, 844]);
+  await page.evaluate(() => {
+    (window as any).realtimeFixture.gain.gain.value = 0.12;
+  });
+  const orb = page.getByTestId("voice-orb");
+  await expect
+    .poll(async () => Number(await orb.getAttribute("data-audio-level")))
+    .toBeGreaterThan(0.2);
+  await captureScreenshot(page, testInfo, "mobile-realtime-speaking");
+  await page.evaluate(() => {
+    (window as any).realtimeFixture.gain.gain.value = 0;
+  });
+  await expect.poll(async () => Number(await orb.getAttribute("data-audio-level"))).toBe(0);
   const sends: string[] = [];
   page.on("request", (request) => {
     if (request.url().endsWith("/rpc/threads/send")) sends.push(request.postDataJSON().json.text);
@@ -119,6 +158,12 @@ test("realtime voice dispatches an actual task once and releases the microphone 
     .toBe(true);
   await captureScreenshot(page, testInfo, "mobile-realtime-task");
   await page.setViewportSize({ width: 1365, height: 900 });
+  await expect
+    .poll(async () => {
+      const bounds = await call.boundingBox();
+      return bounds && [Math.round(bounds.width), Math.round(bounds.height)];
+    })
+    .toEqual([1365, 900]);
   await captureScreenshot(page, testInfo, "desktop-realtime-task");
   expect(errors).toEqual([]);
   await page.getByRole("button", { name: "Hang up", exact: true }).click();
