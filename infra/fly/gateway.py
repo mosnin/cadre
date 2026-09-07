@@ -10,7 +10,9 @@ from http.server import ThreadingHTTPServer
 from urllib.parse import urlsplit
 from screen_gateway import Handler as ScreenHandler
 
-MAX_BODY = 20 * 1024 * 1024
+# The shared workspace protocol allows a 64 MiB file. Base64 plus its JSON
+# envelope must fit here and in computer_rpc.py's bounded stdin reader.
+MAX_BODY = 96 * 1024 * 1024
 
 class Handler(ScreenHandler):
     def route_machine(self):
