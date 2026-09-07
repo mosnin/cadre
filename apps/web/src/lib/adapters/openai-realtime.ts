@@ -13,12 +13,15 @@ export class OpenAIRealtimeCall {
   private responding = false;
   private requestedResponse = false;
   private inputEnabled = true;
+  private meter: AudioContext | null = null;
+  private meterTimer: ReturnType<typeof setInterval> | undefined;
   constructor(
     private readonly events: {
       phase: (phase: RealtimePhase) => void;
       heard: (text: string) => void;
       caption: (text: string) => void;
       error: (message: string) => void;
+      level?: (level: number) => void;
       tool: (name: string, args: unknown) => Promise<unknown>;
     },
   ) {}
@@ -35,6 +38,7 @@ export class OpenAIRealtimeCall {
       }
       this.stream = stream;
       this.setInputEnabled(this.inputEnabled);
+      this.meterInput(stream);
       const peer = new RTCPeerConnection();
       this.peer = peer;
       const audio = new Audio();
@@ -108,6 +112,32 @@ export class OpenAIRealtimeCall {
   private send(event: Record<string, unknown>) {
     if (this.closed || this.channel?.readyState !== "open") return;
     this.channel.send(JSON.stringify(event));
+  }
+  private meterInput(stream: MediaStream) {
+    if (!this.events.level) return;
+    try {
+      const context = new AudioContext();
+      this.meter = context;
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 512;
+      context.createMediaStreamSource(stream).connect(analyser);
+      void context.resume().catch(() => undefined);
+      const samples = new Float32Array(analyser.fftSize);
+      let smoothed = 0;
+      this.meterTimer = setInterval(() => {
+        analyser.getFloatTimeDomainData(samples);
+        const rms = Math.sqrt(
+          samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length,
+        );
+        const level = this.inputEnabled ? Math.min(1, Math.max(0, rms - 0.012) * 7) : 0;
+        smoothed += (level - smoothed) * (level > smoothed ? 0.65 : 0.25);
+        this.events.level?.(smoothed < 0.005 ? 0 : smoothed);
+      }, 50);
+    } catch {
+      // Visual feedback is optional; unsupported audio analysis must not interrupt a call.
+      void this.meter?.close().catch(() => undefined);
+      this.meter = null;
+    }
   }
   private respond() {
     if (this.responding) {
@@ -205,6 +235,9 @@ export class OpenAIRealtimeCall {
   close() {
     this.closed = true;
     this.abort.abort();
+    clearInterval(this.meterTimer);
+    void this.meter?.close().catch(() => undefined);
+    this.meter = null;
     this.channel?.close();
     this.peer?.close();
     for (const track of this.stream?.getTracks() ?? []) track.stop();
