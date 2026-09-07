@@ -281,6 +281,21 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
     throw new Error("Computer backup is still being prepared");
   }
 
+  async pauseWorkspaceForStop(computer: ComputerRef, ctx: AdapterContext) {
+    const machine = await this.owned(computer, ctx);
+    if (machine.state === "stopped") return async () => {};
+    try {
+      await this.rpc(machine, { op: "restoreBegin" });
+    } catch (error) {
+      await this.rpc(machine, { op: "restoreEnd" }).catch(() => undefined);
+      throw error;
+    }
+    return async () => {
+      const current = await this.owned(computer, ctx);
+      if (current.state === "started") await this.rpc(current, { op: "restoreEnd" });
+    };
+  }
+
   async isStoppedWithPersistentWorkspace(computer: ComputerRef, ctx: AdapterContext) {
     const machine = await this.owned(computer, ctx);
     return Boolean(

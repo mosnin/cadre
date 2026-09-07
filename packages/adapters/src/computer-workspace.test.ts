@@ -212,3 +212,22 @@ describe("stop workspace durability", () => {
     expect(exported).not.toHaveBeenCalled();
   });
 });
+
+it("quiesces browser profile writes before Stop and restores them if the checkpoint fails", async () => {
+  const resume = vi.fn().mockResolvedValue(undefined);
+  const pause = vi.fn().mockResolvedValue(resume);
+  const exported = vi.fn(async function* () {
+    yield await Promise.reject(new Error("backup unavailable"));
+  });
+  const deps = {
+    sandbox: { pauseWorkspaceForStop: pause, exportWorkspace: exported },
+    home: {},
+    prisma: {},
+  } as unknown as Parameters<typeof checkpointBeforeComputerStop>[0];
+  const computer = { id: "computer", botId: "home", kind: "fly" as const, providerRef: "ref" };
+  await expect(
+    checkpointBeforeComputerStop(deps, { id: "computer", homeKey: "home" }, computer, context),
+  ).rejects.toThrow("backup unavailable");
+  expect(pause.mock.invocationCallOrder[0]).toBeLessThan(exported.mock.invocationCallOrder[0]!);
+  expect(resume).toHaveBeenCalledOnce();
+});

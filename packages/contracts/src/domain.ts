@@ -826,6 +826,7 @@ export const VoiceCredentialSchema = z.object({
 export type VoiceCredential = z.infer<typeof VoiceCredentialSchema>;
 
 export const VoiceStatusSchema = z.object({
+  realtime: z.boolean().optional(),
   configured: z.boolean(),
   ready: z.boolean(),
   transcribe: z.boolean(),

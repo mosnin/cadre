@@ -50,6 +50,7 @@ import type {
   TransactionalEmail,
   VoiceCapabilities,
   VoiceInfo,
+  VoiceRealtimeRequest,
   VoiceSynthesizeRequest,
   VoiceTranscribeRequest,
   VoiceVerifyResult,
@@ -135,6 +136,11 @@ export interface SandboxProvider {
   suspendWhenIdle?(computer: ComputerRef): boolean;
   /** Drop a single-screen graphical claim for this bot so another Team bot can use the display. */
   releaseScreen?(computer: ComputerRef, context: AdapterContext): Promise<void>;
+  /** Quiesce browser profile writes for explicit Stop; returned callback restores them if Stop fails. */
+  pauseWorkspaceForStop?(
+    computer: ComputerRef,
+    context: AdapterContext,
+  ): Promise<() => Promise<void>>;
   /** Verify that this owned computer is already stopped with its durable workspace intact. */
   isStoppedWithPersistentWorkspace?(
     computer: ComputerRef,
@@ -308,6 +314,10 @@ export interface ExecutionRunner {
 }
 
 export interface VoiceProvider {
+  connectRealtime?(
+    request: VoiceRealtimeRequest,
+    context: AdapterContext,
+  ): Promise<{ sdp: string }>;
   describe(): AdapterDescriptor<VoiceCapabilities>;
   verify(apiKey: string, context: AdapterContext): Promise<VoiceVerifyResult>;
   listVoices(apiKey: string, context: AdapterContext): Promise<VoiceInfo[]>;

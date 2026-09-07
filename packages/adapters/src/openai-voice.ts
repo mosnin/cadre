@@ -5,6 +5,7 @@ import type {
   VoiceCapabilities,
   VoiceInfo,
   VoiceProvider,
+  VoiceRealtimeRequest,
   VoiceSynthesizeRequest,
   VoiceTranscribeRequest,
   VoiceVerifyResult,
@@ -42,8 +43,53 @@ export class OpenAIVoiceProvider implements VoiceProvider {
       id: "openai",
       contractVersion: "1",
       adapterVersion: "0.1.0",
-      capabilities: { catalog: true, synthesize: true, transcribe: true },
+      capabilities: { catalog: true, synthesize: true, transcribe: true, realtime: true },
     };
+  }
+
+  async connectRealtime(request: VoiceRealtimeRequest, context: AdapterContext) {
+    const voices = new Set([
+      "alloy",
+      "ash",
+      "ballad",
+      "coral",
+      "echo",
+      "sage",
+      "shimmer",
+      "verse",
+      "marin",
+      "cedar",
+    ]);
+    const form = new FormData();
+    form.set("sdp", request.sdp);
+    form.set(
+      "session",
+      JSON.stringify({
+        type: "realtime",
+        model: "gpt-realtime",
+        output_modalities: ["audio"],
+        audio: {
+          input: {
+            transcription: { model: "gpt-4o-mini-transcribe" },
+            turn_detection: { type: "semantic_vad", interrupt_response: true },
+          },
+          output: { voice: voices.has(request.voiceId) ? request.voiceId : "marin" },
+        },
+        instructions: request.instructions,
+        tools: request.tools,
+        tool_choice: "auto",
+      }),
+    );
+    const response = await fetch(`${API}/realtime/calls`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${request.apiKey}` },
+      body: form,
+      signal: voiceDeadline(context.signal, 30_000),
+    });
+    await requireOk(response, "OpenAI", "starting a realtime call");
+    const sdp = await response.text();
+    if (!sdp.startsWith("v=0")) throw new Error("Voice connection returned an invalid answer.");
+    return { sdp };
   }
 
   async verify(apiKey: string, context: AdapterContext): Promise<VoiceVerifyResult> {
