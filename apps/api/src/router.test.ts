@@ -724,3 +724,112 @@ describe("computer screen url", () => {
     expect(updateMany).not.toHaveBeenCalled();
   });
 });
+
+describe("connector readiness", () => {
+  it.each([false, true])(
+    "requires provider readiness when authorization has no URL: %s",
+    async (ready) => {
+      const update = vi.fn().mockResolvedValue({});
+      const connectionReady = vi.fn().mockResolvedValue(ready);
+      const deps = {
+        prisma: { connection: { create: vi.fn().mockResolvedValue({ id: "connection" }), update } },
+        connectors: {
+          managed: () => ({
+            begin: async () => ({ authorizationUrl: null, state: "pending-provider" }),
+            connectionReady,
+          }),
+        },
+        env: { webOrigin: "https://app.example.test" },
+      } as unknown as RouterDeps;
+      const handler = new RPCHandler(createRouter(deps));
+      const actor = {
+        spaceId: "space",
+        userId: "user",
+        email: "user@example.test",
+        isDeploymentOwner: true,
+      } satisfies Actor;
+      const { response } = await handler.handle(
+        new Request("http://localhost/rpc/connections/begin", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            json: { connectorId: "composio", provider: "github", displayName: "GitHub" },
+          }),
+        }),
+        { prefix: "/rpc", context: { actor } },
+      );
+      expect(response.status).toBe(200);
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: ready ? "connected" : "pending" }),
+        }),
+      );
+    },
+  );
+});
+
+describe("connector catalog recovery", () => {
+  const actor = {
+    spaceId: "space",
+    userId: "user",
+    email: "user@example.test",
+    isDeploymentOwner: true,
+  } satisfies Actor;
+  async function catalog(provider: unknown, findMany = vi.fn().mockResolvedValue([])) {
+    const deps = {
+      prisma: { connection: { findMany } },
+      connectors: { managedProviders: () => [provider] },
+      env: {},
+    } as unknown as RouterDeps;
+    const handler = new RPCHandler(createRouter(deps));
+    return (
+      await handler.handle(
+        new Request("http://localhost/rpc/connections/catalog", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ json: {} }),
+        }),
+        { prefix: "/rpc", context: { actor } },
+      )
+    ).response;
+  }
+  it("keeps confirmed no-auth selections visible without trusting saved OAuth state", async () => {
+    const items = [
+      {
+        connectorId: "composio",
+        slug: "hackernews",
+        name: "Hacker News",
+        description: "",
+        logo: null,
+        noAuth: true,
+        connected: false,
+        categories: [],
+      },
+      {
+        connectorId: "composio",
+        slug: "github",
+        name: "GitHub",
+        description: "",
+        logo: null,
+        noAuth: false,
+        connected: false,
+        categories: [],
+      },
+    ];
+    const response = await catalog(
+      { describe: () => ({ id: "composio" }), catalog: async () => items },
+      vi.fn().mockResolvedValue([{ provider: "hackernews" }, { provider: "github" }]),
+    );
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.json.map((item: any) => item.connected)).toEqual([true, false]);
+  });
+  it("surfaces a failed provider instead of pretending the catalog is empty", async () => {
+    const response = await catalog({
+      catalog: async () => {
+        throw new Error("Provider unavailable");
+      },
+    });
+    expect(response.status).toBe(502);
+  });
+});

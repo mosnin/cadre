@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BuiCard, SuccessPop } from "../../components/ai/primitives";
 import { type ArtifactTarget, decodeArtifactBase64 } from "../../lib/artifact-open";
+import { reserveAuthorizationWindow } from "../../lib/authorization-window";
 import { chartViewport } from "../../lib/chart-viewport";
 import { connectMcpOauth } from "../../lib/mcp-connect";
 import { rpc } from "../../lib/rpc";
@@ -120,6 +121,7 @@ export function AppConnectCard({
   async function authorize() {
     connectionAttempt.current?.abort();
     const controller = new AbortController();
+    const authorization = reserveAuthorizationWindow();
     connectionAttempt.current = controller;
     setBusy(true);
     setError(null);
@@ -128,9 +130,10 @@ export function AppConnectCard({
         provider: block.provider,
         displayName: block.name,
       });
+      if (controller.signal.aborted) return;
       if (started.authorizationUrl) {
-        window.open(started.authorizationUrl, "rakazo-app-connect", "popup,width=560,height=720");
-      }
+        authorization.navigate(started.authorizationUrl);
+      } else authorization.closeUnused();
       for (let i = 0; i < 60; i += 1) {
         if (controller.signal.aborted) return;
         const row = await rpc.connections
@@ -152,6 +155,7 @@ export function AppConnectCard({
         setError(error instanceof Error ? error.message : t`Could not authorize this app`);
       }
     } finally {
+      authorization.closeUnused();
       if (connectionAttempt.current === controller) {
         connectionAttempt.current = null;
         setBusy(false);

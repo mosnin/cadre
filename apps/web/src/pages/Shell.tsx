@@ -87,7 +87,6 @@ import {
   Monitor,
   PanelLeftClose,
   Paperclip,
-  Phone,
   Plus,
   Puzzle,
   Reply,
@@ -247,7 +246,6 @@ const MemorySettingsOverlay = lazy(() =>
 const VoiceSettingsOverlay = lazy(() =>
   import("./VoiceSettingsOverlay").then((module) => ({ default: module.VoiceSettingsOverlay })),
 );
-const CallView = lazy(() => import("./CallView").then((module) => ({ default: module.CallView })));
 
 type Panel =
   | "computer"
@@ -428,7 +426,6 @@ export function ShellPage() {
   >(undefined);
   const memoryProviderConfigRevision = useRef(0);
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [callOpen, setCallOpen] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus | null>(null);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [dictating, setDictating] = useState(false);
@@ -1073,7 +1070,7 @@ export function ShellPage() {
       autoSpoken.current = lastBot?.id ?? null;
       return;
     }
-    if (callOpen || !active.autoSpeak) {
+    if (!active.autoSpeak) {
       autoSpoken.current = lastBot?.id ?? null;
       return;
     }
@@ -1083,14 +1080,7 @@ export function ShellPage() {
     if (!text) return;
     autoSpoken.current = lastBot.id;
     void speaker.speak(text, { botId: active.id, messageId: lastBot.id });
-  }, [
-    snapshot?.messages,
-    snapshot?.run?.status,
-    snapshot?.botId,
-    active?.autoSpeak,
-    active?.id,
-    callOpen,
-  ]);
+  }, [snapshot?.messages, snapshot?.run?.status, snapshot?.botId, active?.autoSpeak, active?.id]);
 
   useEffect(() => {
     if (!active) return;
@@ -2140,12 +2130,6 @@ export function ShellPage() {
       t,
     ],
   );
-  const followUpMessage = useCallback(async (text: string) => {
-    const id = activeBotId.current;
-    if (!id) return;
-    await rpc.threads.followUp({ botId: id, text });
-    await refreshThreadRef.current(id);
-  }, []);
   const stopRun = useCallback(async () => {
     if (sending) return;
     setSending(true);
@@ -2487,12 +2471,10 @@ export function ShellPage() {
 
   async function openComputer() {
     if (!active) return;
-    const needsTakeover = !userHoldsComputerControl(computer, active.id);
-    const blocked = computerTakeoverBlocked(computer, snapshot?.run?.status);
     try {
       await bootComputer({
-        takeControl: needsTakeover && !blocked,
-        overlay: (needsTakeover && !blocked) || computer?.state !== "running",
+        takeControl: false,
+        overlay: computer?.state !== "running",
         force: computer?.state !== "running",
       });
       setComputerOpen(true);
@@ -3277,24 +3259,6 @@ export function ShellPage() {
             </button>
           </div>
           <div className="flex items-center gap-1">
-            {!inGroup && active ? (
-              <button
-                type="button"
-                title={voiceStatus?.ready ? t`Call` : t`Set up voice to call`}
-                aria-label={t`Call`}
-                onClick={() => {
-                  if (!voiceStatus?.ready) {
-                    setVoiceOpen(true);
-                    return;
-                  }
-                  setCallOpen(true);
-                }}
-                data-active={callOpen ? "" : undefined}
-                className="app-no-drag grid h-10 w-10 place-items-center rounded-full hover:bg-accent data-active:bg-accent"
-              >
-                <Phone size={16} strokeWidth={1.6} className="text-foreground/75" />
-              </button>
-            ) : null}
             {!inGroup ? (
               <button
                 type="button"
@@ -4060,34 +4024,6 @@ export function ShellPage() {
             }}
           />
         ) : null}
-        {callOpen && active ? (
-          <CallView
-            realtime={Boolean(voiceStatus?.realtime)}
-            botId={active.id}
-            botName={active.name}
-            botColor={active.color}
-            transcribe={Boolean(voiceStatus?.transcribe)}
-            snapshot={activeSnapshot}
-            onSend={async (text) => {
-              const botId = active.id;
-              const sent = await rpc.threads.send({ botId, text, clientNonce: newClientNonce() });
-              if (activeBotId.current === botId) {
-                updateSnapshot((current) =>
-                  applyThreadSendReceipt(
-                    current,
-                    { botId, runId: sent.runId, taskId: sent.taskId },
-                    terminalRunReceipts.current,
-                  ),
-                );
-              }
-              await refreshThreadRef.current(botId);
-              void refreshBots().catch(() => undefined);
-            }}
-            onFollowUp={followUpMessage}
-            onAnswer={answerMessage}
-            onClose={() => setCallOpen(false)}
-          />
-        ) : null}
       </Suspense>
 
       <Suspense fallback={null}>
@@ -4165,6 +4101,22 @@ export function ShellPage() {
                 </Button>
               ) : null}
               {recordingSkill ? <TeachStopButton busy={teachBusy} onStop={stopTeaching} /> : null}
+              {active &&
+              !recordingSkill &&
+              !hasControl &&
+              !computerTakeoverBlocked(computer, snapshot?.run?.status) ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={booting}
+                  onClick={() =>
+                    void bootComputer({ takeControl: true, overlay: false }).catch(() => undefined)
+                  }
+                >
+                  <Trans>Take control</Trans>
+                </Button>
+              ) : null}
               {active && !recordingSkill ? (
                 <ComputerNavigationControls
                   frameRef={computerFrameRef}

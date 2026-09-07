@@ -35,6 +35,18 @@ export function hasActiveComputerControl(
   );
 }
 
+/** A Team Computer has distinct bot screens; user takeover owns only its target. */
+export function hasActiveComputerControlForBot(
+  computer: Parameters<typeof hasActiveComputerControl>[0] & { controlBotId: string | null },
+  botId: string,
+  now = new Date(),
+): boolean {
+  return (
+    hasActiveComputerControl(computer, now) &&
+    (!computer?.controlBotId || computer.controlBotId === botId)
+  );
+}
+
 export function scheduleComputerControlExpiry(
   jobs: JobPublisher,
   computerId: string,

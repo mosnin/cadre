@@ -117,6 +117,7 @@ test("computer help and navigation commands use only the current viewer", async 
   await page.evaluate(() => window.postMessage({ type: "cadre:computer-navigation-ready" }, "*"));
   await expect(trackpad).toBeDisabled();
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Take control", exact: true }).click();
   const viewer = page.frameLocator('iframe[title="Bot screen"]');
   await viewer.getByRole("button", { name: "Connect test viewer" }).click();
   await page.getByTestId("computer-more-button").click();
