@@ -80,11 +80,12 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await sidePanel.getByTestId("computer-preview").hover();
   await sidePanel.getByTestId("computer-preview-open").click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Skip", exact: true }).last()).toBeVisible();
-  await expect(page.getByRole("button", { name: "I’m done", exact: true }).last()).toBeVisible();
+  await page.getByTestId("computer-more-button").click();
+  await expect(page.getByRole("menuitem", { name: "Skip", exact: true })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "I’m done", exact: true })).toBeVisible();
   if (process.env.SANDBOX_PROVIDER === "box") await waitForBoxFramebuffer(page);
   await captureScreenshot(page, testInfo, "09-computer-takeover-outcomes");
-  await page.getByRole("button", { name: "I’m done", exact: true }).last().click();
+  await page.getByRole("menuitem", { name: "I’m done", exact: true }).click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeHidden();
   await expect(page.getByText(/signed in|session stays/i).first()).toBeVisible({
     timeout: realSandboxTimeout(90_000, 30_000),
@@ -109,7 +110,8 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await expect(openComputer).toBeVisible({ timeout: 30_000 });
   await openComputer.click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeVisible();
-  await page.getByRole("button", { name: "Skip", exact: true }).last().click();
+  await page.getByTestId("computer-more-button").click();
+  await page.getByRole("menuitem", { name: "Skip", exact: true }).click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeHidden();
   await expect(page.getByText(/login was skipped/i).last()).toBeVisible({
     timeout: realSandboxTimeout(90_000, 30_000),
