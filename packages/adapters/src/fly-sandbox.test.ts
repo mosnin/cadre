@@ -84,6 +84,42 @@ describe("persistent Fly computers", () => {
     ]);
     expect(request.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
   });
+  it("replaces deleted disk records after a failed migration rolls back", async () => {
+    const name = `home_${owner.slice(0, 24)}`;
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json([]))
+      .mockResolvedValueOnce(
+        json([
+          { id: "vol_old", name, state: "pending_destroy" },
+          { id: "vol_deleted", name, state: "destroyed" },
+        ]),
+      )
+      .mockResolvedValueOnce(json({ id: "vol_new", name, state: "created" }))
+      .mockResolvedValueOnce(json(machine));
+    const result = await new FlySandboxProvider(options, request).provision(
+      { botId: "home", homePath: "/workspace" },
+      context,
+    );
+    expect(result.fresh).toBe(true);
+    const vm = JSON.parse(String(request.mock.calls[3]![1]!.body));
+    expect(vm.config.mounts).toEqual([{ volume: "vol_new", path: "/home/rakazo" }]);
+  });
+  it("does not replace an existing disk that is still becoming ready", async () => {
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json([]))
+      .mockResolvedValueOnce(
+        json([{ id: "vol_wait", name: `home_${owner.slice(0, 24)}`, state: "hydrating" }]),
+      );
+    await expect(
+      new FlySandboxProvider(options, request).provision(
+        { botId: "home", homePath: "/workspace" },
+        context,
+      ),
+    ).rejects.toThrow("Workspace disk is not ready");
+    expect(request).toHaveBeenCalledTimes(2);
+  });
 });
 
 it("waits for the provider backup to contain durable data before reporting a snapshot", async () => {
