@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import type { SandboxProvider } from "@rakazo/adapter-kit";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { DesktopSandboxProvider } from "./desktop-sandbox.js";
 import { FakeSandboxProvider } from "./fake-sandbox.js";
@@ -96,8 +97,8 @@ describe("host-aware sandbox", () => {
 });
 
 it("keeps live legacy machines on their original provider until their checkpointed ref is cleared", async () => {
-  const primary = new FakeSandboxProvider();
-  const legacy = new FakeSandboxProvider();
+  const primary: SandboxProvider = new FakeSandboxProvider();
+  const legacy: SandboxProvider = new FakeSandboxProvider();
   vi.spyOn(primary, "describe").mockReturnValue({
     ...primary.describe(),
     id: "fly",
