@@ -160,7 +160,20 @@ export interface SnapshotRef {
   createdAt: string;
 }
 
+export interface BrowserRequest {
+  action: "snapshot" | "navigate" | "click" | "fill" | "press" | "scroll" | "tabs" | "select_tab";
+  snapshotId?: string;
+  ref?: string;
+  url?: string;
+  text?: string;
+  key?: string;
+  direction?: string;
+  tabId?: string;
+}
+
 export interface SandboxCapabilities {
+  /** Structured controls act in the same visible browser as the desktop stream. */
+  browser?: boolean;
   graphical: boolean;
   pty: boolean;
   snapshots: boolean;

@@ -1,6 +1,8 @@
 import { createHmac, randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import type {
   AdapterContext,
+  BrowserRequest,
   CommandRequest,
   ComputerActionRequest,
   ComputerFileEntry,
@@ -103,6 +105,24 @@ export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
       ctx.signal.removeEventListener("abort", cancel);
       await cancellation;
     }
+  }
+  async browser(computer: ComputerRef, request: BrowserRequest, context: AdapterContext) {
+    const source = await readFile(new URL("./visible-browser.py", import.meta.url), "utf8");
+    let output = "";
+    for await (const event of this.execute(
+      computer,
+      {
+        argv: ["python3", "-c", source, JSON.stringify(request)],
+        timeoutMs: 20000,
+      },
+      context,
+    )) {
+      if (event.type === "stdout") output += event.data;
+      if (event.type === "exit" && event.code !== 0)
+        throw new Error("Structured browser control is unavailable.");
+      if (output.length > 150000) throw new Error("Browser snapshot exceeded its size limit.");
+    }
+    return JSON.parse(output) as Record<string, unknown>;
   }
   async connectScreen(computer: ComputerRef, request: ScreenRequest, ctx: AdapterContext) {
     if (request.view === "snapshot") {

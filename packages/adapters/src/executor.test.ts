@@ -58,6 +58,18 @@ describe("run tool selection", () => {
       semanticMemoryEnabled: false,
     }).map((tool) => tool.name);
 
+  it("exposes structured browser tools only when supported, including to text-only models", () => {
+    const options = {
+      graphicalToolsAllowed: false,
+      groupId: null,
+      trigger: "user",
+      semanticMemoryEnabled: false,
+    };
+    expect(selectBuiltinToolsForRun(options).map((t) => t.name)).not.toContain("browser_act");
+    expect(
+      selectBuiltinToolsForRun({ ...options, browserToolsAllowed: true }).map((t) => t.name),
+    ).toEqual(expect.arrayContaining(["browser_observe", "browser_act"]));
+  });
   it("withholds schedule creation only from routine-triggered runs", () => {
     expect(toolNames("routine")).not.toContain("schedule_create");
     expect(toolNames("routine")).toEqual(

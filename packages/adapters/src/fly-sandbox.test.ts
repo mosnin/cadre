@@ -179,3 +179,34 @@ it("flushes and pauses browsers before a stop checkpoint and can restore them on
   await resume();
   expect(JSON.parse(String(request.mock.calls[3]![1]?.body))).toEqual({ op: "restoreEnd" });
 });
+
+it("runs structured browser actions through the owned bot screen without shell interpolation", async () => {
+  const request = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(json(machine))
+    .mockResolvedValueOnce(json({ stdout: '{"title":"Form","elements":[]}', stderr: "", code: 0 }));
+  const provider = new FlySandboxProvider(options, request);
+  const input = {
+    action: "fill" as const,
+    snapshotId: "s",
+    ref: "e1",
+    text: "$(not-a-command) `literal`",
+  };
+  await expect(
+    provider.browser(ref, input, { ...context, botId: "bot", screenLeaseId: "run:1" }),
+  ).resolves.toEqual({ title: "Form", elements: [] });
+  const payload = JSON.parse(String(request.mock.calls[1]![1]!.body));
+  expect(payload.screenKey).toBe("bot");
+  expect(payload.screenLease).toBe("run:1");
+  expect(payload.argv.slice(0, 2)).toEqual(["python3", "-c"]);
+  expect(JSON.parse(payload.argv[3])).toEqual(input);
+});
+
+it("denies cross-team browser actions before executing their helper", async () => {
+  const request = vi.fn<typeof fetch>().mockResolvedValueOnce(json(machine));
+  const provider = new FlySandboxProvider(options, request);
+  await expect(
+    provider.browser(ref, { action: "snapshot" }, { ...context, spaceId: "another" }),
+  ).rejects.toThrow("Computer access denied");
+  expect(request).toHaveBeenCalledOnce();
+});

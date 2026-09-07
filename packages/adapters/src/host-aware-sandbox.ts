@@ -1,6 +1,7 @@
 import { homedir } from "node:os";
 import type {
   AdapterContext,
+  BrowserRequest,
   CommandRequest,
   ComputerActionRequest,
   ComputerInput,
@@ -178,6 +179,12 @@ export class HostAwareSandbox implements SandboxProvider {
       this.route(computer).setScreenControl?.(computer, interactive, context, controlToken) ??
       Promise.resolve()
     );
+  }
+
+  browser(computer: ComputerRef, request: BrowserRequest, context: AdapterContext) {
+    const provider = this.route(computer);
+    if (!provider.browser) throw new Error("Structured browser control is unavailable.");
+    return provider.browser(computer, request, context);
   }
 
   pauseWorkspaceForStop(computer: ComputerRef, context: AdapterContext) {
