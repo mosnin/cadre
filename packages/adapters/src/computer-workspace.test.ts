@@ -148,7 +148,9 @@ describe("stop workspace durability", () => {
     const home = new LocalAgentHomeStore(root);
     const sandbox = new FakeSandboxProvider();
     if (durable !== undefined)
-      Object.assign(sandbox, { preservesWorkspaceOnStop: vi.fn().mockResolvedValue(durable) });
+      Object.assign(sandbox, {
+        isStoppedWithPersistentWorkspace: vi.fn().mockResolvedValue(durable),
+      });
     const computer = await sandbox.provision({ botId: "stop-home", homePath: "/ignored" }, context);
     await sandbox.writeFile(
       computer,
@@ -160,7 +162,7 @@ describe("stop workspace durability", () => {
     const deps = { home, sandbox, prisma: { computer: { updateMany } } as unknown as PrismaClient };
     return { deps, computer, exported, updateMany };
   }
-  it("does not contact the desktop when the provider verifies its persistent disk", async () => {
+  it("does not contact the desktop when the provider verifies an already stopped persistent computer", async () => {
     const { deps, computer, exported, updateMany } = await fixture(true);
     await checkpointBeforeComputerStop(
       deps,
@@ -195,7 +197,9 @@ describe("stop workspace durability", () => {
   it("fails closed when provider ownership or durability cannot be verified", async () => {
     const { deps, computer, exported } = await fixture();
     Object.assign(deps.sandbox, {
-      preservesWorkspaceOnStop: vi.fn().mockRejectedValue(new Error("Computer access denied")),
+      isStoppedWithPersistentWorkspace: vi
+        .fn()
+        .mockRejectedValue(new Error("Computer access denied")),
     });
     await expect(
       checkpointBeforeComputerStop(

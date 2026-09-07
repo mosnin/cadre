@@ -124,11 +124,13 @@ it("uses the existing computer provider's stop durability during migration", asy
   vi.spyOn(primary, "describe").mockReturnValue({ ...primary.describe(), id: "fly" });
   vi.spyOn(legacy, "describe").mockReturnValue({ ...legacy.describe(), id: "modal" });
   const durable = Object.assign(primary, {
-    preservesWorkspaceOnStop: vi.fn().mockResolvedValue(true),
+    isStoppedWithPersistentWorkspace: vi.fn().mockResolvedValue(true),
   });
   const sandbox = new HostAwareSandbox(durable, legacy, async () => false);
   const ref = { id: "test", providerRef: "test", botId: "home", kind: "modal" as const };
-  await expect(sandbox.preservesWorkspaceOnStop(ref, ctx)).resolves.toBe(false);
-  expect(durable.preservesWorkspaceOnStop).not.toHaveBeenCalled();
-  await expect(sandbox.preservesWorkspaceOnStop({ ...ref, kind: "fly" }, ctx)).resolves.toBe(true);
+  await expect(sandbox.isStoppedWithPersistentWorkspace(ref, ctx)).resolves.toBe(false);
+  expect(durable.isStoppedWithPersistentWorkspace).not.toHaveBeenCalled();
+  await expect(
+    sandbox.isStoppedWithPersistentWorkspace({ ...ref, kind: "fly" }, ctx),
+  ).resolves.toBe(true);
 });

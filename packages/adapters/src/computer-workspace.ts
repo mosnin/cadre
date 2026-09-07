@@ -168,8 +168,8 @@ async function writePortableFile(root: string, file: PortableFile) {
   await writeFile(target, file.content, { mode: file.executable ? 0o700 : 0o600 });
 }
 
-/** Persistent disks survive Stop; portable checkpoints remain required for ephemeral homes.
- * Replacement and migration must still checkpoint, because they can detach or destroy that disk.
+/** Reconcile an already stopped persistent VM without reading its unavailable desktop.
+ * Running computers still checkpoint so stopped file previews and migrations stay current.
  */
 export async function checkpointBeforeComputerStop(
   deps: { home: AgentHomeStore; sandbox: SandboxProvider; prisma: PrismaClient },
@@ -177,6 +177,6 @@ export async function checkpointBeforeComputerStop(
   computer: ComputerRef,
   context: AdapterContext,
 ): Promise<void> {
-  if (await deps.sandbox.preservesWorkspaceOnStop?.(computer, context)) return;
+  if (await deps.sandbox.isStoppedWithPersistentWorkspace?.(computer, context)) return;
   await checkpointAndRecordComputerWorkspace(deps, computerRecord, computer, context);
 }

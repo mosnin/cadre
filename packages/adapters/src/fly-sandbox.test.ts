@@ -138,23 +138,23 @@ it("waits for the provider backup to contain durable data before reporting a sna
   });
 });
 
-it("verifies ownership and the durable home mount before skipping a stop checkpoint", async () => {
+it("only skips a checkpoint for an already stopped owned computer with a durable home", async () => {
   for (const state of ["started", "stopped"]) {
     const request = vi.fn<typeof fetch>().mockResolvedValue(json({ ...machine, state }));
     await expect(
-      new FlySandboxProvider(options, request).preservesWorkspaceOnStop(ref, context),
-    ).resolves.toBe(true);
+      new FlySandboxProvider(options, request).isStoppedWithPersistentWorkspace(ref, context),
+    ).resolves.toBe(state === "stopped");
     expect(request).toHaveBeenCalledOnce();
   }
   const missingMount = vi
     .fn<typeof fetch>()
     .mockResolvedValue(json({ ...machine, config: { ...machine.config, mounts: [] } }));
   await expect(
-    new FlySandboxProvider(options, missingMount).preservesWorkspaceOnStop(ref, context),
+    new FlySandboxProvider(options, missingMount).isStoppedWithPersistentWorkspace(ref, context),
   ).resolves.toBe(false);
   const wrongOwner = vi.fn<typeof fetch>().mockResolvedValue(json(machine));
   await expect(
-    new FlySandboxProvider(options, wrongOwner).preservesWorkspaceOnStop(ref, {
+    new FlySandboxProvider(options, wrongOwner).isStoppedWithPersistentWorkspace(ref, {
       ...context,
       spaceId: "other",
     }),
