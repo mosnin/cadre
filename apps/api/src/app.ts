@@ -30,6 +30,7 @@ import {
   EmailEmulator,
   EncryptedSecretStore,
   ExpoPushProvider,
+  flyOptions,
   GraphileJobPublisher,
   InMemoryJobQueue,
   InMemoryRealtimeFanout,
@@ -175,6 +176,7 @@ export async function createApp(
     supervisorUrl: env.sandboxSupervisorUrl,
     supervisorToken: env.sandboxSupervisorToken,
     modal: modalOptions(),
+    fly: flyOptions(),
     e2bApiKey: env.e2bApiKey,
     daytonaApiKey: env.daytonaApiKey,
     daytonaApiUrl: env.daytonaApiUrl,
@@ -328,7 +330,7 @@ export async function createApp(
   reconciler?.start();
 
   const deploymentVoice =
-    env.sandboxProvider === "modal" && env.deploymentVoiceKey
+    ["modal", "fly"].includes(env.sandboxProvider) && env.deploymentVoiceKey
       ? { provider: "openai", apiKey: env.deploymentVoiceKey, voiceId: "coral" }
       : undefined;
   const router = createRouter({
@@ -413,7 +415,7 @@ export async function createApp(
   app.get("/api/auth/capabilities", (c) =>
     c.json({
       provider: companyOsOAuth ? "convex-company-os" : "local",
-      hosted: env.sandboxProvider === "modal",
+      hosted: ["modal", "fly"].includes(env.sandboxProvider),
       companyOsOrigin: companyOsOAuth?.origin ?? null,
       webOrigin: env.webOrigin,
       passwordReset: !companyOsOAuth && Boolean(email),

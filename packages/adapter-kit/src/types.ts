@@ -168,6 +168,8 @@ export interface SandboxCapabilities {
   persistentHome: boolean;
   /** Distinct graphical screens for concurrent Team bots on one computer. */
   multiScreen?: boolean;
+  /** Provider keeps the running desktop alive between user sessions. */
+  persistentRunning?: boolean;
 }
 
 export interface ConnectorTool {
@@ -447,6 +449,7 @@ export interface BackgroundJobPayloads {
   "run.continue": { runId: string };
   "routine.wakeup": { routineId: string; scheduledFor: string };
   "computer.sleep": { computerId: string };
+  "computer.warm": { botId: string; version: string };
   "computer.control-expire": { computerId: string; leaseId: string };
   "skill.teaching-expire": { skillId: string };
   "history.compact": { threadId: string };

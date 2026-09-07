@@ -59,6 +59,7 @@ import {
   AvatarStyleProvider,
   BotAvatar,
   Button,
+  DropdownMenuItem,
   GroupAvatar,
   type GroupAvatarMember,
   InputGroup,
@@ -878,6 +879,7 @@ export function ShellPage() {
     const request = ++screenRequest.current;
     return loadComputerScreen({
       load: () => rpc.computer.screenUrl({ botId: id }),
+      previousUrl: computerCacheRef.current.get(id)?.screenUrl,
       isCurrent: () =>
         request === screenRequest.current && activeBotId.current === id && computerVisible.current,
       commit: (screen) => {
@@ -2355,7 +2357,7 @@ export function ShellPage() {
     force?: boolean;
   }) {
     if (!active) return;
-    const needsBoot = force || computer?.state !== "running" || !screenUrl;
+    const needsBoot = force || computer?.state !== "running";
     if (overlay && needsBoot) setBooting(true);
     setComputerError(null);
     setComputerErrorFromScreen(false);
@@ -4116,9 +4118,18 @@ export function ShellPage() {
         >
           <div
             data-testid="computer-chrome"
-            className="flex flex-wrap items-center justify-between gap-3 border-b border-sidebar-border px-3 py-3 sm:px-[18px] sm:py-3.5"
+            className="flex shrink-0 items-center gap-2 px-4 py-4 sm:px-6"
           >
-            <div className="flex min-w-0 basis-full items-center gap-3 sm:flex-1 sm:basis-auto">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 rounded-full"
+              aria-label={t`Close computer`}
+              onClick={() => setComputerOpen(false)}
+            >
+              <ArrowLeft size={21} strokeWidth={1.7} />
+            </Button>
+            <div className="flex min-w-0 flex-1 items-center gap-2">
               <BotAvatar
                 color={active.color}
                 identity={active.id}
@@ -4134,22 +4145,11 @@ export function ShellPage() {
                 />
               ) : (
                 <span className="truncate text-[15.5px] font-medium text-foreground" dir="auto">
-                  {computerLabel(computer?.mode, active.name)}
+                  {active.name}
                 </span>
               )}
-              {!recordingSkill && hasControl ? (
-                computer?.takeoverRequested ? (
-                  <span className="rounded-full bg-warning/15 px-[11px] py-1 text-[13px] text-warning">
-                    <Trans>Needs you</Trans>
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-success/15 px-[11px] py-1 text-[13px] text-success">
-                    <Trans>You have control</Trans>
-                  </span>
-                )
-              ) : null}
             </div>
-            <div className="ms-auto flex flex-wrap items-center gap-2">
+            <div className="ms-auto flex shrink-0 items-center gap-1">
               {composerRunning ? (
                 <Button
                   type="button"
@@ -4163,23 +4163,7 @@ export function ShellPage() {
                   <Trans>Stop</Trans>
                 </Button>
               ) : null}
-              {recordingSkill ? (
-                <TeachStopButton busy={teachBusy} onStop={stopTeaching} />
-              ) : hasControl ? (
-                <ComputerReleaseActions
-                  takeoverRequested={Boolean(computer?.takeoverRequested)}
-                  onRelease={releaseComputer}
-                />
-              ) : null}
-              {active && !recordingSkill ? (
-                <TeachComputerOverlayControl
-                  key={active.id}
-                  botId={active.id}
-                  computer={computer}
-                  busy={teachBusy}
-                  onRefresh={refreshActiveTeaching}
-                />
-              ) : null}
+              {recordingSkill ? <TeachStopButton busy={teachBusy} onStop={stopTeaching} /> : null}
               {active && !recordingSkill ? (
                 <ComputerNavigationControls
                   frameRef={computerFrameRef}
@@ -4190,17 +4174,23 @@ export function ShellPage() {
                   onChanged={async () => {
                     await refreshThread(active.id);
                   }}
-                />
+                >
+                  {hasControl ? (
+                    <ComputerReleaseActions
+                      takeoverRequested={Boolean(computer?.takeoverRequested)}
+                      onRelease={releaseComputer}
+                    />
+                  ) : null}
+                  <TeachComputerOverlayControl
+                    key={active.id}
+                    botId={active.id}
+                    computer={computer}
+                    busy={teachBusy}
+                    onRefresh={refreshActiveTeaching}
+                    inMenu
+                  />
+                </ComputerNavigationControls>
               ) : null}
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-muted-foreground"
-                aria-label={t`Close computer`}
-                onClick={() => setComputerOpen(false)}
-              >
-                <X size={16} strokeWidth={1.8} />
-              </Button>
             </div>
           </div>
           {sendError ? (
@@ -5339,20 +5329,20 @@ function ComputerReleaseActions({
 }) {
   if (!takeoverRequested) {
     return (
-      <Button type="button" variant="outline" size="sm" onClick={() => void onRelease()}>
+      <DropdownMenuItem onClick={() => void onRelease()}>
         <Trans>Release</Trans>
-      </Button>
+      </DropdownMenuItem>
     );
   }
   return (
-    <div className="flex items-center gap-2">
-      <Button type="button" variant="outline" size="sm" onClick={() => void onRelease("skipped")}>
+    <>
+      <DropdownMenuItem onClick={() => void onRelease("skipped")}>
         <Trans>Skip</Trans>
-      </Button>
-      <Button type="button" size="sm" onClick={() => void onRelease("done")}>
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => void onRelease("done")}>
         <Trans>I’m done</Trans>
-      </Button>
-    </div>
+      </DropdownMenuItem>
+    </>
   );
 }
 

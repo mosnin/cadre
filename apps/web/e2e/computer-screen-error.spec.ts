@@ -49,15 +49,18 @@ test("screen connection failures stay visible and can be retried", async ({ page
   await expect(preview.locator("iframe")).toHaveAttribute("src", screenUrl);
   await expect(preview.getByRole("alert")).toHaveCount(0);
 
+  await page.setViewportSize({ width: 375, height: 812 });
   failScreen = true;
   await preview.hover();
   await preview.getByTestId("computer-preview-open").click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeVisible();
-  await expect(page.getByRole("alert")).toContainText("temporarily busy");
-  await captureScreenshot(page, testInfo, "computer-full-screen-connection-error");
-
-  failScreen = false;
-  await page.getByRole("button", { name: "Retry screen" }).click();
   await expect(page.locator('iframe[title="Bot screen"]')).toHaveAttribute("src", screenUrl);
   await expect(page.getByRole("alert")).toHaveCount(0);
+  const chrome = page.getByTestId("computer-chrome");
+  expect((await chrome.boundingBox())!.height).toBeLessThan(90);
+  await expect(chrome.getByText("You have control")).toHaveCount(0);
+  await captureScreenshot(page, testInfo, "computer-mobile-stable-stream");
+  await page.getByTestId("computer-more-button").click();
+  await expect(page.getByRole("menuitem", { name: "Release", exact: true })).toBeVisible();
+  await captureScreenshot(page, testInfo, "computer-mobile-actions-menu");
 });

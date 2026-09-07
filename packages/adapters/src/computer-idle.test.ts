@@ -33,6 +33,16 @@ describe("sandbox idle", () => {
     }
   });
 
+  it("keeps persistent desktops and their processes running after the idle interval", async () => {
+    const harness = idleHarness();
+    Object.assign(harness.sandbox, { suspendWhenIdle: () => false });
+    await sleepComputerIfIdle(harness.deps, harness.computer.id);
+    expect(harness.sandbox.execute).not.toHaveBeenCalled();
+    expect(harness.sandbox.stop).not.toHaveBeenCalled();
+    expect(harness.home.commit).not.toHaveBeenCalled();
+    expect(harness.jobs.enqueue).toHaveBeenCalledOnce();
+  });
+
   it("does not suspend a computer while a run is active", async () => {
     const harness = idleHarness();
     harness.prisma.run.findFirst.mockResolvedValueOnce({ id: "run" });
@@ -478,6 +488,7 @@ function idleHarness(
     },
   };
   const sandbox = {
+    describe: () => ({ id: "fake", capabilities: {} }),
     execute: vi.fn(async function* () {
       const code = backgroundWorkProbeCodes.shift() ?? options.backgroundWorkProbeCode ?? 1;
       if (code === 1 && !options.backgroundWorkProbeFailed) {

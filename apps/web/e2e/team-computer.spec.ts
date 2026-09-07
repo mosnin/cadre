@@ -200,11 +200,12 @@ test("an active Team bot must be stopped before user takeover", async ({ page },
   await page.getByTestId("computer-preview").hover();
   await page.getByTestId("computer-preview-open").click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeVisible();
-  await expect(chrome.getByText("You have control", { exact: true })).toBeVisible();
+  await expect(chrome.getByText("You have control", { exact: true })).toHaveCount(0);
   await expect(chrome.getByRole("button", { name: /Take control/i })).toHaveCount(0);
-  await expect(chrome.getByRole("button", { name: "Release", exact: true })).toBeVisible();
+  await chrome.getByTestId("computer-more-button").click();
+  await expect(page.getByRole("menuitem", { name: "Release", exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "49-team-computer-open-after-stop");
-  await chrome.getByRole("button", { name: "Release", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Release", exact: true }).click();
   // Release closes the overlay and clears control without a DB edit.
   await expect(page.getByRole("button", { name: "Close computer" })).toHaveCount(0);
 });

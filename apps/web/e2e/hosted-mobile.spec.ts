@@ -92,7 +92,8 @@ for (const width of [320, 375, 768]) {
         true,
       );
       await captureScreenshot(page, testInfo, `hosted-computer-${width}`);
-      await page.getByRole("button", { name: "Release", exact: true }).click();
+      await page.getByTestId("computer-more-button").click();
+      await page.getByRole("menuitem", { name: "Release", exact: true }).click();
     }
     await page.locator("main").getByRole("button", { name: "New Bot", exact: true }).click();
     await expect(page.getByTestId("bot-settings")).toBeVisible();

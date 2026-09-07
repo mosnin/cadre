@@ -38,3 +38,32 @@ describe("screen proxy capability", () => {
     expect(result.toString()).not.toContain("provider-token");
   });
 });
+
+it("retains a stable viewer capability until renewal, and separates control grants", () => {
+  const args = [
+    "https://computer.example/embed.html?cadre_token=view&view_only=true",
+    "cache-secret",
+    "https://viewer.example",
+  ] as const;
+  const first = addScreenProxyCapability(...args, 1000, { proxyExternal: true });
+  expect(addScreenProxyCapability(...args, 2000, { proxyExternal: true })).toBe(first);
+  expect(addScreenProxyCapability(...args, 56 * 60_000, { proxyExternal: true })).not.toBe(first);
+  expect(
+    addScreenProxyCapability(
+      args[0].replace("view_only=true", "view_only=false"),
+      args[1],
+      args[2],
+      2000,
+      { proxyExternal: true },
+    ),
+  ).not.toBe(first);
+  expect(
+    addScreenProxyCapability(
+      args[0].replace("cadre_token=view", "cadre_token=other"),
+      args[1],
+      args[2],
+      2000,
+      { proxyExternal: true },
+    ),
+  ).not.toBe(first);
+});

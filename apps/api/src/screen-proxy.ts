@@ -9,7 +9,31 @@ export interface ScreenProxyOptions {
   proxyExternal?: boolean;
 }
 
+// Authorization and the provider control grant are checked before this function.
+// Reusing a still-valid capability prevents status polling from reconnecting RFB.
+const capabilities = new Map<string, { url: string; issuedAt: number }>();
+const RENEW_AFTER_MS = SCREEN_PROXY_TTL_MS - 5 * 60_000;
+
 export function addScreenProxyCapability(
+  url: string,
+  secret: string,
+  proxyOrigin: string,
+  now = Date.now(),
+  options: ScreenProxyOptions = {},
+): string {
+  const key = createHash("sha256")
+    .update(JSON.stringify([url, secret, proxyOrigin, Boolean(options.proxyExternal)]))
+    .digest("hex");
+  const cached = capabilities.get(key);
+  if (cached && now >= cached.issuedAt && now - cached.issuedAt < RENEW_AFTER_MS) return cached.url;
+  const result = createScreenProxyCapability(url, secret, proxyOrigin, now, options);
+  capabilities.delete(key);
+  if (capabilities.size >= 512) capabilities.delete(capabilities.keys().next().value!);
+  capabilities.set(key, { url: result, issuedAt: now });
+  return result;
+}
+
+function createScreenProxyCapability(
   url: string,
   secret: string,
   proxyOrigin: string,

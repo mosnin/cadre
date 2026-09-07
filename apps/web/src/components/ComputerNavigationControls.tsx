@@ -21,7 +21,7 @@ import {
   Scan,
   ZoomIn,
 } from "lucide-react";
-import { type RefObject, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { ComputerMaintenanceActions } from "./ComputerMaintenanceActions";
 
 const preferenceKey = "cadre:computer-trackpad";
@@ -32,6 +32,7 @@ export function ComputerNavigationControls({
   botId,
   computer,
   onChanged,
+  children,
 }: {
   frameRef: RefObject<HTMLIFrameElement | null>;
   screenUrl: string | null;
@@ -39,6 +40,7 @@ export function ComputerNavigationControls({
   botId: string;
   computer: ComputerStatus | null;
   onChanged: () => Promise<void>;
+  children?: ReactNode;
 }) {
   const { t } = useLingui();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -114,6 +116,7 @@ export function ComputerNavigationControls({
           <Trans>Fit screen</Trans>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        {children}
       </ComputerMaintenanceActions>
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
         <DialogContent
