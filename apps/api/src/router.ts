@@ -24,6 +24,7 @@ import {
   type ComposioProvider,
   ComputerBusyError,
   type ComputerExecutionLease,
+  ComputerNotReadyError,
   type ConnectorRegistry,
   cancelComputerRunWork,
   checkpointAndRecordComputerWorkspace,
@@ -72,6 +73,7 @@ import {
   toStringRecord,
   touchRunningComputer,
   verifyMcpInstall,
+  waitForComputerReady,
 } from "@rakazo/adapters";
 import type { Auth } from "@rakazo/auth";
 import {
@@ -1321,7 +1323,7 @@ export function createRouter(deps: RouterDeps) {
       status: authed.computer.status.handler(async ({ context, input }) =>
         computerStatus(deps, context.actor, input.botId),
       ),
-      boot: authed.computer.boot.handler(async ({ context, input }) => {
+      boot: authed.computer.boot.handler(async ({ context, input, signal }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
         const ctx = computerContext(context.actor, bot.id, "boot");
@@ -1355,7 +1357,22 @@ export function createRouter(deps: RouterDeps) {
           });
         } catch (error) {
           if (error instanceof ComputerBusyError) {
-            throw new ORPCError("CONFLICT", { message: "Computer is busy" });
+            // A task or another open request owns startup. Join its readiness
+            // instead of taking its screen fence or rejecting the viewer.
+            const ready = await waitForComputerReady(
+              deps.prisma,
+              bot.computer.id,
+              { ...ctx, signal: signal ?? ctx.signal },
+              { waitForStart: true },
+            ).catch((error: unknown) => {
+              if (error instanceof ComputerNotReadyError) {
+                throw new ORPCError("CONFLICT", { message: error.message });
+              }
+              throw error;
+            });
+            await deps.sandbox.prepare(toComputerRef(ready), ctx);
+            scheduleComputerSleep(deps.jobs, ready.id);
+            return computerStatus(deps, context.actor, input.botId);
           }
           throw error;
         }
@@ -1365,6 +1382,11 @@ export function createRouter(deps: RouterDeps) {
             screenLeaseId: screenLeaseIdForRun(lease, manualRunId),
           });
           scheduleComputerSleep(deps.jobs, bot.computer.id);
+        } catch (error) {
+          if (error instanceof ComputerNotReadyError) {
+            throw new ORPCError("CONFLICT", { message: error.message });
+          }
+          throw error;
         } finally {
           await releaseComputerExecutionLease(deps.prisma, lease);
         }
@@ -3455,12 +3477,14 @@ export function createRouter(deps: RouterDeps) {
       bot: authed.export.bot.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.thread || !bot.computer) throw new IsolationError();
-        const homeKey = bot.computer.homeKey;
+        const computer = bot.computer;
+        const homeKey = computer.homeKey;
         const exportContext = {
           operationId: "export",
           traceId: "export",
           spaceId: context.actor.spaceId,
           userId: context.actor.userId,
+          botId: bot.id,
           signal: new AbortController().signal,
         };
         const [memory, routines, files, history] = await Promise.all([
@@ -3472,7 +3496,13 @@ export function createRouter(deps: RouterDeps) {
           }),
           (async () => {
             const exported: Array<{ path: string; content: string }> = [];
-            for await (const file of deps.home.exportHome(homeKey, exportContext)) {
+            // A persistent running computer can be newer than its portable backup.
+            // Read it directly; an unavailable live export must not silently return old files.
+            const workspace =
+              computer.state === "running" && computer.providerRef
+                ? deps.sandbox.exportWorkspace(toComputerRef(computer), exportContext)
+                : deps.home.exportHome(homeKey, exportContext);
+            for await (const file of workspace) {
               exported.push({
                 path: file.path,
                 content: new TextDecoder().decode(file.content),

@@ -510,6 +510,109 @@ describe("updater owner gate", () => {
   });
 });
 
+describe("computer boot followers", () => {
+  it.each(["boot:other-request", "active-task-run"])(
+    "joins %s without replacing its lease or taking control",
+    async (runId) => {
+      vi.useFakeTimers();
+      try {
+        const computer = {
+          id: "computer-1",
+          kind: "fly",
+          scope: "team",
+          state: "booting",
+          providerRef: "sandbox-ref-1",
+          homeKey: "home-1",
+          homeRevision: "",
+          updatedAt: new Date(),
+          controlHolder: "none",
+          controlLeaseId: null,
+          controlLeaseExpiresAt: null,
+          controlBotId: null,
+          controlRunId: null,
+        };
+        const lease = { runId, fence: 7, expiresAt: new Date(Date.now() + 300_000) };
+        const updateLease = vi.fn();
+        const updateComputer = vi.fn();
+        const createLease = vi.fn().mockRejectedValue({ code: "P2002" });
+        const reclaimLease = vi.fn().mockResolvedValue([]);
+        const prisma = {
+          bot: {
+            findFirst: vi.fn().mockImplementation(async () => ({
+              id: "bot-1",
+              name: "Test Bot",
+              thread: { id: "thread-1" },
+              computer: { ...computer },
+            })),
+          },
+          computer: {
+            findUniqueOrThrow: vi.fn().mockImplementation(async () => ({ ...computer })),
+            updateMany: updateComputer,
+          },
+          computerExecutionLease: {
+            findUnique: vi.fn().mockResolvedValue(lease),
+            create: createLease,
+            updateManyAndReturn: reclaimLease,
+            updateMany: updateLease,
+          },
+          run: { findUnique: vi.fn().mockResolvedValue({ status: "running" }) },
+        } as unknown as PrismaClient;
+        const prepare = vi.fn().mockResolvedValue(undefined);
+        const provision = vi.fn();
+        const setScreenControl = vi.fn();
+        const deps = {
+          prisma,
+          sandbox: { prepare, provision, setScreenControl },
+          jobs: { enqueue: vi.fn().mockResolvedValue(undefined) },
+          env: { defaultProvider: "fake", defaultModel: "fake-model" },
+        } as unknown as RouterDeps;
+        const handler = new RPCHandler(createRouter(deps));
+        const result = handler.handle(
+          new Request("http://127.0.0.1/rpc/computer/boot", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ json: { botId: "bot-1" } }),
+          }),
+          {
+            prefix: "/rpc",
+            context: {
+              actor: {
+                spaceId: "workspace-1",
+                userId: "user-1",
+                email: "user@rakazo.test",
+                isDeploymentOwner: true,
+              } satisfies Actor,
+            },
+          },
+        );
+        await vi.advanceTimersByTimeAsync(15_000);
+        expect(prepare).not.toHaveBeenCalled();
+        computer.state = "running";
+        await vi.advanceTimersByTimeAsync(250);
+        const { response } = await result;
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toMatchObject({
+          json: { state: "running", busyBotName: "Test Bot", controlHolder: "none" },
+        });
+        expect(createLease).toHaveBeenCalledOnce();
+        expect(reclaimLease).toHaveBeenCalledOnce();
+        expect(updateLease).not.toHaveBeenCalled();
+        expect(updateComputer).not.toHaveBeenCalled();
+        expect(provision).not.toHaveBeenCalled();
+        expect(setScreenControl).not.toHaveBeenCalled();
+        expect(prepare).toHaveBeenCalledWith(
+          expect.objectContaining({ providerRef: "sandbox-ref-1" }),
+          expect.not.objectContaining({ screenLeaseId: expect.anything() }),
+        );
+        expect(lease.fence).toBe(7);
+        expect(lease.runId).toBe(runId);
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+});
+
 describe("computer screen url", () => {
   const actor = {
     spaceId: "workspace-1",

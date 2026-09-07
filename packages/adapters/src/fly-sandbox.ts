@@ -256,6 +256,22 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
       workspaceRestored: !fresh,
     };
   }
+  async persistWorkspace(computer: ComputerRef, context: AdapterContext) {
+    const machine = await this.owned(computer, context);
+    if (!machine.config.mounts?.some((mount) => mount.path === "/home/rakazo" && mount.volume))
+      return false;
+    let code: number | undefined;
+    for await (const event of this.execute(
+      computer,
+      { argv: ["sync", "-f", "/home/rakazo"], timeoutMs: 15000 },
+      context,
+    )) {
+      if (event.type === "exit") code = event.code;
+    }
+    if (code !== 0) throw new Error("Could not persist the computer workspace.");
+    return true;
+  }
+
   async snapshot(computer: ComputerRef, ctx: AdapterContext) {
     const machine = await this.owned(computer, ctx);
     const volume = machine.config.mounts?.find((m) => m.path === "/home/rakazo")?.volume;

@@ -210,3 +210,27 @@ it("denies cross-team browser actions before executing their helper", async () =
   ).rejects.toThrow("Computer access denied");
   expect(request).toHaveBeenCalledOnce();
 });
+
+it("flushes the mounted home volume before acknowledging task persistence", async () => {
+  const request = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(json(machine))
+    .mockResolvedValueOnce(json(machine))
+    .mockResolvedValueOnce(json({ stdout: "", stderr: "", code: 0 }));
+  const provider = new FlySandboxProvider(options, request);
+  await expect(provider.persistWorkspace(ref, context)).resolves.toBe(true);
+  expect(JSON.parse(String(request.mock.calls[2]![1]!.body))).toMatchObject({
+    op: "exec",
+    argv: ["sync", "-f", "/home/rakazo"],
+  });
+});
+
+it("does not claim persistence when the machine has no home volume", async () => {
+  const request = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(json({ ...machine, config: { metadata: machine.config.metadata } }));
+  await expect(
+    new FlySandboxProvider(options, request).persistWorkspace(ref, context),
+  ).resolves.toBe(false);
+  expect(request).toHaveBeenCalledOnce();
+});

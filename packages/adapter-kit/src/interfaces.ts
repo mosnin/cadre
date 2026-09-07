@@ -128,6 +128,8 @@ export interface SandboxProvider {
     options?: { maxBytes?: number },
   ): Promise<Uint8Array>;
   writeFile(computer: ComputerRef, file: PortableFile, context: AdapterContext): Promise<void>;
+  /** Flush current writes to provider-owned persistent storage. True skips a per-task portable export, not explicit backups or stop checkpoints. */
+  persistWorkspace?(computer: ComputerRef, context: AdapterContext): Promise<boolean>;
   exportWorkspace(computer: ComputerRef, context: AdapterContext): AsyncIterable<PortableFile>;
   importWorkspace(
     computer: ComputerRef,

@@ -136,6 +136,17 @@ export async function checkpointComputerWorkspace(
   }
 }
 
+/** Keep task completion bounded on durable, running computers. Portable exports still run before stops and migrations. */
+export async function checkpointAfterComputerWork(
+  deps: { home: AgentHomeStore; sandbox: SandboxProvider; prisma: PrismaClient },
+  computerRecord: { id: string; homeKey: string },
+  computer: ComputerRef,
+  context: AdapterContext,
+): Promise<void> {
+  if (await deps.sandbox.persistWorkspace?.(computer, context)) return;
+  await checkpointAndRecordComputerWorkspace(deps, computerRecord, computer, context);
+}
+
 export async function checkpointAndRecordComputerWorkspace(
   deps: { home: AgentHomeStore; sandbox: SandboxProvider; prisma: PrismaClient },
   computerRecord: { id: string; homeKey: string },

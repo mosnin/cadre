@@ -30,13 +30,20 @@ import { resolveAgentHomePath } from "./home.js";
 
 const EXECUTION_LEASE_MS = 5 * 60_000;
 const RELEASED_EXECUTION_LEASE_AT = new Date(0);
-const BOOT_WAIT_ATTEMPTS = 40;
+const BOOT_WAIT_TIMEOUT_MS = 180_000;
 const BOOT_WAIT_MS = 250;
 
 export class ComputerBusyError extends Error {
   constructor() {
     super("Computer is busy");
     this.name = "ComputerBusyError";
+  }
+}
+
+export class ComputerNotReadyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ComputerNotReadyError";
   }
 }
 
@@ -74,10 +81,7 @@ export async function provisionComputer(
   }
   if (existing.state === "booting" || existing.state === "suspending") {
     const ready = await waitForComputerReady(deps.prisma, computerId, context);
-    if (ready?.state === "running" && ready.providerRef) {
-      return reconnectComputer(deps, ready, homePath, context);
-    }
-    existing = await deps.prisma.computer.findUniqueOrThrow({ where: { id: computerId } });
+    return reconnectComputer(deps, ready, homePath, context);
   }
 
   const claimed = await deps.prisma.computer.updateMany({
@@ -89,7 +93,11 @@ export async function provisionComputer(
     },
     data: { state: "booting" },
   });
-  if (claimed.count !== 1) throw new ComputerBusyError();
+  if (claimed.count !== 1) {
+    if (expectedVersion) throw new ComputerBusyError();
+    const ready = await waitForComputerReady(deps.prisma, computerId, context);
+    return reconnectComputer(deps, ready, homePath, context);
+  }
   let provisioned: ComputerRef | undefined;
   try {
     const ref = await deps.sandbox.provision(
@@ -258,21 +266,61 @@ async function reconnectComputer(
   return ref;
 }
 
-async function waitForComputerReady(
+/** Join an existing startup without taking its execution lease or restarting a later Stop. */
+export async function waitForComputerReady(
   prisma: PrismaClient,
   computerId: string,
   context: AdapterContext,
+  options: { waitForStart?: boolean } = {},
 ) {
-  for (let attempt = 0; attempt < BOOT_WAIT_ATTEMPTS; attempt += 1) {
-    const current = await prisma.computer.findUniqueOrThrow({ where: { id: computerId } });
+  const deadline = Date.now() + BOOT_WAIT_TIMEOUT_MS;
+  let initialVersion: number | undefined;
+  let initialState: string | undefined;
+  let started = false;
+  for (;;) {
+    context.signal.throwIfAborted();
+    const current = await prisma.computer.findUniqueOrThrow({
+      where: {
+        id: computerId,
+        ...(context.botId ? { bots: { some: { id: context.botId, archivedAt: null } } } : {}),
+      },
+    });
     if (current.state === "running" && current.providerRef) return current;
-    if (current.state !== "booting" && current.state !== "suspending") return current;
-    await new Promise((resolve) => setTimeout(resolve, BOOT_WAIT_MS));
-    if (context.signal.aborted) {
-      throw context.signal.reason ?? new Error("computer boot aborted");
+    initialVersion ??= current.updatedAt?.getTime();
+    initialState ??= current.state;
+    if (current.state === "booting") started = true;
+    else if (
+      !options.waitForStart ||
+      started ||
+      !["stopped", "suspended", "error"].includes(current.state) ||
+      current.state !== initialState ||
+      current.updatedAt?.getTime() !== initialVersion
+    ) {
+      throw new ComputerNotReadyError(
+        "Computer startup was interrupted. Open the computer again to retry.",
+      );
     }
+    if (Date.now() >= deadline) {
+      throw new ComputerNotReadyError(
+        "Computer startup is taking longer than expected. Try opening it again.",
+      );
+    }
+    await new Promise<void>((resolve, reject) => {
+      const abort = () => {
+        clearTimeout(timer);
+        reject(context.signal.reason ?? new Error("computer boot aborted"));
+      };
+      const timer = setTimeout(
+        () => {
+          context.signal.removeEventListener("abort", abort);
+          resolve();
+        },
+        Math.min(BOOT_WAIT_MS, deadline - Date.now()),
+      );
+      context.signal.addEventListener("abort", abort, { once: true });
+      if (context.signal.aborted) abort();
+    });
   }
-  return prisma.computer.findUniqueOrThrow({ where: { id: computerId } });
 }
 
 async function rollbackProvisionedComputer(
@@ -525,12 +573,22 @@ export async function replaceComputer(
   }
 
   const oldRef = existing.providerRef ? toComputerRef(existing) : null;
+  const requiresFreshCheckpoint = Boolean(
+    oldRef && mode !== "reset" && deps.sandbox.describe().capabilities.persistentRunning,
+  );
+  let resumeWorkspace: (() => Promise<void>) | undefined;
   try {
-    if (oldRef && existing.state === "running" && mode !== "reset") {
+    if (oldRef && mode !== "reset" && (existing.state === "running" || requiresFreshCheckpoint)) {
       try {
+        if (requiresFreshCheckpoint && existing.state === "running") {
+          resumeWorkspace = await deps.sandbox.pauseWorkspaceForStop?.(oldRef, context);
+        }
         await checkpointAndRecordComputerWorkspace(deps, existing, oldRef, context);
       } catch (error) {
-        if (mode !== "recover" && !isUnrecoverableSandboxError(error)) throw error;
+        // Persistent computers can contain newer files than their last portable
+        // backup. Never delete that volume when a fresh checkpoint is unavailable.
+        if (requiresFreshCheckpoint || (mode !== "recover" && !isUnrecoverableSandboxError(error)))
+          throw error;
       }
     }
     if (oldRef) {
@@ -538,8 +596,10 @@ export async function replaceComputer(
       try {
         await deps.sandbox.destroy(oldRef, context);
       } catch (error) {
-        if (mode !== "recover" && !isUnrecoverableSandboxError(error)) throw error;
+        if (requiresFreshCheckpoint || (mode !== "recover" && !isUnrecoverableSandboxError(error)))
+          throw error;
       }
+      resumeWorkspace = undefined;
     }
     await deps.prisma.computer.update({
       where: { id: computerId },
@@ -555,12 +615,18 @@ export async function replaceComputer(
     });
     return provisionComputer(deps, computerId, context, controlHolder);
   } catch (error) {
+    let failure = error;
+    try {
+      await resumeWorkspace?.();
+    } catch (resumeError) {
+      failure = new AggregateError([error, resumeError], "Computer replacement and resume failed");
+    }
     await deps.prisma.computer
       .updateMany({
         where: { id: computerId },
         data: { state: "error" },
       })
       .catch(() => undefined);
-    throw error;
+    throw failure;
   }
 }
