@@ -2,6 +2,7 @@ import type {
   AgentHomeStore,
   AgentRuntime,
   BackgroundJobHandlers,
+  ComputerRef,
   JobPublisher,
   MessagingSurface,
   SandboxProvider,
@@ -11,6 +12,7 @@ import type { PrismaClient, ThreadEvents } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import { expireComputerControl } from "./computer-control.js";
 import { scheduleComputerSleep, sleepComputerIfIdle } from "./computer-idle.js";
+import { ComputerBusyError, provisionComputer } from "./computer-lifecycle.js";
 import type { createRunExecutor } from "./executor.js";
 import { compactHistory } from "./history-compaction.js";
 import type { MemoryProviderResolver } from "./memory-provider-factory.js";
@@ -68,6 +70,47 @@ export function createBackgroundJobHandlers(deps: {
     },
     "routine.wakeup": async (payload) => {
       await deps.executor.wakeRoutine(payload.routineId, payload.scheduledFor);
+    },
+    "computer.warm": async ({ botId, version }) => {
+      if (!deps.sandbox.describe().capabilities.persistentRunning) return;
+      const bot = await deps.prisma.bot.findUnique({
+        where: { id: botId },
+        include: { computer: true, thread: true },
+      });
+      const computer = bot?.computer;
+      if (
+        !bot ||
+        bot.archivedAt ||
+        !computer ||
+        computer.state === "running" ||
+        computer.updatedAt.toISOString() !== version
+      )
+        return;
+      const context = {
+        operationId: "computer.warm",
+        traceId: "computer.warm",
+        spaceId: bot.spaceId,
+        userId: bot.userId,
+        botId,
+        signal: AbortSignal.timeout(180_000),
+      };
+      let ref: ComputerRef;
+      try {
+        ref = await provisionComputer(deps, computer.id, context, "none", new Date(version));
+      } catch (error) {
+        if (error instanceof ComputerBusyError) return;
+        throw error;
+      }
+      await deps.sandbox.connectScreen(ref, { view: "stream", interactive: false }, context);
+      scheduleComputerSleep(deps.jobs, computer.id);
+      if (bot.thread)
+        await deps.events.append({
+          spaceId: bot.spaceId,
+          threadId: bot.thread!.id,
+          botId,
+          type: "computer.status",
+          payload: { status: "running" },
+        });
     },
     "computer.sleep": async (payload) => {
       await sleepComputerIfIdle(deps, payload.computerId);

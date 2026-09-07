@@ -52,6 +52,16 @@ class FileBoundaryTest(unittest.TestCase):
             self.assertEqual(rpc.execute({'operationId':'command','screenKey':'ninth','argv':['true']})['code'],0)
         self.assertEqual(popen.call_args.kwargs['env']['DISPLAY'],'')
 
+    def test_platform_credentials_never_enter_shell_without_a_screen(self):
+        for screen in [None, 'full-screen']:
+            process=MagicMock(pid=123);process.wait.return_value=0
+            request={'operationId':'private-command','argv':['true']}
+            if screen: request['screenKey']=screen
+            with patch.dict(os.environ,{'CADRE_RPC_TOKEN':'private-rpc','CADRE_SCREEN_VIEW_TOKEN':'private-view'}), patch.object(rpc,'marker',side_effect=lambda value:self.base/value), patch.object(rpc.screens,'resolve',side_effect=rpc.screens.ScreenUnavailableError('full')), patch.object(rpc.subprocess,'Popen',return_value=process) as popen:
+                rpc.execute(request)
+            self.assertNotIn('CADRE_RPC_TOKEN',popen.call_args.kwargs['env'])
+            self.assertNotIn('CADRE_SCREEN_VIEW_TOKEN',popen.call_args.kwargs['env'])
+
     def test_directory_substitution_cannot_redirect_a_write(self):
         parent=rpc.ROOT/'notes';parent.mkdir()
         outside=self.base/'private';outside.mkdir();(outside/'a.txt').write_text('private')

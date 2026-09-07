@@ -31,6 +31,10 @@ export function createRunSandbox(
     });
   }
   const primary = createSandboxProvider(kind, opts);
+  // Preserve access to existing computers during a provider migration. New allocations
+  // use the primary provider; each live reference keeps its original tenant boundary.
+  if (kind === "fly" && opts.modal)
+    return new HostAwareSandbox(primary, createSandboxProvider("modal", opts), async () => false);
   if (kind !== "docker" || !opts.prisma) return primary;
   return new HostAwareSandbox(
     primary,
@@ -59,7 +63,7 @@ export class HostAwareSandbox implements SandboxProvider {
   }
 
   private route(computer: ComputerRef) {
-    return computer.kind === "desktop" ? this.host : this.isolated;
+    return computer.kind === this.host.describe().id ? this.host : this.isolated;
   }
 
   async provision(
@@ -71,7 +75,11 @@ export class HostAwareSandbox implements SandboxProvider {
     },
     context: AdapterContext,
   ) {
-    const provider = (await this.hostEnabled()) ? this.host : this.isolated;
+    const preserveLiveLegacy =
+      this.isolated.describe().capabilities.persistentRunning &&
+      request.providerRef &&
+      request.providerKind === this.host.describe().id;
+    const provider = preserveLiveLegacy || (await this.hostEnabled()) ? this.host : this.isolated;
     const providerKind = provider.describe().id;
     return provider.provision(
       {
@@ -146,6 +154,10 @@ export class HostAwareSandbox implements SandboxProvider {
 
   snapshot(computer: ComputerRef, context: AdapterContext) {
     return this.route(computer).snapshot(computer, context);
+  }
+
+  suspendWhenIdle(computer: ComputerRef) {
+    return this.route(computer).suspendWhenIdle?.(computer) ?? true;
   }
 
   keepAlive(computer: ComputerRef) {

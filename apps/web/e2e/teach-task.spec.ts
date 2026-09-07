@@ -29,9 +29,7 @@ test("teach a task records interaction and saves a draft", async ({ page }, test
   await openButton.click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeVisible();
   const chrome = page.getByTestId("computer-chrome");
-  await expect(chrome.getByText("You have control", { exact: true })).toBeVisible();
-  await expect(chrome.getByRole("button", { name: "Release", exact: true })).toBeVisible();
-  await expect(chrome.getByTestId("teach-start-button")).toBeVisible();
+  await expect(chrome.getByText("You have control", { exact: true })).toHaveCount(0);
   const more = chrome.getByTestId("computer-more-button");
   if (await more.isVisible().catch(() => false)) {
     await more.click();
@@ -42,7 +40,9 @@ test("teach a task records interaction and saves a draft", async ({ page }, test
   }
   await captureScreenshot(page, testInfo, "teach-computer-chrome");
 
-  const teachStart = chrome.getByTestId("teach-start-button");
+  await more.click();
+  await expect(page.getByRole("menuitem", { name: "Release", exact: true })).toBeVisible();
+  const teachStart = page.getByTestId("teach-start-button");
   await expect(teachStart).toBeEnabled();
   await teachStart.click();
   await page.getByTestId("teach-goal-input").fill("Export weekly CRM list");

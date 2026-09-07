@@ -33,3 +33,20 @@ export function modalOptions(source: NodeJS.ProcessEnv = process.env) {
     tokenSecret: source.MODAL_TOKEN_SECRET,
   };
 }
+
+export function flyOptions(source: NodeJS.ProcessEnv = process.env) {
+  if (
+    !source.FLY_COMPUTER_APP ||
+    !source.FLY_API_TOKEN ||
+    !source.FLY_COMPUTER_IMAGE ||
+    !source.SCREEN_PROXY_SECRET
+  )
+    return undefined;
+  return {
+    appName: source.FLY_COMPUTER_APP,
+    apiToken: source.FLY_API_TOKEN,
+    image: source.FLY_COMPUTER_IMAGE,
+    screenSecret: source.SCREEN_PROXY_SECRET,
+    region: source.FLY_COMPUTER_REGION,
+  };
+}

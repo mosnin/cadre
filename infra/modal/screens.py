@@ -32,10 +32,11 @@ def fence(value):
     except (ValueError, IndexError): return 0
 
 def demote():
+    os.umask(0o077)
     os.setgroups([]); os.setgid(1000); os.setuid(1000)
 
 def child_env(index, key):
-    env = {k:v for k,v in os.environ.items() if not k.startswith(('MODAL_', 'CADRE_SCREEN_', 'RAKAZO_COMPUTER_CONTROL_'))}
+    env = {k:v for k,v in os.environ.items() if not k.startswith(('MODAL_', 'CADRE_RPC_', 'CADRE_SCREEN_', 'RAKAZO_COMPUTER_CONTROL_'))}
     env.update(CADRE_SHARED_BROWSER_SESSIONS='1', HOME='/home/rakazo', DISPLAY=f':{index+1}', RAKAZO_BROWSER_PROFILE=f'/home/rakazo/.browser-profiles/bot-{key}')
     return env
 

@@ -8,11 +8,13 @@ import { DockerSandboxProvider } from "./docker-sandbox.js";
 import { ManagedSandboxEmulator } from "./e2b-emulator.js";
 import { E2BSandboxProvider } from "./e2b-sandbox.js";
 import { FakeSandboxProvider } from "./fake-sandbox.js";
+import { type FlySandboxOptions, FlySandboxProvider } from "./fly-sandbox.js";
 import { type ModalSandboxOptions, ModalSandboxProvider } from "./modal-sandbox.js";
 import { NoneSandboxProvider } from "./none-sandbox.js";
 
 export interface SandboxProviderOptions {
   modal?: ModalSandboxOptions;
+  fly?: FlySandboxOptions;
   supervisorUrl?: string;
   supervisorToken?: string;
   e2bApiKey?: string;
@@ -35,6 +37,9 @@ export function createSandboxProvider(kind: string, opts: SandboxProviderOptions
     case "none":
     case "":
       return new NoneSandboxProvider();
+    case "fly":
+      if (!opts.fly) return new NoneSandboxProvider("Cloud computer is not configured");
+      return new FlySandboxProvider(opts.fly);
     case "modal":
       if (!opts.modal) return new NoneSandboxProvider("Modal cloud computer is not configured");
       return new ModalSandboxProvider(opts.modal);

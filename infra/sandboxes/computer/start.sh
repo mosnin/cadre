@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -uo pipefail
+umask 077
 export XCURSOR_THEME=Cadre XCURSOR_SIZE=24
 export DISPLAY="${DISPLAY:-:1}"
 export HOME="${HOME:-/home/rakazo}"
@@ -23,7 +24,7 @@ fi
 
 rm -f "/tmp/.X$DISPLAY_NUMBER-lock" "/tmp/.X11-unix/X$DISPLAY_NUMBER"
 
-Xvfb "$DISPLAY" -screen 0 1280x800x24 -ac +extension RANDR +render -noreset >/tmp/rakazo/xvfb.log 2>&1 &
+Xvfb "$DISPLAY" -nolisten tcp -screen 0 1280x800x24 -ac +extension RANDR +render -noreset >/tmp/rakazo/xvfb.log 2>&1 &
 XVFB_PID=$!
 
 ready=0
@@ -113,7 +114,7 @@ if [[ ! -f "$NOVNC_ROOT/clipboard-bridge.js" ]]; then
   echo "noVNC clipboard-bridge.js is missing from the computer image" >&2
   exit 1
 fi
-websockify --heartbeat=30 --web="$NOVNC_ROOT" "0.0.0.0:$VIEW_PORT" "127.0.0.1:$VIEW_VNC_PORT" >/tmp/rakazo/novnc.log 2>&1 &
+websockify --heartbeat=30 --web="$NOVNC_ROOT" "${RAKAZO_VNC_HOST:-0.0.0.0}:$VIEW_PORT" "127.0.0.1:$VIEW_VNC_PORT" >/tmp/rakazo/novnc.log 2>&1 &
 
 while kill -0 "$XVFB_PID" 2>/dev/null; do
   sleep 2

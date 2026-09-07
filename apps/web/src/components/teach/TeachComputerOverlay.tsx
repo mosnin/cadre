@@ -1,6 +1,14 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ComputerStatus } from "@rakazo/contracts";
-import { Button, Label, Popover, PopoverContent, PopoverTrigger, Textarea } from "@rakazo/ui-web";
+import {
+  Button,
+  DropdownMenuItem,
+  Label,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Textarea,
+} from "@rakazo/ui-web";
 import { useEffect, useRef, useState } from "react";
 import { rpc } from "../../lib/rpc";
 
@@ -17,10 +25,12 @@ export function TeachComputerOverlayControl({
   computer,
   busy: busyProp,
   onRefresh,
+  inMenu = false,
 }: {
   botId: string;
   computer: ComputerStatus | null;
   busy?: boolean;
+  inMenu?: boolean;
   onRefresh: () => Promise<void>;
 }) {
   const { t } = useLingui();
@@ -204,7 +214,13 @@ export function TeachComputerOverlayControl({
         data-testid="teach-start-button"
         aria-label={t`Teach a task`}
         disabled={busy || syncingRecording}
-        render={<Button variant="outline" size="sm" />}
+        render={
+          inMenu ? (
+            <DropdownMenuItem closeOnClick={false} />
+          ) : (
+            <Button variant="outline" size="sm" />
+          )
+        }
       >
         <span
           aria-hidden

@@ -79,3 +79,29 @@ describe("computer screen requests", () => {
     expect(commit).toHaveBeenCalledExactlyOnceWith({ url: null, error: "Could not connect" });
   });
 });
+
+it("keeps the live stream through transient status errors but clears revoked access", async () => {
+  const commit = vi.fn();
+  const options = {
+    isCurrent: () => true,
+    commit,
+    fallbackError: "Unavailable",
+    previousUrl: "https://viewer.example",
+  };
+  await loadComputerScreen({
+    ...options,
+    load: async () => {
+      throw new Error("Internal server error");
+    },
+  });
+  expect(commit).toHaveBeenLastCalledWith({ url: options.previousUrl, error: null });
+  await loadComputerScreen({
+    ...options,
+    load: async () => {
+      throw Object.assign(new Error("Access denied"), { status: 403 });
+    },
+  });
+  expect(commit).toHaveBeenLastCalledWith({ url: null, error: "Access denied" });
+  await loadComputerScreen({ ...options, load: async () => ({ url: null }) });
+  expect(commit).toHaveBeenLastCalledWith({ url: null, error: null });
+});

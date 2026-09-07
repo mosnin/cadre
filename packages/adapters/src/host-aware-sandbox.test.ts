@@ -1,7 +1,8 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import type { SandboxProvider } from "@rakazo/adapter-kit";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { DesktopSandboxProvider } from "./desktop-sandbox.js";
 import { FakeSandboxProvider } from "./fake-sandbox.js";
 import { HostAwareSandbox, sandboxKindForBot } from "./host-aware-sandbox.js";
@@ -93,4 +94,26 @@ describe("host-aware sandbox", () => {
     expect(sandboxKindForBot("e2b", "this-mac")).toBe("e2b");
     expect(sandboxKindForBot("fake", "this-mac")).toBe("fake");
   });
+});
+
+it("keeps live legacy machines on their original provider until their checkpointed ref is cleared", async () => {
+  const primary: SandboxProvider = new FakeSandboxProvider();
+  const legacy: SandboxProvider = new FakeSandboxProvider();
+  vi.spyOn(primary, "describe").mockReturnValue({
+    ...primary.describe(),
+    id: "fly",
+    capabilities: { ...primary.describe().capabilities, persistentRunning: true },
+  });
+  vi.spyOn(legacy, "describe").mockReturnValue({ ...legacy.describe(), id: "modal" });
+  const newProvision = vi.spyOn(primary, "provision");
+  const oldProvision = vi.spyOn(legacy, "provision");
+  const sandbox = new HostAwareSandbox(primary, legacy, async () => false);
+  await sandbox.provision(
+    { botId: "home", homePath: "/tmp/home", providerKind: "modal", providerRef: "legacy-ref" },
+    ctx,
+  );
+  expect(oldProvision).toHaveBeenCalledOnce();
+  expect(newProvision).not.toHaveBeenCalled();
+  await sandbox.provision({ botId: "home", homePath: "/tmp/home", providerKind: "modal" }, ctx);
+  expect(newProvision).toHaveBeenCalledOnce();
 });

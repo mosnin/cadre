@@ -131,6 +131,8 @@ export interface SandboxProvider {
   /** Optional acceleration cache; the portable home remains the durable fallback. */
   snapshotWorkspace?(computer: ComputerRef, context: AdapterContext): Promise<string>;
   keepAlive?(computer: ComputerRef): Promise<void>;
+  /** Whether idle policy may stop this computer; explicit user Stop remains available. */
+  suspendWhenIdle?(computer: ComputerRef): boolean;
   /** Drop a single-screen graphical claim for this bot so another Team bot can use the display. */
   releaseScreen?(computer: ComputerRef, context: AdapterContext): Promise<void>;
   stop(computer: ComputerRef, context: AdapterContext): Promise<void>;

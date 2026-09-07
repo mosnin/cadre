@@ -201,6 +201,13 @@ export async function sleepComputerIfIdle(
     if (!computer?.providerRef || computer.state !== "running") return;
   }
 
+  if (deps.sandbox.suspendWhenIdle?.(toComputerRef(computer)) === false) {
+    // The provider keeps this VM alive. Files remain on its persistent disk;
+    // rechecking idle status must never tear down browser processes or screens.
+    scheduleComputerSleep(deps.jobs, computerId);
+    return;
+  }
+
   const activeStatuses = hasActiveComputerControl(computer)
     ? [...ACTIVE_RUN_STATUSES]
     : ACTIVE_RUN_STATUSES.filter((status) => status !== "waiting_takeover");
@@ -291,6 +298,10 @@ export async function sleepComputerIfIdle(
     where: { id: computerId },
     data: {
       state: "suspended",
+      ...(deps.sandbox.describe().capabilities.persistentRunning &&
+      computer.kind !== deps.sandbox.describe().id
+        ? { providerRef: null }
+        : {}),
       controlHolder: "none",
       controlLeaseId: null,
       controlLeaseExpiresAt: null,
@@ -298,6 +309,20 @@ export async function sleepComputerIfIdle(
       controlRunId: null,
     },
   });
+  // An idle legacy sandbox has been checkpointed and stopped safely. Warm its
+  // replacement before the next visit when the selected provider stays running.
+  if (deps.sandbox.describe().capabilities.persistentRunning) {
+    const next = await deps.prisma.computer.findUnique({
+      where: { id: computerId },
+      include: { bots: { where: { archivedAt: null }, take: 1 } },
+    });
+    if (next?.state === "suspended" && next.bots[0])
+      await deps.jobs.enqueue({
+        name: "computer.warm",
+        payload: { botId: next.bots[0].id, version: next.updatedAt.toISOString() },
+        replaceKey: `computer.warm:${computerId}`,
+      });
+  }
   const bots = await deps.prisma.bot.findMany({
     where: { computerId },
     select: { id: true, thread: { select: { id: true } } },

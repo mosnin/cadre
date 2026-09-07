@@ -54,6 +54,7 @@ export async function provisionComputer(
   computerId: string,
   context: AdapterContext,
   controlHolder: "bot" | "none" = "none",
+  expectedVersion?: Date,
 ): Promise<ComputerRef> {
   let existing = await deps.prisma.computer.findUniqueOrThrow({ where: { id: computerId } });
   if (existing.controlLeaseId && !hasActiveComputerControl(existing)) {
@@ -63,6 +64,8 @@ export async function provisionComputer(
       throw new Error("computer control revocation is still in progress");
     }
   }
+  if (expectedVersion && existing.updatedAt.getTime() !== expectedVersion.getTime())
+    throw new ComputerBusyError();
   const homePath = resolveAgentHomePath(deps.home, existing.homeKey, deps.dataDir ?? "./data");
   await mkdir(homePath, { recursive: true });
 
@@ -81,6 +84,7 @@ export async function provisionComputer(
     where: {
       id: computerId,
       state: { in: ["stopped", "suspended", "error"] },
+      ...(expectedVersion ? { updatedAt: expectedVersion } : {}),
       ...(context.botId ? { bots: { some: { id: context.botId, archivedAt: null } } } : {}),
     },
     data: { state: "booting" },
@@ -92,7 +96,12 @@ export async function provisionComputer(
       {
         botId: existing.homeKey,
         homePath,
-        providerRef: existing.providerRef ?? undefined,
+        providerRef:
+          deps.sandbox.describe?.().capabilities.persistentRunning &&
+          existing.kind !== deps.sandbox.describe().id &&
+          ["stopped", "suspended"].includes(existing.state)
+            ? undefined
+            : (existing.providerRef ?? undefined),
         providerKind: existing.kind as ComputerRef["kind"],
         workspaceSnapshot: await cachedWorkspaceSnapshot(
           deps.home,

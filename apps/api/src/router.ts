@@ -654,9 +654,19 @@ export function createRouter(deps: RouterDeps) {
         if (!found) throw new IsolationError();
         return found;
       }),
-      create: authed.bots.create.handler(async ({ context, input }) =>
-        repos.createBot(context.actor, input),
-      ),
+      create: authed.bots.create.handler(async ({ context, input }) => {
+        const created = await repos.createBot(context.actor, input);
+        if (deps.sandbox.describe().capabilities.persistentRunning) {
+          const bot = await repos.getBot(context.actor, created.id);
+          if (bot.computer)
+            await deps.jobs.enqueue({
+              name: "computer.warm",
+              payload: { botId: bot.id, version: bot.computer.updatedAt.toISOString() },
+              replaceKey: `computer.warm:${bot.computer.id}`,
+            });
+        }
+        return created;
+      }),
       duplicate: authed.bots.duplicate.handler(async ({ context, input }) => {
         const source = await repos.getBot(context.actor, input.botId);
         const duplicate = await repos.createBot(context.actor, {
@@ -1362,6 +1372,7 @@ export function createRouter(deps: RouterDeps) {
       stop: authed.computer.stop.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
+        await deps.jobs.cancel(`computer.warm:${bot.computer.id}`);
         const controlLeaseId = bot.computer.controlLeaseId;
         const now = new Date();
         const claimed = await deps.prisma.computer.updateMany({
@@ -1799,7 +1810,7 @@ export function createRouter(deps: RouterDeps) {
             deps.env.screenProxySecret,
             deps.env.screenGatewayOrigin ?? deps.env.webOrigin,
             undefined,
-            { proxyExternal: ["box", "modal"].includes(bot.computer.kind) },
+            { proxyExternal: ["box", "modal", "fly"].includes(bot.computer.kind) },
           ),
         };
       }),

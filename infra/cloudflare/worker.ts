@@ -78,7 +78,7 @@ export default {
       if (
         target?.protocol !== "https:" ||
         target.port !== 443 ||
-        !target.hostname.endsWith(".modal.host")
+        !(target.hostname.endsWith(".modal.host") || target.hostname === "cadre-computers.fly.dev")
       )
         return new Response("Invalid or expired screen capability", { status: 403 });
       const headers = new Headers(request.headers);

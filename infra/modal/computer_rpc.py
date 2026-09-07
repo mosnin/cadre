@@ -53,6 +53,7 @@ def marker(key):
     return screens.STATE / ('process-' + hashlib.sha256(key.encode()).hexdigest())
 
 def demote():
+    os.umask(0o077)
     os.setgroups([])
     os.setgid(1000)
     os.setuid(1000)
@@ -71,7 +72,7 @@ def execute(req):
             env['DISPLAY'] = ''
     # Platform credentials never enter ordinary shell commands.
     for name in list(env):
-        if name.startswith(('MODAL_', 'CADRE_SCREEN_', 'RAKAZO_COMPUTER_CONTROL_')):
+        if name.startswith(('MODAL_', 'CADRE_RPC_', 'CADRE_SCREEN_', 'RAKAZO_COMPUTER_CONTROL_')):
             env.pop(name)
     if marker(key + ':cancel').exists():
         return {'stdout': '', 'stderr': 'Cancelled', 'code': 130}
