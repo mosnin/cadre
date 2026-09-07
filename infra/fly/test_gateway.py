@@ -27,6 +27,26 @@ class GatewayTest(unittest.TestCase):
         return handler
 
     @patch.dict(os.environ, {'FLY_MACHINE_ID':'1234567890abcd','CADRE_RPC_TOKEN':'test-rpc'})
+    def test_large_workspace_file_reaches_the_shared_protocol(self):
+        body=json.dumps({'op':'writeBatch','files':[{'path':'large.bin','content':'A'*(24*1024*1024)}]}).encode()
+        handler=self.handler(body)
+        with patch.object(gateway.subprocess,'run',return_value=unittest.mock.Mock(stdout=b'{"ok":true}')) as run:
+            handler.do_POST()
+        handler.send_error.assert_not_called()
+        self.assertEqual(run.call_args.kwargs['input'],body)
+        self.assertGreaterEqual(gateway.MAX_BODY, ((64*1024*1024+2)//3)*4+1024)
+
+    @patch.dict(os.environ, {'FLY_MACHINE_ID':'1234567890abcd','CADRE_RPC_TOKEN':'test-rpc'})
+    def test_oversized_request_is_rejected_before_reading(self):
+        handler=self.handler()
+        handler.headers['Content-Length']=str(gateway.MAX_BODY+1)
+        with patch.object(gateway.subprocess,'run') as run:
+            handler.do_POST()
+        handler.send_error.assert_called_once_with(400)
+        self.assertEqual(handler.rfile.tell(),0)
+        run.assert_not_called()
+
+    @patch.dict(os.environ, {'FLY_MACHINE_ID':'1234567890abcd','CADRE_RPC_TOKEN':'test-rpc'})
     def test_wrong_capability_cannot_execute(self):
         handler = self.handler(token='Bearer other-team-token')
         with patch.object(gateway.subprocess,'run') as run:
