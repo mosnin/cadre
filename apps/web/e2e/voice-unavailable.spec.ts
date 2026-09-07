@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, createNamedBot, signup } from "./helpers";
 
 for (const width of [390, 1365]) {
   test(`call mode is unavailable even with a configured provider at ${width}px`, async ({
@@ -28,8 +28,8 @@ for (const width of [390, 1365]) {
         }),
       }),
     );
-    await page.reload();
-    await expect(page.getByPlaceholder(/Message/)).toBeVisible();
+    await createNamedBot(page, "Voice check");
+    await expect(page.getByPlaceholder("Message Voice check")).toBeVisible();
     await expect(page.getByRole("button", { name: "Call", exact: true })).toHaveCount(0);
     await expect(page.getByTestId("call-view")).toHaveCount(0);
     await captureScreenshot(page, testInfo, `voice-removed-${width}`);
