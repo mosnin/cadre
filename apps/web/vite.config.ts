@@ -168,6 +168,7 @@ export default defineConfig(({ mode }) => {
     process.env.RAKAZO_DESKTOP_STACK_TOKEN ?? rootEnv.RAKAZO_DESKTOP_STACK_TOKEN ?? "";
   const imageTag = process.env.RAKAZO_IMAGE_TAG ?? rootEnv.RAKAZO_IMAGE_TAG ?? "edge";
   return {
+    base: process.env.CHIPPI_BUILD === "true" ? "/workforce-assets/" : "/",
     plugins: [
       react({
         babel: {

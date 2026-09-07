@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   type Actor,
   BOT_COLORS,
@@ -324,6 +325,8 @@ export function createRepos(prisma: PrismaClient) {
         parentBotId?: string | null;
         computerMode?: ComputerMode;
         spawnKey?: string;
+        /** Internal bootstrap only; absent from every public input schema. */
+        systemRole?: "chippi";
         modelProvider?: string | null;
         modelId?: string | null;
         thinkingLevel?: string | null;
@@ -364,6 +367,14 @@ export function createRepos(prisma: PrismaClient) {
       const kind =
         envKind === "docker" && settings?.computerHost === "this-mac" ? "desktop" : envKind;
       const bot = await prisma.$transaction(async (tx) => {
+        if (input.systemRole === "chippi") {
+          await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtext(${`chippi:${actor.spaceId}`}))`;
+          const existing = await tx.bot.findFirst({
+            where: { spaceId: actor.spaceId, systemRole: "chippi" },
+            include: { thread: true, computer: true },
+          });
+          if (existing) return existing;
+        }
         const positions = await tx.bot.aggregate({
           where: { spaceId: actor.spaceId, userId: actor.userId },
           _max: { position: true },
@@ -378,7 +389,14 @@ export function createRepos(prisma: PrismaClient) {
           data: {
             spaceId: actor.spaceId,
             userId: actor.userId,
-            name: input.name,
+            name: input.systemRole === "chippi" ? "Chippi" : input.name,
+            ...(input.systemRole === "chippi"
+              ? {
+                  id: `chippi_${createHash("sha256").update(actor.spaceId).digest("hex")}`,
+                  systemRole: "chippi",
+                  pinned: true,
+                }
+              : {}),
             title: input.title,
             description: input.description,
             instructions: input.instructions,

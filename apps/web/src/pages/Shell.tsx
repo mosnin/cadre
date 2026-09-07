@@ -39,6 +39,7 @@ import {
   groupBotsForSidebar,
   inferAttachmentMimeType,
   isActive,
+  isChippiBot,
   isPeerReceiptBlocks,
   isRunTerminalEvent,
   isToolActivityBlock,
@@ -143,6 +144,7 @@ import {
   requestBrowserNotificationPermission,
   shouldNotifyBrowser,
 } from "../lib/browser-notifications";
+import { chippiHost } from "../lib/chippi-host";
 import { loadComputerScreen } from "../lib/computer-screen";
 import { dictation } from "../lib/dictation";
 import { scheduleFocusPrompt } from "../lib/focus-prompt";
@@ -179,6 +181,7 @@ import {
 import { speaker } from "../lib/tts";
 import { ActivityList } from "./ActivityList";
 import type { ContextMenuPosition } from "./BotContextMenu";
+import { ChippiNavigation } from "./ChippiNavigation";
 import { CreateGroupForm, GroupSettings, memberName } from "./GroupPanel";
 import { HostComputerPrompt } from "./HostComputerPrompt";
 import {
@@ -1437,7 +1440,9 @@ export function ShellPage() {
       );
       const sections = groupBotsForSidebar(
         [
-          ...visibleBots.map((chat) => ({ kind: "bot" as const, chat })),
+          ...visibleBots
+            .toSorted((a, b) => Number(isChippiBot(b)) - Number(isChippiBot(a)))
+            .map((chat) => ({ kind: "bot" as const, chat })),
           ...visibleGroups.map((chat) => ({ kind: "group" as const, chat })),
         ].map((item) => ({ ...item, pinned: item.chat.pinned, sectionId: item.chat.sectionId })),
         space.botSections,
@@ -2533,7 +2538,7 @@ export function ShellPage() {
       data-ready={shellReady}
       className="relative flex h-full min-w-0 overflow-hidden bg-background text-foreground/90"
     >
-      {bootstrapMe !== undefined ? (
+      {bootstrapMe !== undefined && !chippiHost() ? (
         <HostComputerPrompt initialMe={bootstrapMe ?? undefined} />
       ) : null}
       {mobileSidebarOpen ? (
@@ -2558,6 +2563,7 @@ export function ShellPage() {
             : "md:w-[316px]"
         }`}
       >
+        <ChippiNavigation />
         <div className="app-drag flex items-center justify-between px-[18px] pb-3 pt-4">
           <WindowChrome />
           <span className="h-11 w-11 md:hidden" />
@@ -2637,7 +2643,8 @@ export function ShellPage() {
                     }}
                     onCreateSpace={() => {
                       setCreateMenuOpen(false);
-                      setNewSpaceOpen(true);
+                      if (chippiHost()) window.location.assign(chippiHost()!.crmHref);
+                      else setNewSpaceOpen(true);
                     }}
                   />
                 </PopoverContent>
@@ -3158,14 +3165,16 @@ export function ShellPage() {
                 variant="ghost"
                 className="w-full justify-start font-normal"
                 onClick={() =>
-                  void authClient.signOut().then(() => {
-                    clearSpaceSelection();
-                    navigate("/");
-                  })
+                  chippiHost()
+                    ? window.location.assign(chippiHost()!.crmHref)
+                    : void authClient.signOut().then(() => {
+                        clearSpaceSelection();
+                        navigate("/");
+                      })
                 }
               >
                 <LogOut size={16} strokeWidth={1.7} className="text-muted-foreground" />
-                <Trans>Log out</Trans>
+                {chippiHost() ? "Return to CRM" : <Trans>Log out</Trans>}
               </Button>
             </PopoverContent>
           ) : null}

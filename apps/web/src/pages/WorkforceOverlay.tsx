@@ -14,6 +14,7 @@ import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthCapabilities } from "../lib/auth-capabilities";
+import { hostedApiPath } from "../lib/chippi-host";
 import { rpc, withSpaceHeaders } from "../lib/rpc";
 
 export function WorkforceOverlay({
@@ -43,7 +44,7 @@ export function WorkforceOverlay({
     },
   ]);
   async function request(method = "GET", body?: unknown) {
-    const response = await fetch("/api/v1/workforce", {
+    const response = await fetch(hostedApiPath("/api/v1/workforce"), {
       method,
       headers: withSpaceHeaders({ "content-type": "application/json" }),
       credentials: "include",

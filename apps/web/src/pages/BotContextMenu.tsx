@@ -1,5 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import type { Bot, BotSection } from "@rakazo/contracts";
+import { isChippiBot } from "@rakazo/core";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +27,7 @@ import {
 
 export type ContextMenuPosition = { x: number; y: number };
 
-type ChatMenuTarget = Pick<Bot, "name" | "pinned" | "sectionId" | "unread">;
+type ChatMenuTarget = Pick<Bot, "id" | "name" | "pinned" | "sectionId" | "unread">;
 
 export function BotContextMenu({
   bot,
@@ -84,12 +85,12 @@ export function BotContextMenu({
         sideOffset={0}
         className="max-h-[min(420px,calc(100vh-16px))] w-[264px] overflow-y-auto"
       >
-        <DropdownMenuItem onClick={onTogglePinned}>
+        <DropdownMenuItem disabled={isChippiBot(bot)} onClick={onTogglePinned}>
           <Pin />
           {bot.pinned ? t`Unpin` : t`Pin`}
         </DropdownMenuItem>
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger disabled={isChippiBot(bot)}>
             <Folder />
             {t`Move to`}
           </DropdownMenuSubTrigger>
@@ -131,11 +132,11 @@ export function BotContextMenu({
           <Eraser />
           {t`Clear conversation`}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onArchive}>
+        <DropdownMenuItem disabled={isChippiBot(bot)} onClick={onArchive}>
           <Archive />
           {t`Archive`}
         </DropdownMenuItem>
-        <DropdownMenuItem variant="destructive" onClick={onDelete}>
+        <DropdownMenuItem disabled={isChippiBot(bot)} variant="destructive" onClick={onDelete}>
           <Trash2 />
           {t`Delete`}
         </DropdownMenuItem>

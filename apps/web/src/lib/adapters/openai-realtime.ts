@@ -1,3 +1,4 @@
+import { hostedApiPath } from "../chippi-host";
 export type RealtimePhase = "connecting" | "listening" | "thinking" | "speaking";
 type ToolCall = { name: string; call_id: string; arguments: string };
 
@@ -73,7 +74,7 @@ export class OpenAIRealtimeCall {
       };
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
-      const response = await fetch("/api/voice/realtime", {
+      const response = await fetch(hostedApiPath("/api/voice/realtime"), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ botId, sdp: offer.sdp }),

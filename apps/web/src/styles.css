@@ -55,3 +55,10 @@ body,
 [data-theme="dark"] .cadre-mark {
   filter: invert(1);
 }
+
+/* Chippi host styling remains scoped to this independently built application. */
+html[data-chippi-host] *,
+html[data-chippi-host] *::before,
+html[data-chippi-host] *::after {
+  font-style: normal !important;
+}

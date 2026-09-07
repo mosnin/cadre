@@ -62,6 +62,7 @@ import {
   userTurnBlocksForRun,
 } from "@rakazo/core";
 import { approvalEffectKey } from "@rakazo/core/node/approval-effect-key";
+import type { WorkforcePrincipal } from "@rakazo/core/node/workforce-auth";
 import {
   appendEventInTransaction,
   createSpaceForMember,
@@ -76,6 +77,7 @@ import {
   parseComputerMode,
   SpaceLimitError,
   type ThreadEvents,
+  withWorkforceAuthority,
 } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import { parse as parseShellCommand } from "shell-quote";
@@ -124,6 +126,7 @@ import {
 import { loadBotMessageContext, messageBot, returnBotMessageOutcome } from "./bot-messages.js";
 import { agentConnectionTools, builtinAgentTools } from "./builtin-tools.js";
 import { archiveSpawnedBot, spawnBot } from "./child-bots.js";
+import { assertChippiAuthority, queryChippiCrm } from "./chippi-authority.js";
 import {
   collectLogIds,
   mergeConnectedPlugins,
@@ -563,7 +566,7 @@ export function buildApprovalContinuation(
 
 export function createRunExecutor(deps: ExecutorDeps) {
   const web = deps.web ?? createWebProvider();
-  return {
+  const executor = {
     async resolveModel(scope: {
       userId: string;
       spaceId: string;
@@ -851,6 +854,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
         void Promise.all([
           renewRunLease(deps, runId, workerId, fence),
           renewComputerExecutionLease(deps.prisma, computerLease),
+          assertChippiAuthority(run.workforceAuthority, run.spaceId),
         ])
           .then(([runRenewed, computerRenewed]) => {
             if (!runRenewed || !computerRenewed) {
@@ -1213,7 +1217,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
           }),
           // Cross-owner agent connections only exist for chat-linked bots.
           ...(hasMessagingIdentity ? agentConnectionTools : []),
-        ];
+        ].filter((tool) =>
+          tool.name === "chippi_crm_query"
+            ? Boolean(process.env.CHIPPI_WORKFORCE_SECRET)
+            : !(process.env.CHIPPI_WORKFORCE_SECRET && tool.name === "create_space"),
+        );
         const exposedConnectorTools = discovered.filter(
           (tool) => !builtinAgentTools.some((builtin) => builtin.name === tool.name),
         );
@@ -1404,6 +1412,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           args: Record<string, unknown>,
           executionId: string,
         ) => {
+          await assertChippiAuthority(run.workforceAuthority, run.spaceId);
           if (handedOff) {
             return { error: "This stage was handed off. End the turn without more tool calls." };
           }
@@ -2224,6 +2233,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
             );
             return finish({ ok: true });
           }
+          if (name === "chippi_crm_query") {
+            return finish(
+              await queryChippiCrm(run.workforceAuthority, run.spaceId, args, context.signal),
+            );
+          }
           if (name === "web_search") {
             return finish(await webSearchFromTool(web, context, args));
           }
@@ -2684,6 +2698,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
             };
           }
           if (name === "create_space") {
+            if (process.env.CHIPPI_WORKFORCE_SECRET)
+              return finish({
+                error: "Create and manage workspaces in the CRM workspace selector",
+              });
             try {
               const space = await createSpaceForMember(deps.prisma, {
                 currentSpaceId: run.spaceId,
@@ -2986,7 +3004,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 `${computerInstruction} Use web_search and web_fetch to look something up or read a page without a computer. Use remember for durable facts. Use scratchpad_add / scratchpad_update / scratchpad_complete for open work that should outlive this turn (not reminders — those are schedule_*). Use request_takeover when the user must provide protected input or human judgment. Use destination_write only for connected destination records.`,
                 workspaceInstruction,
                 "A bot and a subagent are different. Never use both for the same request.",
-                "create_space proposes a new privacy boundary inside the current organization. Use it when the user asks to create a space or separate data between teams or projects. It always pauses for explicit user approval; never claim the space exists before the tool succeeds.",
+                process.env.CHIPPI_WORKFORCE_SECRET
+                  ? "CRM workspaces and brokerage permissions are managed by Chippi. Use the workspace selector to switch. Use chippi_crm_query to inspect live CRM records; begin with catalog for schemas."
+                  : "create_space proposes a new privacy boundary inside the current organization. Use it when the user asks to create a space or separate data between teams or projects. It always pauses for explicit user approval; never claim the space exists before the tool succeeds.",
                 "spawn_bot creates a lasting regular bot (own chat, computer, memory) that appears in the user's bot list. If the user asked to create a bot, call spawn_bot once and stop. Do not run_subagent to demo it.",
                 "run_subagent is a short helper inside this turn only. It is not a bot, has no thread, and does not show in the list. Use it for parallel work you will summarize here.",
                 botDirectory,
@@ -3599,6 +3619,60 @@ export function createRunExecutor(deps: ExecutorDeps) {
           })
           .catch(() => undefined);
       }
+    },
+  };
+  return {
+    ...executor,
+    async continueRun(runId: string, workerId: string) {
+      if (!process.env.CHIPPI_WORKFORCE_SECRET) return executor.continueRun(runId, workerId);
+      const run = await deps.prisma.run.findUnique({ where: { id: runId } });
+      if (!run || isTerminal(run.status as RunStatus)) return;
+      try {
+        await assertChippiAuthority(run.workforceAuthority, run.spaceId);
+      } catch {
+        await deps.prisma.$transaction(async (tx) => {
+          const now = new Date();
+          const changed = await tx.run.updateMany({
+            where: { id: runId, status: { notIn: ["completed", "failed", "cancelled"] } },
+            data: {
+              status: "cancelled",
+              error: "Workspace authority revoked or unavailable",
+              completedAt: now,
+              leaseOwner: null,
+              leaseExpiresAt: null,
+            },
+          });
+          if (!changed.count) return;
+          await tx.task.updateMany({ where: { id: run.taskId }, data: { status: "cancelled" } });
+          await tx.attempt.updateMany({
+            where: { runId, status: "running" },
+            data: { status: "cancelled", finishedAt: now },
+          });
+          await appendEventInTransaction(tx, {
+            spaceId: run.spaceId,
+            threadId: run.threadId,
+            botId: run.botId,
+            runId,
+            type: "run.cancelled",
+            payload: { reason: "Workspace authority revoked or unavailable" },
+          });
+        });
+        return;
+      }
+      return withWorkforceAuthority(run.workforceAuthority as unknown as WorkforcePrincipal, () =>
+        executor.continueRun(runId, workerId),
+      );
+    },
+    async wakeRoutine(routineId: string, scheduledFor: string) {
+      if (!process.env.CHIPPI_WORKFORCE_SECRET)
+        return executor.wakeRoutine(routineId, scheduledFor);
+      const routine = await deps.prisma.routine.findUnique({ where: { id: routineId } });
+      if (!routine) return;
+      await assertChippiAuthority(routine.workforceAuthority, routine.spaceId);
+      return withWorkforceAuthority(
+        routine.workforceAuthority as unknown as WorkforcePrincipal,
+        () => executor.wakeRoutine(routineId, scheduledFor),
+      );
     },
   };
 }

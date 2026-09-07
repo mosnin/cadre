@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import { I18nBootstrap } from "./components/I18nBootstrap";
 import { applyUiDirection } from "./lib/apply-ui-direction";
+import { chippiHost } from "./lib/chippi-host";
 import { markAfterPaint, markOnce } from "./lib/performance";
 import { installPreloadRecovery } from "./lib/preload-recovery";
 import { captureTaskDraft } from "./lib/task-draft";
@@ -36,7 +37,7 @@ createRoot(document.getElementById("root")!).render(
     <PerformanceProbe />
     <AppearanceSync />
     <I18nBootstrap>
-      <BrowserRouter>
+      <BrowserRouter basename={chippiHost()?.basePath}>
         <App />
       </BrowserRouter>
     </I18nBootstrap>

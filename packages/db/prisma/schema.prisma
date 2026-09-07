@@ -312,6 +312,7 @@ model SpaceVoicePreference {
 }
 
 model Bot {
+  systemRole        String?
   workforceAssignments WorkforceAssignment[]
   id                String            @id @default(cuid())
   spaceId           String
@@ -359,6 +360,7 @@ model Bot {
   mcpServers        BotMcpServer[]
   groupMembers      ChatGroupMember[]
 
+  @@unique([spaceId, systemRole])
   @@unique([spaceId, spawnKey])
   @@index([spaceId, userId, archivedAt, pinned, updatedAt])
   @@index([sectionId])
@@ -523,6 +525,7 @@ model Task {
 }
 
 model Run {
+  workforceAuthority Json?
   workforceAssignments WorkforceAssignment[]
   id                   String           @id @default(cuid())
   spaceId              String
@@ -626,6 +629,7 @@ model ExternalEffect {
 }
 
 model Routine {
+  workforceAuthority Json?
   id             String    @id @default(cuid())
   spaceId        String
   space          Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
@@ -1151,4 +1155,11 @@ model WorkforceAssignment {
   @@unique([connectionId, dispatchId])
   @@index([connectionId, acknowledged])
   @@map("workforce_assignments")
+}
+
+model WorkforceRequestNonce {
+  id String @id
+  expiresAt DateTime
+  @@index([expiresAt])
+  @@map("workforce_request_nonces")
 }

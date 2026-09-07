@@ -1,4 +1,9 @@
-import { ACTIVE_RUN_STATUSES, avatarIdentitySeed, organicAvatarPath } from "@rakazo/core";
+import {
+  ACTIVE_RUN_STATUSES,
+  avatarIdentitySeed,
+  isChippiBot,
+  organicAvatarPath,
+} from "@rakazo/core";
 import { type CSSProperties, memo, useId, useSyncExternalStore } from "react";
 import { type AvatarStyle, useAvatarStyle } from "./avatar-style.js";
 import { cn } from "./lib/utils.js";
@@ -24,6 +29,7 @@ export const BotAvatar = memo(function BotAvatar({
   const isWorking = ACTIVE_RUN_STATUSES.some((activeStatus) => activeStatus === status);
   const gradId = `spin-grad-${useId().replace(/[^a-zA-Z0-9-_]/g, "")}`;
   const preferredVariant = useAvatarStyle();
+  if (identity && isChippiBot({ id: identity })) return null;
   if ((variant ?? preferredVariant) === "organic") {
     return (
       <OrganicAvatar

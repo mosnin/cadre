@@ -1,3 +1,4 @@
+import { chippiHost } from "./chippi-host";
 import { rpc } from "./rpc";
 
 export const MCP_OAUTH_CHANNEL = "rakazo-mcp-oauth";
@@ -18,7 +19,7 @@ export type McpOauthResult =
 export async function connectMcpOauth(serverId: string): Promise<McpOauthResult> {
   const started = await rpc.mcp.oauth.begin({
     serverId,
-    redirectUri: `${window.location.origin}/mcp/oauth/callback`,
+    redirectUri: `${window.location.origin}${chippiHost()?.basePath ?? ""}/mcp/oauth/callback`,
   });
   if (started.status !== "authorization_required") return started.status;
   const popup = window.open(

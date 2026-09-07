@@ -28,6 +28,10 @@
       "types": "./src/node/screen-proxy.ts",
       "development": "./src/node/screen-proxy.ts",
       "default": "./src/node/screen-proxy.ts"
+    },
+    "./node/workforce-auth": {
+      "types": "./src/node/workforce-auth.ts",
+      "default": "./src/node/workforce-auth.ts"
     }
   },
   "scripts": {

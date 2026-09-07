@@ -29,6 +29,7 @@ import {
 import { SoftwareUpdateSection } from "../components/SoftwareUpdateSection";
 import { authClient } from "../lib/auth";
 import { useAuthCapabilities } from "../lib/auth-capabilities";
+import { chippiHost } from "../lib/chippi-host";
 import { getActiveUiLocale, setUiLocale } from "../lib/i18n";
 import {
   type AppearancePreference,
@@ -127,10 +128,18 @@ export function AccountSettingsOverlay({
             <Trans>Account</Trans>
           </h3>
           <p className="mt-3 text-[14px] text-foreground/75">{name}</p>
-          {email ? <p className="mt-1 text-[13px] text-muted-foreground/70">{email}</p> : null}
+          {email && !chippiHost() ? (
+            <p className="mt-1 text-[13px] text-muted-foreground/70">{email}</p>
+          ) : null}
         </section>
 
-        <ChangePasswordSection />
+        {!chippiHost() ? (
+          <ChangePasswordSection />
+        ) : (
+          <a className="mt-3 inline-block text-sm text-link" href={chippiHost()!.crmHref}>
+            Manage account in CRM
+          </a>
+        )}
 
         {messagingEnabled && onOpenMessaging ? (
           <section className="mt-5 rounded-xl border border-border px-4 py-4">

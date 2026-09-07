@@ -1,3 +1,4 @@
+import { hostedApiPath } from "./chippi-host";
 import { rpc, selectedSpaceId, withSpaceHeaders } from "./rpc.js";
 
 export type SpeechStatus = "idle" | "preparing" | "speaking";
@@ -169,7 +170,7 @@ export class Speaker {
     const deadline = requestDeadline(signal, VOICE_RESPONSE_TIMEOUT_MS);
     try {
       const res = await withAbort(deadline.signal, () =>
-        fetch("/api/voice/speak", {
+        fetch(hostedApiPath("/api/voice/speak"), {
           method: "POST",
           headers: withSpaceHeaders({ "content-type": "application/json" }, spaceId),
           credentials: "include",

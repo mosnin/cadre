@@ -2,8 +2,11 @@ import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { ContractRouterClient } from "@orpc/contract";
 import type { AppContract } from "@rakazo/contracts";
+import { chippiHost, hostedApiPath } from "./chippi-host";
 
-const SPACE_STORAGE_KEY = "rakazo:space-id";
+const SPACE_STORAGE_KEY = chippiHost()
+  ? `chippi:space:${chippiHost()!.basePath}`
+  : "rakazo:space-id";
 
 type RpcClientContext = { spaceId?: string | null };
 
@@ -51,7 +54,9 @@ export function withSpaceHeaders(
 
 const link = new RPCLink<RpcClientContext>({
   url: () =>
-    typeof window === "undefined" ? "http://127.0.0.1:5173/rpc" : `${window.location.origin}/rpc`,
+    typeof window === "undefined"
+      ? "http://127.0.0.1:5173/rpc"
+      : `${window.location.origin}${hostedApiPath("/rpc")}`,
   fetch: (input, init, options) => {
     const request = new Request(input, init);
     const spaceId =

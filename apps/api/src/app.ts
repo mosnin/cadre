@@ -79,6 +79,7 @@ import { requestLogging } from "@rakazo/logging/hono";
 import { MarkdownMemoryStore } from "@rakazo/memory";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { mountChippiHost } from "./chippi-host.js";
 import { type AppEnv, loadEnv } from "./env.js";
 import { createMessagingInboundHandler } from "./messaging-inbound.js";
 import { mountMessagingWebhookRoutes } from "./messaging-webhook.js";
@@ -379,6 +380,11 @@ export async function createApp(
     ? createCompanyOsCredential(auth, companyOsOAuth, created.pool!)
     : undefined;
   const getSession = async (headers: Headers) => {
+    if (process.env.CHIPPI_WORKFORCE_SECRET) {
+      const id = headers.get("x-chippi-actor");
+      const user = id ? await prisma.user.findUnique({ where: { id } }) : null;
+      return user ? { user } : null;
+    }
     const session = await auth.api.getSession({ headers });
     if (session && oauthCredential) {
       try {
@@ -390,6 +396,8 @@ export async function createApp(
     return session;
   };
   const app = new Hono();
+  if (process.env.CHIPPI_WORKFORCE_SECRET)
+    mountChippiHost(app, prisma, process.env.CHIPPI_WORKFORCE_SECRET);
   app.use("*", requestLogging(logger));
   app.use(
     "*",

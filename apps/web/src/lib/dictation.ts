@@ -1,3 +1,4 @@
+import { hostedApiPath } from "./chippi-host";
 import { selectedSpaceId, withSpaceHeaders } from "./rpc.js";
 
 export type DictationMode = "hold" | "endpoint";
@@ -317,7 +318,7 @@ export class Dictation {
       const audioBase64 = await blobToBase64(blob);
       if (this.token !== mine) return;
       const res = await withAbort(
-        fetch("/api/voice/transcribe", {
+        fetch(hostedApiPath("/api/voice/transcribe"), {
           method: "POST",
           headers: withSpaceHeaders({ "content-type": "application/json" }, spaceId),
           credentials: "include",

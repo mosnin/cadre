@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { hostedApiPath } from "./chippi-host";
 
 export interface AuthCapabilities {
   provider: "local" | "convex-company-os";
@@ -15,12 +16,12 @@ export function useAuthCapabilities() {
     let active = true;
     let retry: ReturnType<typeof setTimeout> | undefined;
     function load() {
-      pending ??= fetch("/api/auth/capabilities", { signal: AbortSignal.timeout(10000) }).then(
-        async (response) => {
-          if (!response.ok) throw new Error("Authentication is unavailable");
-          return (await response.json()) as AuthCapabilities;
-        },
-      );
+      pending ??= fetch(hostedApiPath("/api/auth/capabilities"), {
+        signal: AbortSignal.timeout(10000),
+      }).then(async (response) => {
+        if (!response.ok) throw new Error("Authentication is unavailable");
+        return (await response.json()) as AuthCapabilities;
+      });
       void pending
         .then((value) => {
           if (active) setCapabilities(value);

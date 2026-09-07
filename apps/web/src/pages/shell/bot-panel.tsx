@@ -14,6 +14,7 @@ import {
   BOT_NAME_MAX_LENGTH,
   BOT_TITLE_MAX_LENGTH,
 } from "@rakazo/contracts";
+import { isChippiBot } from "@rakazo/core";
 import {
   BotAvatar,
   Button,
@@ -294,6 +295,7 @@ export function BotSettings({
         <Input
           id={`${ids}-name`}
           value={name}
+          readOnly={isChippiBot(bot)}
           maxLength={BOT_NAME_MAX_LENGTH}
           onChange={(e) => setName(e.target.value)}
           className="mt-2"

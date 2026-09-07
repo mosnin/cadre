@@ -88,6 +88,7 @@ import {
 import {
   ACTIVE_RUN_STATUSES,
   AttachmentValidationError,
+  assertBotProfileAllowed,
   containsSecret,
   expandSkillReferencesInPrompt,
   hasMixedOneShotSchedule,
@@ -123,6 +124,7 @@ import {
 import { getLogger } from "@rakazo/logging";
 import { createAgentSkillsService } from "./agent-skills.js";
 import { createOwnedArtifact, getOwnedArtifact, getSpaceArtifact } from "./artifacts.js";
+import { chippiWebUrl } from "./chippi-host.js";
 import {
   executionBlocksUserTakeover,
   resolveBusyBotName,
@@ -400,6 +402,8 @@ export function createRouter(deps: RouterDeps) {
         spaceNavigationDto(deps, context.actor, repos, groupRepos),
       ),
       create: authed.spaces.create.handler(async ({ context, input }) => {
+        if (process.env.CHIPPI_WORKFORCE_SECRET)
+          throw new ORPCError("FORBIDDEN", { message: "Manage workspaces in Chippi CRM" });
         let space: { id: string; name: string };
         try {
           space = await createSpaceForMember(deps.prisma, {
@@ -711,6 +715,13 @@ export function createRouter(deps: RouterDeps) {
       }),
       update: authed.bots.update.handler(async ({ context, input }) => {
         const existing = await repos.getBot(context.actor, input.botId);
+        try {
+          assertBotProfileAllowed(existing, input);
+        } catch (error) {
+          throw new ORPCError("FORBIDDEN", {
+            message: error instanceof Error ? error.message : "Protected system bot",
+          });
+        }
         if (input.sectionId) {
           const section = await deps.prisma.botSection.findFirst({
             where: {
@@ -2782,7 +2793,7 @@ export function createRouter(deps: RouterDeps) {
       oauth: {
         begin: authed.mcp.oauth.begin.handler(async ({ context, input }) => {
           try {
-            const expectedRedirect = new URL("/mcp/oauth/callback", deps.env.webOrigin).toString();
+            const expectedRedirect = chippiWebUrl(deps.env.webOrigin, "/mcp/oauth/callback");
             if (new URL(input.redirectUri).toString() !== expectedRedirect) {
               throw new Error("MCP OAuth redirect URI is not allowed");
             }
@@ -2958,7 +2969,7 @@ export function createRouter(deps: RouterDeps) {
         });
         try {
           const auth = await connector.begin(
-            { provider: input.provider, redirectUrl: `${deps.env.webOrigin}/app` },
+            { provider: input.provider, redirectUrl: chippiWebUrl(deps.env.webOrigin, "/app") },
             connectionContext(context.actor, "connections.begin", context.signal),
           );
           await deps.prisma.connection.update({

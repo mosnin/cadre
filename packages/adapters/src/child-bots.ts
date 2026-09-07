@@ -8,7 +8,7 @@ import type {
 } from "@rakazo/adapter-kit";
 import { routineJobKey, runContinueJob, runJobKey } from "@rakazo/adapter-kit";
 import { type Actor, type Bot, GROUP_MEMBER_MIN } from "@rakazo/contracts";
-import { ACTIVE_RUN_STATUSES } from "@rakazo/core";
+import { ACTIVE_RUN_STATUSES, assertBotLifecycleAllowed } from "@rakazo/core";
 import {
   computerScopeKey,
   createRepos,
@@ -259,6 +259,7 @@ export async function archiveBot(
   bot: LifecycleBot,
   context: AdapterContext,
 ) {
+  assertBotLifecycleAllowed(bot);
   const [dedicated, activeRuns, activeRoutines] = await Promise.all([
     deps.prisma.computer.findUnique({
       where: { scopeKey: computerScopeKey("dedicated", bot.spaceId, bot.id) },
@@ -334,6 +335,7 @@ export async function destroyBot(
   context: AdapterContext,
   options: { deleteMemories: boolean },
 ) {
+  assertBotLifecycleAllowed(bot);
   const [dedicated, activeRuns, routines] = await Promise.all([
     deps.prisma.computer.findUnique({
       where: { scopeKey: computerScopeKey("dedicated", bot.spaceId, bot.id) },
