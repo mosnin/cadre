@@ -48,3 +48,5 @@ playwright-report-www
 
 __pycache__/
 .wrangler/
+
+/playwright-report-chippi/
