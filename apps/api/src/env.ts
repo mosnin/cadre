@@ -9,6 +9,9 @@ import {
 export { resolveSandboxProvider } from "@rakazo/adapters";
 
 export interface AppEnv {
+  adminEmails: string;
+  adminBootstrapTokenHash?: string;
+  stripeSecretKey?: string;
   nodeEnv: string;
   databaseUrl: string;
   realtimeDatabaseUrl: string;
@@ -79,6 +82,9 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
   const updaterUrl = optional(source.RAKAZO_UPDATER_URL);
   const updaterToken = optional(source.RAKAZO_UPDATER_TOKEN);
   return {
+    adminEmails: source.CADRE_ADMIN_EMAILS ?? "",
+    adminBootstrapTokenHash: optional(source.CADRE_ADMIN_BOOTSTRAP_TOKEN_HASH),
+    stripeSecretKey: optional(source.STRIPE_SECRET_KEY),
     nodeEnv: source.NODE_ENV ?? "",
     databaseUrl: required(source, "DATABASE_URL"),
     realtimeDatabaseUrl: source.REALTIME_DATABASE_URL ?? required(source, "DATABASE_URL"),

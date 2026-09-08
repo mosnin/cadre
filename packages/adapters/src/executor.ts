@@ -62,6 +62,7 @@ import {
 import { approvalEffectKey } from "@rakazo/core/node/approval-effect-key";
 import {
   appendEventInTransaction,
+  cancelUserRuns,
   createSpaceForMember,
   createThreadMessageInTransaction,
   effectiveMemoryScope,
@@ -763,6 +764,16 @@ export function createRunExecutor(deps: ExecutorDeps) {
       const run = await deps.prisma.run.findUnique({ where: { id: runId } });
       if (!run) return;
       if (isTerminal(run.status as RunStatus)) return;
+      const owner = await deps.prisma.user.findUnique({
+        where: { id: run.userId },
+        select: { suspendedAt: true },
+      });
+      if (!owner || owner.suspendedAt) {
+        await deps.prisma.$transaction((tx) =>
+          cancelUserRuns(tx, { userId: run.userId, id: run.id }),
+        );
+        return;
+      }
       const resumeCheckpoint =
         run.checkpoint === "takeover" || run.checkpoint === "takeover-skipped"
           ? run.checkpoint

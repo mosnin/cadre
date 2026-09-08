@@ -121,6 +121,7 @@ import {
   touchGroupUpdatedAt,
 } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
+import { type AdminConfig, createAdminRouter } from "./admin.js";
 import { createAgentSkillsService } from "./agent-skills.js";
 import { createOwnedArtifact, getOwnedArtifact, getSpaceArtifact } from "./artifacts.js";
 import {
@@ -330,6 +331,7 @@ function mcpAssignmentDto(row: {
 }
 
 export interface RouterDeps {
+  admin?: AdminConfig;
   deploymentVoice?: VoiceDeps["deploymentVoice"];
   prisma: PrismaClient;
   events: ThreadEvents;
@@ -366,7 +368,11 @@ export interface RouterDeps {
 }
 
 export function createRouter(deps: RouterDeps) {
-  const os = implement(appContract).$context<{ actor: Actor | null; signal?: AbortSignal }>();
+  const os = implement(appContract).$context<{
+    actor: Actor | null;
+    signal?: AbortSignal;
+    sessionId?: string;
+  }>();
   const repos = createRepos(deps.prisma);
   const mcpOAuth = deps.mcpOAuth ?? new McpOAuthBroker(deps.prisma, deps.secrets);
   const groupRepos = createGroupRepos(deps.prisma);
@@ -386,6 +392,7 @@ export function createRouter(deps: RouterDeps) {
   });
 
   return os.router({
+    admin: createAdminRouter({ prisma: deps.prisma, jobs: deps.jobs, config: deps.admin }),
     health: os.health.handler(async () => ({ ok: true as const, version: "0.1.0" })),
     me: authed.me.handler(async ({ context }): Promise<Me> => meDto(deps, context.actor)),
     preferences: {

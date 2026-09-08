@@ -120,6 +120,12 @@ export async function reserveRunTool(
         throw new RunGuardrailError(
           "This run no longer owns execution. No further tools were started.",
         );
+      const owner = await tx.user.findUnique({
+        where: { id: run.userId },
+        select: { suspendedAt: true },
+      });
+      if (!owner || owner.suspendedAt)
+        throw new RunGuardrailError("This account is suspended. No further tools were started.");
       let trigger = current.trigger;
       if ((name === "spawn_bot" || name === "schedule_create") && trigger === "follow_up") {
         // User steering and agent handoffs share a trigger; inspect the server-owned source.

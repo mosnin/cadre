@@ -16,6 +16,10 @@ model User {
   image                       String?
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
+  adminRole                   String                       @default("member")
+  adminVerifiedAt             DateTime?
+  suspendedAt                 DateTime?
+  billingCustomerId           String?                      @unique
   avatarStyle                 String                       @default("robot")
   sessions                    Session[]
   accounts                    Account[]
@@ -226,8 +230,25 @@ model Invitation {
   @@map("invitation")
 }
 
+model AdminAudit {
+  id          String   @id @default(cuid())
+  actorId     String
+  action      String
+  targetId    String?
+  reason      String
+  status      String   @default("completed")
+  requestId   String   @unique
+  requestHash String
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt, id])
+  @@index([actorId, createdAt])
+  @@map("admin_audit")
+}
+
 model DeploymentSettings {
   id                              String   @id @default("default")
+  adminBootstrapConsumedAt        DateTime?
   ownerUserId                     String?
   signupsEnabled                  Boolean  @default(true)
   signupAllowlist                 String   @default("")

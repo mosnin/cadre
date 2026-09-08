@@ -20,6 +20,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { Link } from "react-router-dom";
 import { ApprovalRulesSettings } from "../components/ApprovalRulesSettings";
 import { SuccessPop } from "../components/ai/primitives";
 import {
@@ -30,6 +31,7 @@ import { SoftwareUpdateSection } from "../components/SoftwareUpdateSection";
 import { authClient } from "../lib/auth";
 import { useAuthCapabilities } from "../lib/auth-capabilities";
 import { getActiveUiLocale, setUiLocale } from "../lib/i18n";
+import { rpc } from "../lib/rpc";
 import {
   type AppearancePreference,
   getUiAppearancePreference,
@@ -63,6 +65,19 @@ export function AccountSettingsOverlay({
   onClose: () => void;
 }) {
   const { t } = useLingui();
+  const [canAdmin, setCanAdmin] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    rpc.admin
+      .status()
+      .then((status) => {
+        if (alive) setCanAdmin(status.allowed || status.canClaim);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
   const panelRef = useRef<HTMLDivElement>(null);
   const usageRef = useRef<HTMLDivElement>(null);
   const [locale, setLocale] = useState<UiLocale>(() => getActiveUiLocale());
@@ -218,6 +233,14 @@ export function AccountSettingsOverlay({
           </p>
         </div>
 
+        {canAdmin && (
+          <Link
+            to="/app/admin"
+            className="block rounded-lg border px-4 py-3 text-sm font-medium hover:bg-muted"
+          >
+            <Trans>Administration</Trans>
+          </Link>
+        )}
         <SoftwareUpdateSection isDeploymentOwner={isDeploymentOwner} />
 
         {isDeploymentOwner && computersAreUnavailable(sandboxProvider) ? (
