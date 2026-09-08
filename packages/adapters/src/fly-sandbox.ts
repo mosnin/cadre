@@ -5,7 +5,12 @@ import { LinuxDesktopSandbox } from "./linux-desktop-sandbox.js";
 type Machine = {
   id: string;
   state: string;
-  config: { metadata?: Record<string, string>; mounts?: Array<{ volume: string; path: string }> };
+  instance_id?: string;
+  config: Record<string, unknown> & {
+    image?: string;
+    metadata?: Record<string, string>;
+    mounts?: Array<{ volume: string; path: string }>;
+  };
 };
 type Volume = {
   id: string;
@@ -173,7 +178,12 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
     if (req.providerKind === "fly" && req.providerRef) {
       try {
         machine = await this.owned(
-          { id: req.providerRef, providerRef: req.providerRef, botId: req.botId, kind: "fly" },
+          {
+            id: req.providerRef,
+            providerRef: req.providerRef,
+            botId: req.botId,
+            kind: "fly",
+          },
           ctx,
         );
       } catch (error) {
@@ -191,7 +201,9 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
     if (!machine) {
       const volumeName = `home_${owner.slice(0, 24)}`;
       const volumes = (await this.api<Volume[]>("/volumes", "GET", undefined, ctx.signal)).filter(
-        (v) => v.name === volumeName && v.state !== "pending_destroy" && v.state !== "destroyed",
+        (v) =>
+          v.name === volumeName &&
+          !["scheduling_destroy", "pending_destroy", "destroyed"].includes(v.state ?? ""),
       );
       if (volumes.length > 1 || volumes.some((v) => v.attached_machine_id))
         throw new Error("Workspace disk is already attached");
@@ -202,7 +214,12 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
         (await this.api<Volume>(
           "/volumes",
           "POST",
-          { name: volumeName, region: this.options.region ?? "iad", size_gb: 10, encrypted: true },
+          {
+            name: volumeName,
+            region: this.options.region ?? "iad",
+            size_gb: 10,
+            encrypted: true,
+          },
           ctx.signal,
         ));
       machine = await this.api<Machine>(
@@ -289,7 +306,13 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
     while (Date.now() < deadline) {
       ctx.signal.throwIfAborted();
       const snapshots = await this.api<
-        Array<{ id: string; digest: string; size: number; created_at: string; status?: string }>
+        Array<{
+          id: string;
+          digest: string;
+          size: number;
+          created_at: string;
+          status?: string;
+        }>
       >(`/volumes/${volume}/snapshots`, "GET", undefined, ctx.signal);
       const snapshot = snapshots.find((entry) => entry.id === id);
       if (snapshot?.digest && snapshot.size > 0) return { id, createdAt: snapshot.created_at };
@@ -320,6 +343,43 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
       machine.state === "stopped" &&
         machine.config.mounts?.some((mount) => mount.path === "/home/rakazo" && mount.volume),
     );
+  }
+
+  async updateImage(computer: ComputerRef, ctx: AdapterContext): Promise<ComputerRef> {
+    const machine = await this.owned(computer, ctx);
+    if (!machine.instance_id) throw new Error("Computer update version is unavailable");
+    const mounts = machine.config.mounts;
+    if (!mounts?.some((mount) => mount.path === "/home/rakazo" && mount.volume))
+      throw new Error("Workspace disk is unavailable");
+    // Fly requires the complete config. Preserve every provider setting and
+    // capability; changing only the image keeps this VM and home volume intact.
+    const updated = await this.api<Machine>(
+      `/machines/${machine.id}`,
+      "POST",
+      {
+        config: { ...machine.config, image: this.options.image },
+        current_version: machine.instance_id,
+      },
+      ctx.signal,
+    );
+    if (updated.id !== machine.id) throw new Error("Computer update changed machine identity");
+    if (!updated.instance_id) throw new Error("Computer updated version is unavailable");
+    const version = `&instance_id=${encodeURIComponent(updated.instance_id)}`;
+    await this.api(
+      `/machines/${machine.id}/wait?state=started&timeout=60${version}`,
+      "GET",
+      undefined,
+      ctx.signal,
+    );
+    const ready = await this.owned(computer, ctx);
+    if (
+      ready.state !== "started" ||
+      ready.instance_id !== updated.instance_id ||
+      ready.config.image !== this.options.image ||
+      JSON.stringify(ready.config.mounts) !== JSON.stringify(mounts)
+    )
+      throw new Error("Computer update could not be verified");
+    return { ...computer, fresh: false, workspaceRestored: true };
   }
 
   async stop(computer: ComputerRef, ctx: AdapterContext) {

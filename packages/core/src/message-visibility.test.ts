@@ -1,6 +1,6 @@
 import type { ThreadMessage } from "@rakazo/contracts";
 import { describe, expect, it } from "vitest";
-import { userVisibleMessages } from "./message-visibility.js";
+import { isVisibleInternalPeerEvent, userVisibleMessages } from "./message-visibility.js";
 
 function message(id: string, runId: string, blocks: ThreadMessage["blocks"]): ThreadMessage {
   return {
@@ -52,5 +52,96 @@ describe("user-visible messages", () => {
     expect(
       userVisibleMessages(messages, { knownPeerRunIds: ["run-peer"] }).map((item) => item.id),
     ).toEqual(["answer"]);
+  });
+  it.each(["result", "status"] as const)(
+    "keeps %s callback answers with their source receipt in the client page",
+    (intent) => {
+      const rows = [
+        message("receipt", "callback", [
+          {
+            kind: "bot_message_received",
+            fromBotId: "peer",
+            fromBotName: "Peer",
+            intent,
+            text: "42",
+          },
+        ]),
+        message("summary", "callback", [{ kind: "text", text: "The answer is 42." }]),
+      ];
+      expect(userVisibleMessages(rows).map((row) => row.id)).toEqual(["summary"]);
+      expect(userVisibleMessages(rows, { includePeerReceipts: true }).map((row) => row.id)).toEqual(
+        ["receipt", "summary"],
+      );
+    },
+  );
+
+  it.each([
+    { kind: "ask", text: "Approve?", approvalEffectId: "approval-1", status: "pending" },
+    { kind: "ask", text: "Secret?", input: "secret", status: "answered" },
+    { kind: "choice", question: "Which?", options: [] },
+    {
+      kind: "app_connect",
+      provider: "app",
+      name: "App",
+      description: "Connect",
+      logo: null,
+      status: "connected",
+    },
+    { kind: "computer", state: "Needs you", text: "Sign in" },
+  ] as ThreadMessage["blocks"])(
+    "preserves human input cards for an internal peer run: $kind",
+    (block) => {
+      const rows = [
+        message("input", "internal", [block]),
+        message("chatter", "internal", [{ kind: "text", text: "Internal chatter" }]),
+      ];
+      expect(
+        userVisibleMessages(rows, { knownPeerRunIds: ["internal"] }).map((row) => row.id),
+      ).toEqual(["input"]);
+    },
+  );
+});
+
+describe("internal peer live event visibility", () => {
+  it("keeps the complete human intervention lifecycle while suppressing chatter", () => {
+    const types = [
+      "run.started",
+      "thread.progress",
+      "thread.ask",
+      "run.waiting_input",
+      "thread.message.updated",
+      "run.started",
+      "agent.tool.called",
+      "computer.takeover.requested",
+      "run.completed",
+    ];
+    expect(
+      types.filter((type) =>
+        isVisibleInternalPeerEvent({
+          type,
+          payload: { blocks: [{ kind: "ask", status: "answered", text: "Approved" }] },
+        }),
+      ),
+    ).toEqual([
+      "run.started",
+      "thread.ask",
+      "run.waiting_input",
+      "thread.message.updated",
+      "run.started",
+      "computer.takeover.requested",
+      "run.completed",
+    ]);
+    expect(
+      isVisibleInternalPeerEvent({
+        type: "thread.message.created",
+        payload: { blocks: [{ kind: "text", text: "Internal reply" }] },
+      }),
+    ).toBe(false);
+    expect(
+      isVisibleInternalPeerEvent({
+        type: "thread.message.created",
+        payload: { blocks: [{ kind: "mcp_approval", name: "Server" }] },
+      }),
+    ).toBe(true);
   });
 });

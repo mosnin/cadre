@@ -162,6 +162,8 @@ export interface SandboxProvider {
     computer: ComputerRef,
     context: AdapterContext,
   ): Promise<boolean>;
+  /** Update the runtime in place while preserving identity and durable storage. Undefined means unsupported and must have no effects. Failures must never trigger destructive fallback. */
+  updateImage?(computer: ComputerRef, context: AdapterContext): Promise<ComputerRef | undefined>;
   stop(computer: ComputerRef, context: AdapterContext): Promise<void>;
   destroy(computer: ComputerRef, context: AdapterContext): Promise<void>;
 }

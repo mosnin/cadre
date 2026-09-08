@@ -591,6 +591,34 @@ export async function replaceComputer(
           throw error;
       }
     }
+    if (oldRef && mode === "update" && deps.sandbox.updateImage) {
+      const updating = await deps.prisma.computer.updateMany({
+        where: { id: computerId, state: "suspending", providerRef: oldRef.providerRef },
+        data: { state: "booting" },
+      });
+      if (updating.count !== 1) throw new ComputerBusyError();
+      const updated = await deps.sandbox.updateImage(oldRef, context);
+      if (updated) {
+        if (
+          updated.providerRef !== oldRef.providerRef ||
+          updated.kind !== oldRef.kind ||
+          updated.botId !== oldRef.botId
+        )
+          throw new Error("Computer update changed workspace identity");
+        await deps.sandbox.prepare(updated, context);
+        const activated = await deps.prisma.computer.updateMany({
+          where: { id: computerId, state: "booting", providerRef: oldRef.providerRef },
+          data: { state: "running", controlHolder },
+        });
+        if (activated.count !== 1) throw new ComputerBusyError();
+        // The updated runtime restarted its browser/session services. A failed
+        // update instead reaches catch with the original reference intact.
+        resumeWorkspace = undefined;
+        return updated;
+      }
+      // Unsupported providers retain their existing replacement path. Only an
+      // explicit no-effect result permits fallback; errors never reach destroy.
+    }
     if (oldRef) {
       await deps.sandbox.releaseScreen?.(oldRef, context).catch(() => undefined);
       try {

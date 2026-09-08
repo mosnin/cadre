@@ -10,6 +10,7 @@ import {
 import {
   ACTIVE_RUN_STATUSES,
   isActive,
+  isUserFacingPeerCallback,
   projectMessages,
   resolveGroupTargetBotIds,
   runFailureError,
@@ -332,9 +333,9 @@ export async function threadSnapshot(
             where: {
               botId: target.botId,
               threadId: target.threadId,
-              trigger: { not: "bot_message" },
               status: { in: [...ACTIVE_RUN_STATUSES, "failed"] },
             },
+            include: { sourceMessage: { select: { blocks: true } } },
             // The id tiebreak keeps ordering deterministic under equal
             // timestamps, matching the supersession probe below.
             orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -352,8 +353,6 @@ export async function threadSnapshot(
                 where: {
                   botId: target.botId,
                   threadId: target.threadId,
-                  // Match the selection query — peer bot_message runs must not bury a user-visible failure.
-                  trigger: { not: "bot_message" },
                   status: { in: ["failed", "completed", "cancelled"] },
                 },
                 orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -362,7 +361,10 @@ export async function threadSnapshot(
             : null;
         const currentRun = run?.status === "failed" && newestTerminal?.id !== run.id ? null : run;
         const liveEvents =
-          currentRun && isActive(currentRun.status as RunStatus)
+          currentRun &&
+          isActive(currentRun.status as RunStatus) &&
+          (currentRun.trigger !== "bot_message" ||
+            isUserFacingPeerCallback(currentRun.sourceMessage?.blocks))
             ? await tx.event.findMany({
                 where: {
                   threadId: target.threadId,
@@ -398,9 +400,9 @@ export async function threadSnapshot(
       tx.run.findMany({
         where: {
           threadId: target.threadId,
-          trigger: { not: "bot_message" },
           status: { in: [...ACTIVE_RUN_STATUSES] },
         },
+        include: { sourceMessage: { select: { blocks: true } } },
         orderBy: { createdAt: "desc" },
       }),
       // Recently updated terminals (completion bumps updatedAt). pickLatestTerminalRun then
@@ -408,19 +410,21 @@ export async function threadSnapshot(
       tx.run.findMany({
         where: {
           threadId: target.threadId,
-          trigger: { not: "bot_message" },
           status: { in: ["failed", "completed", "cancelled"] },
         },
         orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
         take: 50,
       }),
     ]);
+    const progressRuns = activeRuns.filter(
+      (run) => run.trigger !== "bot_message" || isUserFacingPeerCallback(run.sourceMessage?.blocks),
+    );
     const liveEvents =
-      activeRuns.length > 0
+      progressRuns.length > 0
         ? await tx.event.findMany({
             where: {
               threadId: target.threadId,
-              runId: { in: activeRuns.map((run) => run.id) },
+              runId: { in: progressRuns.map((run) => run.id) },
               type: { in: ["thread.progress", "thread.subagent", "agent.tool.called"] },
             },
             orderBy: { seq: "asc" },

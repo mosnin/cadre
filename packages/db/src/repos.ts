@@ -6,7 +6,7 @@ import {
   type MessageBlock,
   type SpaceBot,
 } from "@rakazo/contracts";
-import { userVisibleMessages } from "@rakazo/core";
+import { isUserFacingPeerCallback, userVisibleMessages } from "@rakazo/core";
 import type { PrismaClient } from "./client.js";
 import { type ComputerMode, ensureComputerRecord, parseComputerMode } from "./computers.js";
 import { createThreadMessageInTransaction } from "./messages.js";
@@ -253,10 +253,15 @@ export function createRepos(prisma: PrismaClient) {
       const peerRuns = candidateRunIds.length
         ? await prisma.run.findMany({
             where: { id: { in: candidateRunIds }, trigger: "bot_message" },
-            select: { id: true },
+            select: { id: true, sourceMessage: { select: { blocks: true } } },
           })
         : [];
-      const peerRunIds = new Set(peerRuns.map((run) => run.id));
+      const peerRunIds = new Set(
+        peerRuns
+          .filter((run) => !isUserFacingPeerCallback(run.sourceMessage?.blocks))
+          .map((run) => run.id),
+      );
+      const checkedRunIds = new Set(candidateRunIds);
       return Promise.all(
         bots.map(async (bot) => {
           let messages = bot.thread?.messages ?? [];
@@ -264,13 +269,16 @@ export function createRepos(prisma: PrismaClient) {
           for (let attempt = 0; attempt < 5; attempt++) {
             const windowRunIds = [
               ...new Set(messages.flatMap((message) => (message.runId ? [message.runId] : []))),
-            ].filter((runId) => !peerRunIds.has(runId));
+            ].filter((runId) => !checkedRunIds.has(runId));
             if (windowRunIds.length > 0) {
               const morePeers = await prisma.run.findMany({
                 where: { id: { in: windowRunIds }, trigger: "bot_message" },
-                select: { id: true },
+                select: { id: true, sourceMessage: { select: { blocks: true } } },
               });
-              for (const run of morePeers) peerRunIds.add(run.id);
+              for (const run of morePeers) {
+                if (!isUserFacingPeerCallback(run.sourceMessage?.blocks)) peerRunIds.add(run.id);
+              }
+              for (const runId of windowRunIds) checkedRunIds.add(runId);
             }
             const visible = userVisibleMessages(
               messages.map((message) => ({

@@ -93,6 +93,7 @@ import {
   expandSkillReferencesInPrompt,
   hasMixedOneShotSchedule,
   isOneShotRoutineCrons,
+  isVisibleInternalPeerEvent,
   nextCronDateAcrossStrict,
 } from "@rakazo/core";
 import {
@@ -150,7 +151,7 @@ import {
   UpdaterProxyError,
 } from "./server-update.js";
 import { assertTeachingSendAllowed, createTaughtSkillsService } from "./taught-skills.js";
-import { isPeerRun, loadAllMessages, loadMessagePage } from "./thread-message-pages.js";
+import { isInternalPeerRun, loadAllMessages, loadMessagePage } from "./thread-message-pages.js";
 import {
   reactToThreadMessage,
   resolveThreadTarget,
@@ -1084,27 +1085,13 @@ export function createRouter(deps: RouterDeps) {
           input.cursor,
           context.signal,
         )) {
-          if (await isPeerRun(deps.prisma, event.runId, peerRunCache)) {
-            // Keep terminal peer-run events so clients can clear working state.
-            // Keep compact peer receipts for mobile; drop peer activity/replies.
-            const isTerminal =
-              event.type === "run.completed" ||
-              event.type === "run.failed" ||
-              event.type === "run.cancelled";
-            const blocks = event.payload.blocks;
-            const isReceipt =
-              (event.type === "thread.message.created" ||
-                event.type === "thread.message.updated") &&
-              Array.isArray(blocks) &&
-              blocks.some(
-                (block) =>
-                  !!block &&
-                  typeof block === "object" &&
-                  "kind" in block &&
-                  (block.kind === "bot_message_received" || block.kind === "bot_message_sent"),
-              );
-            if (!isTerminal && !isReceipt) continue;
-          }
+          // Internal delegation keeps lifecycle and human input visible, while
+          // result/status callbacks stream their full user-facing conversation.
+          if (
+            (await isInternalPeerRun(deps.prisma, event.runId, peerRunCache)) &&
+            !isVisibleInternalPeerEvent(event)
+          )
+            continue;
           yield event;
         }
       }),

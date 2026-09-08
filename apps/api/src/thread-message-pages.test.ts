@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
-import { isPeerRun, loadAllMessages, loadMessagePage } from "./thread-message-pages.js";
+import { isInternalPeerRun, loadAllMessages, loadMessagePage } from "./thread-message-pages.js";
 
 describe("thread message pages", () => {
   it("caches peer-run classification for live events", async () => {
@@ -8,10 +8,75 @@ describe("thread message pages", () => {
     const prisma = { run: { findUnique } } as unknown as PrismaClient;
     const cache = new Map<string, Promise<boolean>>();
 
-    await expect(isPeerRun(prisma, "run-peer", cache)).resolves.toBe(true);
-    await expect(isPeerRun(prisma, "run-peer", cache)).resolves.toBe(true);
+    await expect(isInternalPeerRun(prisma, "run-peer", cache)).resolves.toBe(true);
+    await expect(isInternalPeerRun(prisma, "run-peer", cache)).resolves.toBe(true);
     expect(findUnique).toHaveBeenCalledTimes(1);
   });
+
+  it.each(["result", "status"])(
+    "streams %s callbacks instead of classifying them as hidden peer work",
+    async (intent) => {
+      const findUnique = vi.fn(async () => ({
+        trigger: "bot_message",
+        sourceMessage: { blocks: [{ kind: "bot_message_received", intent, text: "23 + 19 = 42" }] },
+      }));
+      const prisma = { run: { findUnique } } as unknown as PrismaClient;
+      await expect(isInternalPeerRun(prisma, "callback", new Map())).resolves.toBe(false);
+    },
+  );
+
+  it.each(["request", "question", "fyi", undefined])(
+    "keeps %s peer execution internal",
+    async (intent) => {
+      const prisma = {
+        run: {
+          findUnique: vi.fn(async () => ({
+            trigger: "bot_message",
+            sourceMessage: { blocks: [{ kind: "bot_message_received", intent }] },
+          })),
+        },
+      } as unknown as PrismaClient;
+      await expect(isInternalPeerRun(prisma, "peer", new Map())).resolves.toBe(true);
+    },
+  );
+
+  it.each(["result", "status"])(
+    "shows %s callback text in default pages even when the source receipt is outside the page",
+    async (intent) => {
+      const row = {
+        id: "summary",
+        threadId: "thread-1",
+        seq: 10,
+        role: "bot",
+        blocks: [{ kind: "text", text: "23 + 19 = 42" }],
+        botId: "parent",
+        replyToMessageId: null,
+        runId: "callback",
+        createdAt: new Date(),
+      };
+      const prisma = {
+        message: { findMany: vi.fn(async () => [row]), count: vi.fn(async () => 0) },
+        run: {
+          findMany: vi.fn(async () => [
+            {
+              id: "callback",
+              sourceMessage: {
+                blocks: [
+                  { kind: "bot_message_received", intent, text: "23 + 19 = 42", fromBotId: "peer" },
+                ],
+              },
+            },
+          ]),
+        },
+      } as unknown as PrismaClient;
+      const page = await loadMessagePage(prisma, "thread-1", undefined, 100);
+      expect(page.messages).toEqual([
+        expect.objectContaining({ id: "summary", blocks: row.blocks }),
+      ]);
+      const around = await loadMessagePage(prisma, "thread-1", undefined, 100, { seq: 10 });
+      expect(around.messages).toEqual(page.messages);
+    },
+  );
 
   it("keeps peer receipt rows when filtering peer-run output from pages", async () => {
     const findMany = vi.fn(async () => [

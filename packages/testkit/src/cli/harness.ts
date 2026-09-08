@@ -97,6 +97,7 @@ async function main() {
           "packages/adapters/src/realtime.postgres.test.ts",
           "packages/adapters/src/job-reconciler.postgres.test.ts",
           "packages/adapters/src/model-oauth-storage.postgres.test.ts",
+          "apps/api/src/thread-message-pages.postgres.test.ts",
         ].join(" "),
         {
           stdio: "inherit",

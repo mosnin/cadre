@@ -147,3 +147,21 @@ it("does not grant shared input to a legacy provider based on the primary capabi
   expect(shared.supportsSharedInput).not.toHaveBeenCalled();
   expect(sandbox.supportsSharedInput({ ...ref, kind: "fly" })).toBe(true);
 });
+
+it("routes in-place updates to the actual provider and returns unsupported without effects", async () => {
+  const primary = new FakeSandboxProvider();
+  const legacy = new FakeSandboxProvider();
+  vi.spyOn(primary, "describe").mockReturnValue({ ...primary.describe(), id: "fly" });
+  vi.spyOn(legacy, "describe").mockReturnValue({ ...legacy.describe(), id: "modal" });
+  const ref = { id: "test", providerRef: "test", botId: "home", kind: "fly" as const };
+  const updateImage = vi.fn().mockResolvedValue(ref);
+  const sandbox = new HostAwareSandbox(
+    Object.assign(primary, { updateImage }),
+    legacy,
+    async () => false,
+  );
+  expect(await sandbox.updateImage({ ...ref, kind: "modal" }, ctx)).toBeUndefined();
+  expect(updateImage).not.toHaveBeenCalled();
+  expect(await sandbox.updateImage(ref, ctx)).toEqual(ref);
+  expect(updateImage).toHaveBeenCalledOnce();
+});
