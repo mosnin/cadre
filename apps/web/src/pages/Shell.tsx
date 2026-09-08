@@ -5185,7 +5185,7 @@ function previewMessageText(message: ThreadMessage): string {
   if (message.blocks.some((block) => block.kind === "image" || block.kind === "file")) {
     return t`Attachment`;
   }
-  return t`Message`;
+  return t({ id: "Message", message: "Message" });
 }
 
 function MessageHoverActions({

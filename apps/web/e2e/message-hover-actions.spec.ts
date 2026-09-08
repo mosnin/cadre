@@ -97,6 +97,27 @@ test("message hover shows Reply and Copy; reply links to parent", async ({ page 
 
   await parentPreview.click();
   await expect(parentRow).toBeInViewport();
+
+  // A tool-only parent has no text to quote, but must never show a catalog ID.
+  const parentId = await parentRow.getAttribute("data-message-id");
+  await page.route(/\/rpc\/(bootstrap|threads\/get)$/, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const messages = body.json?.thread?.messages ?? body.json?.messages ?? [];
+    for (const message of messages) {
+      if (message.id === parentId)
+        message.blocks = [{ kind: "steps", steps: [{ label: "Read page", count: 1 }] }];
+    }
+    await route.fulfill({ response, json: body });
+  });
+  const warnings: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "warning") warnings.push(message.text());
+  });
+  await page.reload();
+  await expect(parentPreview).toHaveText("Message");
+  expect(warnings.filter((message) => message.includes("Uncompiled message"))).toEqual([]);
+  await captureScreenshot(page, testInfo, "tool-only-reply-label");
 });
 
 test("reply preview jumps to parent outside the loaded page", async ({ page }) => {

@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Button, Skeleton } from "@rakazo/ui-web";
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { LoadingState } from "./components/ai/primitives";
 import { authClient } from "./lib/auth";
 import { safeLoginReturn, useAuthCapabilities } from "./lib/auth-capabilities";
@@ -91,7 +91,10 @@ export function App() {
             element={
               user ? (
                 <Navigate
-                  to={safeLoginReturn(new URLSearchParams(location.search).get("next"))}
+                  to={
+                    safeLoginReturn(new URLSearchParams(location.search).get("next")) +
+                    location.hash
+                  }
                   replace
                 />
               ) : (
@@ -105,7 +108,19 @@ export function App() {
           />
           <Route
             path="/sign-in"
-            element={user ? <Navigate to="/app" replace /> : <AuthPage key="in" mode="in" />}
+            element={
+              user ? (
+                <Navigate
+                  to={
+                    safeLoginReturn(new URLSearchParams(location.search).get("next")) +
+                    location.hash
+                  }
+                  replace
+                />
+              ) : (
+                <AuthPage key="in" mode="in" />
+              )
+            }
           />
           <Route
             path="/sign-up"
@@ -154,7 +169,13 @@ export function App() {
           />
           <Route
             path="/app/admin"
-            element={user ? <AdminPage /> : <Navigate to="/login?next=%2Fapp%2Fadmin" replace />}
+            element={
+              user ? (
+                <AdminPage />
+              ) : (
+                <Navigate to={`/login?next=%2Fapp%2Fadmin${location.hash}`} replace />
+              )
+            }
           />
           <Route
             path="/app"
@@ -166,7 +187,7 @@ export function App() {
                   to={
                     capabilities?.provider === "convex-company-os"
                       ? `/login?next=${encodeURIComponent(location.pathname + location.search)}`
-                      : "/sign-in"
+                      : `/sign-in?next=${encodeURIComponent(location.pathname + location.search)}`
                   }
                   replace
                 />
@@ -183,7 +204,7 @@ export function App() {
                   to={
                     capabilities?.provider === "convex-company-os"
                       ? `/login?next=${encodeURIComponent(location.pathname + location.search)}`
-                      : "/sign-in"
+                      : `/sign-in?next=${encodeURIComponent(location.pathname + location.search)}`
                   }
                   replace
                 />
@@ -200,11 +221,24 @@ export function App() {
                   to={
                     capabilities?.provider === "convex-company-os"
                       ? `/login?next=${encodeURIComponent(location.pathname + location.search)}`
-                      : "/sign-in"
+                      : `/sign-in?next=${encodeURIComponent(location.pathname + location.search)}`
                   }
                   replace
                 />
               )
+            }
+          />
+          <Route
+            path="*"
+            element={
+              <main className="grid h-full place-content-center gap-6 px-6 text-center">
+                <h1 className="text-2xl font-semibold">
+                  <Trans>Page not found</Trans>
+                </h1>
+                <Link to="/" className="text-sm underline underline-offset-4">
+                  <Trans>Back to Cadre</Trans>
+                </Link>
+              </main>
             }
           />
         </Routes>

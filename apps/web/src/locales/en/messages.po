@@ -3458,3 +3458,11 @@ msgstr "Zoom"
 #: src/pages/Shell.tsx:4117
 msgid "Take control"
 msgstr "Take control"
+
+#: src/App.tsx
+msgid "Page not found"
+msgstr "Page not found"
+
+#: src/App.tsx
+msgid "Back to Cadre"
+msgstr "Back to Cadre"
