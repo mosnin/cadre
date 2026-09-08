@@ -135,7 +135,35 @@ def action_failure_reason(error):
     return 'The computer action did not finish.'
 
 
+@contextmanager
+def action_deadline(seconds):
+    # RPC operations run in their own main-thread subprocess. Interrupt blocked
+    # commands/capture as well as Python waits before the gateway's outer kill.
+    previous_handler=signal.getsignal(signal.SIGALRM)
+    previous_timer=signal.getitimer(signal.ITIMER_REAL)
+    started=time.monotonic()
+    active=True
+    def expired(_signum,_frame):
+        if active:raise ValueError('The computer action time budget expired.')
+    def cancel():
+        nonlocal active
+        active=False
+        signal.setitimer(signal.ITIMER_REAL,0)
+    signal.signal(signal.SIGALRM,expired)
+    try:
+        signal.setitimer(signal.ITIMER_REAL,max(seconds,0.001))
+        yield cancel
+    finally:
+        cancel()
+        signal.signal(signal.SIGALRM,previous_handler)
+        if previous_timer[0]>0:
+            remaining=max(0.001,previous_timer[0]-(time.monotonic()-started))
+            signal.setitimer(signal.ITIMER_REAL,remaining,previous_timer[1])
+
+
 def actions(req):
+    started=time.monotonic()
+    budget=min(30,max(float(req.get('timeoutMs',30000))/1000,1))
     values = req.get('actions', [])
     if len(values) > 24: raise ValueError('Too many actions')
     human_input=req.get('op') in ('input','sharedInput')
@@ -146,50 +174,54 @@ def actions(req):
     env = screens.child_env(state['index'], key)
     held=set();completed=0;dispatch_started=False;failure=None;cleanup_failed=False
     result=None
-    try:
-        for a in values:
-            dispatch_started=False
-            input_epoch.require_fresh(key,req.get('screenLease'))
-            kind = a['kind']
-            argv = None
-            button=None
-            if kind == 'wait': time.sleep(min(max(a['ms'], 0), 5000) / 1000)
-            elif kind == 'key': argv = ['xdotool', 'key', '--clearmodifiers', '+'.join(a.get('modifiers', []) + [a['key']])]
-            elif kind == 'clipboard': argv = ['xdotool', 'type', '--clearmodifiers', '--', a['text']]
-            elif kind == 'pointer':
-                button = '3' if a.get('button') == 'right' else '1'
-                move = ['xdotool', 'mousemove', '--', str(round(a['x'])), str(round(a['y']))]
-                if a['type'] == 'move': argv = move
-                elif a['type'] == 'up': argv = ['xdotool', 'mouseup', button]
-                elif a['type'] == 'down': argv = move + ['mousedown', button]
-                else: argv = move + ['click', button]
-            elif kind == 'scroll': argv = ['xdotool', 'click', '--repeat', str(min(max(round(a.get('amount', 3)), 1), 20)), '4' if a['direction'] == 'up' else '5']
-            elif kind == 'open':
-                location = a['path'] if a['path'].startswith(('http://', 'https://')) else str(target(a['path']))
-                dispatch_started=True
-                subprocess.Popen(['xdg-open', location], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True, preexec_fn=demote)
-            elif kind == 'launch':
-                application = 'rakazo-browser' if a['application'].lower() in ('browser', 'chromium', 'chrome') else a['application']
-                dispatch_started=True
-                subprocess.Popen([application] + ([a['uri']] if a.get('uri') else []), env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True, preexec_fn=demote)
-            else: raise ValueError('Unsupported action')
-            if argv:
-                # Track before dispatch: a timed-out mousedown may already have
-                # reached X even though the subprocess did not report success.
-                if not human_input and button and a['type'] == 'down':held.add(button)
-                dispatch_started=True
-                subprocess.run(argv, env=env, check=True, timeout=20)
-                if not human_input and button and a['type'] == 'up':held.discard(button)
-            completed+=1
-            dispatch_started=False
-        time.sleep(min(max(req.get('settleMs', 0), 0), 5000) / 1000)
-        result={'completed':completed, **({'observation': screenshot(req)} if req.get('observe') else {})}
-    except Exception as error:
-        failure=error
-    finally:
-        for button in sorted(held):
-            try:subprocess.run(['xdotool','mouseup',button],env=env,check=True,timeout=3)
-            except Exception:cleanup_failed=True
+    remaining=budget-(time.monotonic()-started)
+    with action_deadline(remaining) as cancel_deadline:
+        try:
+            if remaining<=0:raise ValueError('The computer action time budget expired during startup.')
+            for a in values:
+                dispatch_started=False
+                input_epoch.require_fresh(key,req.get('screenLease'))
+                kind = a['kind']
+                argv = None
+                button=None
+                if kind == 'wait': time.sleep(min(max(a['ms'], 0), 5000) / 1000)
+                elif kind == 'key': argv = ['xdotool', 'key', '--clearmodifiers', '+'.join(a.get('modifiers', []) + [a['key']])]
+                elif kind == 'clipboard': argv = ['xdotool', 'type', '--clearmodifiers', '--', a['text']]
+                elif kind == 'pointer':
+                    button = '3' if a.get('button') == 'right' else '1'
+                    move = ['xdotool', 'mousemove', '--', str(round(a['x'])), str(round(a['y']))]
+                    if a['type'] == 'move': argv = move
+                    elif a['type'] == 'up': argv = ['xdotool', 'mouseup', button]
+                    elif a['type'] == 'down': argv = move + ['mousedown', button]
+                    else: argv = move + ['click', button]
+                elif kind == 'scroll': argv = ['xdotool', 'click', '--repeat', str(min(max(round(a.get('amount', 3)), 1), 20)), '4' if a['direction'] == 'up' else '5']
+                elif kind == 'open':
+                    location = a['path'] if a['path'].startswith(('http://', 'https://')) else str(target(a['path']))
+                    dispatch_started=True
+                    subprocess.Popen(['xdg-open', location], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True, preexec_fn=demote)
+                elif kind == 'launch':
+                    application = 'rakazo-browser' if a['application'].lower() in ('browser', 'chromium', 'chrome') else a['application']
+                    dispatch_started=True
+                    subprocess.Popen([application] + ([a['uri']] if a.get('uri') else []), env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True, preexec_fn=demote)
+                else: raise ValueError('Unsupported action')
+                if argv:
+                    # Track before dispatch: a timed-out mousedown may already have
+                    # reached X even though the subprocess did not report success.
+                    if not human_input and button and a['type'] == 'down':held.add(button)
+                    dispatch_started=True
+                    subprocess.run(argv, env=env, check=True, timeout=20)
+                    if not human_input and button and a['type'] == 'up':held.discard(button)
+                completed+=1
+                dispatch_started=False
+            time.sleep(min(max(req.get('settleMs', 0), 0), 5000) / 1000)
+            result={'completed':completed, **({'observation': screenshot(req)} if req.get('observe') else {})}
+        except Exception as error:
+            failure=error
+        finally:
+            cancel_deadline()
+            for button in sorted(held):
+                try:subprocess.run(['xdotool','mouseup',button],env=env,check=True,timeout=3)
+                except Exception:cleanup_failed=True
     if failure or cleanup_failed:
         reason=action_failure_reason(failure) if failure else 'Pointer cleanup did not finish.'
         partial=f' Action {completed+1} may have partially executed.' if dispatch_started and completed<len(values) else ''

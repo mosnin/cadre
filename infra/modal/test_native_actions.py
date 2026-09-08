@@ -101,6 +101,44 @@ class NativeActionsTest(unittest.TestCase):
         self.assertIn('Completed 1 of 1 actions',str(error.exception))
         self.assertIn('Verify the current computer state and prior effects',str(error.exception))
 
+    def test_deadline_interrupts_drag_cancels_timer_before_cleanup_and_restores_handler(self):
+        previous=rpc.signal.getsignal(rpc.signal.SIGALRM)
+        def execute(argv,**kwargs):
+            if 'mousedown' in argv:return
+            if argv[1]=='mousemove':rpc.signal.getsignal(rpc.signal.SIGALRM)(rpc.signal.SIGALRM,None)
+            if argv[1]=='mouseup':
+                self.assertEqual(timer.call_args.args,(rpc.signal.ITIMER_REAL,0))
+        with patch.object(rpc.signal,'setitimer') as timer,patch.object(rpc.subprocess,'run',side_effect=execute) as run:
+            with self.assertRaises(ValueError) as error:rpc.actions(self.request([pointer('down'),pointer('move'),pointer('up')]))
+        self.assertEqual(run.call_count,3)
+        self.assertEqual(run.call_args.args[0],['xdotool','mouseup','1'])
+        self.assertIn('time budget expired',str(error.exception))
+        self.assertIn('Completed 1 of 3 actions',str(error.exception))
+        self.assertIn('Action 2 may have partially executed',str(error.exception))
+        self.assertIs(rpc.signal.getsignal(rpc.signal.SIGALRM),previous)
+
+    def test_deadline_also_bounds_observation_after_completed_actions(self):
+        def capture(_):rpc.signal.getsignal(rpc.signal.SIGALRM)(rpc.signal.SIGALRM,None)
+        with patch.object(rpc.signal,'setitimer'),patch.object(rpc.subprocess,'run') as run,patch.object(rpc,'screenshot',side_effect=capture):
+            with self.assertRaisesRegex(ValueError,'Completed 1 of 1 actions'):rpc.actions(self.request([{'kind':'key','key':'Return'}],observe=True))
+        run.assert_called_once()
+
+    def test_smaller_gateway_budget_accounts_for_startup_time_before_any_dispatch(self):
+        # RPC caller allows one second, but resolving the screen consumes two.
+        with patch.object(rpc.time,'monotonic',side_effect=[100,102,102,102]),patch.object(rpc.signal,'setitimer') as timer,patch.object(rpc.subprocess,'run') as run:
+            with self.assertRaisesRegex(ValueError,'Completed 0 of 1 actions'):rpc.actions(self.request([{'kind':'key','key':'Return'}],timeoutMs=1000))
+        run.assert_not_called()
+        self.assertEqual(timer.call_args_list[0].args,(rpc.signal.ITIMER_REAL,0.001))
+
+    def test_scoped_deadline_restores_prior_timer_after_cleanup_and_ignores_canceled_alarm(self):
+        previous=rpc.signal.getsignal(rpc.signal.SIGALRM)
+        with patch.object(rpc.signal,'getitimer',return_value=(100,2)),patch.object(rpc.signal,'setitimer') as timer,patch.object(rpc.time,'monotonic',side_effect=[10,14]):
+            with rpc.action_deadline(30) as cancel:
+                handler=rpc.signal.getsignal(rpc.signal.SIGALRM)
+                cancel();handler(rpc.signal.SIGALRM,None)
+            self.assertEqual(timer.call_args.args,(rpc.signal.ITIMER_REAL,96,2))
+        self.assertIs(rpc.signal.getsignal(rpc.signal.SIGALRM),previous)
+
     def test_explicit_human_pointer_events_can_span_calls_without_agent_cleanup(self):
         with patch.object(rpc.subprocess,'run') as run:
             for kind in ('down','up'):
