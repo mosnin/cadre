@@ -53,13 +53,15 @@ projects:
               - key: STORAGE_GATEWAY_TOKEN
                 sync: false
               - key: SANDBOX_PROVIDER
-                value: modal
-              - key: MODAL_IMAGE_ID
+                value: fly
+              - key: FLY_COMPUTER_IMAGE
                 sync: false
-              - key: MODAL_TOKEN_ID
+              - key: FLY_COMPUTER_APP
                 sync: false
-              - key: MODAL_TOKEN_SECRET
+              - key: FLY_API_TOKEN
                 sync: false
+              - key: FLY_COMPUTER_REGION
+                value: iad
               - key: AGENT_RUNTIME
                 value: pi
               - key: PI_DEFAULT_PROVIDER

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
+  "name": "chippi-workforce-edge",
+  "main": "../cloudflare/worker.ts",
+  "compatibility_date": "2026-09-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "vars": { "FLY_COMPUTER_APP": "chippi-workforce-computers" },
+  "r2_buckets": [{ "binding": "ARTIFACTS", "bucket_name": "chippi-workforce-artifacts" }],
+  "observability": { "enabled": false }
+}

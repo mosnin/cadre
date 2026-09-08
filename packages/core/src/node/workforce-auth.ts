@@ -2,11 +2,11 @@ import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto
 
 export type WorkforcePrincipal = {
   actorId: string;
-  kind: "personal" | "brokerage";
+  kind: "personal" | "brokerage" | "team";
   scopeId: string;
   name: string;
   routeId?: string;
-  role: "owner" | "admin";
+  role: "owner" | "admin" | "member";
 };
 export function workforceIdentity(
   principal: Pick<WorkforcePrincipal, "kind" | "scopeId" | "role">,
@@ -73,8 +73,9 @@ export function verifyWorkforceRequest(
     typeof data.nonce !== "string" ||
     !/^[a-f0-9-]{36}$/.test(data.nonce) ||
     !p ||
-    !["personal", "brokerage"].includes(p.kind) ||
-    !["owner", "admin"].includes(p.role) ||
+    !["personal", "brokerage", "team"].includes(p.kind) ||
+    !["owner", "admin", "member"].includes(p.role) ||
+    (p.role === "member" && p.kind !== "team") ||
     ![p.actorId, p.scopeId, p.name].every(
       (x) => typeof x === "string" && x.length > 0 && x.length <= 200,
     )

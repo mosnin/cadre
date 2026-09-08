@@ -79,3 +79,14 @@ describe("workforce request authority", () => {
       expect(() => verifyWorkforceRequest(secret, token, "GET", "/", Buffer.alloc(0))).toThrow();
   });
 });
+
+it("shares one team computer identity across collaborators without sharing brokerage authority", () => {
+  const team: WorkforcePrincipal = { ...principal, kind: "team", role: "owner" };
+  expect(workforceIdentity(team)).toEqual(workforceIdentity({ ...team, role: "member" }));
+  expect(workforceIdentity(team)).not.toEqual(workforceIdentity({ ...team, kind: "brokerage" }));
+  const member = { ...team, role: "member" as const };
+  const token = signWorkforceRequest(secret, member, "GET", "/api/test", new Uint8Array());
+  expect(verifyWorkforceRequest(secret, token, "GET", "/api/test", new Uint8Array()).principal).toEqual(member);
+  const invalid = signWorkforceRequest(secret, { ...member, kind: "brokerage" }, "GET", "/api/test", new Uint8Array());
+  expect(() => verifyWorkforceRequest(secret, invalid, "GET", "/api/test", new Uint8Array())).toThrow();
+});

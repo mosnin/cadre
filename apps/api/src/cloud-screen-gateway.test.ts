@@ -37,3 +37,15 @@ it("serves viewer modules to opaque frames without forwarding application creden
   expect(denied.status).toBe(403);
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+it("restricts Fly screens to the exact configured application", async () => {
+  const secret = "test-screen-secret-at-least-32-characters";
+  const fetcher = vi.fn(async () => new Response("viewer"));
+  vi.stubGlobal("fetch", fetcher);
+  const env = { SCREEN_PROXY_SECRET: secret, STORAGE_GATEWAY_TOKEN: secret, FLY_COMPUTER_APP: "test-team-computers", ARTIFACTS: {} as never };
+  for (const [host, expected] of [["test-team-computers.fly.dev", 200], ["cadre-computers.fly.dev", 403], ["evil-test-team-computers.fly.dev", 403]] as const) {
+    const url = addScreenProxyCapability(`https://${host}/embed.html`, secret, "https://screen.example", undefined, { proxyExternal: true });
+    expect((await gateway.fetch(new Request(url), env)).status).toBe(expected);
+  }
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});

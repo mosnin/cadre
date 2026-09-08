@@ -13,10 +13,15 @@ interface Bucket {
 }
 interface Env {
   ARTIFACTS: Bucket;
+  FLY_COMPUTER_APP?: string;
   STORAGE_GATEWAY_TOKEN: string;
   SCREEN_PROXY_SECRET: string;
 }
 const limit = 64 * 1024 * 1024;
+function allowedFlyHost(hostname: string, configuredApp?: string) {
+  const app = configuredApp ?? "cadre-computers";
+  return /^[a-z0-9][a-z0-9-]{2,62}$/.test(app) && hostname === `${app}.fly.dev`;
+}
 function authorized(request: Request, secret: string) {
   if (!secret || secret.length < 32) return false;
   const expected = Buffer.from(`Bearer ${secret}`);
@@ -78,7 +83,7 @@ export default {
       if (
         target?.protocol !== "https:" ||
         target.port !== 443 ||
-        !(target.hostname.endsWith(".modal.host") || target.hostname === "cadre-computers.fly.dev")
+        !(target.hostname.endsWith(".modal.host") || allowedFlyHost(target.hostname, env.FLY_COMPUTER_APP))
       )
         return new Response("Invalid or expired screen capability", { status: 403 });
       const headers = new Headers(request.headers);
