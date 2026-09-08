@@ -1067,7 +1067,9 @@ function Pagination({
   ) : null;
 }
 function money(amount: number, currency: string, minorUnitDigits: number) {
-  return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(
-    amount / 10 ** minorUnitDigits,
-  );
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: minorUnitDigits,
+  }).format(amount / 10 ** minorUnitDigits);
 }
