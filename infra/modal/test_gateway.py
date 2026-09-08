@@ -44,4 +44,31 @@ class GatewayTest(unittest.TestCase):
             handler.do_GET()
         connect.assert_called_once_with(('127.0.0.1',6083),timeout=10);select.assert_called_once()
 
+    def test_shared_capability_routes_control_without_exclusive_lease(self):
+        key=screens.screen_key('agent');until=int(time.time())+300
+        token=hmac.new(b'secret',f'shared:{key}:{until}'.encode(),hashlib.sha256).hexdigest()
+        handler=self.request(key,token,True);handler.path+=f'&shared_until={until}'
+        with patch.dict(gateway.os.environ,{'CADRE_SCREEN_VIEW_TOKEN':'secret'}), patch.object(screens,'load',return_value={'index':1,'sharedUntil':until}), patch.object(gateway.socket,'create_connection',side_effect=OSError) as connect:
+            handler.do_GET()
+        handler.send_error.assert_not_called();connect.assert_called_once_with(('127.0.0.1',6083),timeout=10)
+
+    def test_shared_capability_rejects_view_tokens_expiry_and_other_screens(self):
+        key=screens.screen_key('agent');until=int(time.time())+300
+        cases=[(hmac.new(b'secret',key.encode(),hashlib.sha256).hexdigest(),until),
+            (hmac.new(b'secret',f'shared:{screens.screen_key("other")}:{until}'.encode(),hashlib.sha256).hexdigest(),until),
+            (hmac.new(b'secret',f'shared:{key}:1'.encode(),hashlib.sha256).hexdigest(),1)]
+        for token,expiry in cases:
+            handler=self.request(key,token,True);handler.path+=f'&shared_until={expiry}'
+            with patch.dict(gateway.os.environ,{'CADRE_SCREEN_VIEW_TOKEN':'secret'}), patch.object(screens,'load',return_value={'index':1,'sharedUntil':until}), patch.object(gateway.socket,'create_connection') as connect:
+                handler.do_GET()
+            handler.send_error.assert_called_once_with(403);connect.assert_not_called()
+
+    def test_shared_stream_closes_when_its_screen_grant_is_removed(self):
+        key=screens.screen_key('agent');until=int(time.time())+300
+        token=hmac.new(b'secret',f'shared:{key}:{until}'.encode(),hashlib.sha256).hexdigest()
+        handler=self.request(key,token,True);handler.path+=f'&shared_until={until}'
+        with patch.dict(gateway.os.environ,{'CADRE_SCREEN_VIEW_TOKEN':'secret'}), patch.object(screens,'load',side_effect=[{'index':1,'sharedUntil':until},{}]), patch.object(gateway.socket,'create_connection'), patch.object(gateway.select,'select',return_value=([],[],[])) as select:
+            handler.do_GET()
+        select.assert_called_once()
+
 if __name__=='__main__':unittest.main()

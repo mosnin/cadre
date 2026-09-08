@@ -376,7 +376,10 @@ export function ShellPage() {
   // bot paints its computer pane instantly instead of blanking it while the
   // thread + screen RPCs round-trip again (see refreshThread / refreshComputerScreen).
   const computerCacheRef = useRef(
-    new Map<string, { computer: ComputerStatus | null; screenUrl: string | null }>(),
+    new Map<
+      string,
+      { computer: ComputerStatus | null; screenUrl: string | null; sharedInput?: boolean }
+    >(),
   );
   // Caps computerCacheRef so a long session that opens many distinct bots
   // over time doesn't accumulate one entry per bot forever. Re-inserting on
@@ -386,7 +389,11 @@ export function ShellPage() {
 
   function cacheComputerFor(
     botId: string,
-    patch: Partial<{ computer: ComputerStatus | null; screenUrl: string | null }>,
+    patch: Partial<{
+      computer: ComputerStatus | null;
+      screenUrl: string | null;
+      sharedInput?: boolean;
+    }>,
   ) {
     const cache = computerCacheRef.current;
     const prev = cache.get(botId) ?? { computer: null, screenUrl: null };
@@ -505,6 +512,7 @@ export function ShellPage() {
     { kind: "bot"; chat: Bot } | { kind: "group"; chat: Group } | null
   >(null);
   const [booting, setBooting] = useState(false);
+  const computerBootRequests = useRef(new Map<string, Promise<unknown>>());
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [initialBotsLoaded, setInitialBotsLoaded] = useState(false);
   const [bootstrapMe, setBootstrapMe] = useState<Me | null>();
@@ -515,6 +523,11 @@ export function ShellPage() {
   const [savingRoutine, setSavingRoutine] = useState(false);
   const [runningRoutine, setRunningRoutine] = useState(false);
   const [routineError, setRoutineError] = useState<string | null>(null);
+  const [sharedComputerInput, setSharedComputerInput] = useState(false);
+  const [screenGeneration, setScreenGeneration] = useState(0);
+  const screenLoadTimeoutRef = useRef<number | null>(null);
+  const [screenLoading, setScreenLoading] = useState(true);
+  const [screenLoadFailed, setScreenLoadFailed] = useState(false);
   const [screenUrl, setScreenUrl] = useState<string | null>(null);
   const [computerOpen, setComputerOpen] = useState(false);
   const computerFrameRef = useRef<HTMLIFrameElement>(null);
@@ -877,13 +890,18 @@ export function ShellPage() {
     return loadComputerScreen({
       load: () => rpc.computer.screenUrl({ botId: id }),
       previousUrl: computerCacheRef.current.get(id)?.screenUrl,
+      previousSharedInput: computerCacheRef.current.get(id)?.sharedInput,
       isCurrent: () =>
         request === screenRequest.current && activeBotId.current === id && computerVisible.current,
       commit: (screen) => {
         setScreenUrl(screen.url);
+        setSharedComputerInput(Boolean(screen.url && screen.sharedInput));
         setComputerError(screen.error);
         setComputerErrorFromScreen(Boolean(screen.error));
-        cacheComputerFor(id, { screenUrl: screen.url });
+        cacheComputerFor(id, {
+          screenUrl: screen.url,
+          sharedInput: Boolean(screen.url && screen.sharedInput),
+        });
       },
       fallbackError: t`Could not connect to the computer screen`,
     });
@@ -1112,9 +1130,11 @@ export function ShellPage() {
       // Paint the last-known computer instantly; refreshThread/refreshComputerScreen
       // below still run and reconcile with fresh data in the background.
       setScreenUrl(cached.screenUrl);
+      setSharedComputerInput(Boolean(cached.sharedInput));
       commitComputer(cached.computer);
     } else {
       setScreenUrl(null);
+      setSharedComputerInput(false);
     }
     expandedHistoryThread.current = null;
     historyEpoch.current += 1;
@@ -2335,28 +2355,37 @@ export function ShellPage() {
 
   async function bootComputer({
     takeControl,
-    overlay,
     force = false,
   }: {
     takeControl: boolean;
-    overlay: boolean;
     force?: boolean;
   }) {
     if (!active) return;
+    const botId = active.id;
     const needsBoot = force || computer?.state !== "running";
-    if (overlay && needsBoot) setBooting(true);
+    if (needsBoot) setBooting(true);
     setComputerError(null);
     setComputerErrorFromScreen(false);
     try {
-      if (needsBoot) await rpc.computer.boot({ botId: active.id });
-      if (takeControl) await rpc.computer.takeover({ botId: active.id });
-      await refreshThread(active.id);
+      if (needsBoot) {
+        let boot = computerBootRequests.current.get(botId);
+        if (!boot) {
+          boot = rpc.computer.boot({ botId }).finally(() => {
+            computerBootRequests.current.delete(botId);
+          });
+          computerBootRequests.current.set(botId, boot);
+        }
+        await boot;
+      }
+      if (takeControl) await rpc.computer.takeover({ botId });
+      await refreshThread(botId);
     } catch (error) {
-      setComputerError(error instanceof Error ? error.message : t`Could not take control`);
+      if (activeBotId.current !== botId) throw error;
+      setComputerError(error instanceof Error ? error.message : t`Could not open computer`);
       setComputerErrorFromScreen(false);
       throw error;
     } finally {
-      setBooting(false);
+      if (activeBotId.current === botId) setBooting(false);
     }
   }
 
@@ -2386,7 +2415,6 @@ export function ShellPage() {
       if (!computerPanelAutoUsesBoot(action)) return;
       await bootComputer({
         takeControl: false,
-        overlay: action === "boot",
         force: true,
       }).catch(() => undefined);
     })();
@@ -2397,6 +2425,7 @@ export function ShellPage() {
 
   useEffect(() => {
     setComputerOpen(false);
+    setBooting(false);
     setComputerError(null);
     setComputerErrorFromScreen(false);
   }, [active?.id]);
@@ -2473,13 +2502,12 @@ export function ShellPage() {
 
   async function openComputer() {
     if (!active) return;
+    setComputerOpen(true);
     try {
       await bootComputer({
         takeControl: false,
-        overlay: computer?.state !== "running",
         force: computer?.state !== "running",
       });
-      setComputerOpen(true);
     } catch {
       // computerError already set in bootComputer
     }
@@ -2506,6 +2534,42 @@ export function ShellPage() {
 
   const embeddedScreenUrl = embeddableScreenUrl(screenUrl);
   const hasControl = userHoldsComputerControl(computer, active?.id);
+  const canInteractWithComputer = hasControl || sharedComputerInput;
+  async function retryComputerViewer() {
+    if (!active) return;
+    const botId = active.id;
+    setScreenLoading(true);
+    setScreenLoadFailed(false);
+    const url = await refreshComputerScreen(botId);
+    if (activeBotId.current !== botId) return;
+    if (url) setScreenGeneration((value) => value + 1);
+    else setScreenLoading(false);
+  }
+  useEffect(() => {
+    if (!computerOpen || !embeddedScreenUrl) return;
+    setScreenLoading(true);
+    setScreenLoadFailed(false);
+    const timeout = window.setTimeout(() => {
+      setScreenLoading(false);
+      setScreenLoadFailed(true);
+    }, 25000);
+    screenLoadTimeoutRef.current = timeout;
+    const listener = (event: MessageEvent) => {
+      if (event.source !== computerFrameRef.current?.contentWindow) return;
+      if (event.data?.type === "cadre:computer-retry") void retryComputerViewer();
+      if (event.data?.type === "cadre:computer-connection") {
+        // The embedded viewer owns its RFB connection overlay and bounded retries.
+        window.clearTimeout(timeout);
+        setScreenLoading(false);
+        setScreenLoadFailed(false);
+      }
+    };
+    window.addEventListener("message", listener);
+    return () => {
+      window.clearTimeout(timeout);
+      window.removeEventListener("message", listener);
+    };
+  }, [computerOpen, embeddedScreenUrl, screenGeneration, active?.id]);
   const hideScreenLoadError = computerErrorFromScreen && Boolean(embeddedScreenUrl);
   const computerScreenError =
     computerError && !hideScreenLoadError ? (
@@ -4041,16 +4105,7 @@ export function ShellPage() {
         ) : null}
       </Suspense>
 
-      {booting ? (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-[22px] bg-background/95">
-          <div className="text-[19px] font-medium text-foreground">
-            <Trans>Booting up {active?.name}’s computer</Trans>
-          </div>
-          <div className="h-[5px] w-[min(420px,70%)] overflow-hidden rounded-full bg-accent">
-            <div className="h-full w-2/3 rounded-full bg-primary" />
-          </div>
-        </div>
-      ) : computerOpen && active ? (
+      {computerOpen && active ? (
         <div
           className="absolute inset-0 z-30 flex flex-col bg-background"
           style={{ height: computerViewportHeight }}
@@ -4105,16 +4160,14 @@ export function ShellPage() {
               {recordingSkill ? <TeachStopButton busy={teachBusy} onStop={stopTeaching} /> : null}
               {active &&
               !recordingSkill &&
-              !hasControl &&
+              !canInteractWithComputer &&
               !computerTakeoverBlocked(computer, snapshot?.run?.status) ? (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   disabled={booting}
-                  onClick={() =>
-                    void bootComputer({ takeControl: true, overlay: false }).catch(() => undefined)
-                  }
+                  onClick={() => void bootComputer({ takeControl: true }).catch(() => undefined)}
                 >
                   <Trans>Take control</Trans>
                 </Button>
@@ -4123,7 +4176,7 @@ export function ShellPage() {
                 <ComputerNavigationControls
                   frameRef={computerFrameRef}
                   screenUrl={embeddedScreenUrl}
-                  enabled={hasControl && !recordingSkill}
+                  enabled={canInteractWithComputer && !recordingSkill}
                   botId={active.id}
                   computer={computer}
                   onChanged={async () => {
@@ -4167,16 +4220,42 @@ export function ShellPage() {
             ) : computer?.state === "running" && embeddedScreenUrl && !computerScreenError ? (
               <>
                 <iframe
+                  key={`${active.id}:${screenGeneration}`}
                   ref={computerFrameRef}
+                  onLoad={() => {
+                    if (sharedComputerInput) return;
+                    if (screenLoadTimeoutRef.current) clearTimeout(screenLoadTimeoutRef.current);
+                    setScreenLoading(false);
+                    setScreenLoadFailed(false);
+                  }}
                   title={t`Bot screen`}
                   src={embeddedScreenUrl}
                   sandbox={screenIframeSandbox(embeddedScreenUrl)}
                   className="h-full w-full border-0 bg-black"
                   allow="clipboard-read; clipboard-write; fullscreen"
                   style={{
-                    pointerEvents: recordingSkill || !hasControl ? "none" : "auto",
+                    pointerEvents: recordingSkill || !canInteractWithComputer ? "none" : "auto",
                   }}
                 />
+                {screenLoading || screenLoadFailed ? (
+                  <div
+                    role="status"
+                    className="absolute inset-0 grid place-content-center gap-3 bg-background/95 text-center text-sm text-muted-foreground"
+                  >
+                    <span>
+                      {screenLoadFailed ? (
+                        <Trans>Could not load the screen</Trans>
+                      ) : (
+                        <Trans>Connecting to your screen…</Trans>
+                      )}
+                    </span>
+                    {screenLoadFailed ? (
+                      <Button variant="outline" onClick={() => void retryComputerViewer()}>
+                        <Trans>Retry screen</Trans>
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
                 {active ? (
                   <TeachCaptureOverlay
                     botId={active.id}
@@ -4192,7 +4271,11 @@ export function ShellPage() {
                 {computerScreenError ??
                   (computer?.state === "suspended"
                     ? t`Computer is asleep`
-                    : computerLabel(computer?.mode, active.name))}
+                    : computerPlaceholder(
+                        computer?.state,
+                        booting,
+                        computerLabel(computer?.mode, active.name),
+                      ))}
               </div>
             )}
           </div>

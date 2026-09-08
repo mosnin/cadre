@@ -16,6 +16,9 @@
       }
       body { display: flex; flex-direction: column; color: white; font: 14px system-ui, sans-serif; }
       #screen { position: relative; touch-action: none; flex: 1; min-height: 0; background: black; }
+      #connection-status { position: absolute; inset: 0; z-index: 5; display: grid; place-content: center; gap: 16px; text-align: center; background: #0e0e10e8; }
+      #connection-status[hidden] { display: none; }
+      #retry-connection[hidden] { display: none; }
       #touch-pointer { position: absolute; pointer-events: none; z-index: 2; width: 24px; height: 28px; }
       #controls { display: flex; flex: none; justify-content: space-between; padding: 10px 16px; background: black; }
       #controls[hidden] { display: none; }
@@ -37,6 +40,7 @@
       import { releaseCapture } from "./core/util/events.js";
       import { attachMobileControls } from "./mobile-controls.js";
       import { attachTouchNavigation } from "./touch-navigation.js";
+      import { createViewerConnection, hasDesktopFrame } from "./viewer-connection.js";
 
       function query(name, fallback) {
         const match = `${document.location.href}${window.location.hash}`.match(
@@ -53,21 +57,68 @@
       const path = String(query("path", "websockify")).replace(/^\//, "");
       const prefix = window.location.pathname.replace(/[^/]+$/, "");
       const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-      const url = `${protocol}://${window.location.host}${prefix}${path}`;
-      const rfb = new RFB(document.getElementById("screen"), url);
-      rfb.viewOnly = flag("view_only");
-      rfb.background = "#000000";
-      rfb.scaleViewport = true;
-      rfb.clipViewport = false;
-      if (!rfb.viewOnly) {
-        attachHostClipboardPaste(rfb, { target: document.getElementById("screen") });
-        attachMobileControls(rfb, Keyboard, pasteHostText);
-        rfb.addEventListener("connect", () => attachTouchNavigation(rfb, releaseCapture), { once: true });
+      const socketUrl = new URL(`${protocol}://${window.location.host}${prefix}${path}`);
+      // Direct provider viewers and the same-origin proxy use the same scoped
+      // capability. Never lose it when moving from HTML to the RFB socket.
+      for (const key of ["screen", "cadre_token", "shared_until", "view_only"]) {
+        const value = query(key, null);
+        if (value !== null) socketUrl.searchParams.set(key, value);
       }
+      const url = socketUrl.toString();
+      const screen = document.getElementById("screen");
+      const overlay = document.getElementById("connection-status");
+      const label = document.getElementById("connection-label");
+      const retry = document.getElementById("retry-connection");
+      const viewer = createViewerConnection({
+        status(state) {
+          overlay.hidden = state === "connected";
+          retry.hidden = state !== "failed";
+          label.textContent = state === "failed" ? "Screen disconnected" : state === "reconnecting" ? "Reconnecting to your screen…" : "Connecting to your screen…";
+          window.parent.postMessage({ type: "cadre:computer-connection", state }, "*");
+        },
+        connect(events) {
+          const rfb = new RFB(screen, url);
+          rfb.viewOnly = flag("view_only");
+          rfb.background = "#0e0e10";
+          rfb.scaleViewport = true;
+          rfb.clipViewport = false;
+          let detachClipboard = () => {}, detachMobile = () => {}, frameTimer;
+          rfb.addEventListener("connect", () => {
+            if (!rfb.viewOnly) {
+              detachClipboard = attachHostClipboardPaste(rfb, { target: screen });
+              detachMobile = attachMobileControls(rfb, Keyboard, pasteHostText);
+              attachTouchNavigation(rfb, releaseCapture);
+            }
+            const frameReady = () => {
+              if (!hasDesktopFrame(screen.querySelector("canvas"))) return;
+              clearInterval(frameTimer);
+              events.connected();
+            };
+            frameTimer = setInterval(frameReady, 100);
+            frameReady();
+          }, { once: true });
+          rfb.addEventListener("disconnect", () => {
+            clearInterval(frameTimer);
+            detachClipboard();
+            detachMobile();
+            events.disconnected();
+          }, { once: true });
+          rfb.addEventListener("securityfailure", events.disconnected, { once: true });
+          return { disconnect() { clearInterval(frameTimer); detachClipboard(); detachMobile(); rfb.disconnect(); } };
+        },
+      });
+      retry.addEventListener("click", () => {
+        if (window.parent !== window) {
+          // Ask the authorized parent for a fresh, expiring screen capability.
+          window.parent.postMessage({ type: "cadre:computer-retry" }, "*");
+        } else viewer.retry();
+      });
+      window.addEventListener("pagehide", () => viewer.dispose(), { once: true });
     </script>
   </head>
   <body>
     <div id="screen"></div>
+    <div id="connection-status" role="status" aria-live="polite"><span id="connection-label">Connecting to your screen…</span><button id="retry-connection" type="button" hidden>Reconnect</button></div>
     <div id="controls" hidden>
       <button type="button" id="clipboard-button" aria-label="Clipboard" title="Clipboard"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5H6v16h12V5h-3M9 3h6v4H9zM9 11h6M9 15h6"/></svg></button>
       <button type="button" id="keyboard-button" aria-label="Keyboard" aria-pressed="false" title="Keyboard"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M5 9h2m2 0h2m2 0h2m2 0h2M5 12h2m2 0h2m2 0h2m2 0h2M7 15h10"/></svg></button>

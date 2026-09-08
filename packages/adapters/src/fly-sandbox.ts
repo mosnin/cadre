@@ -55,6 +55,7 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
         takeover: true,
         persistentHome: true,
         multiScreen: true,
+        sharedInput: true,
         persistentRunning: true,
       },
     };

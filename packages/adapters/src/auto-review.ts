@@ -1,4 +1,8 @@
-import type { AgentModelOAuthCredential, AgentRuntime } from "@rakazo/adapter-kit";
+import type {
+  AgentModelOAuthCredential,
+  AgentRuntime,
+  ModifyModelOAuthCredential,
+} from "@rakazo/adapter-kit";
 import type { ActionApprovalRule } from "@rakazo/core";
 import { type AutoReviewJudgeDecision, redactSecrets } from "@rakazo/core";
 import { resolveDeploymentModel } from "./deployment-model.js";
@@ -219,6 +223,7 @@ export async function runAutoReviewJudge(input: {
   oauth?: {
     credential: AgentModelOAuthCredential;
     persist?: (credential: AgentModelOAuthCredential) => Promise<void>;
+    modify?: ModifyModelOAuthCredential;
   };
   prompt: string;
   runId: string;

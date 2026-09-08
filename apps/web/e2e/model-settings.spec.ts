@@ -178,7 +178,7 @@ test("model settings connect, replace, and cancel provider authentication", asyn
     if (request.url().includes("/rpc/models/finishOAuth")) finishRequests += 1;
   });
 
-  await providerSearch.fill("openai-codex");
+  await providerSearch.fill("ChatGPT");
   await page
     .getByRole("button", { name: /ChatGPT Plus\/Pro/ })
     .first()

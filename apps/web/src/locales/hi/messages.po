@@ -3466,3 +3466,43 @@ msgstr "पेज नहीं मिला"
 #: src/App.tsx
 msgid "Back to Cadre"
 msgstr "Cadre पर वापस जाएँ"
+
+#: src/pages/AccountSettingsOverlay.tsx:241
+msgid "Administration"
+msgstr ""
+
+#: src/pages/RealtimeCallView.tsx:169
+msgid "Audio could not resume."
+msgstr ""
+
+#: src/pages/Shell.tsx:4252
+msgid "Connecting to your screen…"
+msgstr ""
+
+#: src/pages/Shell.tsx:4250
+msgid "Could not load the screen"
+msgstr ""
+
+#: src/pages/Shell.tsx:2376
+msgid "Could not open computer"
+msgstr ""
+
+#: src/components/chatgpt-device-code-help.tsx:7
+msgid "Enable device code login in ChatGPT security settings or your workspace permissions. <0>Sign-in help</0>"
+msgstr ""
+
+#: src/pages/RealtimeCallView.tsx:144
+msgid "Enter the code on screen. Your microphone is muted."
+msgstr ""
+
+#: src/pages/RealtimeCallView.tsx:161
+msgid "Reconnect"
+msgstr ""
+
+#: src/pages/RealtimeCallView.tsx:172
+msgid "Resume audio"
+msgstr ""
+
+#: src/pages/RealtimeCallView.tsx:140
+msgid "Thinking…"
+msgstr ""

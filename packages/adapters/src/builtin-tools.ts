@@ -9,6 +9,28 @@ export const DELEGATION_TOOL_NAMES = new Set([
   "message_bot",
 ]);
 
+// Temporary helpers return work to their parent. The parent owns user interaction,
+// delegation, integrations, and persistent automation for the shared run.
+export const SUBAGENT_PARENT_TOOL_NAMES = new Set([
+  ...DELEGATION_TOOL_NAMES,
+  // Helpers share the parent display. Durable bots have independent screens.
+  "browser_observe",
+  "browser_act",
+  "computer_observe",
+  "computer_act",
+  "message_user",
+  "ask_user",
+  "request_secret",
+  "request_takeover",
+  "schedule_create",
+  "schedule_cancel",
+  "create_space",
+  "add_mcp_server",
+  "connect_agent",
+  "respond_agent_connection",
+  "message_agent",
+]);
+
 export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "browser_observe",
@@ -48,7 +70,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "computer_act",
     description:
-      "Perform up to 24 ordered desktop actions on this bot's computer and return the resulting screen. Batch only predictable actions; stop before an outcome you need to inspect. Action kinds: click, move, down, up, type, key, scroll, wait.",
+      "Perform up to 24 ordered desktop actions on this bot's computer and return the resulting screen. Batch only predictable actions; stop before an outcome you need to inspect. Keep each pointer down and matching up in the same batch. After a partial failure, verify completed actions before continuing; never replay the entire batch automatically. Action kinds: click, move, down, up, type, key, scroll, wait.",
     inputSchema: {
       type: "object",
       properties: {

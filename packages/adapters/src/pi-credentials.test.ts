@@ -1,6 +1,6 @@
 import type { OAuthCredential } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PiRuntimeCredentialStore } from "./pi-credentials.js";
 
 function credential(overrides: Partial<OAuthCredential> = {}): OAuthCredential {
@@ -26,6 +26,34 @@ describe("PiRuntimeCredentialStore", () => {
 
     expect(auth?.auth.apiKey).toBe("access-token");
     expect(await store.list()).toEqual([{ providerId: "openai-codex", type: "oauth" }]);
+  });
+
+  it("uses authoritative refresh material and never publishes a stale runtime snapshot", async () => {
+    const fresh = credential({ access: "fresh-access", refresh: "rotated-refresh" });
+    const publish = vi.fn();
+    const update = vi.fn(async () => undefined);
+    const modify = vi.fn(async (fn) => (await fn(fresh)) ?? fresh);
+    const store = new PiRuntimeCredentialStore(
+      "openai-codex",
+      credential({ expires: 1 }),
+      publish,
+      modify,
+    );
+
+    expect(await store.modify("openai-codex", update)).toEqual(fresh);
+    expect(update).toHaveBeenCalledWith(fresh);
+    expect(publish).not.toHaveBeenCalled();
+    expect(await store.read("openai-codex")).toEqual(fresh);
+  });
+
+  it("does not enter the authoritative refresh for a cancelled call or another provider", async () => {
+    const modify = vi.fn();
+    const store = new PiRuntimeCredentialStore("openai-codex", credential(), undefined, modify);
+    await expect(
+      store.modify("openai-codex", async () => undefined, { signal: AbortSignal.abort() }),
+    ).rejects.toThrow();
+    expect(await store.modify("another-provider", async () => undefined)).toBeUndefined();
+    expect(modify).not.toHaveBeenCalled();
   });
 
   it("serializes refresh publication without exposing credential values in metadata", async () => {

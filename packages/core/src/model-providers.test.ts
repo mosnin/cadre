@@ -1,6 +1,10 @@
 import type { ModelCatalogEntry } from "@rakazo/contracts";
 import { describe, expect, it } from "vitest";
-import { featuredModelProviders, selectedProviderOutsideSearchResults } from "./model-providers.js";
+import {
+  featuredModelProviders,
+  modelCatalogEntryMatchesQuery,
+  selectedProviderOutsideSearchResults,
+} from "./model-providers.js";
 
 function provider(provider: string): ModelCatalogEntry {
   return {
@@ -87,5 +91,29 @@ describe("selectedProviderOutsideSearchResults", () => {
     expect(
       selectedProviderOutsideSearchResults(providers, providers, "openrouter"),
     ).toBeUndefined();
+  });
+});
+
+describe("modelCatalogEntryMatchesQuery", () => {
+  const codex = {
+    ...provider("openai-codex"),
+    providerName: "OpenAI Codex",
+    id: "codex-model",
+    label: "Codex model",
+    authHint: "ChatGPT Plus/Pro",
+    oauthLabel: "Sign in with ChatGPT Plus/Pro",
+    billing: "Uses your subscription",
+  };
+
+  it("finds subscription providers by the account name instead of requiring the internal id", () => {
+    expect(modelCatalogEntryMatchesQuery(codex, "  ChatGPT  ")).toBe(true);
+    expect(modelCatalogEntryMatchesQuery(provider("openai"), "ChatGPT")).toBe(false);
+  });
+
+  it("matches hints and keeps model/provider search working", () => {
+    for (const query of ["Plus/Pro", "sign in", "subscription", "openai", "codex-model", ""]) {
+      expect(modelCatalogEntryMatchesQuery(codex, query)).toBe(true);
+    }
+    expect(modelCatalogEntryMatchesQuery(codex, "unrelated-provider")).toBe(false);
   });
 });

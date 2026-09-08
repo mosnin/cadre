@@ -3,6 +3,7 @@ import type {
   AdapterContext,
   BrowserRequest,
   CommandRequest,
+  ComputerAction,
   ComputerActionRequest,
   ComputerInput,
   ComputerRef,
@@ -167,6 +168,16 @@ export class HostAwareSandbox implements SandboxProvider {
 
   releaseScreen(computer: ComputerRef, context: AdapterContext) {
     return this.route(computer).releaseScreen?.(computer, context) ?? Promise.resolve();
+  }
+
+  supportsSharedInput(computer: ComputerRef) {
+    return this.route(computer).supportsSharedInput?.(computer) ?? false;
+  }
+
+  async sendSharedInput(computer: ComputerRef, action: ComputerAction, context: AdapterContext) {
+    const provider = this.route(computer);
+    if (!provider.sendSharedInput) throw new Error("Shared computer input is unavailable");
+    await provider.sendSharedInput(computer, action, context);
   }
 
   setScreenControl(

@@ -7,6 +7,7 @@ from pathlib import Path
 import signal
 import socket
 import subprocess
+import tempfile
 import time
 
 STATE = Path('/run/cadre')
@@ -45,27 +46,40 @@ def ready(port):
         with socket.create_connection(('127.0.0.1',port),timeout=.2): return True
     except OSError: return False
 
+def desktop_running(state):
+    pid = state.get('pid')
+    if not pid: return False
+    try:
+        argv = Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0')
+        return b'/usr/local/bin/rakazo-computer' in argv and Path(f'/proc/{pid}').stat().st_uid == 1000
+    except FileNotFoundError: return False
+
 def ensure(state, key):
     index = state['index']
-    if not ready(6080 + index * 2):
-        if index != 0:
+    if not (ready(6080 + index * 2) and ready(5900 + index * 2)):
+        # A lost stream is not a lost desktop. Its supervisor repairs only that
+        # service; never unlink a live X socket or restart its Chromium profile.
+        if index != 0 and not desktop_running(state):
             child = subprocess.Popen(['/usr/local/bin/rakazo-computer'], env=child_env(index,key),
                 stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,preexec_fn=demote,start_new_session=True)
             state['pid'] = child.pid
         for _ in range(150):
-            if ready(6080 + index * 2): break
+            if ready(6080 + index * 2) and ready(5900 + index * 2): break
             time.sleep(.1)
         else: raise RuntimeError('Cloud desktop did not become ready')
-    if not ready(6081 + index * 2):
+    if not (ready(6081 + index * 2) and ready(5901 + index * 2) and ready(6001 + index * 2)):
         env = child_env(index,key)
         for command in [
             ['x11vnc','-display',env['DISPLAY'],'-forever','-shared','-nopw','-listen','127.0.0.1','-rfbport',str(5901+index*2),'-xkb','-noshm','-no6'],
-            ['websockify','--heartbeat=30','--web=/usr/share/novnc',f'127.0.0.1:{6081+index*2}',f'127.0.0.1:{5901+index*2}'],
+            ['python3','/opt/cadre/rfb_input_proxy.py',str(6001+index*2),str(5901+index*2),key],
+            ['websockify','--heartbeat=30','--web=/usr/share/novnc',f'127.0.0.1:{6081+index*2}',f'127.0.0.1:{6001+index*2}'],
         ]:
+            port = int(command[command.index('-rfbport')+1]) if command[0] == 'x11vnc' else (6001+index*2 if command[0]=='python3' else 6081+index*2)
+            if ready(port): continue
             p = subprocess.Popen(command,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
             state.setdefault('controlPids',[]).append(p.pid)
         for _ in range(50):
-            if ready(6081+index*2) and ready(5901+index*2): break
+            if ready(6081+index*2) and ready(5901+index*2) and ready(6001+index*2): break
             time.sleep(.1)
         else: raise RuntimeError('Cloud control stream did not become ready')
     return state
@@ -80,7 +94,7 @@ def retire(state):
         time.sleep(.1)
     raise RuntimeError('Computer screen is still closing')
 
-def resolve(value=None, lease=None, start=True):
+def resolve(value=None, lease=None, start=True, shared_input=False):
     key = screen_key(value)
     with open(STATE / 'registry.lock','a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
@@ -91,7 +105,7 @@ def resolve(value=None, lease=None, start=True):
             if key != screen_key(): used.add(0)  # Keep the startup browser separate from agent profiles.
             free = next((i for i in range(LIMIT) if i not in used),None)
             if free is None:
-                idle = [(k,s) for k,s in entries if s['index'] != 0 and not s.get('lease') and s.get('expiresAt',0) <= time.time()]
+                idle = [(k,s) for k,s in entries if s['index'] != 0 and not s.get('lease') and max(s.get('expiresAt',0), shared_active_until(k,s)) <= time.time()]
                 if not idle: raise ScreenUnavailableError('Cannot allocate another screen')
                 old_key, old = min(idle,key=lambda pair:pair[1].get('usedAt',0))
                 retire(old); (STATE / (old_key+'.json')).unlink(); free=old['index']
@@ -101,9 +115,42 @@ def resolve(value=None, lease=None, start=True):
             raise RuntimeError('Stale computer screen lease')
         if lease: state['lease'] = lease
         state['usedAt'] = time.time()
-        if start: ensure(state,key)
+        # Reserve the display before starting processes. A failed startup must
+        # never let another bot adopt its still-starting browser/profile.
         save(key,state)
+        try:
+            if start: ensure(state,key)
+            if shared_input:
+                if state.get('sharedUntil',0) <= time.time()+300:
+                    state['sharedUntil'] = int(time.time())+3600
+                state['sharedActiveUntil'] = time.time()+30
+        finally:
+            save(key,state)
         return key,state
+
+def shared_active_until(key,state):
+    active=state.get('sharedActiveUntil',0)
+    try:
+        viewer=json.loads((STATE / (key+'.viewer')).read_text())
+        if viewer.get('index') == state['index']:
+            active=max(active,viewer.get('activeUntil',0))
+    except (FileNotFoundError,json.JSONDecodeError): pass
+    return active
+
+def touch_shared(key, index, until):
+    # Do not wait for the allocation lock: another desktop may be cold-starting
+    # while this viewer is connected. A separate atomic marker cannot overwrite
+    # leases/control grants, and the index prevents a reused slot being pinned.
+    if until <= time.time(): return
+    temporary=None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w',dir=STATE,prefix=key+'.viewer-',suffix='.tmp',delete=False) as file:
+            temporary=Path(file.name)
+            json.dump({'index':index,'activeUntil':min(time.time()+30,until)},file)
+        temporary.replace(STATE / (key+'.viewer'))
+    finally:
+        if temporary: temporary.unlink(missing_ok=True)
+
 
 def control(value, lease, token, interactive):
     key,state = resolve(value,start=interactive)

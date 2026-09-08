@@ -5,7 +5,7 @@ import type {
   CredentialStore,
   OAuthCredential,
 } from "@earendil-works/pi-ai";
-import type { AgentModelOAuthCredential } from "@rakazo/adapter-kit";
+import type { AgentModelOAuthCredential, ModifyModelOAuthCredential } from "@rakazo/adapter-kit";
 
 export function toOAuthCredential(value: AgentModelOAuthCredential): OAuthCredential {
   return { ...value, type: "oauth" };
@@ -24,6 +24,7 @@ export class PiRuntimeCredentialStore implements CredentialStore {
     private readonly providerId: string,
     credential?: Credential,
     private readonly persistOAuth?: (credential: OAuthCredential) => Promise<void>,
+    private readonly modifyOAuth?: ModifyModelOAuthCredential,
   ) {
     this.credential = credential;
   }
@@ -47,6 +48,19 @@ export class PiRuntimeCredentialStore implements CredentialStore {
     const previous = this.chain;
     const operation = previous.then(async () => {
       options?.signal?.throwIfAborted();
+      if (this.modifyOAuth) {
+        const next = await this.modifyOAuth(async (current) => {
+          const updated = await fn(toOAuthCredential(current));
+          if (updated && updated.type !== "oauth") {
+            throw new Error(
+              "Subscription credential cannot change authentication type during refresh.",
+            );
+          }
+          return updated;
+        }, options?.signal);
+        this.credential = toOAuthCredential(next);
+        return this.credential;
+      }
       const current = this.credential;
       const next = await fn(current);
       options?.signal?.throwIfAborted();

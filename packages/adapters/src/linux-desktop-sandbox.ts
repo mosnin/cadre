@@ -4,6 +4,7 @@ import type {
   AdapterContext,
   BrowserRequest,
   CommandRequest,
+  ComputerAction,
   ComputerActionRequest,
   ComputerFileEntry,
   ComputerInput,
@@ -124,6 +125,9 @@ export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
     }
     return JSON.parse(output) as Record<string, unknown>;
   }
+  supportsSharedInput(_computer: ComputerRef) {
+    return this.describe().capabilities.sharedInput === true;
+  }
   async connectScreen(computer: ComputerRef, request: ScreenRequest, ctx: AdapterContext) {
     if (request.view === "snapshot") {
       const observation = await this.observe(computer, ctx);
@@ -135,34 +139,61 @@ export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
     }
     const sandbox = await this.owned(computer, ctx);
     if (!(await this.alive(sandbox))) throw stoppedComputer();
+    const requestSharedInput = Boolean(request.sharedInput && this.supportsSharedInput(computer));
+    if (request.sharedInput && !requestSharedInput)
+      throw new Error("Shared computer input is unavailable");
     const screen = this.multiscreen(sandbox)
-      ? await this.rpc<{ key: string }>(sandbox, {
+      ? await this.rpc<{ key: string; sharedUntil?: number }>(sandbox, {
           op: "resolveScreen",
           screenKey: screenSessionKey(ctx),
+          ...(requestSharedInput ? { sharedInput: true } : {}),
         })
       : undefined;
-    if (request.interactive) await this.setScreenControl(computer, true, ctx, request.controlToken);
+    // Persistent machines may still run the preceding image. Negotiate from
+    // the runtime response; an older image remains view-only until upgraded.
+    const sharedInput =
+      requestSharedInput &&
+      typeof screen?.sharedUntil === "number" &&
+      Number.isSafeInteger(screen.sharedUntil) &&
+      screen.sharedUntil > Date.now() / 1000;
+    if (request.interactive && !sharedInput)
+      await this.setScreenControl(computer, true, ctx, request.controlToken);
     const url = new URL("embed.html", await this.screenEndpoint(sandbox));
-    url.searchParams.set("view_only", request.interactive ? "false" : "true");
+    url.searchParams.set("view_only", request.interactive || sharedInput ? "false" : "true");
+    if (sharedInput) url.searchParams.set("shared_until", String(screen!.sharedUntil));
     if (screen) url.searchParams.set("screen", screen.key);
     url.searchParams.set(
       "cadre_token",
-      request.interactive
-        ? request.controlToken!
-        : screen
-          ? createHmac("sha256", this.viewToken(computer.botId, ctx))
-              .update(screen.key)
-              .digest("hex")
-          : this.viewToken(computer.botId, ctx),
+      sharedInput
+        ? createHmac("sha256", this.viewToken(computer.botId, ctx))
+            .update(`shared:${screen!.key}:${screen!.sharedUntil}`)
+            .digest("hex")
+        : request.interactive
+          ? request.controlToken!
+          : screen
+            ? createHmac("sha256", this.viewToken(computer.botId, ctx))
+                .update(screen.key)
+                .digest("hex")
+            : this.viewToken(computer.botId, ctx),
     );
     return {
+      sharedInput,
       url: url.toString(),
       mimeType: "text/html",
       close: async () => {
-        if (request.interactive)
+        if (request.interactive && !sharedInput)
           await this.setScreenControl(computer, false, ctx, request.controlToken);
       },
     };
+  }
+  async sendSharedInput(computer: ComputerRef, action: ComputerAction, ctx: AdapterContext) {
+    if (!this.supportsSharedInput(computer))
+      throw new Error("Shared computer input is unavailable");
+    await this.rpc(await this.owned(computer, ctx), {
+      op: "sharedInput",
+      screenKey: screenSessionKey(ctx),
+      actions: [action],
+    });
   }
   async setScreenControl(
     computer: ComputerRef,

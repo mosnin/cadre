@@ -5,6 +5,7 @@ import {
   openAiCompatibleConnectReady,
   openAiCompatibleProbeSuccessMessage,
 } from "@rakazo/contracts";
+import { modelCatalogEntryMatchesQuery } from "@rakazo/core";
 import {
   Button,
   Dialog,
@@ -27,6 +28,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { ChatGptDeviceCodeHelp } from "../components/chatgpt-device-code-help";
 import { localizedProviderHint } from "../lib/localized-provider-hint";
 import type { ModelCatalogEntry, ModelCredential } from "../lib/model-auth";
 import { rpc } from "../lib/rpc";
@@ -141,10 +143,7 @@ export function ModelSettingsOverlay({ onClose }: { onClose: () => void }) {
     const query = providerQuery.trim().toLowerCase();
     if (!query) return groups;
     return groups.filter((group) =>
-      [group.id, group.name, ...group.entries.flatMap((entry) => [entry.id, entry.label])]
-        .join(" ")
-        .toLowerCase()
-        .includes(query),
+      group.entries.some((entry) => modelCatalogEntryMatchesQuery(entry, query)),
     );
   }, [groups, providerQuery]);
   const modelsForProvider = catalog.filter((entry) => entry.provider === provider);
@@ -548,6 +547,7 @@ export function ModelSettingsOverlay({ onClose }: { onClose: () => void }) {
 
                 {subscriptionSignIn ? (
                   <div className="mt-5">
+                    <ChatGptDeviceCodeHelp provider={selected.provider} />
                     {oauth ? (
                       <div className="rounded-xl border border-border px-4 py-3">
                         {oauth.mode === "auth-url" ? (

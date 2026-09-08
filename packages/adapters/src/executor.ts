@@ -12,6 +12,7 @@ import type {
   JobPublisher,
   ManagedConnectorProvider,
   MemoryStore,
+  ModifyModelOAuthCredential,
   NotificationMessage,
   NotificationProvider,
   SandboxProvider,
@@ -178,6 +179,7 @@ import {
 import { loadAgentMemoryContext } from "./memory-context.js";
 import type { MemoryProviderResolver } from "./memory-provider-factory.js";
 import { selectMemoryTools } from "./memory-tools.js";
+import { modelOAuthModifier } from "./model-oauth-storage.js";
 import {
   filterImageReturningComputerTools,
   IMAGE_RETURNING_COMPUTER_TOOLS,
@@ -254,7 +256,6 @@ import {
 import { createWebProvider } from "./web-provider-factory.js";
 import { webFetchFromTool, webSearchFromTool } from "./web-tools.js";
 
-const modelCredentialLocks = new Map<string, Promise<void>>();
 const READ_ONLY_AGENT_TOOLS = new Set([
   "computer_observe",
   "browser_observe",
@@ -628,7 +629,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             ? null
             : ((override?.thinkingLevel as AgentRunRequest["model"]["thinkingLevel"]) ?? null),
         oauth: resolved.oauth
-          ? { credential: resolved.oauth, persist: resolved.persistOAuth }
+          ? { credential: resolved.oauth, modify: resolved.modifyOAuth }
           : undefined,
       };
     },
@@ -1150,6 +1151,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           credential,
           runModelProvider,
           (values) => runSecrets.push(...values),
+          runAbortController.signal,
         );
         runSecrets.push(...resolved.redact);
         await deps.prisma.run.updateMany({
@@ -1694,6 +1696,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 reviewCredential,
                 checker.provider,
                 (values) => runSecrets.push(...values),
+                runAbortController?.signal,
               );
               const judge = await runAutoReviewJudge({
                 runtime: deps.runtime,
@@ -1701,7 +1704,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 apiKey: judgeKey.oauth ? undefined : judgeKey.apiKey,
                 baseUrl: judgeKey.baseUrl,
                 oauth: judgeKey.oauth
-                  ? { credential: judgeKey.oauth, persist: judgeKey.persistOAuth }
+                  ? { credential: judgeKey.oauth, modify: judgeKey.modifyOAuth }
                   : undefined,
                 prompt: buildAutoReviewPrompt({
                   toolName: name,
@@ -3033,7 +3036,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 "A bot and a subagent are different. Never use both for the same request.",
                 "create_space proposes a new privacy boundary inside the current organization. Use it when the user asks to create a space or separate data between teams or projects. It always pauses for explicit user approval; never claim the space exists before the tool succeeds.",
                 "spawn_bot creates a lasting regular bot (own chat, computer, memory) that appears in the user's bot list. If the user asked to create a bot, call spawn_bot once and stop. Do not run_subagent to demo it.",
-                "run_subagent is a short helper inside this turn only. It is not a bot, has no thread, and does not show in the list. Use it for parallel work you will summarize here.",
+                "run_subagent is a short helper inside this turn only. It is not a bot, has no thread, and does not show in the list. Give it a bounded task with the relevant user context and acceptance criteria. It inherits your policies and workspace guidance, but not the conversation history. Helpers share your workspace and have no graphical tools; use web_fetch for helper research or a durable peer bot for independent browser work. You own user communication, approvals, delegation, integrations, and schedules. Verify its result and finish the user's task; an empty, failed, or blocked helper is not completed work.",
                 botDirectory,
                 "archive_bot safely archives a bot this bot created, and only that bot. Use it when the user asks to remove that bot or when it is finished and unused. The user can restore it or permanently delete it later. confirm_name must exactly match its name.",
                 pluginLine,
@@ -3060,7 +3063,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                     ? null
                     : ((bot.thinkingLevel as AgentRunRequest["model"]["thinkingLevel"]) ?? null),
                 oauth: resolved.oauth
-                  ? { credential: resolved.oauth, persist: resolved.persistOAuth }
+                  ? { credential: resolved.oauth, modify: resolved.modifyOAuth }
                   : undefined,
               },
               resumeFromCheckpoint: takeoverResume?.checkpoint,
@@ -4027,101 +4030,58 @@ async function resolveModelKey(
   credential: { secretId: string; provider: string } | null,
   provider: string,
   registerSecrets?: (values: string[]) => void,
+  signal?: AbortSignal,
 ): Promise<{
   apiKey?: string;
   baseUrl?: string;
   oauth?: AgentModelOAuthCredential;
-  persistOAuth?: (credential: AgentModelOAuthCredential) => Promise<void>;
+  modifyOAuth?: ModifyModelOAuthCredential;
   redact: string[];
 }> {
   if (credential) {
-    return withModelCredentialLock(credential.secretId, async () => {
-      const row = await deps.prisma.secret.findFirst({
-        where: { id: credential.secretId, userId, spaceId: null },
-      });
-      if (!row) return { apiKey: deploymentKeyFor(deps, provider), redact: [] };
-      const plaintext = deps.secretStore.load(row.ciphertext, row.id);
-      registerSecrets?.(secretValuesToRedact(parseModelSecret(plaintext)));
-      const persist = async (next: string) => {
-        const stored = await deps.secretStore.put(
-          next,
-          {
-            operationId: "cred",
-            traceId: "cred-refresh",
-            spaceId,
-            userId,
-            signal: new AbortController().signal,
-          },
-          row.id,
-        );
-        await deps.prisma.secret.update({
-          where: { id: row.id },
-          data: { ciphertext: stored.ciphertext },
-        });
-      };
-      const resolved = await resolveModelAuth(plaintext, credential.provider, {
-        persist,
-      });
-      const oauth = resolved.secret.kind === "oauth" ? resolved.secret.credential : undefined;
-      const baseUrl =
-        resolved.secret.kind === "openai_compatible" ? resolved.secret.baseUrl : undefined;
-      return {
-        apiKey: resolved.apiKey,
-        baseUrl,
-        oauth,
-        persistOAuth: oauth
-          ? async (next) => {
-              await withModelCredentialLock(credential.secretId, async () => {
-                const currentRow = await deps.prisma.secret.findFirst({
-                  where: { id: credential.secretId, userId, spaceId: null },
-                });
-                if (!currentRow) return;
-                const current = parseModelSecret(
-                  deps.secretStore.load(currentRow.ciphertext, currentRow.id),
-                );
-                if (current.kind === "oauth") {
-                  const stored = current.credential;
-                  if (stored.expires > next.expires) return;
-                  if (
-                    stored.access === next.access &&
-                    stored.refresh === next.refresh &&
-                    stored.expires === next.expires
-                  ) {
-                    return;
-                  }
-                }
-                await persist(
-                  serializeModelSecret({ kind: "oauth", credential: toOAuthCredential(next) }),
-                );
-              });
-            }
-          : undefined,
-        redact: [...secretValuesToRedact(resolved.secret), resolved.apiKey].filter(
-          (value): value is string => Boolean(value),
-        ),
-      };
+    const row = await deps.prisma.secret.findFirst({
+      where: { id: credential.secretId, userId, spaceId: null },
     });
+    if (!row) return { apiKey: deploymentKeyFor(deps, provider), redact: [] };
+    const plaintext = deps.secretStore.load(row.ciphertext, row.id);
+    const parsed = parseModelSecret(plaintext);
+    registerSecrets?.(secretValuesToRedact(parsed));
+    const modifyOAuth =
+      parsed.kind === "oauth"
+        ? modelOAuthModifier(
+            deps.prisma,
+            deps.secretStore,
+            {
+              userId,
+              spaceId,
+              secretId: credential.secretId,
+              provider: credential.provider,
+            },
+            registerSecrets,
+          )
+        : undefined;
+    let resolved!: Awaited<ReturnType<typeof resolveModelAuth>>;
+    if (modifyOAuth) {
+      await modifyOAuth(async (current) => {
+        resolved = await resolveModelAuth(
+          serializeModelSecret({ kind: "oauth", credential: toOAuthCredential(current) }),
+          credential.provider,
+          { signal: AbortSignal.any([AbortSignal.timeout(30_000), ...(signal ? [signal] : [])]) },
+        );
+        return resolved.secret.kind === "oauth" ? resolved.secret.credential : undefined;
+      }, signal);
+    } else {
+      resolved = await resolveModelAuth(plaintext, credential.provider);
+    }
+    return {
+      apiKey: resolved.apiKey,
+      baseUrl: resolved.secret.kind === "openai_compatible" ? resolved.secret.baseUrl : undefined,
+      oauth: resolved.secret.kind === "oauth" ? resolved.secret.credential : undefined,
+      modifyOAuth,
+      redact: [...secretValuesToRedact(resolved.secret), resolved.apiKey].filter(Boolean),
+    };
   }
   return { apiKey: deploymentKeyFor(deps, provider), redact: [] };
-}
-
-async function withModelCredentialLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
-  const previous = modelCredentialLocks.get(key) ?? Promise.resolve();
-  let release!: () => void;
-  const current = previous.then(
-    () =>
-      new Promise<void>((resolve) => {
-        release = resolve;
-      }),
-  );
-  modelCredentialLocks.set(key, current);
-  await previous;
-  try {
-    return await fn();
-  } finally {
-    release();
-    if (modelCredentialLocks.get(key) === current) modelCredentialLocks.delete(key);
-  }
 }
 
 export async function loadCurrentTurnImages(

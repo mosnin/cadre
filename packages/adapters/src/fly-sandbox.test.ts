@@ -234,3 +234,55 @@ it("does not claim persistence when the machine has no home volume", async () =>
   ).resolves.toBe(false);
   expect(request).toHaveBeenCalledOnce();
 });
+
+it("signs a separate expiring shared viewer without taking control of the agent", async () => {
+  const key = createHash("sha256").update("agent").digest("hex");
+  const calls: Array<Record<string, unknown>> = [];
+  const request = vi.fn<typeof fetch>().mockImplementation(async (_url, init) => {
+    if (!init?.body) return json(machine);
+    const body = JSON.parse(String(init.body));
+    calls.push(body);
+    return json({ key, sharedUntil: 2_000_000_000 });
+  });
+  const provider = new FlySandboxProvider(options, request);
+  const session = await provider.connectScreen(
+    ref,
+    { view: "stream", sharedInput: true },
+    { ...context, botId: "agent" },
+  );
+  const url = new URL(session.url!);
+  expect(url.searchParams.get("view_only")).toBe("false");
+  expect(url.searchParams.get("screen")).toBe(key);
+  expect(url.searchParams.get("shared_until")).toBe("2000000000");
+  expect(url.searchParams.get("cadre_token")).toMatch(/^[a-f0-9]{64}$/);
+  await session.close();
+  expect(calls).toEqual([{ op: "resolveScreen", screenKey: "agent", sharedInput: true }]);
+  const view = await provider.connectScreen(
+    ref,
+    { view: "stream" },
+    { ...context, botId: "agent" },
+  );
+  expect(new URL(view.url!).searchParams.get("cadre_token")).not.toBe(
+    url.searchParams.get("cadre_token"),
+  );
+});
+
+it("keeps older persistent images view-only until their runtime supports shared input", async () => {
+  const request = vi
+    .fn<typeof fetch>()
+    .mockImplementation(async (_url, init) =>
+      init?.body ? json({ key: "screen-key" }) : json(machine),
+    );
+  const provider = new FlySandboxProvider(options, request);
+  const session = await provider.connectScreen(
+    ref,
+    { view: "stream", sharedInput: true },
+    { ...context, botId: "agent" },
+  );
+  expect(session.sharedInput).toBe(false);
+  const url = new URL(session.url!);
+  expect(url.searchParams.get("view_only")).toBe("true");
+  expect(url.searchParams.has("shared_until")).toBe(false);
+  await session.close();
+  expect(request).toHaveBeenCalledTimes(2);
+});

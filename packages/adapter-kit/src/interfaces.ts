@@ -9,6 +9,7 @@ import type {
   BackgroundJobHandlers,
   BrowserRequest,
   CommandRequest,
+  ComputerAction,
   ComputerActionRequest,
   ComputerActionResult,
   ComputerFileEntry,
@@ -93,6 +94,13 @@ export interface SandboxProvider {
     request: ScreenRequest,
     context: AdapterContext,
   ): Promise<ScreenSession>;
+  /** Resolve support against the actual computer during provider migrations. */
+  supportsSharedInput?(computer: ComputerRef): boolean;
+  sendSharedInput?(
+    computer: ComputerRef,
+    action: ComputerAction,
+    context: AdapterContext,
+  ): Promise<void>;
   setScreenControl?(
     computer: ComputerRef,
     interactive: boolean,
