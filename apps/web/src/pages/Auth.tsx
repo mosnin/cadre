@@ -2,7 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { Button, Input, Label } from "@rakazo/ui-web";
 import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { authClient } from "../lib/auth";
 import { safeLoginReturn, useAuthCapabilities } from "../lib/auth-capabilities";
 import { clearSpaceSelection } from "../lib/rpc";
@@ -15,6 +15,7 @@ const submitClass = "mt-3 h-12 w-full rounded-xl text-base";
 export function AuthPage({ mode }: { mode: AuthMode }) {
   const { t } = useLingui();
   const navigate = useNavigate();
+  const location = useLocation();
   const capabilities = useAuthCapabilities();
   const [loginParams] = useSearchParams();
   const [email, setEmail] = useState("");
@@ -77,7 +78,9 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
         return;
       }
       clearSpaceSelection();
-      navigate(mode === "up" ? "/onboarding" : "/app");
+      navigate(
+        mode === "up" ? "/onboarding" : safeLoginReturn(loginParams.get("next")) + location.hash,
+      );
     } catch {
       setError(t`Could not reach the server`);
     } finally {

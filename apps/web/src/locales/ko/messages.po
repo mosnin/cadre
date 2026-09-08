@@ -3457,3 +3457,11 @@ msgstr ""
 #: src/pages/Shell.tsx:4117
 msgid "Take control"
 msgstr "제어권 가져오기"
+
+#: src/App.tsx
+msgid "Page not found"
+msgstr "페이지를 찾을 수 없습니다"
+
+#: src/App.tsx
+msgid "Back to Cadre"
+msgstr "Cadre로 돌아가기"

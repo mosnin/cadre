@@ -3458,3 +3458,11 @@ msgstr ""
 #: src/pages/Shell.tsx:4117
 msgid "Take control"
 msgstr "Assumir controle"
+
+#: src/App.tsx
+msgid "Page not found"
+msgstr "Página não encontrada"
+
+#: src/App.tsx
+msgid "Back to Cadre"
+msgstr "Voltar ao Cadre"

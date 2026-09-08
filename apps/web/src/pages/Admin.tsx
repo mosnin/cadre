@@ -60,8 +60,18 @@ export function AdminPage() {
     setRevision((value) => value + 1);
   };
   async function signIn() {
-    await authClient.signOut();
-    window.location.assign("/login?next=%2Fapp%2Fadmin");
+    setBusy(true);
+    setError("");
+    try {
+      const result = await authClient.signOut();
+      if (result.error) throw new Error(result.error.message || "Could not sign out. Try again.");
+      // Keep the one-time code in a fragment, never in server logs or persistent storage.
+      const fragment = code ? `#${new URLSearchParams({ claim: code })}` : "";
+      window.location.assign(`/login?next=%2Fapp%2Fadmin${fragment}`);
+    } catch (err) {
+      setError(errorText(err));
+      setBusy(false);
+    }
   }
 
   return (
@@ -102,7 +112,9 @@ export function AdminPage() {
                 Activate access for your signed-in account.
               </p>
               {!access.fresh ? (
-                <Button onClick={() => void signIn()}>Sign in again</Button>
+                <Button disabled={busy} onClick={() => void signIn()}>
+                  Sign in again
+                </Button>
               ) : (
                 <form
                   className="space-y-4"
@@ -148,7 +160,7 @@ export function AdminPage() {
               <p className="text-sm text-muted-foreground">
                 This account does not have administrator access.
               </p>
-              <Button variant="outline" onClick={() => void signIn()}>
+              <Button variant="outline" disabled={busy} onClick={() => void signIn()}>
                 Use another account
               </Button>
             </>
@@ -188,7 +200,7 @@ export function AdminPage() {
             {!access.fresh && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4 text-sm">
                 <span>Sign in again to make changes.</span>
-                <Button size="sm" variant="outline" onClick={() => void signIn()}>
+                <Button size="sm" variant="outline" disabled={busy} onClick={() => void signIn()}>
                   Sign in again
                 </Button>
               </div>
