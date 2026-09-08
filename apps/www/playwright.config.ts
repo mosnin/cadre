@@ -24,9 +24,12 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "pnpm dev",
+    // Exercise the deployed static output. Dev dependency optimization can reload
+    // the page during a click and discard an otherwise successfully opened dialog.
+    command: "pnpm build && node e2e/preview.mjs",
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: Boolean(process.env.PLAYWRIGHT_WWW_BASE_URL) && !process.env.CI,
+    gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
     timeout: 120_000,
   },
 });
