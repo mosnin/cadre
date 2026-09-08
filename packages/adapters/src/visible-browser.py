@@ -186,19 +186,28 @@ class VisibleBrowser:
             validate_human_input(starting_epoch)
             self.save({})
             self.call('Input.dispatchMouseEvent', {'type': 'mouseWheel', 'x': 640, 'y': 400, 'deltaX': 0, 'deltaY': -500 if req.get('direction') == 'up' else 500})
-        if action != 'snapshot':
-            time.sleep(.2)
-            for _ in range(20):
-                try:
-                    ready = self.call('Runtime.evaluate', {'expression': 'document.readyState', 'returnByValue': True})['result'].get('value')
-                    if ready in ('interactive', 'complete'): break
-                except RuntimeError: pass
-                time.sleep(.1)
-        pages = [p for p in self.cdp.call('Target.getTargets')['targetInfos'] if p['type'] == 'page']
-        self.pages = pages
-        self.page = self.visible_page()
-        self.attach()
-        return self.snapshot()
+        try:
+            if action != 'snapshot':
+                time.sleep(.2)
+                for _ in range(20):
+                    try:
+                        ready = self.call('Runtime.evaluate', {'expression': 'document.readyState', 'returnByValue': True})['result'].get('value')
+                        if ready in ('interactive', 'complete'): break
+                    except RuntimeError: pass
+                    time.sleep(.1)
+            pages = [p for p in self.cdp.call('Target.getTargets')['targetInfos'] if p['type'] == 'page']
+            self.pages = pages
+            self.page = self.visible_page()
+            self.attach()
+            return self.snapshot()
+        except Exception as error:
+            if action == 'snapshot': raise
+            raise ValueError(
+                'The browser action was dispatched, but its result could not be observed. '
+                'Do not repeat the action automatically: take a fresh browser snapshot and '
+                'verify its effects before deciding what to do next.'
+            ) from error
+
 
 
 def main(req):

@@ -87,3 +87,37 @@ with tempfile.TemporaryDirectory() as root:
 print('fenced')`),
   ).toContain("fenced");
 });
+
+it("preserves dispatched action uncertainty when the follow-up observation fails", () => {
+  expect(
+    python(`
+class FakeCDP:
+    def call(self, method, params=None, session=None):
+        if method == 'Target.getTargets': return {'targetInfos':[{'type':'page','targetId':'tab'}]}
+        raise Exception('unexpected call')
+browser=m['VisibleBrowser'].__new__(m['VisibleBrowser'])
+browser.cdp=FakeCDP()
+browser.pages=[{'targetId':'tab'}]
+browser.visible_page=lambda: browser.pages[0]
+browser.attach=lambda: None
+browser.save=lambda state: None
+calls=[]
+def call(method, params=None):
+    calls.append(method)
+    if method == 'Page.navigate': return {}
+    if method == 'Runtime.evaluate': return {'result':{'value':'complete'}}
+    raise Exception('unexpected call')
+browser.call=call
+def snapshot(): raise ValueError('The user changed this screen')
+browser.snapshot=snapshot
+try: browser.act({'action':'navigate','url':'https://example.test'})
+except ValueError as e:
+    assert 'was dispatched' in str(e) and 'Do not repeat' in str(e)
+else: raise Exception('lost uncertain action outcome')
+assert calls.count('Page.navigate') == 1
+try: browser.act({'action':'snapshot'})
+except ValueError as e: assert 'was dispatched' not in str(e)
+else: raise Exception('snapshot failure swallowed')
+print('outcome preserved')`),
+  ).toContain("outcome preserved");
+});

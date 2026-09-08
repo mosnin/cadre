@@ -70,7 +70,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "computer_act",
     description:
-      "Perform up to 24 ordered desktop actions on this bot's computer and return the resulting screen. Batch only predictable actions; stop before an outcome you need to inspect. Action kinds: click, move, down, up, type, key, scroll, wait.",
+      "Perform up to 24 ordered desktop actions on this bot's computer and return the resulting screen. Batch only predictable actions; stop before an outcome you need to inspect. Keep each pointer down and matching up in the same batch. After a partial failure, verify completed actions before continuing; never replay the entire batch automatically. Action kinds: click, move, down, up, type, key, scroll, wait.",
     inputSchema: {
       type: "object",
       properties: {
