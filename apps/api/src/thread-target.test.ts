@@ -261,7 +261,6 @@ describe("threadSnapshot", () => {
         where: expect.objectContaining({
           botId: "bot-1",
           threadId: "thread-1",
-          trigger: { not: "bot_message" },
           status: {
             in: ["queued", "leased", "running", "waiting_input", "waiting_takeover", "failed"],
           },
@@ -323,7 +322,6 @@ describe("threadSnapshot", () => {
       2,
       expect.objectContaining({
         where: expect.objectContaining({
-          trigger: { not: "bot_message" },
           status: { in: ["failed", "completed", "cancelled"] },
         }),
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -390,7 +388,6 @@ describe("threadSnapshot", () => {
       expect.objectContaining({
         where: {
           threadId: "thread-1",
-          trigger: { not: "bot_message" },
           status: { in: ["failed", "completed", "cancelled"] },
         },
         orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
@@ -401,7 +398,6 @@ describe("threadSnapshot", () => {
       expect.objectContaining({
         where: {
           threadId: "thread-1",
-          trigger: { not: "bot_message" },
           status: { in: ["queued", "leased", "running", "waiting_input", "waiting_takeover"] },
         },
       }),
@@ -412,7 +408,7 @@ describe("threadSnapshot", () => {
     expect(snapshot.activeRuns).toEqual([]);
   });
 
-  it("omits peer bot_message runs from group activeRuns and displayed terminal run", async () => {
+  it("shows internal peer lifecycle state without exposing progress chatter", async () => {
     const peerActive = {
       id: "run-peer-active",
       botId: "bot-a",
@@ -447,12 +443,16 @@ describe("threadSnapshot", () => {
     });
     const snapshot = await threadSnapshot({ prisma: groupPrisma(findManyRuns) }, groupTarget());
 
-    expect(snapshot.activeRuns).toEqual([]);
-    expect(snapshot.run).toBeNull();
+    expect(snapshot.activeRuns).toEqual([
+      expect.objectContaining({ id: "run-peer-active", status: "running" }),
+    ]);
+    expect(snapshot.run).toEqual(
+      expect.objectContaining({ id: "run-peer-failed", status: "failed" }),
+    );
+    expect(snapshot.messages).toEqual([]);
     expect(findManyRuns).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          trigger: { not: "bot_message" },
           status: { in: ["queued", "leased", "running", "waiting_input", "waiting_takeover"] },
         }),
       }),
@@ -460,12 +460,52 @@ describe("threadSnapshot", () => {
     expect(findManyRuns).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          trigger: { not: "bot_message" },
           status: { in: ["failed", "completed", "cancelled"] },
         }),
       }),
     );
   });
+
+  it.each(["result", "status"])(
+    "shows %s callback active and failed run states",
+    async (intent) => {
+      const run = {
+        id: "callback",
+        botId: "bot-a",
+        threadId: "thread-1",
+        taskId: "task-callback",
+        trigger: "bot_message",
+        sourceMessage: { blocks: [{ kind: "bot_message_received", intent }] },
+        modelProvider: null,
+        modelId: null,
+        error: null,
+        startedAt: null,
+        completedAt: null,
+        createdAt: new Date("2026-08-23T00:00:05.000Z"),
+        status: "running",
+      };
+      const active = await threadSnapshot(
+        { prisma: groupPrisma(groupRunFindMany({ active: [run] })) },
+        groupTarget(),
+      );
+      expect(active.activeRuns).toEqual([
+        expect.objectContaining({ id: "callback", status: "running" }),
+      ]);
+      const failed = await threadSnapshot(
+        {
+          prisma: groupPrisma(
+            groupRunFindMany({
+              terminals: [{ ...run, status: "failed", error: "callback failed" }],
+            }),
+          ),
+        },
+        groupTarget(),
+      );
+      expect(failed.run).toEqual(
+        expect.objectContaining({ id: "callback", status: "failed", error: "callback failed" }),
+      );
+    },
+  );
 
   it("does not revive an older group failure after a newer run completed", async () => {
     const failed = {
@@ -701,21 +741,11 @@ function isTerminalRunQuery(where: { status?: { in?: string[] } } | undefined) {
   return Array.isArray(statuses) && statuses.includes("failed") && statuses.includes("completed");
 }
 
-function excludesPeerRuns(where: { trigger?: { not?: string } } | undefined) {
-  return where?.trigger?.not === "bot_message";
-}
-
 function groupRunFindMany(input: { active?: unknown[]; terminals?: unknown[] }) {
   return vi
     .fn()
-    .mockImplementation(
-      async (args: { where?: { status?: { in?: string[] }; trigger?: { not?: string } } }) => {
-        const rows = isTerminalRunQuery(args.where)
-          ? (input.terminals ?? [])
-          : (input.active ?? []);
-        if (!excludesPeerRuns(args.where)) return rows;
-        return rows.filter((row) => (row as { trigger?: string }).trigger !== "bot_message");
-      },
+    .mockImplementation(async (args: { where?: { status?: { in?: string[] } } }) =>
+      isTerminalRunQuery(args.where) ? (input.terminals ?? []) : (input.active ?? []),
     );
 }
 

@@ -46,10 +46,12 @@ import { createDb, createThreadEvents } from "@rakazo/db";
 import { SERVICE_NAMES } from "@rakazo/logging";
 import { createRootLogger } from "@rakazo/logging/axiom";
 import { MarkdownMemoryStore } from "@rakazo/memory";
+import { createWorkerIdentity } from "./worker-identity.js";
 
 const logger = createRootLogger(SERVICE_NAMES.worker);
 
 async function main() {
+  const identity = createWorkerIdentity(process.env.GIT_SHA ?? process.env.RAKAZO_GIT_SHA);
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL is required");
   const { prisma, pool } = createDb(databaseUrl);
@@ -152,7 +154,7 @@ async function main() {
     home,
     jobs,
     events,
-    workerId: process.pid.toString(),
+    workerId: identity.id,
     runtime,
     secretStore: secrets,
     memoryProviders,
@@ -213,7 +215,10 @@ async function main() {
   process.once("SIGTERM", () => void stop());
   process.once("SIGINT", () => void stop());
 
-  logger.info("worker ready");
+  logger.info("worker ready", {
+    "worker.id": identity.id,
+    "deployment.revision": identity.revision,
+  });
 }
 
 main().catch(async (error) => {

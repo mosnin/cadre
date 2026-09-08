@@ -59,6 +59,46 @@ describe("createRepos.listBots", () => {
     ]);
   });
 
+  it.each(["result", "status"])(
+    "shows %s callback summaries in sidebar previews without requerying checked runs",
+    async (intent) => {
+      const sourceBlocks = [
+        {
+          kind: "bot_message_received",
+          intent,
+          fromBotId: "peer",
+          fromBotName: "Peer",
+          text: "42",
+        },
+      ];
+      const prisma = {
+        bot: {
+          findMany: vi.fn(async () => [
+            {
+              ...baseBot,
+              thread: {
+                ...baseBot.thread,
+                messages: [
+                  { runId: "callback", blocks: [{ kind: "text", text: "The answer is 42" }] },
+                  { runId: "callback", blocks: sourceBlocks },
+                ],
+              },
+            },
+          ]),
+        },
+        run: {
+          findMany: vi.fn(async () => [
+            { id: "callback", sourceMessage: { blocks: sourceBlocks } },
+          ]),
+        },
+      };
+      await expect(createRepos(prisma as unknown as PrismaClient).listBots(actor)).resolves.toEqual(
+        [expect.objectContaining({ preview: "The answer is 42" })],
+      );
+      expect(prisma.run.findMany).toHaveBeenCalledOnce();
+    },
+  );
+
   it("keeps bot-to-bot run output out of sidebar previews", async () => {
     const findMany = vi.fn(async () => [
       {

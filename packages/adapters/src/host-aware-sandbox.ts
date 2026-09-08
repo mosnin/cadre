@@ -216,6 +216,10 @@ export class HostAwareSandbox implements SandboxProvider {
     );
   }
 
+  updateImage(computer: ComputerRef, context: AdapterContext) {
+    return this.route(computer).updateImage?.(computer, context) ?? Promise.resolve(undefined);
+  }
+
   stop(computer: ComputerRef, context: AdapterContext) {
     return this.route(computer).stop(computer, context);
   }

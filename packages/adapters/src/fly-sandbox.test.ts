@@ -20,7 +20,12 @@ const machine = {
     mounts: [{ path: "/home/rakazo", volume: "vol_test" }],
   },
 };
-const ref = { id: machine.id, providerRef: machine.id, kind: "fly" as const, botId: "home" };
+const ref = {
+  id: machine.id,
+  providerRef: machine.id,
+  kind: "fly" as const,
+  botId: "home",
+};
 const options = {
   appName: "computer-test",
   apiToken: "test-api-token",
@@ -34,10 +39,19 @@ describe("persistent Fly computers", () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(json(machine));
     const provider = new FlySandboxProvider(options, request);
     const result = await provider.provision(
-      { botId: "home", homePath: "/workspace", providerKind: "fly", providerRef: machine.id },
+      {
+        botId: "home",
+        homePath: "/workspace",
+        providerKind: "fly",
+        providerRef: machine.id,
+      },
       context,
     );
-    expect(result).toMatchObject({ ...ref, fresh: false, workspaceRestored: true });
+    expect(result).toMatchObject({
+      ...ref,
+      fresh: false,
+      workspaceRestored: true,
+    });
     expect(request).toHaveBeenCalledOnce();
     expect(provider.suspendWhenIdle()).toBe(false);
   });
@@ -110,7 +124,13 @@ describe("persistent Fly computers", () => {
       .fn<typeof fetch>()
       .mockResolvedValueOnce(json([]))
       .mockResolvedValueOnce(
-        json([{ id: "vol_wait", name: `home_${owner.slice(0, 24)}`, state: "hydrating" }]),
+        json([
+          {
+            id: "vol_wait",
+            name: `home_${owner.slice(0, 24)}`,
+            state: "hydrating",
+          },
+        ]),
       );
     await expect(
       new FlySandboxProvider(options, request).provision(
@@ -129,7 +149,12 @@ it("waits for the provider backup to contain durable data before reporting a sna
     .mockResolvedValueOnce(json({ Msg: { backup: { graph_id: "vs_test" } } }))
     .mockResolvedValueOnce(
       json([
-        { id: "vs_test", digest: "backup-digest", size: 1024, created_at: "2026-09-06T00:00:00Z" },
+        {
+          id: "vs_test",
+          digest: "backup-digest",
+          size: 1024,
+          created_at: "2026-09-06T00:00:00Z",
+        },
       ]),
     );
   await expect(new FlySandboxProvider(options, request).snapshot(ref, context)).resolves.toEqual({
@@ -175,9 +200,13 @@ it("flushes and pauses browsers before a stop checkpoint and can restore them on
     .mockResolvedValueOnce(json(machine))
     .mockResolvedValueOnce(json({ ok: true }));
   const resume = await new FlySandboxProvider(options, request).pauseWorkspaceForStop(ref, context);
-  expect(JSON.parse(String(request.mock.calls[1]![1]?.body))).toEqual({ op: "restoreBegin" });
+  expect(JSON.parse(String(request.mock.calls[1]![1]?.body))).toEqual({
+    op: "restoreBegin",
+  });
   await resume();
-  expect(JSON.parse(String(request.mock.calls[3]![1]?.body))).toEqual({ op: "restoreEnd" });
+  expect(JSON.parse(String(request.mock.calls[3]![1]?.body))).toEqual({
+    op: "restoreEnd",
+  });
 });
 
 it("runs structured browser actions through the owned bot screen without shell interpolation", async () => {
@@ -193,7 +222,11 @@ it("runs structured browser actions through the owned bot screen without shell i
     text: "$(not-a-command) `literal`",
   };
   await expect(
-    provider.browser(ref, input, { ...context, botId: "bot", screenLeaseId: "run:1" }),
+    provider.browser(ref, input, {
+      ...context,
+      botId: "bot",
+      screenLeaseId: "run:1",
+    }),
   ).resolves.toEqual({ title: "Form", elements: [] });
   const payload = JSON.parse(String(request.mock.calls[1]![1]!.body));
   expect(payload.screenKey).toBe("bot");
@@ -285,4 +318,130 @@ it("keeps older persistent images view-only until their runtime supports shared 
   expect(url.searchParams.has("shared_until")).toBe(false);
   await session.close();
   expect(request).toHaveBeenCalledTimes(2);
+});
+
+it("updates the owned machine image without changing any other config or volume", async () => {
+  const original = {
+    ...machine,
+    instance_id: "version-old",
+    config: {
+      ...machine.config,
+      image: "registry.example/old",
+      env: { KEEP: "test-value" },
+      services: [{ internal_port: 8080 }],
+      restart: { policy: "always" },
+      custom: { preserved: true },
+    },
+  };
+  const changed = {
+    ...original,
+    instance_id: "version-new",
+    config: { ...original.config, image: options.image },
+  };
+  const request = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(json(original))
+    .mockResolvedValueOnce(json(changed))
+    .mockResolvedValueOnce(json({ ok: true }))
+    .mockResolvedValueOnce(json(changed));
+  const result = await new FlySandboxProvider(options, request).updateImage(ref, context);
+  expect(result).toMatchObject({
+    ...ref,
+    fresh: false,
+    workspaceRestored: true,
+  });
+  expect(JSON.parse(String(request.mock.calls[1]![1]!.body))).toEqual({
+    config: changed.config,
+    current_version: "version-old",
+  });
+  expect(String(request.mock.calls[1]![0])).toContain(`/machines/${machine.id}`);
+  expect(String(request.mock.calls[2]![0])).toContain("instance_id=version-new");
+  expect(request.mock.calls.filter(([, init]) => init?.method === "POST")).toHaveLength(1);
+  expect(request.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
+});
+
+it("rejects cross-team image updates before issuing a write", async () => {
+  const request = vi.fn<typeof fetch>().mockResolvedValue(json(machine));
+  await expect(
+    new FlySandboxProvider(options, request).updateImage(ref, {
+      ...context,
+      spaceId: "other",
+    }),
+  ).rejects.toThrow("Computer access denied");
+  expect(request).toHaveBeenCalledOnce();
+});
+
+it("does not destroy or create resources after an image update failure", async () => {
+  const request = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(json({ ...machine, instance_id: "version-old" }))
+    .mockResolvedValueOnce(new Response("failed", { status: 400 }));
+  await expect(new FlySandboxProvider(options, request).updateImage(ref, context)).rejects.toThrow(
+    "400",
+  );
+  expect(request).toHaveBeenCalledTimes(2);
+  expect(request.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
+});
+
+it("excludes a disk already scheduled for destruction from replacement allocation", async () => {
+  const name = `home_${owner.slice(0, 24)}`;
+  const request = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(json([]))
+    .mockResolvedValueOnce(
+      json([
+        {
+          id: "vol_old",
+          name,
+          state: "scheduling_destroy",
+          attached_machine_id: null,
+        },
+      ]),
+    )
+    .mockResolvedValueOnce(json({ id: "vol_new", name, state: "created" }))
+    .mockResolvedValueOnce(json(machine));
+  await new FlySandboxProvider(options, request).provision(
+    { botId: "home", homePath: "/tmp/home" },
+    context,
+  );
+  expect(JSON.parse(String(request.mock.calls[3]![1]!.body)).config.mounts).toEqual([
+    { volume: "vol_new", path: "/home/rakazo" },
+  ]);
+});
+
+it("rejects image updates without a current version before writing", async () => {
+  const request = vi.fn<typeof fetch>().mockResolvedValue(json(machine));
+  await expect(new FlySandboxProvider(options, request).updateImage(ref, context)).rejects.toThrow(
+    "version is unavailable",
+  );
+  expect(request).toHaveBeenCalledOnce();
+});
+
+it("rejects an update response without a version instead of waiting for any instance", async () => {
+  const request = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(json({ ...machine, instance_id: "version-old" }))
+    .mockResolvedValueOnce(json(machine));
+  await expect(new FlySandboxProvider(options, request).updateImage(ref, context)).rejects.toThrow(
+    "updated version is unavailable",
+  );
+  expect(request).toHaveBeenCalledTimes(2);
+});
+
+it("rejects readiness from a different machine version", async () => {
+  const changed = {
+    ...machine,
+    instance_id: "version-new",
+    config: { ...machine.config, image: options.image },
+  };
+  const request = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(json({ ...machine, instance_id: "version-old" }))
+    .mockResolvedValueOnce(json(changed))
+    .mockResolvedValueOnce(json({}))
+    .mockResolvedValueOnce(json({ ...changed, instance_id: "version-unexpected" }));
+  await expect(new FlySandboxProvider(options, request).updateImage(ref, context)).rejects.toThrow(
+    "could not be verified",
+  );
+  expect(request.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
 });

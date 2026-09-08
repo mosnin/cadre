@@ -1,5 +1,5 @@
 import type { MessageBlock, ThreadMessage, ThreadMessagePage } from "@rakazo/contracts";
-import { isPeerReceiptBlocks } from "@rakazo/core";
+import { hasUserInputBlocks, isPeerReceiptBlocks, isUserFacingPeerCallback } from "@rakazo/core";
 import type { Prisma, PrismaClient } from "@rakazo/db";
 
 type MessageDb = PrismaClient | Prisma.TransactionClient;
@@ -35,7 +35,7 @@ export async function loadMessagePage(
       const hasOlder = first
         ? (await prisma.message.count({ where: { threadId, seq: { lt: first.seq } } })) > 0
         : false;
-      // Peer text/activity stays out of the normal transcript (including the
+      // Internal request/FYI text stays out of the normal transcript (including the
       // around target). Receipts remain via withoutPeerRunMessages; full peer
       // history belongs in the bot-messages overlay (includePeerRuns).
       const messages = includePeerRuns ? rows : await withoutPeerRunMessages(prisma, rows);
@@ -101,11 +101,15 @@ async function withoutPeerRunMessages<T extends { runId: string | null; blocks: 
   if (runIds.length === 0) return rows;
   const peerRuns = await prisma.run.findMany({
     where: { id: { in: runIds }, trigger: "bot_message" },
-    select: { id: true },
+    select: { id: true, sourceMessage: { select: { blocks: true } } },
   });
-  const peerRunIds = new Set(peerRuns.map((run) => run.id));
+  const peerRunIds = new Set(
+    peerRuns
+      .filter((run) => !isUserFacingPeerCallback(run.sourceMessage?.blocks))
+      .map((run) => run.id),
+  );
   return rows.filter((row) => {
-    if (!row.runId || !peerRunIds.has(row.runId)) return true;
+    if (!row.runId || !peerRunIds.has(row.runId) || hasUserInputBlocks(row.blocks)) return true;
     // Keep compact sent/received receipts; clients render them as chips.
     const blocks = row.blocks as MessageBlock[];
     return blocks.some(
@@ -114,7 +118,7 @@ async function withoutPeerRunMessages<T extends { runId: string | null; blocks: 
   });
 }
 
-export async function isPeerRun(
+export async function isInternalPeerRun(
   prisma: MessageDb,
   runId: string | undefined,
   cache: Map<string, Promise<boolean>>,
@@ -123,8 +127,14 @@ export async function isPeerRun(
   let peerRun = cache.get(runId);
   if (!peerRun) {
     peerRun = prisma.run
-      .findUnique({ where: { id: runId }, select: { trigger: true } })
-      .then((run) => run?.trigger === "bot_message");
+      .findUnique({
+        where: { id: runId },
+        select: { trigger: true, sourceMessage: { select: { blocks: true } } },
+      })
+      .then(
+        (run) =>
+          run?.trigger === "bot_message" && !isUserFacingPeerCallback(run.sourceMessage?.blocks),
+      );
     cache.set(runId, peerRun);
   }
   return peerRun;
