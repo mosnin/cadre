@@ -16,6 +16,20 @@ const ctx = {
 };
 
 describe("host-aware sandbox", () => {
+  it("routes offline file access policy by persisted kind even without a machine reference", () => {
+    const isolated = new FakeSandboxProvider();
+    const host = new DesktopSandboxProvider();
+    const policy = vi.fn(() => true);
+    const sandbox = new HostAwareSandbox(
+      Object.assign(isolated, { requiresRunningForWorkspaceAccess: policy }),
+      host,
+      async () => true,
+    );
+    expect(sandbox.requiresRunningForWorkspaceAccess({ kind: "fake" })).toBe(true);
+    expect(sandbox.requiresRunningForWorkspaceAccess({ kind: "desktop" })).toBe(false);
+    expect(policy).toHaveBeenCalledExactlyOnceWith({ kind: "fake" });
+  });
+
   const hostRoot = mkdtempSync(path.join(tmpdir(), "rakazo-host-root-"));
 
   afterAll(() => {

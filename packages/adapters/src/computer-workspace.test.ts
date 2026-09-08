@@ -54,7 +54,10 @@ describe("provider-neutral computer workspace", () => {
 
     await firstProvider.writeFile(
       first,
-      { path: "notes/result.txt", content: new TextEncoder().encode("portable") },
+      {
+        path: "notes/result.txt",
+        content: new TextEncoder().encode("portable"),
+      },
       context,
     );
     const revision = await checkpointComputerWorkspace(
@@ -160,7 +163,11 @@ describe("stop workspace durability", () => {
     );
     const exported = vi.spyOn(sandbox, "exportWorkspace");
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
-    const deps = { home, sandbox, prisma: { computer: { updateMany } } as unknown as PrismaClient };
+    const deps = {
+      home,
+      sandbox,
+      prisma: { computer: { updateMany } } as unknown as PrismaClient,
+    };
     return { deps, computer, exported, updateMany };
   }
   it("does not contact the desktop when the provider verifies an already stopped persistent computer", async () => {
@@ -186,7 +193,9 @@ describe("stop workspace durability", () => {
       );
       expect(exported).toHaveBeenCalledOnce();
       expect(updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { homeRevision: expect.stringMatching(/^rev-/) } }),
+        expect.objectContaining({
+          data: { homeRevision: expect.stringMatching(/^rev-/) },
+        }),
       );
       const files = [];
       for await (const file of deps.home.exportHome(computer.botId, context)) files.push(file);
@@ -225,7 +234,12 @@ it("quiesces browser profile writes before Stop and restores them if the checkpo
     home: {},
     prisma: {},
   } as unknown as Parameters<typeof checkpointBeforeComputerStop>[0];
-  const computer = { id: "computer", botId: "home", kind: "fly" as const, providerRef: "ref" };
+  const computer = {
+    id: "computer",
+    botId: "home",
+    kind: "fly" as const,
+    providerRef: "ref",
+  };
   await expect(
     checkpointBeforeComputerStop(deps, { id: "computer", homeKey: "home" }, computer, context),
   ).rejects.toThrow("backup unavailable");
@@ -234,7 +248,12 @@ it("quiesces browser profile writes before Stop and restores them if the checkpo
 });
 
 describe("task checkpoints on persistent computers", () => {
-  const computer = { id: "vm", providerRef: "vm", botId: "home", kind: "fly" as const };
+  const computer = {
+    id: "vm",
+    providerRef: "vm",
+    botId: "home",
+    kind: "fly" as const,
+  };
   it("flushes durable storage without exporting the entire running browser profile", async () => {
     const exportWorkspace = vi.fn();
     const persistWorkspace = vi.fn().mockResolvedValue(true);
@@ -257,7 +276,11 @@ describe("task checkpoints on persistent computers", () => {
     const persistWorkspace = vi.fn().mockRejectedValue(new Error("disk failed"));
     await expect(
       checkpointAfterComputerWork(
-        { sandbox: { persistWorkspace } as never, home: {} as never, prisma: {} as never },
+        {
+          sandbox: { persistWorkspace } as never,
+          home: {} as never,
+          prisma: {} as never,
+        },
         { id: "db", homeKey: "home" },
         computer,
         context,
@@ -277,7 +300,11 @@ describe("task checkpoints on persistent computers", () => {
     );
     const updateMany = vi.fn();
     await checkpointAfterComputerWork(
-      { home, sandbox: provider, prisma: { computer: { updateMany } } as never },
+      {
+        home,
+        sandbox: provider,
+        prisma: { computer: { updateMany } } as never,
+      },
       { id: "db", homeKey: "home" },
       ref,
       context,
@@ -287,4 +314,60 @@ describe("task checkpoints on persistent computers", () => {
       data: { homeRevision: expect.stringMatching(/^rev-/) },
     });
   });
+});
+
+it("stops a large durable workspace without portable export or claiming a home revision", async () => {
+  const resume = vi.fn().mockResolvedValue(undefined);
+  const pauseWorkspaceForStop = vi.fn().mockResolvedValue(resume);
+  const persistWorkspace = vi.fn().mockResolvedValue(true);
+  const exportWorkspace = vi.fn(async function* () {
+    yield await Promise.reject(new Error("Workspace exceeds checkpoint limit"));
+  });
+  const updateMany = vi.fn();
+  const deps = {
+    sandbox: { pauseWorkspaceForStop, persistWorkspace, exportWorkspace },
+    home: {},
+    prisma: { computer: { updateMany } },
+  } as unknown as Parameters<typeof checkpointBeforeComputerStop>[0];
+  const computer = {
+    id: "vm",
+    providerRef: "vm",
+    botId: "home",
+    kind: "fly" as const,
+  };
+  expect(
+    await checkpointBeforeComputerStop(deps, { id: "db", homeKey: "home" }, computer, context),
+  ).toBe(resume);
+  expect(pauseWorkspaceForStop.mock.invocationCallOrder[0]).toBeLessThan(
+    persistWorkspace.mock.invocationCallOrder[0]!,
+  );
+  expect(exportWorkspace).not.toHaveBeenCalled();
+  expect(updateMany).not.toHaveBeenCalled();
+  expect(resume).not.toHaveBeenCalled();
+});
+
+it("resumes browser services if durable Stop persistence fails", async () => {
+  const resume = vi.fn().mockResolvedValue(undefined);
+  const persistWorkspace = vi.fn().mockRejectedValue(new Error("disk failed"));
+  const exportWorkspace = vi.fn();
+  const deps = {
+    sandbox: {
+      pauseWorkspaceForStop: vi.fn().mockResolvedValue(resume),
+      persistWorkspace,
+      exportWorkspace,
+    },
+    home: {},
+    prisma: {},
+  } as unknown as Parameters<typeof checkpointBeforeComputerStop>[0];
+  const computer = {
+    id: "vm",
+    providerRef: "vm",
+    botId: "home",
+    kind: "fly" as const,
+  };
+  await expect(
+    checkpointBeforeComputerStop(deps, { id: "db", homeKey: "home" }, computer, context),
+  ).rejects.toThrow("disk failed");
+  expect(resume).toHaveBeenCalledOnce();
+  expect(exportWorkspace).not.toHaveBeenCalled();
 });

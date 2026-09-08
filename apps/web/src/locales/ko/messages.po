@@ -3505,3 +3505,19 @@ msgstr ""
 #: src/pages/RealtimeCallView.tsx:140
 msgid "Thinking…"
 msgstr ""
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Could not export bot"
+msgstr "봇을 내보내지 못했습니다"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Exporting…"
+msgstr "내보내는 중…"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Starting computer…"
+msgstr "컴퓨터 시작 중…"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Start computer and retry export"
+msgstr "컴퓨터를 시작하고 내보내기 다시 시도"

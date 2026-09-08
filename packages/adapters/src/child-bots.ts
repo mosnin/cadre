@@ -20,7 +20,7 @@ import {
 } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import { toComputerRef } from "./computer-support.js";
-import { checkpointAndRecordComputerWorkspace } from "./computer-workspace.js";
+import { checkpointBeforeComputerStop } from "./computer-workspace.js";
 import { resolveAgentHomePath } from "./home.js";
 
 export function confirmSpawnedBotName(confirmName: string, botName: string) {
@@ -232,10 +232,14 @@ export async function archiveSpawnedBot(
     : spawned.filter((bot) => bot.name === confirmName);
 
   if (input.botId && matches.length === 0) {
-    return { error: "That bot was not created by this bot. Refusing to archive." };
+    return {
+      error: "That bot was not created by this bot. Refusing to archive.",
+    };
   }
   if (!input.botId && matches.length === 0) {
-    return { error: `This bot did not create a bot named "${confirmName}". Refusing to archive.` };
+    return {
+      error: `This bot did not create a bot named "${confirmName}". Refusing to archive.`,
+    };
   }
   if (!input.botId && matches.length > 1) {
     return {
@@ -315,8 +319,13 @@ export async function archiveBot(
     : null;
   if (currentDedicated?.providerRef && currentDedicated.state === "running") {
     const ref = toComputerRef(currentDedicated);
-    await checkpointAndRecordComputerWorkspace(deps, currentDedicated, ref, context);
-    await deps.sandbox.stop(ref, context);
+    const resume = await checkpointBeforeComputerStop(deps, currentDedicated, ref, context);
+    try {
+      await deps.sandbox.stop(ref, context);
+    } catch (error) {
+      await resume?.();
+      throw error;
+    }
     await deps.prisma.computer.updateMany({
       where: {
         id: currentDedicated.id,
@@ -342,7 +351,10 @@ export async function destroyBot(
       where: { botId: bot.id, status: { in: [...ACTIVE_RUN_STATUSES] } },
       select: { id: true },
     }),
-    deps.prisma.routine.findMany({ where: { botId: bot.id }, select: { id: true } }),
+    deps.prisma.routine.findMany({
+      where: { botId: bot.id },
+      select: { id: true },
+    }),
   ]);
   const runIds = activeRuns.map((run) => run.id);
   await deps.prisma.run.updateMany({
@@ -496,7 +508,9 @@ async function detachBotFromGroups(tx: Prisma.TransactionClient, botId: string) 
           botId: true,
           bot: {
             select: {
-              computer: { select: { homeKey: true, kind: true, providerRef: true } },
+              computer: {
+                select: { homeKey: true, kind: true, providerRef: true },
+              },
             },
           },
         },
@@ -593,7 +607,9 @@ async function releaseTeamComputerScreen(
   context: AdapterContext,
 ) {
   if (!bot.computerId || bot.computerId === dedicatedId) return;
-  const computer = await deps.prisma.computer.findUnique({ where: { id: bot.computerId } });
+  const computer = await deps.prisma.computer.findUnique({
+    where: { id: bot.computerId },
+  });
   if (!computer?.providerRef) return;
   await deps.sandbox.releaseScreen?.(toComputerRef(computer), context).catch(() => undefined);
 }

@@ -251,11 +251,16 @@ it("flushes the mounted home volume before acknowledging task persistence", asyn
     .mockResolvedValueOnce(json(machine))
     .mockResolvedValueOnce(json({ stdout: "", stderr: "", code: 0 }));
   const provider = new FlySandboxProvider(options, request);
-  await expect(provider.persistWorkspace(ref, context)).resolves.toBe(true);
-  expect(JSON.parse(String(request.mock.calls[2]![1]!.body))).toMatchObject({
+  await expect(
+    provider.persistWorkspace(ref, { ...context, botId: "paused-bot", screenLeaseId: "run:9" }),
+  ).resolves.toBe(true);
+  const flush = JSON.parse(String(request.mock.calls[2]![1]!.body));
+  expect(flush).toMatchObject({
     op: "exec",
     argv: ["sync", "-f", "/home/rakazo"],
   });
+  expect(flush.screenKey).toBeUndefined();
+  expect(flush.screenLease).toBeUndefined();
 });
 
 it("does not claim persistence when the machine has no home volume", async () => {

@@ -3506,3 +3506,19 @@ msgstr ""
 #: src/pages/RealtimeCallView.tsx:140
 msgid "Thinking…"
 msgstr ""
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Could not export bot"
+msgstr "无法导出机器人"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Exporting…"
+msgstr "正在导出…"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Starting computer…"
+msgstr "正在启动计算机…"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Start computer and retry export"
+msgstr "启动计算机并重试导出"

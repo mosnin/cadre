@@ -97,8 +97,12 @@ describe("spawned bot creation", () => {
 });
 describe("spawned bot archival", () => {
   it("refuses when confirm_name does not match exactly", () => {
-    expect(confirmSpawnedBotName("scout", "Scout")).toMatchObject({ ok: false });
-    expect(confirmSpawnedBotName("Scout ", "Scout")).toMatchObject({ ok: false });
+    expect(confirmSpawnedBotName("scout", "Scout")).toMatchObject({
+      ok: false,
+    });
+    expect(confirmSpawnedBotName("Scout ", "Scout")).toMatchObject({
+      ok: false,
+    });
   });
 
   it("accepts an exact name match", () => {
@@ -129,7 +133,9 @@ describe("spawned bot archival", () => {
           run: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
           task: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
           routine: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
-          computerExecutionLease: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+          computerExecutionLease: {
+            updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+          },
           computer: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
           bot: { update: vi.fn().mockResolvedValue({}) },
         }),
@@ -174,7 +180,9 @@ describe("destroyBot", () => {
           deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
         },
         artifact: { findMany: findArtifacts, deleteMany: deleteArtifacts },
-        computerExecutionLease: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        computerExecutionLease: {
+          deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+        },
         computer: { updateMany: releaseComputers },
         $executeRaw: executeRaw,
         botDeletion: { create: createDeletion },
@@ -202,7 +210,12 @@ describe("destroyBot", () => {
         jobs: { cancel: vi.fn() } as unknown as JobPublisher,
         artifacts: { remove: removeArtifact } as unknown as ArtifactStore,
       },
-      { id: "bot-1", spaceId: "workspace-1", name: "Researcher", archivedAt: null },
+      {
+        id: "bot-1",
+        spaceId: "workspace-1",
+        name: "Researcher",
+        archivedAt: null,
+      },
       context,
       { deleteMemories: false },
     );
@@ -264,7 +277,11 @@ describe("destroyBot", () => {
         taskId: "group-task",
         botId: "bot-2",
         bot: {
-          computer: { homeKey: "team-home", kind: "fake", providerRef: "screen-1" },
+          computer: {
+            homeKey: "team-home",
+            kind: "fake",
+            providerRef: "screen-1",
+          },
         },
       },
     ]);
@@ -341,13 +358,22 @@ describe("destroyBot", () => {
         home: {} as AgentHomeStore,
         jobs: { cancel } as unknown as JobPublisher,
       },
-      { id: "bot-1", spaceId: "workspace-1", name: "Researcher", archivedAt: null },
+      {
+        id: "bot-1",
+        spaceId: "workspace-1",
+        name: "Researcher",
+        archivedAt: null,
+      },
       context,
       { deleteMemories: true },
     );
 
-    expect(deleteGroups).toHaveBeenCalledWith({ where: { id: { in: ["group-1", "group-3"] } } });
-    expect(deleteMemberships).toHaveBeenCalledWith({ where: { botId: "bot-1" } });
+    expect(deleteGroups).toHaveBeenCalledWith({
+      where: { id: { in: ["group-1", "group-3"] } },
+    });
+    expect(deleteMemberships).toHaveBeenCalledWith({
+      where: { botId: "bot-1" },
+    });
     expect(deleteMemberships.mock.invocationCallOrder[0]!).toBeLessThan(
       deleteGroups.mock.invocationCallOrder[0]!,
     );
@@ -382,7 +408,9 @@ describe("destroyBot", () => {
       where: { runId: { in: ["group-run"] } },
       data: { expiresAt: new Date(0) },
     });
-    expect(deleteExecutionLeases).toHaveBeenCalledWith({ where: { botId: "bot-1" } });
+    expect(deleteExecutionLeases).toHaveBeenCalledWith({
+      where: { botId: "bot-1" },
+    });
     expect(clearExecution).toHaveBeenCalledWith({
       where: { executionRunId: { in: ["group-run"] } },
       data: {
@@ -393,7 +421,12 @@ describe("destroyBot", () => {
     });
     expect(cancel).toHaveBeenCalledWith("run:group-run");
     expect(releaseScreen).toHaveBeenCalledWith(
-      { id: "screen-1", botId: "team-home", kind: "fake", providerRef: "screen-1" },
+      {
+        id: "screen-1",
+        botId: "team-home",
+        kind: "fake",
+        providerRef: "screen-1",
+      },
       expect.objectContaining({
         operationId: "destroy-group-run:bot-2",
         botId: "bot-2",
@@ -426,7 +459,12 @@ describe("destroyBot", () => {
           jobs: { cancel: vi.fn() } as unknown as JobPublisher,
           dataDir: "/tmp/rakazo-destroy-bot-test",
         },
-        { id: "bot-1", spaceId: "workspace-1", name: "Researcher", archivedAt: null },
+        {
+          id: "bot-1",
+          spaceId: "workspace-1",
+          name: "Researcher",
+          archivedAt: null,
+        },
         context,
         { deleteMemories: true },
       ),
@@ -460,7 +498,12 @@ describe("destroyBot", () => {
           home: {} as AgentHomeStore,
           jobs: { cancel: vi.fn() } as unknown as JobPublisher,
         },
-        { id: "bot-1", spaceId: "workspace-1", name: "Researcher", archivedAt: null },
+        {
+          id: "bot-1",
+          spaceId: "workspace-1",
+          name: "Researcher",
+          archivedAt: null,
+        },
         context,
         { deleteMemories: true },
       ),
@@ -480,7 +523,9 @@ describe("archiveBot", () => {
         run: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
         task: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
         routine: { updateMany: disableRoutines },
-        computerExecutionLease: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        computerExecutionLease: {
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        },
         computer: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         bot: { update: updateBot },
       }),
@@ -507,7 +552,12 @@ describe("archiveBot", () => {
         home: {} as AgentHomeStore,
         jobs: { cancel } as unknown as JobPublisher,
       },
-      { id: "bot-1", spaceId: "workspace-1", name: "Researcher", archivedAt: null },
+      {
+        id: "bot-1",
+        spaceId: "workspace-1",
+        name: "Researcher",
+        archivedAt: null,
+      },
       context,
     );
 
@@ -534,7 +584,9 @@ describe("archiveBot", () => {
         run: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         task: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         routine: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
-        computerExecutionLease: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        computerExecutionLease: {
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        },
         computer: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
         bot: { update: vi.fn().mockResolvedValue({}) },
       }),
@@ -557,8 +609,14 @@ describe("archiveBot", () => {
       routine: { findMany: vi.fn().mockResolvedValue([]) },
       $transaction: transaction,
     } as unknown as PrismaClient;
+    const resume = vi.fn().mockResolvedValue(undefined);
+    const exportWorkspace = vi.fn(async function* () {
+      yield await Promise.reject(new Error("Workspace exceeds checkpoint limit"));
+    });
     const sandbox = {
-      exportWorkspace: async function* () {},
+      exportWorkspace,
+      pauseWorkspaceForStop: vi.fn().mockResolvedValue(resume),
+      persistWorkspace: vi.fn().mockResolvedValue(true),
       stop,
     } as unknown as SandboxProvider;
     const home = {
@@ -580,9 +638,12 @@ describe("archiveBot", () => {
 
     expect(stop).toHaveBeenCalledOnce();
     expect(updateComputer).not.toHaveBeenCalled();
+    expect(resume).toHaveBeenCalledOnce();
+    expect(exportWorkspace).not.toHaveBeenCalled();
+    expect(home.commit).not.toHaveBeenCalled();
   });
 
-  it("stops a provider that finishes booting while the bot is archived", async () => {
+  it("stops a large durable provider that finishes booting while the bot is archived", async () => {
     const stop = vi.fn().mockResolvedValue(undefined);
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const booting = {
@@ -599,7 +660,9 @@ describe("archiveBot", () => {
         run: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         task: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         routine: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
-        computerExecutionLease: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        computerExecutionLease: {
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        },
         computer: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         bot: { update: vi.fn().mockResolvedValue({}) },
       }),
@@ -613,8 +676,14 @@ describe("archiveBot", () => {
       routine: { findMany: vi.fn().mockResolvedValue([]) },
       $transaction: transaction,
     } as unknown as PrismaClient;
+    const resume = vi.fn().mockResolvedValue(undefined);
+    const exportWorkspace = vi.fn(async function* () {
+      yield await Promise.reject(new Error("Workspace exceeds checkpoint limit"));
+    });
     const sandbox = {
-      exportWorkspace: async function* () {},
+      exportWorkspace,
+      pauseWorkspaceForStop: vi.fn().mockResolvedValue(resume),
+      persistWorkspace: vi.fn().mockResolvedValue(true),
       stop,
     } as unknown as SandboxProvider;
     const home = {
@@ -628,11 +697,19 @@ describe("archiveBot", () => {
         home,
         jobs: { cancel: vi.fn() } as unknown as JobPublisher,
       },
-      { id: "bot-1", spaceId: "workspace-1", name: "Researcher", archivedAt: null },
+      {
+        id: "bot-1",
+        spaceId: "workspace-1",
+        name: "Researcher",
+        archivedAt: null,
+      },
       context,
     );
 
     expect(stop).toHaveBeenCalledOnce();
+    expect(exportWorkspace).not.toHaveBeenCalled();
+    expect(home.commit).not.toHaveBeenCalled();
+    expect(resume).not.toHaveBeenCalled();
     expect(updateMany).toHaveBeenLastCalledWith({
       where: { id: "computer-1", state: "running", providerRef: "provider-1" },
       data: { state: "stopped" },

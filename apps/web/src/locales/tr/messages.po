@@ -3506,3 +3506,19 @@ msgstr ""
 #: src/pages/RealtimeCallView.tsx:140
 msgid "Thinking…"
 msgstr ""
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Could not export bot"
+msgstr "Bot dışa aktarılamadı"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Exporting…"
+msgstr "Dışa aktarılıyor…"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Starting computer…"
+msgstr "Bilgisayar başlatılıyor…"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Start computer and retry export"
+msgstr "Bilgisayarı başlat ve dışa aktarmayı yeniden dene"

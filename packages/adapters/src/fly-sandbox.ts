@@ -68,6 +68,9 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
   suspendWhenIdle() {
     return false;
   }
+  requiresRunningForWorkspaceAccess() {
+    return true;
+  }
   private owner(homeKey: string, ctx: AdapterContext) {
     return createHash("sha256")
       .update(JSON.stringify([ctx.spaceId, homeKey]))
@@ -282,7 +285,8 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
     for await (const event of this.execute(
       computer,
       { argv: ["sync", "-f", "/home/rakazo"], timeoutMs: 15000 },
-      context,
+      // Flushing storage must not allocate or restart a paused agent display.
+      { ...context, botId: undefined, screenLeaseId: undefined },
     )) {
       if (event.type === "exit") code = event.code;
     }

@@ -42,7 +42,9 @@ describe("joining computer startup", () => {
       updatedAt: new Date(),
     };
     const findUniqueOrThrow = vi.fn().mockImplementation(async () => ({ ...row }));
-    const prisma = { computer: { findUniqueOrThrow } } as unknown as PrismaClient;
+    const prisma = {
+      computer: { findUniqueOrThrow },
+    } as unknown as PrismaClient;
     return { row, prisma, findUniqueOrThrow };
   }
 
@@ -56,7 +58,10 @@ describe("joining computer startup", () => {
       await vi.advanceTimersByTimeAsync(250);
       await expect(result).resolves.toMatchObject({ state: "running" });
       expect(findUniqueOrThrow).toHaveBeenCalledWith({
-        where: { id: row.id, bots: { some: { id: context.botId, archivedAt: null } } },
+        where: {
+          id: row.id,
+          bots: { some: { id: context.botId, archivedAt: null } },
+        },
       });
     } finally {
       vi.useRealTimers();
@@ -69,7 +74,9 @@ describe("joining computer startup", () => {
       vi.useFakeTimers();
       try {
         const { row, prisma } = waitingComputer(state);
-        const result = waitForComputerReady(prisma, row.id, context, { waitForStart: true });
+        const result = waitForComputerReady(prisma, row.id, context, {
+          waitForStart: true,
+        });
         await vi.advanceTimersByTimeAsync(250);
         row.state = "booting";
         await vi.advanceTimersByTimeAsync(250);
@@ -104,7 +111,9 @@ describe("joining computer startup", () => {
     vi.useFakeTimers();
     try {
       const { row, prisma } = waitingComputer("stopped");
-      const result = waitForComputerReady(prisma, row.id, context, { waitForStart: true });
+      const result = waitForComputerReady(prisma, row.id, context, {
+        waitForStart: true,
+      });
       const rejected = expect(result).rejects.toThrow("startup was interrupted");
       await vi.advanceTimersByTimeAsync(250);
       row.updatedAt = new Date();
@@ -299,7 +308,9 @@ describe("computer provisioning", () => {
           context,
         );
         if (rollbackFails) {
-          await expect(result).rejects.toMatchObject({ errors: [failure, rollbackError] });
+          await expect(result).rejects.toMatchObject({
+            errors: [failure, rollbackError],
+          });
         } else {
           await expect(result).rejects.toBe(failure);
         }
@@ -512,49 +523,54 @@ describe("computer provisioning", () => {
     }
   });
 
-  it("releases the screen when activation fails on a resumed Team computer", async () => {
-    const dataDir = await mkdtemp(path.join(tmpdir(), "rakazo-team-activation-rollback-"));
-    const ref = {
-      id: "provider-1",
-      botId: "team-home",
-      kind: "docker" as const,
-      providerRef: "provider-1",
-      fresh: false,
-    };
-    const stop = vi.fn().mockResolvedValue(undefined);
-    const releaseScreen = vi.fn().mockResolvedValue(undefined);
-    const updateMany = vi
-      .fn()
-      .mockResolvedValueOnce({ count: 1 })
-      .mockResolvedValueOnce({ count: 0 })
-      .mockResolvedValueOnce({ count: 0 });
-    const prisma = {
-      computer: {
-        findUniqueOrThrow: vi.fn().mockResolvedValue({
-          id: "computer-1",
-          homeKey: "team-home",
-          providerRef: "provider-1",
-          kind: "docker",
-          scope: "team",
-          state: "stopped",
-          controlLeaseId: null,
+  it.each([false, true])(
+    "preserves a resumed Team computer on activation failure (stop fails=%s)",
+    async (stopFails) => {
+      const dataDir = await mkdtemp(path.join(tmpdir(), "rakazo-team-activation-rollback-"));
+      const ref = {
+        id: "provider-1",
+        botId: "team-home",
+        kind: "docker" as const,
+        providerRef: "provider-1",
+        fresh: false,
+      };
+      const stop = stopFails
+        ? vi.fn().mockRejectedValue(new Error("stop failed"))
+        : vi.fn().mockResolvedValue(undefined);
+      const destroy = vi.fn();
+      const releaseScreen = vi.fn().mockResolvedValue(undefined);
+      const updateMany = vi
+        .fn()
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 0 });
+      const prisma = {
+        computer: {
+          findUniqueOrThrow: vi.fn().mockResolvedValue({
+            id: "computer-1",
+            homeKey: "team-home",
+            providerRef: "provider-1",
+            kind: "docker",
+            scope: "team",
+            state: "stopped",
+            controlLeaseId: null,
+          }),
+          updateMany,
+        },
+      } as unknown as PrismaClient;
+      const sandbox = {
+        provision: vi.fn().mockResolvedValue(ref),
+        prepare: vi.fn().mockResolvedValue(undefined),
+        execute: vi.fn(async function* () {
+          yield { type: "exit", code: 0 };
         }),
-        updateMany,
-      },
-    } as unknown as PrismaClient;
-    const sandbox = {
-      provision: vi.fn().mockResolvedValue(ref),
-      prepare: vi.fn().mockResolvedValue(undefined),
-      execute: vi.fn(async function* () {
-        yield { type: "exit", code: 0 };
-      }),
-      stop,
-      releaseScreen,
-    } as unknown as SandboxProvider;
+        stop,
+        destroy,
+        releaseScreen,
+      } as unknown as SandboxProvider;
 
-    try {
-      await expect(
-        provisionComputer(
+      try {
+        const operation = provisionComputer(
           {
             prisma,
             sandbox,
@@ -565,15 +581,24 @@ describe("computer provisioning", () => {
           },
           "computer-1",
           context,
-        ),
-      ).rejects.toThrow("Computer is busy");
-      expect(sandbox.execute).toHaveBeenCalled();
-      expect(releaseScreen).toHaveBeenCalledWith(ref, context);
-      expect(stop).toHaveBeenCalledWith(ref, context);
-    } finally {
-      await rm(dataDir, { recursive: true, force: true });
-    }
-  });
+        );
+        if (stopFails)
+          await expect(operation).rejects.toMatchObject({
+            errors: [
+              expect.objectContaining({ message: "Computer is busy" }),
+              expect.objectContaining({ message: "stop failed" }),
+            ],
+          });
+        else await expect(operation).rejects.toThrow("Computer is busy");
+        expect(destroy).not.toHaveBeenCalled();
+        expect(sandbox.execute).toHaveBeenCalled();
+        expect(releaseScreen).toHaveBeenCalledWith(ref, context);
+        expect(stop).toHaveBeenCalledWith(ref, context);
+      } finally {
+        await rm(dataDir, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("retains a fresh provider reference when rollback also fails", async () => {
     const dataDir = await mkdtemp(path.join(tmpdir(), "rakazo-prepare-rollback-failure-"));
@@ -864,7 +889,10 @@ describe("computer execution leases", () => {
       thread: {
         update: vi
           .fn()
-          .mockResolvedValueOnce({ nextMessageSeq: 0, historyCompactionGeneration: 0 })
+          .mockResolvedValueOnce({
+            nextMessageSeq: 0,
+            historyCompactionGeneration: 0,
+          })
           .mockResolvedValue({ nextEventSeq: 1 }),
       },
       run: {
@@ -1104,7 +1132,11 @@ describe("computer replacement", () => {
       const update = vi.fn();
       const updateMany = vi.fn().mockResolvedValue({ count: 1 });
       const prisma = {
-        computer: { findUniqueOrThrow: vi.fn().mockResolvedValue(row), update, updateMany },
+        computer: {
+          findUniqueOrThrow: vi.fn().mockResolvedValue(row),
+          update,
+          updateMany,
+        },
         run: { findFirst: vi.fn().mockResolvedValue(null) },
       } as unknown as PrismaClient;
       const failure = Object.assign(new Error("persistent computer unavailable"), {
@@ -1167,7 +1199,11 @@ describe("computer replacement", () => {
     const update = vi.fn();
     const updateMany = vi.fn().mockResolvedValue({ count: 1 });
     const prisma = {
-      computer: { findUniqueOrThrow: vi.fn().mockResolvedValue(row), update, updateMany },
+      computer: {
+        findUniqueOrThrow: vi.fn().mockResolvedValue(row),
+        update,
+        updateMany,
+      },
       run: { findFirst: vi.fn().mockResolvedValue(null) },
     } as unknown as PrismaClient;
     const commit = vi.fn().mockResolvedValue("fresh-backup");
@@ -1183,7 +1219,10 @@ describe("computer replacement", () => {
         capabilities: { ...descriptor.capabilities, persistentRunning: true },
       }),
       exportWorkspace: async function* () {
-        yield { path: "new.txt", content: new TextEncoder().encode("newer than backup") };
+        yield {
+          path: "new.txt",
+          content: new TextEncoder().encode("newer than backup"),
+        };
       },
       destroy,
       pauseWorkspaceForStop: vi.fn().mockResolvedValue(resume),
@@ -1242,7 +1281,11 @@ describe("computer replacement", () => {
     const findUniqueOrThrow = vi
       .fn()
       .mockResolvedValueOnce(computerRecord)
-      .mockResolvedValueOnce({ ...computerRecord, state: "stopped", providerRef: null })
+      .mockResolvedValueOnce({
+        ...computerRecord,
+        state: "stopped",
+        providerRef: null,
+      })
       .mockResolvedValue({
         ...computerRecord,
         state: "stopped",
@@ -1256,7 +1299,9 @@ describe("computer replacement", () => {
     const update = vi.fn().mockResolvedValue({});
     const prisma = {
       computer: { findUniqueOrThrow, updateMany, update },
-      computerExecutionLease: { deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      computerExecutionLease: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
       run: { findFirst: vi.fn().mockResolvedValue(null) },
     } as unknown as PrismaClient;
 
@@ -1480,7 +1525,10 @@ describe("computer replacement", () => {
     expect(updateMany).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        where: expect.objectContaining({ id: "computer-1", controlHolder: "user" }),
+        where: expect.objectContaining({
+          id: "computer-1",
+          controlHolder: "user",
+        }),
         data: expect.objectContaining({ controlHolder: "none" }),
       }),
     );
@@ -1521,7 +1569,9 @@ describe("computer replacement", () => {
           prisma,
           sandbox,
           home: {} as AgentHomeStore,
-          jobs: { enqueue: vi.fn().mockResolvedValue(undefined) } as unknown as JobPublisher,
+          jobs: {
+            enqueue: vi.fn().mockResolvedValue(undefined),
+          } as unknown as JobPublisher,
           events: {} as ThreadEvents,
         },
         "computer-1",
@@ -1671,7 +1721,10 @@ describe("computer replacement", () => {
     expect(updateMany).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        where: expect.objectContaining({ id: "computer-1", state: "suspended" }),
+        where: expect.objectContaining({
+          id: "computer-1",
+          state: "suspended",
+        }),
         data: { state: "suspending" },
       }),
     );
@@ -1735,7 +1788,10 @@ describe("computer replacement", () => {
       expect(updateMany).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
-          where: expect.objectContaining({ id: "computer-1", state: "stopped" }),
+          where: expect.objectContaining({
+            id: "computer-1",
+            state: "stopped",
+          }),
           data: { state: "suspending" },
         }),
       );

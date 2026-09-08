@@ -3641,6 +3641,7 @@ export function ShellPage() {
                   await rpc.bots.update({ botId: active.id, ...patch });
                   await refreshBots();
                 }}
+                onStartComputer={() => bootComputer({ takeControl: false, force: true })}
                 onExport={async () => {
                   const manifest = await rpc.export.bot({ botId: active.id });
                   const blob = new Blob([JSON.stringify(manifest, null, 2)], {

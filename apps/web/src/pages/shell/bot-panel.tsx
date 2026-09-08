@@ -174,6 +174,7 @@ export function BotSettings({
   memoryProviderConfigured,
   onSave,
   onExport,
+  onStartComputer,
   onClear,
 }: {
   bot: Bot;
@@ -192,6 +193,7 @@ export function BotSettings({
     thinkingLevel?: ThinkingLevel | null;
   }) => Promise<void>;
   onExport: () => Promise<void>;
+  onStartComputer: () => Promise<void>;
   onClear: () => void;
 }) {
   const { t } = useLingui();
@@ -213,6 +215,34 @@ export function BotSettings({
   const [me, setMe] = useState<Me | null>(null);
   const [modelMetaReady, setModelMetaReady] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [startRequired, setStartRequired] = useState(false);
+
+  async function exportWorkspace(startComputer = false) {
+    if (exporting) return;
+    setExporting(true);
+    setExportError(null);
+    let started = false;
+    try {
+      if (startComputer) {
+        await onStartComputer();
+        started = true;
+      }
+      await onExport();
+      setStartRequired(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t`Could not export bot`;
+      setExportError(message);
+      // Only an explicit click starts a stopped persistent computer.
+      setStartRequired(
+        message === "Start computer to access current files" || (startComputer && !started),
+      );
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     void rpc.voice
@@ -478,9 +508,34 @@ export function BotSettings({
         >
           <Trans>Save</Trans>
         </Button>
-        <Button variant="ghost" size="sm" className="-ms-2.5" onClick={() => void onExport()}>
-          <Trans>Export</Trans>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ms-2.5"
+          disabled={exporting}
+          onClick={() => void exportWorkspace()}
+        >
+          {exporting ? <Trans>Exporting…</Trans> : <Trans>Export</Trans>}
         </Button>
+        {exportError ? (
+          <p role="alert" className="text-[13px] text-destructive">
+            {exportError}
+          </p>
+        ) : null}
+        {startRequired ? (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={exporting}
+            onClick={() => void exportWorkspace(true)}
+          >
+            {exporting ? (
+              <Trans>Starting computer…</Trans>
+            ) : (
+              <Trans>Start computer and retry export</Trans>
+            )}
+          </Button>
+        ) : null}
         <Button
           variant="ghost"
           size="sm"
