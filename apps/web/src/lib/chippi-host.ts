@@ -1,10 +1,11 @@
 export interface ChippiHost {
+  kind?: "personal" | "team" | "brokerage";
   basePath: string;
   apiBase: string;
   crmHref: string;
   name: string;
   role: string;
-  workspaces?: { href: string; name: string; role: string }[];
+  workspaces?: { kind?: "personal" | "team" | "brokerage"; href: string; name: string; role: string }[];
 }
 export function chippiHost(): ChippiHost | null {
   if (typeof document === "undefined") return null;

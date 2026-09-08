@@ -38,10 +38,18 @@ const principal = {
   name: "QA real estate workspace",
   role: "owner" as const,
 };
-const basePath = "/workforce/personal/qa";
+const teamPrincipal = { actorId: 'qa-user', kind: 'team' as const, scopeId: 'qa-team', name: 'QA shared team', role: 'member' as const };
+const workspaces = [
+  { kind: 'personal', href: '/workforce/personal/qa/app', name: principal.name, role: 'Agent workspace' },
+  { kind: 'team', href: '/workforce/team/qa-team/app', name: teamPrincipal.name, role: 'Team member' },
+];
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url!, "http://127.0.0.1:3041");
+    const team = url.pathname.startsWith('/workforce/team/qa-team/') || url.pathname.startsWith('/api/workforce/team/qa-team/');
+    const activePrincipal = team ? teamPrincipal : principal;
+    const basePath = team ? '/workforce/team/qa-team' : '/workforce/personal/qa';
+    const apiBase = '/api' + basePath;
     if (url.pathname.startsWith("/workforce-assets/")) {
       const file = decodeURIComponent(url.pathname.slice("/workforce-assets/".length));
       if (file.includes("..")) {
@@ -63,8 +71,8 @@ createServer(async (req, res) => {
       res.end(body);
       return;
     }
-    if (url.pathname.startsWith("/api/workforce/personal/qa/")) {
-      const path = url.pathname.slice("/api/workforce/personal/qa".length) + url.search;
+    if (url.pathname.startsWith(apiBase + "/")) {
+      const path = url.pathname.slice(apiBase.length) + url.search;
       const chunks: Buffer[] = [];
       for await (const chunk of req) chunks.push(Buffer.from(chunk));
       const body = Buffer.concat(chunks);
@@ -75,7 +83,7 @@ createServer(async (req, res) => {
         "x-chippi-authorization",
         signWorkforceRequest(
           process.env.CHIPPI_WORKFORCE_SECRET!,
-          principal,
+          activePrincipal,
           req.method!,
           path,
           body,
@@ -109,17 +117,19 @@ createServer(async (req, res) => {
         url.pathname,
         body,
       );
-      res.writeHead(verified.principal.scopeId === principal.scopeId ? 204 : 403);
+      res.writeHead([principal.scopeId, teamPrincipal.scopeId].includes(verified.principal.scopeId) ? 204 : 403);
       res.end();
       return;
     }
     const html = await readFile(root + "/apps/web/dist/index.html", "utf8");
     const config = {
+      kind: activePrincipal.kind,
+      workspaces,
       basePath,
-      apiBase: "/api/workforce/personal/qa",
-      crmHref: "/crm",
-      name: principal.name,
-      role: "Personal workspace",
+      apiBase,
+      crmHref: team ? '/teams' : '/crm',
+      name: activePrincipal.name,
+      role: team ? 'Team member' : 'Agent workspace',
     };
     res.setHeader("Content-Type", "text/html");
     res.end(

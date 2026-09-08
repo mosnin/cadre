@@ -27,24 +27,23 @@ export function ChippiNavigation() {
     <div className="px-4 pt-16 pb-2 md:pt-4">
       {host.workspaces && host.workspaces.length > 1 ? (
         <select
-          aria-label="Workspace"
+          aria-label="Switch workspace"
           className="w-full truncate rounded-md border border-border bg-background px-2 py-2 text-sm"
           value={host.basePath + "/app"}
           onChange={(event) => {
             window.location.href = event.target.value;
           }}
         >
-          {host.workspaces.map((workspace) => (
-            <option key={workspace.href} value={workspace.href}>
-              {workspace.name} · {workspace.role}
-            </option>
-          ))}
+          {([['personal', 'Agent workspace'], ['team', 'Teams'], ['brokerage', 'Brokerages'], ['legacy', 'Workspaces']] as const).map(([kind, label]) => {
+            const entries = host.workspaces!.filter(workspace => (workspace.kind ?? 'legacy') === kind);
+            return entries.length ? <optgroup key={kind} label={label}>{entries.map(workspace => <option key={workspace.href} value={workspace.href}>{workspace.name} · {workspace.role}</option>)}</optgroup> : null;
+          })}
         </select>
       ) : (
         <div className="truncate text-sm font-medium">{host.name}</div>
       )}
       <div className="mt-1 text-xs text-muted-foreground">{host.role}</div>
-      <nav
+      {host.kind === 'team' ? <a className="mt-3 block rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted" href={host.crmHref}>Manage teams</a> : <nav
         aria-label="Dashboard view"
         className="mt-3 grid grid-cols-2 rounded-lg bg-muted p-1 text-sm"
       >
@@ -60,7 +59,7 @@ export function ChippiNavigation() {
         >
           Workforce
         </span>
-      </nav>
+      </nav>}
     </div>
   );
 }
