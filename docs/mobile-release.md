@@ -63,3 +63,9 @@ Installed release builds download a compatible update in the background on
 launch and apply it after the next restart. Builds created before
 `expo-updates` was configured cannot receive OTA updates and must be replaced
 with a new iOS and Android build once.
+
+## Opt in to automated updates
+
+Mobile update publishing is optional. Set the repository variable `MOBILE_OTA_ENABLED` to `true` only after configuring this deployment's own Expo project and adding an `EXPO_TOKEN` repository secret with access to that project. The default leaves automatic publishing disabled, so web/backend changes and self-hosted forks do not require hosted mobile credentials.
+
+When enabled, missing credentials still fail the publishing job. Native-runtime compatibility and stale-revision checks remain enforced. Disabling automatic publishing does not distribute an update; native releases must still be built or published through the configured mobile release process.
