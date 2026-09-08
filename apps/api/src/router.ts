@@ -20,6 +20,7 @@ import {
   acquireComputerExecutionLease,
   applyTeachingDesktopInput,
   archiveBot,
+  BotDeletionBusyError,
   buildMcpCredentialBlob,
   buildModelConnectPlaintext,
   type ComposioProvider,
@@ -41,8 +42,10 @@ import {
   enqueueTakeoverContinuation,
   expireComputerControl,
   hasActiveComputerControl,
+  hasActiveComputerStartupOperation,
   isAutoReviewCheckerConfigured,
   isComputerScreenUnavailable,
+  isComputerStartupExpired,
   isSandboxGoneError,
   isScratchpadStatus,
   listPiCatalog,
@@ -810,6 +813,17 @@ export function createRouter(deps: RouterDeps) {
         });
         if (claimed.count !== 1) throw new ORPCError("CONFLICT");
         try {
+          const latestComputer = await deps.prisma.computer.findUniqueOrThrow({
+            where: { id: bot.computer.id },
+          });
+          if (
+            ["booting", "suspending"].includes(latestComputer.state) ||
+            hasActiveComputerStartupOperation(latestComputer)
+          )
+            throw new ORPCError("CONFLICT", {
+              message:
+                "Wait for computer startup or shutdown to finish before switching computers.",
+            });
           const active = await deps.prisma.run.findFirst({
             where: { botId: bot.id, status: { in: [...ACTIVE_RUN_STATUSES] } },
             select: { id: true },
@@ -878,25 +892,31 @@ export function createRouter(deps: RouterDeps) {
       }),
       remove: authed.bots.remove.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId, { includeArchived: true });
-        await destroyBot(
-          {
-            prisma: deps.prisma,
-            sandbox: deps.sandbox,
-            home: deps.home,
-            jobs: deps.jobs,
-            artifacts: deps.artifacts,
-            dataDir: deps.dataDir,
-          },
-          bot,
-          {
-            operationId: "destroy",
-            traceId: "destroy",
-            spaceId: context.actor.spaceId,
-            userId: context.actor.userId,
-            signal: new AbortController().signal,
-          },
-          { deleteMemories: input.deleteMemories },
-        );
+        try {
+          await destroyBot(
+            {
+              prisma: deps.prisma,
+              sandbox: deps.sandbox,
+              home: deps.home,
+              jobs: deps.jobs,
+              artifacts: deps.artifacts,
+              dataDir: deps.dataDir,
+            },
+            bot,
+            {
+              operationId: "destroy",
+              traceId: "destroy",
+              spaceId: context.actor.spaceId,
+              userId: context.actor.userId,
+              signal: new AbortController().signal,
+            },
+            { deleteMemories: input.deleteMemories },
+          );
+        } catch (error) {
+          if (error instanceof BotDeletionBusyError)
+            throw new ORPCError("CONFLICT", { message: error.message });
+          throw error;
+        }
         return { ok: true as const };
       }),
       rotateWebhookSecret: authed.bots.rotateWebhookSecret.handler(async ({ context, input }) => {
@@ -1326,11 +1346,19 @@ export function createRouter(deps: RouterDeps) {
       boot: authed.computer.boot.handler(async ({ context, input, signal }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
+        if (bot.computerSwitching)
+          throw new ORPCError("CONFLICT", {
+            message: "Computer is switching. Try again in a moment.",
+          });
         const ctx = computerContext(context.actor, bot.id, "boot");
+        const requestSignal = signal ?? context.signal ?? ctx.signal;
         if (bot.computer.state === "running" && bot.computer.providerRef) {
           try {
             // A stored running state is not proof that the provider is still alive.
-            await deps.sandbox.prepare(toComputerRef(bot.computer), ctx);
+            await deps.sandbox.prepare(toComputerRef(bot.computer), {
+              ...ctx,
+              signal: AbortSignal.any([requestSignal, AbortSignal.timeout(45_000)]),
+            });
             scheduleComputerSleep(deps.jobs, bot.computer.id);
             return computerStatus(deps, context.actor, input.botId);
           } catch (error) {
@@ -1347,6 +1375,72 @@ export function createRouter(deps: RouterDeps) {
             if (cleared.count !== 1) return computerStatus(deps, context.actor, input.botId);
           }
         }
+        if (deps.sandbox.describe?.().capabilities.persistentRunning) {
+          const current = await deps.prisma.computer.findUniqueOrThrow({
+            where: { id: bot.computer.id },
+          });
+          if (current.state !== "booting" && hasActiveComputerStartupOperation(current))
+            throw new ORPCError("CONFLICT", {
+              message: "Computer startup cleanup is still in progress. Try again in a moment.",
+            });
+          if (current.state === "suspending")
+            throw new ORPCError("CONFLICT", {
+              message: "Computer is stopping. Try again in a moment.",
+            });
+          if (
+            current.state === "running" ||
+            (current.state === "booting" && !isComputerStartupExpired(current))
+          )
+            return computerStatus(deps, context.actor, input.botId);
+          const requestedAt = new Date();
+          const queued = await deps.prisma.computer.updateMany({
+            where: {
+              id: current.id,
+              state: current.state,
+              updatedAt: current.updatedAt,
+              OR: [
+                { startupOperationId: null },
+                { startupExpiresAt: null },
+                { startupExpiresAt: { lte: new Date() } },
+              ],
+              bots: { some: { id: bot.id, archivedAt: null, computerSwitching: false } },
+            },
+            data: {
+              state: "booting",
+              startupOperationId: null,
+              startupExpiresAt: new Date(0),
+              startupRequestedAt: requestedAt,
+              startupBotId: bot.id,
+              startupAttempts: 0,
+            },
+          });
+          if (queued.count === 1) {
+            await deps.jobs
+              .enqueue({
+                name: "computer.warm",
+                payload: { botId: bot.id, version: requestedAt.toISOString() },
+                replaceKey: `computer.warm:${current.id}`,
+              })
+              .catch((error) => {
+                // The startup intent is durable; reconciliation repairs a missed wake.
+                getLogger().error("computer startup enqueue", error);
+              });
+          }
+          return computerStatus(deps, context.actor, input.botId);
+        }
+        // Startup ownership is separate from per-agent screen leases. Recover
+        // an expired startup even if its original screen lease has not expired.
+        const recoverExpiredStartup = async () => {
+          const current = await deps.prisma.computer.findUniqueOrThrow({
+            where: { id: bot.computer!.id },
+          });
+          if (!isComputerStartupExpired(current)) return false;
+          await provisionComputer(deps, current.id, { ...ctx, signal: signal ?? ctx.signal });
+          scheduleComputerSleep(deps.jobs, current.id);
+          return true;
+        };
+        if (isComputerStartupExpired(bot.computer) && (await recoverExpiredStartup()))
+          return computerStatus(deps, context.actor, input.botId);
         const manualRunId = `boot:${randomUUID()}`;
         let lease: ComputerExecutionLease | null;
         try {
@@ -1357,6 +1451,8 @@ export function createRouter(deps: RouterDeps) {
           });
         } catch (error) {
           if (error instanceof ComputerBusyError) {
+            if (await recoverExpiredStartup())
+              return computerStatus(deps, context.actor, input.botId);
             // A task or another open request owns startup. Join its readiness
             // instead of taking its screen fence or rejecting the viewer.
             const ready = await waitForComputerReady(
@@ -1364,8 +1460,12 @@ export function createRouter(deps: RouterDeps) {
               bot.computer.id,
               { ...ctx, signal: signal ?? ctx.signal },
               { waitForStart: true },
-            ).catch((error: unknown) => {
+            ).catch(async (error: unknown) => {
               if (error instanceof ComputerNotReadyError) {
+                if (await recoverExpiredStartup())
+                  return deps.prisma.computer.findUniqueOrThrow({
+                    where: { id: bot.computer!.id },
+                  });
                 throw new ORPCError("CONFLICT", { message: error.message });
               }
               throw error;
@@ -1395,6 +1495,10 @@ export function createRouter(deps: RouterDeps) {
       stop: authed.computer.stop.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
+        if (bot.computer.state !== "booting" && hasActiveComputerStartupOperation(bot.computer))
+          throw new ORPCError("CONFLICT", {
+            message: "Computer startup cleanup is still in progress. Try again in a moment.",
+          });
         await deps.jobs.cancel(`computer.warm:${bot.computer.id}`);
         const controlLeaseId = bot.computer.controlLeaseId;
         const now = new Date();
@@ -1402,30 +1506,32 @@ export function createRouter(deps: RouterDeps) {
           where: {
             id: bot.computer.id,
             state: { not: "suspending" },
+            OR: [
+              { state: "booting" },
+              { startupOperationId: null },
+              { startupExpiresAt: null },
+              { startupExpiresAt: { lte: now } },
+            ],
+            bots: {
+              none: {
+                id: { not: bot.id },
+                runs: { some: { status: { in: [...ACTIVE_RUN_STATUSES] } } },
+              },
+            },
             executionLeases: {
               none: { botId: { not: bot.id }, expiresAt: { gt: now } },
             },
           },
-          data: { state: "suspending" },
+          data: {
+            state: "suspending",
+            startupOperationId: null,
+            startupExpiresAt: null,
+            startupRequestedAt: null,
+            startupBotId: null,
+            startupAttempts: 0,
+          },
         });
         if (claimed.count !== 1) {
-          throw new ORPCError("CONFLICT", {
-            message: "Other Team bots are still using this computer",
-          });
-        }
-        const otherRun = await deps.prisma.run.findFirst({
-          where: {
-            botId: { not: bot.id },
-            status: { in: [...ACTIVE_RUN_STATUSES] },
-            bot: { computerId: bot.computer.id },
-          },
-          select: { id: true },
-        });
-        if (otherRun) {
-          await deps.prisma.computer.updateMany({
-            where: { id: bot.computer.id, state: "suspending" },
-            data: { state: bot.computer.state },
-          });
           throw new ORPCError("CONFLICT", {
             message: "Other Team bots are still using this computer",
           });
@@ -1434,13 +1540,18 @@ export function createRouter(deps: RouterDeps) {
           computerId: bot.computer.id,
           botId: bot.id,
         });
+        // Startup may have retained its provider ref after the initial bot read
+        // but before this Stop invalidated the token. Stop the current retained VM.
+        const stoppingComputer = await deps.prisma.computer.findUniqueOrThrow({
+          where: { id: bot.computer.id },
+        });
         try {
           let providerGone = false;
-          if (bot.computer.providerRef) {
+          if (stoppingComputer.providerRef) {
             const ctx = computerContext(context.actor, bot.id, "stop");
-            const ref = toComputerRef(bot.computer);
+            const ref = toComputerRef(stoppingComputer);
             try {
-              const resume = await checkpointBeforeComputerStop(deps, bot.computer, ref, ctx);
+              const resume = await checkpointBeforeComputerStop(deps, stoppingComputer, ref, ctx);
               try {
                 await deps.sandbox.stop(ref, ctx);
               } catch (error) {

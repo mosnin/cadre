@@ -88,8 +88,9 @@ export async function ensureComputerWorkspaceLayout(
   let stderr = "";
   for await (const event of sandbox.execute(
     computer,
-    { argv: ["mkdir", "-p", "shared", teamBotWorkspaceDirectory(botId)] },
-    context,
+    { argv: ["mkdir", "-p", "shared", teamBotWorkspaceDirectory(botId)], timeoutMs: 15000 },
+    // This only prepares files; it must not allocate or acquire a bot display.
+    { ...context, botId: undefined, screenLeaseId: undefined },
   )) {
     if (event.type === "stderr") stderr += event.data;
     if (event.type === "exit") exitCode = event.code;

@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ComputerStatus } from "@rakazo/contracts";
+import { waitForComputerStartup } from "@rakazo/core";
 import {
   Button,
   DropdownMenuItem,
@@ -40,6 +41,13 @@ export function TeachComputerOverlayControl({
   const [error, setError] = useState<string | null>(null);
   const botIdRef = useRef(botId);
   botIdRef.current = botId;
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   /**
    * Sticky once a recording is known active until Shell shows Stop teaching (this
    * control unmounts) or a probe for the current bot finds no recording. Dismiss
@@ -148,7 +156,12 @@ export function TeachComputerOverlayControl({
     setLocalBusy(true);
     setError(null);
     try {
-      await rpc.computer.boot({ botId: requestBotId });
+      await waitForComputerStartup(await rpc.computer.boot({ botId: requestBotId }), () => {
+        if (!mounted.current || botIdRef.current !== requestBotId)
+          throw new Error("Computer view changed");
+        return rpc.computer.status({ botId: requestBotId });
+      });
+      if (!mounted.current || botIdRef.current !== requestBotId) return;
       await rpc.skills.start({ botId: requestBotId, goal: requestGoal });
       if (botIdRef.current !== requestBotId) return;
       // Recording has started. Keep Start locked; only refresh the view.

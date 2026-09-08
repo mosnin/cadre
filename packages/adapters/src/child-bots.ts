@@ -3,6 +3,7 @@ import type {
   AdapterContext,
   AgentHomeStore,
   ArtifactStore,
+  ComputerRef,
   JobPublisher,
   SandboxProvider,
 } from "@rakazo/adapter-kit";
@@ -21,6 +22,7 @@ import {
 import { getLogger } from "@rakazo/logging";
 import { toComputerRef } from "./computer-support.js";
 import { checkpointBeforeComputerStop } from "./computer-workspace.js";
+import { isSandboxGoneError } from "./e2b-sandbox.js";
 import { resolveAgentHomePath } from "./home.js";
 
 export function confirmSpawnedBotName(confirmName: string, botName: string) {
@@ -298,10 +300,57 @@ export async function archiveBot(
       },
       data: releasedComputerLease(),
     });
+    // Cancel only this bot's startup on a shared computer. Another bot's
+    // startup owns a different token and must remain usable.
+    await tx.computer.updateMany({
+      where: { startupBotId: bot.id, state: "booting" },
+      data: {
+        state: "stopped",
+        startupOperationId: null,
+        startupExpiresAt: null,
+        startupRequestedAt: null,
+        startupBotId: null,
+        startupAttempts: 0,
+      },
+    });
     if (dedicated) {
       await tx.computer.updateMany({
-        where: { id: dedicated.id, state: { not: "running" } },
-        data: { state: "stopped" },
+        where: {
+          id: dedicated.id,
+          OR: [
+            { state: "booting" },
+            { startupOperationId: null },
+            { startupExpiresAt: null },
+            { startupExpiresAt: { lte: now } },
+          ],
+        },
+        data: {
+          startupOperationId: null,
+          startupExpiresAt: null,
+          startupRequestedAt: null,
+          startupBotId: null,
+          startupAttempts: 0,
+        },
+      });
+      await tx.computer.updateMany({
+        where: {
+          id: dedicated.id,
+          state: { not: "running" },
+          OR: [
+            { state: "booting" },
+            { startupOperationId: null },
+            { startupExpiresAt: null },
+            { startupExpiresAt: { lte: now } },
+          ],
+        },
+        data: {
+          state: "stopped",
+          startupOperationId: null,
+          startupExpiresAt: null,
+          startupRequestedAt: null,
+          startupBotId: null,
+          startupAttempts: 0,
+        },
       });
     }
     await tx.bot.update({
@@ -310,6 +359,7 @@ export async function archiveBot(
     });
   });
   await Promise.allSettled([
+    ...(dedicated ? [deps.jobs.cancel(`computer.warm:${dedicated.id}`)] : []),
     ...activeRuns.map((run) => deps.jobs.cancel(runJobKey(run.id))),
     ...activeRoutines.map((routine) => deps.jobs.cancel(routineJobKey(routine.id))),
   ]);
@@ -317,6 +367,18 @@ export async function archiveBot(
   const currentDedicated = dedicated
     ? await deps.prisma.computer.findUnique({ where: { id: dedicated.id } })
     : null;
+  if (
+    currentDedicated?.providerRef &&
+    currentDedicated.state === "stopped" &&
+    dedicated?.state === "booting" &&
+    deps.sandbox.requiresRunningForWorkspaceAccess?.({
+      kind: currentDedicated.kind as ComputerRef["kind"],
+    })
+  ) {
+    // A startup can have allocated its volume before the desktop RPC is ready.
+    // Stop that retained VM directly; no export or destructive rollback is needed.
+    await deps.sandbox.stop(toComputerRef(currentDedicated), context);
+  }
   if (currentDedicated?.providerRef && currentDedicated.state === "running") {
     const ref = toComputerRef(currentDedicated);
     const resume = await checkpointBeforeComputerStop(deps, currentDedicated, ref, context);
@@ -337,7 +399,36 @@ export async function archiveBot(
   }
 }
 
+export class BotDeletionBusyError extends Error {
+  constructor() {
+    super("Wait for computer startup or cleanup to finish before deleting this bot.");
+    this.name = "BotDeletionBusyError";
+  }
+}
+
 export async function destroyBot(
+  deps: BotLifecycleDeps,
+  bot: LifecycleBot,
+  context: AdapterContext,
+  options: { deleteMemories: boolean },
+) {
+  const claimed = await deps.prisma.bot.updateMany({
+    where: { id: bot.id, spaceId: bot.spaceId, computerSwitching: false },
+    data: { computerSwitching: true },
+  });
+  if (claimed.count !== 1) throw new BotDeletionBusyError();
+  try {
+    await destroyClaimedBot(deps, bot, context, options);
+  } finally {
+    // The row may already have been deleted. A failed deletion remains retryable.
+    await deps.prisma.bot.updateMany({
+      where: { id: bot.id, computerSwitching: true },
+      data: { computerSwitching: false },
+    });
+  }
+}
+
+async function destroyClaimedBot(
   deps: BotLifecycleDeps,
   bot: LifecycleBot,
   context: AdapterContext,
@@ -356,47 +447,76 @@ export async function destroyBot(
       select: { id: true },
     }),
   ]);
-  const runIds = activeRuns.map((run) => run.id);
-  await deps.prisma.run.updateMany({
-    where: { id: { in: runIds } },
-    data: { status: "cancelled", completedAt: new Date() },
-  });
-  await Promise.allSettled([
-    ...activeRuns.map((run) => deps.jobs.cancel(runJobKey(run.id))),
-    ...routines.map((routine) => deps.jobs.cancel(routineJobKey(routine.id))),
-  ]);
-  await releaseTeamComputerScreen(deps, bot, dedicated?.id, context);
-  if (dedicated?.providerRef) {
-    await deps.sandbox.destroy(toComputerRef(dedicated), context).catch(() => undefined);
+  if (dedicated) {
+    const now = new Date();
+    const locked = await deps.prisma.computer.updateMany({
+      where: {
+        id: dedicated.id,
+        state: { notIn: ["booting", "suspending"] },
+        AND: [
+          {
+            OR: [
+              { startupOperationId: null },
+              { startupExpiresAt: null },
+              { startupExpiresAt: { lte: now } },
+            ],
+          },
+          { OR: [{ startupDrainUntil: null }, { startupDrainUntil: { lte: now } }] },
+        ],
+      },
+      data: { state: "suspending" },
+    });
+    if (locked.count !== 1) throw new BotDeletionBusyError();
   }
-  const deletion = await withTransactionRetry(() =>
-    deps.prisma.$transaction(async (tx) => {
-      const locked = await tx.$queryRaw<Array<{ id: string; webhookSecretId: string | null }>>`
+  try {
+    // Keep failed deletions archived so queued startup jobs cannot recreate a VM.
+    await deps.prisma.bot.updateMany({
+      where: { id: bot.id, computerSwitching: true },
+      data: { archivedAt: bot.archivedAt ?? new Date(), pinned: false },
+    });
+    const runIds = activeRuns.map((run) => run.id);
+    await deps.prisma.run.updateMany({
+      where: { id: { in: runIds } },
+      data: { status: "cancelled", completedAt: new Date() },
+    });
+    await Promise.allSettled([
+      ...activeRuns.map((run) => deps.jobs.cancel(runJobKey(run.id))),
+      ...routines.map((routine) => deps.jobs.cancel(routineJobKey(routine.id))),
+    ]);
+    await releaseTeamComputerScreen(deps, bot, dedicated?.id, context);
+    if (dedicated?.providerRef) {
+      await deps.sandbox.destroy(toComputerRef(dedicated), context).catch((error) => {
+        if (!isSandboxGoneError(error)) throw error;
+      });
+    }
+    const deletion = await withTransactionRetry(() =>
+      deps.prisma.$transaction(async (tx) => {
+        const locked = await tx.$queryRaw<Array<{ id: string; webhookSecretId: string | null }>>`
         SELECT id, "webhookSecretId"
         FROM bots
         WHERE id = ${bot.id} AND "spaceId" = ${bot.spaceId}
         FOR UPDATE
       `;
-      const webhookSecretId = locked[0]?.webhookSecretId ?? bot.webhookSecretId ?? null;
-      const botArtifacts = await tx.artifact.findMany({
-        where: { botId: bot.id, groupId: null, spaceId: bot.spaceId },
-        select: { storageKey: true },
-      });
-      await tx.artifact.deleteMany({
-        where: { botId: bot.id, groupId: null, spaceId: bot.spaceId },
-      });
-      const groupCleanup = await detachBotFromGroups(tx, bot.id);
-      await tx.computerExecutionLease.deleteMany({ where: { botId: bot.id } });
-      await tx.computer.updateMany({
-        where: {
-          ...(dedicated ? { id: { not: dedicated.id } } : {}),
-          OR: [{ controlBotId: bot.id }, { executionBotId: bot.id }],
-        },
-        data: releasedComputerLease(),
-      });
-      if (!options.deleteMemories) {
-        const directory = archivedMemoryDirectory(bot.name, bot.id);
-        await tx.$executeRaw`
+        const webhookSecretId = locked[0]?.webhookSecretId ?? bot.webhookSecretId ?? null;
+        const botArtifacts = await tx.artifact.findMany({
+          where: { botId: bot.id, groupId: null, spaceId: bot.spaceId },
+          select: { storageKey: true },
+        });
+        await tx.artifact.deleteMany({
+          where: { botId: bot.id, groupId: null, spaceId: bot.spaceId },
+        });
+        const groupCleanup = await detachBotFromGroups(tx, bot.id);
+        await tx.computerExecutionLease.deleteMany({ where: { botId: bot.id } });
+        await tx.computer.updateMany({
+          where: {
+            ...(dedicated ? { id: { not: dedicated.id } } : {}),
+            OR: [{ controlBotId: bot.id }, { executionBotId: bot.id }],
+          },
+          data: releasedComputerLease(),
+        });
+        if (!options.deleteMemories) {
+          const directory = archivedMemoryDirectory(bot.name, bot.id);
+          await tx.$executeRaw`
           UPDATE "memory_documents"
           SET "botId" = NULL,
               "scope" = 'user',
@@ -404,64 +524,71 @@ export async function destroyBot(
               "updatedAt" = CURRENT_TIMESTAMP
           WHERE "botId" = ${bot.id}
         `;
-      }
-      await tx.botDeletion.create({
-        data: {
-          id: bot.id,
-          spaceId: bot.spaceId,
-          name: bot.name,
-          deletedByUserId: context.userId,
-          memoriesPreserved: !options.deleteMemories,
-        },
-      });
-      await tx.bot.delete({ where: { id: bot.id } });
-      if (webhookSecretId) {
-        await tx.secret.deleteMany({
-          where: { id: webhookSecretId, kind: "webhook", spaceId: bot.spaceId },
+        }
+        await tx.botDeletion.create({
+          data: {
+            id: bot.id,
+            spaceId: bot.spaceId,
+            name: bot.name,
+            deletedByUserId: context.userId,
+            memoriesPreserved: !options.deleteMemories,
+          },
         });
-      }
-      if (dedicated) await tx.computer.delete({ where: { id: dedicated.id } });
-      return {
-        artifactKeys: [
-          ...botArtifacts.map((artifact) => artifact.storageKey),
-          ...groupCleanup.artifactKeys,
-        ],
-        cancelledGroupRuns: groupCleanup.cancelledRuns,
-      };
-    }),
-  );
-  await Promise.allSettled(
-    deletion.cancelledGroupRuns.map((run) => deps.jobs.cancel(runJobKey(run.id))),
-  );
-  const stoppedGroupBots = [
-    ...new Map(
-      deletion.cancelledGroupRuns.map((run) => [
-        run.botId,
-        { id: run.botId, computer: run.computer },
-      ]),
-    ).values(),
-  ];
-  await Promise.all(
-    stoppedGroupBots.map(async (stoppedBot) => {
-      if (!stoppedBot.computer?.providerRef) return;
-      await deps.sandbox
-        .releaseScreen?.(toComputerRef(stoppedBot.computer), {
-          ...context,
-          operationId: `destroy-group-run:${stoppedBot.id}`,
-          botId: stoppedBot.id,
-        })
+        await tx.bot.delete({ where: { id: bot.id } });
+        if (webhookSecretId) {
+          await tx.secret.deleteMany({
+            where: { id: webhookSecretId, kind: "webhook", spaceId: bot.spaceId },
+          });
+        }
+        if (dedicated) await tx.computer.delete({ where: { id: dedicated.id } });
+        return {
+          artifactKeys: [
+            ...botArtifacts.map((artifact) => artifact.storageKey),
+            ...groupCleanup.artifactKeys,
+          ],
+          cancelledGroupRuns: groupCleanup.cancelledRuns,
+        };
+      }),
+    );
+    await Promise.allSettled(
+      deletion.cancelledGroupRuns.map((run) => deps.jobs.cancel(runJobKey(run.id))),
+    );
+    const stoppedGroupBots = [
+      ...new Map(
+        deletion.cancelledGroupRuns.map((run) => [
+          run.botId,
+          { id: run.botId, computer: run.computer },
+        ]),
+      ).values(),
+    ];
+    await Promise.all(
+      stoppedGroupBots.map(async (stoppedBot) => {
+        if (!stoppedBot.computer?.providerRef) return;
+        await deps.sandbox
+          .releaseScreen?.(toComputerRef(stoppedBot.computer), {
+            ...context,
+            operationId: `destroy-group-run:${stoppedBot.id}`,
+            botId: stoppedBot.id,
+          })
+          .catch(() => undefined);
+      }),
+    );
+    if (dedicated) {
+      await rm(resolveAgentHomePath(deps.home, dedicated.homeKey, deps.dataDir ?? "./data"), {
+        recursive: true,
+        force: true,
+      }).catch(() => undefined);
+    }
+    const artifactStore = deps.artifacts;
+    if (artifactStore) {
+      await removeStoredArtifacts(artifactStore, deletion.artifactKeys, context);
+    }
+  } catch (error) {
+    if (dedicated)
+      await deps.prisma.computer
+        .updateMany({ where: { id: dedicated.id, state: "suspending" }, data: { state: "error" } })
         .catch(() => undefined);
-    }),
-  );
-  if (dedicated) {
-    await rm(resolveAgentHomePath(deps.home, dedicated.homeKey, deps.dataDir ?? "./data"), {
-      recursive: true,
-      force: true,
-    }).catch(() => undefined);
-  }
-  const artifactStore = deps.artifacts;
-  if (artifactStore) {
-    await removeStoredArtifacts(artifactStore, deletion.artifactKeys, context);
+    throw error;
   }
 }
 

@@ -184,7 +184,7 @@ describe("computer provisioning", () => {
     expect(provision).not.toHaveBeenCalled();
   });
 
-  it("stops a provider when archive invalidates its boot claim", async () => {
+  it("never stops a provider when archive invalidates its boot claim", async () => {
     const dataDir = await mkdtemp(path.join(tmpdir(), "rakazo-provision-race-"));
     const stop = vi.fn().mockResolvedValue(undefined);
     const releaseScreen = vi.fn().mockResolvedValue(undefined);
@@ -234,16 +234,16 @@ describe("computer provisioning", () => {
           context,
         ),
       ).rejects.toThrow("Computer is busy");
-      expect(releaseScreen).toHaveBeenCalledOnce();
-      expect(stop).toHaveBeenCalledOnce();
+      expect(releaseScreen).not.toHaveBeenCalled();
+      expect(stop).not.toHaveBeenCalled();
       expect(updateMany).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({
-          where: {
+          where: expect.objectContaining({
             id: "computer-1",
             state: "booting",
-            bots: { some: { id: "bot-1", archivedAt: null } },
-          },
+            bots: { some: { id: "bot-1", archivedAt: null, computerSwitching: false } },
+          }),
         }),
       );
     } finally {
@@ -464,64 +464,70 @@ describe("computer provisioning", () => {
   it.each([
     { fresh: true, cleanup: "destroy" as const },
     { fresh: false, cleanup: "stop" as const },
-  ])("rolls back $cleanup when shared preparation fails", async ({ fresh, cleanup }) => {
-    const dataDir = await mkdtemp(path.join(tmpdir(), "rakazo-prepare-rollback-"));
-    const ref = {
-      id: "provider-1",
-      botId: "bot-1",
-      kind: "fake" as const,
-      providerRef: "provider-1",
-      fresh,
-    };
-    const stop = vi.fn().mockResolvedValue(undefined);
-    const destroy = vi.fn().mockResolvedValue(undefined);
-    const releaseScreen = vi.fn().mockResolvedValue(undefined);
-    const prepare = vi.fn().mockRejectedValue(new Error("provider preparation failed"));
-    const prisma = {
-      computer: {
-        findUniqueOrThrow: vi.fn().mockResolvedValue({
-          id: "computer-1",
-          homeKey: "bot-1",
-          providerRef: fresh ? null : "provider-1",
-          kind: "fake",
-          scope: "dedicated",
-          state: "stopped",
-          controlLeaseId: null,
-        }),
-        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-      },
-    } as unknown as PrismaClient;
-    const sandbox = {
-      provision: vi.fn().mockResolvedValue(ref),
-      prepare,
-      stop,
-      destroy,
-      releaseScreen,
-    } as unknown as SandboxProvider;
+  ])(
+    "retains a recoverable ref when shared preparation fails (fresh=$fresh)",
+    async ({ fresh }) => {
+      const dataDir = await mkdtemp(path.join(tmpdir(), "rakazo-prepare-rollback-"));
+      const ref = {
+        id: "provider-1",
+        botId: "bot-1",
+        kind: "fake" as const,
+        providerRef: "provider-1",
+        fresh,
+      };
+      const stop = vi.fn().mockResolvedValue(undefined);
+      const destroy = vi.fn().mockResolvedValue(undefined);
+      const releaseScreen = vi.fn().mockResolvedValue(undefined);
+      const prepare = vi.fn().mockRejectedValue(new Error("provider preparation failed"));
+      const prisma = {
+        computer: {
+          findUniqueOrThrow: vi.fn().mockResolvedValue({
+            id: "computer-1",
+            homeKey: "bot-1",
+            providerRef: fresh ? null : "provider-1",
+            kind: "fake",
+            scope: "dedicated",
+            state: "stopped",
+            controlLeaseId: null,
+          }),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+      } as unknown as PrismaClient;
+      const sandbox = {
+        provision: vi.fn().mockResolvedValue(ref),
+        prepare,
+        stop,
+        destroy,
+        releaseScreen,
+      } as unknown as SandboxProvider;
 
-    try {
-      await expect(
-        provisionComputer(
-          {
-            prisma,
-            sandbox,
-            home: {} as AgentHomeStore,
-            jobs: {} as JobPublisher,
-            events: {} as ThreadEvents,
-            dataDir,
-          },
-          "computer-1",
-          context,
-        ),
-      ).rejects.toThrow("provider preparation failed");
-      expect(prepare).toHaveBeenCalledWith(ref, context);
-      expect(releaseScreen).toHaveBeenCalledWith(ref, context);
-      expect(cleanup === "destroy" ? destroy : stop).toHaveBeenCalledWith(ref, context);
-      expect(cleanup === "destroy" ? stop : destroy).not.toHaveBeenCalled();
-    } finally {
-      await rm(dataDir, { recursive: true, force: true });
-    }
-  });
+      try {
+        await expect(
+          provisionComputer(
+            {
+              prisma,
+              sandbox,
+              home: {} as AgentHomeStore,
+              jobs: {} as JobPublisher,
+              events: {} as ThreadEvents,
+              dataDir,
+            },
+            "computer-1",
+            context,
+          ),
+        ).rejects.toThrow("provider preparation failed");
+        expect(prepare).toHaveBeenCalledWith(
+          ref,
+          expect.objectContaining({ botId: context.botId }),
+        );
+        expect(releaseScreen).not.toHaveBeenCalled();
+        expect(destroy).not.toHaveBeenCalled();
+        expect(stop).not.toHaveBeenCalled();
+      } finally {
+        await rm(dataDir, { recursive: true, force: true });
+      }
+    },
+  );
 
   it.each([false, true])(
     "preserves a resumed Team computer on activation failure (stop fails=%s)",
@@ -582,18 +588,10 @@ describe("computer provisioning", () => {
           "computer-1",
           context,
         );
-        if (stopFails)
-          await expect(operation).rejects.toMatchObject({
-            errors: [
-              expect.objectContaining({ message: "Computer is busy" }),
-              expect.objectContaining({ message: "stop failed" }),
-            ],
-          });
-        else await expect(operation).rejects.toThrow("Computer is busy");
+        await expect(operation).rejects.toThrow("Computer is busy");
         expect(destroy).not.toHaveBeenCalled();
-        expect(sandbox.execute).toHaveBeenCalled();
-        expect(releaseScreen).toHaveBeenCalledWith(ref, context);
-        expect(stop).toHaveBeenCalledWith(ref, context);
+        expect(releaseScreen).not.toHaveBeenCalled();
+        expect(stop).not.toHaveBeenCalled();
       } finally {
         await rm(dataDir, { recursive: true, force: true });
       }
@@ -645,17 +643,23 @@ describe("computer provisioning", () => {
         "computer-1",
         context,
       );
-      await expect(result).rejects.toMatchObject({
-        errors: [prepareError, rollbackError],
-      });
-      expect(updateMany).toHaveBeenLastCalledWith({
-        where: { id: "computer-1", state: "booting" },
-        data: {
-          state: "error",
-          providerRef: "new-provider-1",
-          kind: "e2b",
-        },
-      });
+      await expect(result).rejects.toBe(prepareError);
+      expect(sandbox.destroy).not.toHaveBeenCalled();
+      expect(updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            providerRef: "new-provider-1",
+            kind: "e2b",
+            workspaceRestorePending: true,
+          }),
+        }),
+      );
+      expect(updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ startupOperationId: expect.any(String) }),
+          data: expect.objectContaining({ state: "error" }),
+        }),
+      );
     } finally {
       await rm(dataDir, { recursive: true, force: true });
     }
@@ -1176,10 +1180,12 @@ describe("computer replacement", () => {
       expect(exportWorkspace).toHaveBeenCalledOnce();
       expect(destroy).not.toHaveBeenCalled();
       expect(update).not.toHaveBeenCalled();
-      expect(updateMany).toHaveBeenLastCalledWith({
-        where: { id: row.id },
-        data: { state: "error" },
-      });
+      expect(updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: row.id, startupOperationId: expect.any(String) }),
+          data: expect.objectContaining({ state: "error" }),
+        }),
+      );
       expect(row.providerRef).toBe("persistent-provider-1");
       expect(pauseWorkspaceForStop).toHaveBeenCalledTimes(state === "running" ? 1 : 0);
       expect(resume).toHaveBeenCalledTimes(state === "running" ? 1 : 0);
@@ -1670,14 +1676,21 @@ describe("computer replacement", () => {
       1,
       expect.objectContaining({
         where: expect.objectContaining({ id: "computer-1", state: "stopped" }),
-        data: { state: "suspending" },
+        data: expect.objectContaining({
+          state: "suspending",
+          startupOperationId: expect.any(String),
+        }),
       }),
     );
     expect(updateMany).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        where: { id: "computer-1", state: "suspending" },
-        data: { state: "stopped" },
+        where: expect.objectContaining({
+          id: "computer-1",
+          state: "suspending",
+          startupOperationId: expect.any(String),
+        }),
+        data: expect.objectContaining({ state: "stopped" }),
       }),
     );
   });
@@ -1725,14 +1738,21 @@ describe("computer replacement", () => {
           id: "computer-1",
           state: "suspended",
         }),
-        data: { state: "suspending" },
+        data: expect.objectContaining({
+          state: "suspending",
+          startupOperationId: expect.any(String),
+        }),
       }),
     );
     expect(updateMany).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        where: { id: "computer-1", state: "suspending" },
-        data: { state: "suspended" },
+        where: expect.objectContaining({
+          id: "computer-1",
+          state: "suspending",
+          startupOperationId: expect.any(String),
+        }),
+        data: expect.objectContaining({ state: "suspended" }),
       }),
     );
   });
@@ -1792,7 +1812,10 @@ describe("computer replacement", () => {
             id: "computer-1",
             state: "stopped",
           }),
-          data: { state: "suspending" },
+          data: expect.objectContaining({
+            state: "suspending",
+            startupOperationId: expect.any(String),
+          }),
         }),
       );
     } finally {
@@ -1939,10 +1962,15 @@ describe("computer replacement", () => {
         ),
       ).rejects.toThrow("ECONNRESET");
       expect(destroy).not.toHaveBeenCalled();
-      expect(updateMany).toHaveBeenLastCalledWith({
-        where: { id: "computer-1" },
-        data: { state: "error" },
-      });
+      expect(updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: "computer-1",
+            startupOperationId: expect.any(String),
+          }),
+          data: expect.objectContaining({ state: "error" }),
+        }),
+      );
     } finally {
       await rm(dataDir, { recursive: true, force: true });
       await rm(homeRoot, { recursive: true, force: true });

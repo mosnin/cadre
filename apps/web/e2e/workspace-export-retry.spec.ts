@@ -17,11 +17,30 @@ test("workspace export explicitly starts the computer and keeps export failures 
   const settings = page.getByTestId("bot-settings");
   let exportAttempts = 0;
   let boots = 0;
+  let pendingStartup = false;
+  let startupPolls = 0;
   await page.route("**/rpc/computer/boot", async (route) => {
     boots++;
-    await route.continue();
+    const response = await route.fetch();
+    const body = await response.json();
+    pendingStartup = true;
+    await route.fulfill({ response, json: { ...body, json: { ...body.json, state: "booting" } } });
+  });
+  await page.route("**/rpc/computer/status", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    if (pendingStartup && ++startupPolls < 2) {
+      await route.fulfill({
+        response,
+        json: { ...body, json: { ...body.json, state: "booting" } },
+      });
+    } else {
+      pendingStartup = false;
+      await route.fulfill({ response });
+    }
   });
   await page.route("**/rpc/export/bot", async (route) => {
+    expect(pendingStartup).toBe(false);
     exportAttempts++;
     if (exportAttempts <= 2) {
       const requiresStart = exportAttempts === 1;
@@ -58,6 +77,7 @@ test("workspace export explicitly starts the computer and keeps export failures 
   await start.click();
   await expect(settings.getByRole("alert")).toHaveText("Workspace exceeds checkpoint limit");
   expect(boots).toBe(1);
+  expect(startupPolls).toBeGreaterThanOrEqual(2);
   await expect(start).toHaveCount(0);
   await captureScreenshot(page, testInfo, "workspace-export-error-after-start-mobile");
   const downloaded = page.waitForEvent("download");

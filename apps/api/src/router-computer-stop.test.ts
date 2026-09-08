@@ -13,26 +13,44 @@ const actor: Actor = {
 };
 
 describe("computer stop fencing", () => {
-  it.each([false, true])(
-    "retains fencing tombstones across stop (persistence failure=%s)",
-    async (fails) => {
+  it.each([
+    { fails: false, lateRef: false },
+    { fails: true, lateRef: false },
+    { fails: false, lateRef: true },
+  ])(
+    "retains fencing across stop (failure=$fails, lateRef=$lateRef)",
+    async ({ fails, lateRef }) => {
       const computer = {
         id: "computer-test",
         kind: "fly",
-        providerRef: "vm-test",
+        providerRef: lateRef ? null : "vm-test",
         homeKey: "home-test",
         homeRevision: "old-backup",
-        state: "running",
+        state: "booting",
         scope: "team",
         controlHolder: "none",
+        startupOperationId: "old-startup",
+        startupExpiresAt: new Date(Date.now() + 60_000),
+        startupRequestedAt: new Date(),
+        startupBotId: "bot-test",
+        startupAttempts: 2,
+        workspaceRestorePending: true,
+        startupDrainUntil: new Date("2099-01-01"),
       };
       let lease = { runId: "previous-run", fence: 7, expiresAt: new Date(Date.now() + 60_000) };
       const resume = vi.fn();
       const stop = vi.fn();
       const prisma = {
-        bot: { findFirst: vi.fn(async () => ({ id: "bot-test", name: "Test", computer })) },
+        bot: {
+          findFirst: vi.fn(async () => ({
+            id: "bot-test",
+            name: "Test",
+            computer: { ...computer },
+          })),
+        },
         computer: {
           updateMany: vi.fn(async ({ data }) => {
+            if (lateRef && data.state === "suspending") computer.providerRef = "late-machine";
             Object.assign(computer, data);
             return { count: 1 };
           }),
@@ -88,8 +106,35 @@ describe("computer stop fencing", () => {
       );
       expect(response.status).toBe(fails ? 500 : 200);
       expect(prisma.computerExecutionLease.deleteMany).not.toHaveBeenCalled();
+      expect(computer).toMatchObject({
+        startupOperationId: null,
+        startupExpiresAt: null,
+        startupRequestedAt: null,
+        startupBotId: null,
+        startupAttempts: 0,
+        workspaceRestorePending: true,
+        startupDrainUntil: new Date("2099-01-01"),
+      });
+      expect(prisma.computer.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            bots: {
+              none: {
+                id: { not: "bot-test" },
+                runs: { some: { status: { in: expect.any(Array) } } },
+              },
+            },
+          }),
+          data: expect.objectContaining({ state: "suspending", startupOperationId: null }),
+        }),
+      );
       expect(lease.fence).toBe(7);
       expect(lease.expiresAt.getTime()).toBe(0);
+      if (lateRef)
+        expect(stop).toHaveBeenCalledWith(
+          expect.objectContaining({ providerRef: "late-machine" }),
+          expect.anything(),
+        );
       if (fails) {
         expect(resume).toHaveBeenCalledOnce();
         expect(stop).not.toHaveBeenCalled();

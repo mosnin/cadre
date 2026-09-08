@@ -34,7 +34,10 @@ function fakePrisma(
   return {
     run: { findMany: vi.fn(async () => runs) },
     routine: { findMany: vi.fn(async () => routines) },
-    computer: { findMany: vi.fn(async () => controls) },
+    computer: {
+      findMany: vi.fn(async (args) => (args.orderBy?.id === "asc" ? [] : controls)),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
     messagingOutbound: { findFirst: vi.fn(async () => null) },
   } as unknown as PrismaClient;
 }
@@ -189,7 +192,7 @@ describe("createJobReconciler", () => {
         controlLeaseExpiresAt: null,
       },
     ];
-    const computerFindMany = vi
+    const controlPages = vi
       .fn()
       .mockResolvedValueOnce(controls.slice(0, 2))
       .mockResolvedValueOnce(controls.slice(2))
@@ -201,6 +204,9 @@ describe("createJobReconciler", () => {
           controlLeaseExpiresAt: firstExpiry,
         },
       ]);
+    const computerFindMany = vi.fn((args) =>
+      args.orderBy?.id === "asc" ? Promise.resolve([]) : controlPages(args),
+    );
     const prisma = {
       run: { findMany: vi.fn(async () => []) },
       routine: { findMany: vi.fn(async () => []) },
@@ -215,7 +221,7 @@ describe("createJobReconciler", () => {
     await reconciler.reconcileOnce();
 
     expect(enqueue).toHaveBeenCalledTimes(4);
-    expect(computerFindMany.mock.calls[1]?.[0]).toMatchObject({
+    expect(computerFindMany.mock.calls[2]?.[0]).toMatchObject({
       orderBy: [{ controlLeaseExpiresAt: "asc" }, { id: "asc" }],
       where: {
         AND: [
@@ -234,9 +240,9 @@ describe("createJobReconciler", () => {
     const firstDeadline =
       computerFindMany.mock.calls[0]?.[0].where.AND[1].OR[1].controlLeaseExpiresAt.lte;
     const secondDeadline =
-      computerFindMany.mock.calls[1]?.[0].where.AND[1].OR[1].controlLeaseExpiresAt.lte;
+      computerFindMany.mock.calls[2]?.[0].where.AND[1].OR[1].controlLeaseExpiresAt.lte;
     expect(secondDeadline).toEqual(firstDeadline);
-    expect(computerFindMany.mock.calls[2]?.[0].where.AND).toHaveLength(2);
+    expect(computerFindMany.mock.calls[4]?.[0].where.AND).toHaveLength(2);
     expect(enqueue).toHaveBeenLastCalledWith(
       expect.objectContaining({
         payload: { computerId: "computer-0", leaseId: "lease-0" },
@@ -603,4 +609,46 @@ describe("createPostgresReconciliationLeadership", () => {
     expect(clients[0]?.removeListener).toHaveBeenCalledWith("error", expect.any(Function));
     expect(clients[0]?.release).toHaveBeenCalledWith(false);
   });
+});
+
+it("recovers expired startup intents and caps abandoned retries without provider effects", async () => {
+  const prisma = fakePrisma();
+  const requestedAt = new Date("2026-09-01T00:00:00Z");
+  vi.mocked(prisma.computer.findMany)
+    .mockResolvedValueOnce([])
+    .mockResolvedValueOnce([
+      {
+        id: "recover",
+        startupOperationId: "dead",
+        startupRequestedAt: requestedAt,
+        startupAttempts: 1,
+        updatedAt: new Date(),
+        bots: [{ id: "bot" }],
+      },
+      {
+        id: "exhausted",
+        startupOperationId: "dead2",
+        startupRequestedAt: requestedAt,
+        startupAttempts: 3,
+        updatedAt: new Date(),
+        bots: [{ id: "bot2" }],
+      },
+    ] as never);
+  const { jobs, enqueue } = publisher();
+  await createJobReconciler({ prisma, jobs }).reconcileOnce();
+  expect(enqueue).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: "computer.warm",
+      payload: { botId: "bot", version: requestedAt.toISOString() },
+    }),
+  );
+  expect(enqueue).not.toHaveBeenCalledWith(
+    expect.objectContaining({ payload: expect.objectContaining({ botId: "bot2" }) }),
+  );
+  expect(prisma.computer.updateMany).toHaveBeenCalledWith(
+    expect.objectContaining({
+      where: expect.objectContaining({ id: "exhausted", startupOperationId: "dead2" }),
+      data: expect.objectContaining({ state: "error", startupOperationId: null }),
+    }),
+  );
 });

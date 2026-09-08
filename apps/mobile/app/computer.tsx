@@ -1,4 +1,5 @@
 import type { ComputerMode, ComputerReleaseReason } from "@rakazo/contracts";
+import { waitForComputerStartup } from "@rakazo/core";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";
@@ -30,6 +31,15 @@ export default function Computer() {
   const tokens = useMobileTokens();
   const navigation = useNavigation();
   const { botId, name: nameParam } = useLocalSearchParams<{ botId?: string; name?: string }>();
+  const activeBotId = useRef(botId);
+  activeBotId.current = botId;
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const name = nameParam || t("Bot");
   const [computer, setComputer] = useState<ComputerStatus | null>(null);
   const [screenUrl, setScreenUrl] = useState<string | null>(null);
@@ -95,15 +105,22 @@ export default function Computer() {
     const needsBoot = force || computer?.state !== "running" || !screenUrl;
     if (overlay && needsBoot) setBooting(true);
     try {
-      if (needsBoot) await rpc("computer/boot", { botId });
+      if (needsBoot)
+        await waitForComputerStartup(await rpc<ComputerStatus>("computer/boot", { botId }), () => {
+          if (!mounted.current || activeBotId.current !== botId)
+            throw new Error("Computer view changed");
+          return rpc<ComputerStatus>("computer/status", { botId });
+        });
+      if (!mounted.current || activeBotId.current !== botId) return;
       if (takeControl) await rpc("computer/takeover", { botId });
       await refresh({ screenAttempts: SCREEN_URL_OPEN_ATTEMPTS });
       setError(null);
     } catch (err) {
+      if (activeBotId.current !== botId) return;
       setError(err instanceof Error ? err.message : t("Could not open computer"));
       throw err;
     } finally {
-      setBooting(false);
+      if (activeBotId.current === botId) setBooting(false);
     }
   }
 

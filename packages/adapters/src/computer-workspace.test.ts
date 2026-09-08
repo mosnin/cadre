@@ -36,12 +36,16 @@ describe("provider-neutral computer workspace", () => {
     );
     const execute = vi.spyOn(provider, "execute");
 
-    await ensureComputerWorkspaceLayout(provider, computer, "team", "bot-1", context);
+    await ensureComputerWorkspaceLayout(provider, computer, "team", "bot-1", {
+      ...context,
+      botId: "bot-1",
+      screenLeaseId: "expired-display-lease",
+    });
 
     expect(execute).toHaveBeenCalledWith(
       computer,
-      { argv: ["mkdir", "-p", "shared", "bots/bot-1"] },
-      context,
+      { argv: ["mkdir", "-p", "shared", "bots/bot-1"], timeoutMs: 15000 },
+      { ...context, botId: undefined, screenLeaseId: undefined },
     );
   });
 

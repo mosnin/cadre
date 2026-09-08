@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import type {
   AdapterContext,
@@ -9,10 +10,12 @@ import type {
 import { ACTIVE_RUN_STATUSES, screenLeaseId } from "@rakazo/core";
 import {
   expireComputerExecutionLeases,
+  type Prisma,
   type PrismaClient,
   parseComputerMode,
   type ThreadEvents,
 } from "@rakazo/db";
+import { getLogger } from "@rakazo/logging";
 import {
   clearInactiveUserComputerControl,
   expireComputerControl,
@@ -32,6 +35,84 @@ const EXECUTION_LEASE_MS = 5 * 60_000;
 const RELEASED_EXECUTION_LEASE_AT = new Date(0);
 const BOOT_WAIT_TIMEOUT_MS = 180_000;
 const BOOT_WAIT_MS = 250;
+
+export const COMPUTER_STARTUP_LEASE_MS = 210_000;
+export const COMPUTER_STARTUP_TIMEOUT_MS = 150_000;
+export const COMPUTER_STARTUP_MAX_ATTEMPTS = 3;
+export function expiredComputerStartupWhere(now: Date): Prisma.ComputerWhereInput {
+  return {
+    OR: [
+      { state: "booting" },
+      { state: "suspending", startupOperationId: { not: null }, startupRequestedAt: { not: null } },
+    ],
+    AND: [
+      {
+        OR: [
+          { startupExpiresAt: { lte: now } },
+          {
+            startupExpiresAt: null,
+            updatedAt: { lte: new Date(now.getTime() - COMPUTER_STARTUP_LEASE_MS) },
+          },
+        ],
+      },
+    ],
+  };
+}
+export function hasActiveComputerStartupOperation(
+  computer: {
+    state?: string;
+    startupOperationId?: string | null;
+    startupExpiresAt?: Date | null;
+    startupDrainUntil?: Date | null;
+  },
+  now = Date.now(),
+) {
+  return Boolean(
+    (computer.startupOperationId &&
+      computer.startupExpiresAt &&
+      computer.startupExpiresAt.getTime() > now) ||
+      (!["booting", "suspending"].includes(computer.state ?? "") &&
+        computer.startupDrainUntil &&
+        computer.startupDrainUntil.getTime() > now),
+  );
+}
+export function isComputerStartupExpired(
+  computer: {
+    state: string;
+    startupExpiresAt?: Date | null;
+    startupOperationId?: string | null;
+    startupRequestedAt?: Date | null;
+    updatedAt?: Date;
+  },
+  now = Date.now(),
+) {
+  return (
+    (computer.state === "booting" ||
+      (computer.state === "suspending" &&
+        Boolean(computer.startupOperationId && computer.startupRequestedAt))) &&
+    (computer.startupExpiresAt
+      ? computer.startupExpiresAt.getTime() <= now
+      : Boolean(
+          computer.updatedAt && computer.updatedAt.getTime() <= now - COMPUTER_STARTUP_LEASE_MS,
+        ))
+  );
+}
+async function startupStep<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  signal.throwIfAborted();
+  let abort: () => void = () => {};
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        abort = () => reject(signal.reason ?? new Error("Computer startup timed out"));
+        signal.addEventListener("abort", abort, { once: true });
+        if (signal.aborted) abort();
+      }),
+    ]);
+  } finally {
+    signal.removeEventListener("abort", abort);
+  }
+}
 
 export class ComputerBusyError extends Error {
   constructor() {
@@ -75,36 +156,170 @@ export async function provisionComputer(
       throw new Error("computer control revocation is still in progress");
     }
   }
-  if (expectedVersion && existing.updatedAt.getTime() !== expectedVersion.getTime())
+  const expired = isComputerStartupExpired(existing);
+  if (
+    !["booting", "suspending"].includes(existing.state) &&
+    hasActiveComputerStartupOperation(existing)
+  )
     throw new ComputerBusyError();
+  const sameRequest =
+    expectedVersion && existing.startupRequestedAt?.getTime() === expectedVersion.getTime();
+  if (expectedVersion && existing.updatedAt.getTime() !== expectedVersion.getTime() && !sameRequest)
+    throw new ComputerBusyError();
+  if (expectedVersion && (existing.startupAttempts ?? 0) >= COMPUTER_STARTUP_MAX_ATTEMPTS)
+    throw new ComputerNotReadyError(
+      "Computer startup failed repeatedly. Open the computer to retry.",
+    );
   const homePath = resolveAgentHomePath(deps.home, existing.homeKey, deps.dataDir ?? "./data");
   await mkdir(homePath, { recursive: true });
-
-  if (existing.state === "running" && existing.providerRef) {
+  if (existing.state === "running" && existing.providerRef)
     return reconnectComputer(deps, existing, homePath, context);
-  }
-  if (existing.state === "booting" || existing.state === "suspending") {
+  if (expectedVersion && existing.state === "booting" && !expired) throw new ComputerBusyError();
+  if ((existing.state === "booting" && !expired) || (existing.state === "suspending" && !expired)) {
     const ready = await waitForComputerReady(deps.prisma, computerId, context);
     return reconnectComputer(deps, ready, homePath, context);
   }
-
+  const operationId = randomUUID();
+  const now = new Date();
+  const requestedAt =
+    expectedVersion ??
+    (expired ? existing.startupRequestedAt : undefined) ??
+    existing.updatedAt ??
+    now;
   const claimed = await deps.prisma.computer.updateMany({
     where: {
       id: computerId,
-      state: { in: ["stopped", "suspended", "error"] },
-      ...(expectedVersion ? { updatedAt: expectedVersion } : {}),
-      ...(context.botId ? { bots: { some: { id: context.botId, archivedAt: null } } } : {}),
+      AND: [
+        {
+          OR: [
+            { state: { in: ["booting", "suspending"] } },
+            { startupDrainUntil: null },
+            { startupDrainUntil: { lte: now } },
+          ],
+        },
+        {
+          OR: [
+            { startupOperationId: null },
+            { startupExpiresAt: null },
+            { startupExpiresAt: { lte: now } },
+          ],
+        },
+        expired
+          ? expiredComputerStartupWhere(now)
+          : { state: { in: ["stopped", "suspended", "error"] } },
+        ...(expectedVersion
+          ? [
+              {
+                OR: [{ updatedAt: expectedVersion }, { startupRequestedAt: expectedVersion }],
+                startupAttempts: { lt: COMPUTER_STARTUP_MAX_ATTEMPTS },
+              },
+            ]
+          : []),
+      ],
+      ...(context.botId
+        ? { bots: { some: { id: context.botId, archivedAt: null, computerSwitching: false } } }
+        : {}),
     },
-    data: { state: "booting" },
+    data: {
+      state: "booting",
+      startupOperationId: operationId,
+      startupExpiresAt: new Date(now.getTime() + COMPUTER_STARTUP_LEASE_MS),
+      startupDrainUntil: new Date(now.getTime() + COMPUTER_STARTUP_LEASE_MS),
+      startupRequestedAt: requestedAt,
+      startupBotId: context.botId ?? null,
+      startupAttempts: expectedVersion || expired ? { increment: 1 } : 1,
+    },
   });
   if (claimed.count !== 1) {
     if (expectedVersion) throw new ComputerBusyError();
     const ready = await waitForComputerReady(deps.prisma, computerId, context);
     return reconnectComputer(deps, ready, homePath, context);
   }
+  const remainingMs = COMPUTER_STARTUP_TIMEOUT_MS - (Date.now() - now.getTime());
+  const deadlineSignal =
+    remainingMs > 0
+      ? AbortSignal.timeout(remainingMs)
+      : AbortSignal.abort(new Error("Computer startup deadline expired before provisioning"));
+  const startupContext = { ...context, signal: AbortSignal.any([context.signal, deadlineSignal]) };
+  const owned = () => ({
+    id: computerId,
+    state: "booting",
+    startupOperationId: operationId,
+    startupExpiresAt: { gt: new Date() },
+  });
+  const retain = async (data: Prisma.ComputerUpdateManyMutationInput) => {
+    startupContext.signal.throwIfAborted();
+    const result = await startupStep(
+      deps.prisma.computer.updateMany({
+        where: {
+          ...owned(),
+          ...(context.botId
+            ? { bots: { some: { id: context.botId, archivedAt: null, computerSwitching: false } } }
+            : {}),
+        },
+        data,
+      }),
+      startupContext.signal,
+    );
+    if (result.count !== 1) throw new ComputerBusyError();
+  };
   let provisioned: ComputerRef | undefined;
+  let providerReturned = false;
+  let referenceRetained = false;
+  let failureRecorded = false;
+  let lateProvider: ComputerRef | undefined;
+  const settleLateProvider = async (ref: ComputerRef) => {
+    const cleanupId = randomUUID();
+    const at = new Date();
+    const cleanup = await deps.prisma.computer.updateMany({
+      where: {
+        id: computerId,
+        state: { in: ["stopped", "error"] },
+        providerRef: existing.providerRef,
+        OR: [
+          { startupOperationId: operationId },
+          { startupOperationId: null },
+          { startupExpiresAt: { lte: at } },
+        ],
+      },
+      data: {
+        state: "error",
+        providerRef: ref.providerRef,
+        kind: ref.kind,
+        workspaceRestorePending:
+          existing.workspaceRestorePending ||
+          (!ref.workspaceRestored && ref.providerRef !== existing.providerRef),
+        startupOperationId: cleanupId,
+        startupExpiresAt: new Date(at.getTime() + 90_000),
+        startupBotId: null,
+      },
+    });
+    if (cleanup.count !== 1) {
+      getLogger().warn("computer.startup.late_provider_requires_reconciliation");
+      return;
+    }
+    let stopped = false;
+    try {
+      await startupStep(
+        deps.sandbox.stop(ref, { ...context, signal: AbortSignal.timeout(30_000) }),
+        AbortSignal.timeout(30_000),
+      );
+      stopped = true;
+    } finally {
+      await deps.prisma.computer.updateMany({
+        where: { id: computerId, startupOperationId: cleanupId },
+        data: {
+          state: stopped ? "stopped" : "error",
+          ...(stopped
+            ? { startupOperationId: null, startupExpiresAt: null, startupDrainUntil: null }
+            : {}),
+        },
+      });
+    }
+  };
   try {
-    const ref = await deps.sandbox.provision(
+    startupContext.signal.throwIfAborted();
+    const provisioning = deps.sandbox.provision(
       {
         botId: existing.homeKey,
         homePath,
@@ -115,84 +330,107 @@ export async function provisionComputer(
             ? undefined
             : (existing.providerRef ?? undefined),
         providerKind: existing.kind as ComputerRef["kind"],
-        workspaceSnapshot: await cachedWorkspaceSnapshot(
-          deps.home,
-          deps.sandbox,
-          existing.homeKey,
-          context,
+        workspaceSnapshot: await startupStep(
+          cachedWorkspaceSnapshot(deps.home, deps.sandbox, existing.homeKey, startupContext),
+          startupContext.signal,
         ),
       },
-      context,
+      startupContext,
     );
+    void provisioning.then(
+      (lateRef) => {
+        providerReturned = true;
+        if (startupContext.signal.aborted) {
+          lateProvider = lateRef;
+          if (failureRecorded)
+            void settleLateProvider(lateRef).catch(() =>
+              getLogger().warn("computer.startup.late_provider_cleanup_failed"),
+            );
+        }
+      },
+      () => {},
+    );
+    const ref = await startupStep(provisioning, startupContext.signal);
     provisioned = ref;
-    await deps.sandbox.prepare(ref, context);
+    // Persist the reference before readiness, layout, or restoration can fail.
     const replacement =
+      existing.workspaceRestorePending ||
       ref.fresh === true ||
       !existing.providerRef ||
       existing.providerRef !== ref.providerRef ||
       existing.kind !== ref.kind;
+    await retain({
+      providerRef: ref.providerRef,
+      kind: ref.kind,
+      workspaceRestorePending:
+        existing.workspaceRestorePending || (replacement && !ref.workspaceRestored),
+    });
+    referenceRetained = true;
+    await startupStep(deps.sandbox.prepare(ref, startupContext), startupContext.signal);
     if (replacement) {
-      await restoreComputerWorkspace(deps.home, deps.sandbox, existing.homeKey, ref, context);
+      await retain({ startupOperationId: operationId });
+      await startupStep(
+        restoreComputerWorkspace(
+          deps.home,
+          deps.sandbox,
+          existing.homeKey,
+          existing.workspaceRestorePending ? { ...ref, workspaceRestored: false } : ref,
+          startupContext,
+        ),
+        startupContext.signal,
+      );
     }
-    await ensureComputerWorkspaceLayout(
-      deps.sandbox,
-      ref,
-      parseComputerMode(existing.scope),
-      context.botId,
-      context,
+    await retain({ startupOperationId: operationId });
+    await startupStep(
+      ensureComputerWorkspaceLayout(
+        deps.sandbox,
+        ref,
+        parseComputerMode(existing.scope),
+        context.botId,
+        startupContext,
+      ),
+      startupContext.signal,
     );
     const activeControl = hasActiveComputerControl(existing);
-    const activated = await deps.prisma.computer.updateMany({
-      where: {
-        id: computerId,
-        state: "booting",
-        ...(context.botId ? { bots: { some: { id: context.botId, archivedAt: null } } } : {}),
-      },
-      data: {
-        state: "running",
-        providerRef: ref.providerRef,
-        kind: ref.kind,
-        controlHolder: activeControl ? "user" : controlHolder,
-        ...(!activeControl
-          ? {
-              controlLeaseId: null,
-              controlLeaseExpiresAt: null,
-              controlBotId: null,
-              controlRunId: null,
-            }
-          : {}),
-      },
+    await retain({
+      state: "running",
+      workspaceRestorePending: false,
+      startupDrainUntil: null,
+      startupOperationId: null,
+      startupExpiresAt: null,
+      startupBotId: null,
+      controlHolder: activeControl ? "user" : controlHolder,
+      ...(!activeControl
+        ? {
+            controlLeaseId: null,
+            controlLeaseExpiresAt: null,
+            controlBotId: null,
+            controlRunId: null,
+          }
+        : {}),
     });
-    if (activated.count !== 1) {
-      throw new ComputerBusyError();
-    }
     return ref;
   } catch (error) {
-    const rollbackError = provisioned
-      ? await rollbackProvisionedComputer(deps.sandbox, provisioned, context)
-      : undefined;
-    try {
-      await deps.prisma.computer.updateMany({
-        where: { id: computerId, state: "booting" },
-        data: {
-          state: "error",
-          ...(rollbackError && provisioned
-            ? { providerRef: provisioned.providerRef, kind: provisioned.kind }
-            : {}),
-        },
-      });
-    } catch (recordError) {
-      throw new AggregateError(
-        [error, ...(rollbackError ? [rollbackError] : []), recordError],
-        "Computer provisioning failed and its failure could not be recorded",
+    // No provider rollback here: a late/stale worker must never stop or destroy
+    // a VM a successor may have adopted. The early reference remains recoverable.
+    const recorded = await deps.prisma.computer.updateMany({
+      where: owned(),
+      data: {
+        state: "error",
+        ...(!startupContext.signal.aborted
+          ? { startupOperationId: null, startupExpiresAt: null, startupDrainUntil: null }
+          : {}),
+        startupBotId: null,
+      },
+    });
+    failureRecorded = true;
+    if (!referenceRetained && (provisioned || lateProvider)) {
+      await settleLateProvider((provisioned || lateProvider)!).catch(() =>
+        getLogger().warn("computer.startup.late_provider_cleanup_failed"),
       );
     }
-    if (rollbackError) {
-      throw new AggregateError(
-        [error, rollbackError],
-        "Computer provisioning failed and its sandbox could not be rolled back",
-      );
-    }
+    if (recorded.count !== 1 && (provisioned || providerReturned))
+      getLogger().warn("computer.startup.reference_requires_reconciliation");
     throw error;
   }
 }
@@ -290,6 +528,10 @@ export async function waitForComputerReady(
       },
     });
     if (current.state === "running" && current.providerRef) return current;
+    if (isComputerStartupExpired(current))
+      throw new ComputerNotReadyError(
+        "Computer startup expired. Open the computer again to recover it.",
+      );
     initialVersion ??= current.updatedAt?.getTime();
     initialState ??= current.state;
     if (current.state === "booting") started = true;
@@ -538,6 +780,7 @@ export async function replaceComputer(
       throw new Error("computer control revocation is still in progress");
     }
   }
+  if (hasActiveComputerStartupOperation(existing)) throw new ComputerBusyError();
   const botId = context.botId;
   if (!botId) throw new Error("computer replacement requires a bot id");
   if (hasActiveComputerControl(existing)) {
@@ -549,10 +792,27 @@ export async function replaceComputer(
 
   const previousState = existing.state;
   const now = new Date();
+  const maintenanceId = randomUUID();
   const claimed = await deps.prisma.computer.updateMany({
     where: {
       id: computerId,
       state: previousState,
+      AND: [
+        {
+          OR: [
+            { state: { in: ["booting", "suspending"] } },
+            { startupDrainUntil: null },
+            { startupDrainUntil: { lte: now } },
+          ],
+        },
+        {
+          OR: [
+            { startupOperationId: null },
+            { startupExpiresAt: null },
+            { startupExpiresAt: { lte: now } },
+          ],
+        },
+      ],
       executionLeases: {
         none: { botId: { not: botId }, expiresAt: { gt: now } },
       },
@@ -563,9 +823,43 @@ export async function replaceComputer(
         { controlLeaseExpiresAt: { lte: now } },
       ],
     },
-    data: { state: "suspending" },
+    data: {
+      state: "suspending",
+      startupOperationId: maintenanceId,
+      startupExpiresAt: new Date(now.getTime() + COMPUTER_STARTUP_LEASE_MS),
+      startupDrainUntil: new Date(now.getTime() + COMPUTER_STARTUP_LEASE_MS),
+      startupRequestedAt: now,
+      startupBotId: botId,
+      startupAttempts: 1,
+    },
   });
   if (claimed.count !== 1) throw new ComputerBusyError();
+  context = {
+    ...context,
+    signal: AbortSignal.any([
+      context.signal,
+      AbortSignal.timeout(Math.max(1, COMPUTER_STARTUP_TIMEOUT_MS - (Date.now() - now.getTime()))),
+    ]),
+  };
+  const maintenanceOwner = () => ({
+    id: computerId,
+    startupOperationId: maintenanceId,
+    startupExpiresAt: { gt: new Date() },
+  });
+  const step = async <T>(work: () => Promise<T>): Promise<T> => {
+    context.signal.throwIfAborted();
+    if (Date.now() - now.getTime() >= COMPUTER_STARTUP_TIMEOUT_MS)
+      throw new Error("Computer maintenance deadline expired");
+    const held = await deps.prisma.computer.updateMany({
+      where: maintenanceOwner(),
+      data: { startupOperationId: maintenanceId },
+    });
+    if (held.count !== 1) throw new ComputerBusyError();
+    context.signal.throwIfAborted();
+    if (Date.now() - now.getTime() >= COMPUTER_STARTUP_TIMEOUT_MS)
+      throw new Error("Computer maintenance deadline expired");
+    return startupStep(work(), context.signal);
+  };
   const activeRun = await deps.prisma.run.findFirst({
     where: {
       status: { in: [...ACTIVE_RUN_STATUSES] },
@@ -575,8 +869,14 @@ export async function replaceComputer(
   });
   if (activeRun) {
     await deps.prisma.computer.updateMany({
-      where: { id: computerId, state: "suspending" },
-      data: { state: previousState },
+      where: { ...maintenanceOwner(), state: "suspending" },
+      data: {
+        state: previousState,
+        startupOperationId: null,
+        startupExpiresAt: null,
+        startupDrainUntil: null,
+        startupBotId: null,
+      },
     });
     throw new ComputerBusyError();
   }
@@ -591,23 +891,27 @@ export async function replaceComputer(
       let portableCheckpointed = false;
       // Updating the same durable machine preserves its files in place. A
       // stopped persistent VM is already safe and cannot run a live sync.
-      if (!(await deps.sandbox.isStoppedWithPersistentWorkspace?.(oldRef, context))) {
-        resumeWorkspace = await deps.sandbox.pauseWorkspaceForStop?.(oldRef, context);
-        if (!(await deps.sandbox.persistWorkspace?.(oldRef, context))) {
-          await checkpointAndRecordComputerWorkspace(deps, existing, oldRef, context);
+      if (
+        !(await step(async () => deps.sandbox.isStoppedWithPersistentWorkspace?.(oldRef, context)))
+      ) {
+        resumeWorkspace = await step(async () =>
+          deps.sandbox.pauseWorkspaceForStop?.(oldRef, context),
+        );
+        if (!(await step(async () => deps.sandbox.persistWorkspace?.(oldRef, context)))) {
+          await step(() => checkpointAndRecordComputerWorkspace(deps, existing, oldRef, context));
           portableCheckpointed = true;
         }
       }
       const updating = await deps.prisma.computer.updateMany({
         where: {
-          id: computerId,
+          ...maintenanceOwner(),
           state: "suspending",
           providerRef: oldRef.providerRef,
         },
         data: { state: "booting" },
       });
       if (updating.count !== 1) throw new ComputerBusyError();
-      const updated = await deps.sandbox.updateImage(oldRef, context);
+      const updated = await step(() => deps.sandbox.updateImage!(oldRef, context));
       if (updated) {
         if (
           updated.providerRef !== oldRef.providerRef ||
@@ -615,14 +919,21 @@ export async function replaceComputer(
           updated.botId !== oldRef.botId
         )
           throw new Error("Computer update changed workspace identity");
-        await deps.sandbox.prepare(updated, context);
+        await step(() => deps.sandbox.prepare(updated, context));
         const activated = await deps.prisma.computer.updateMany({
           where: {
-            id: computerId,
+            ...maintenanceOwner(),
             state: "booting",
             providerRef: oldRef.providerRef,
           },
-          data: { state: "running", controlHolder },
+          data: {
+            state: "running",
+            controlHolder,
+            startupOperationId: null,
+            startupExpiresAt: null,
+            startupDrainUntil: null,
+            startupBotId: null,
+          },
         });
         if (activated.count !== 1) throw new ComputerBusyError();
         // The updated runtime restarted its browser/session services. A failed
@@ -633,7 +944,7 @@ export async function replaceComputer(
       // A volume flush is not a portable backup. An unsupported in-place
       // update may replace the machine only after a fresh export succeeds.
       if (!portableCheckpointed) {
-        await checkpointAndRecordComputerWorkspace(deps, existing, oldRef, context);
+        await step(() => checkpointAndRecordComputerWorkspace(deps, existing, oldRef, context));
       }
     } else if (
       oldRef &&
@@ -642,9 +953,11 @@ export async function replaceComputer(
     ) {
       try {
         if (requiresFreshCheckpoint && existing.state === "running") {
-          resumeWorkspace = await deps.sandbox.pauseWorkspaceForStop?.(oldRef, context);
+          resumeWorkspace = await step(async () =>
+            deps.sandbox.pauseWorkspaceForStop?.(oldRef, context),
+          );
         }
-        await checkpointAndRecordComputerWorkspace(deps, existing, oldRef, context);
+        await step(() => checkpointAndRecordComputerWorkspace(deps, existing, oldRef, context));
       } catch (error) {
         // Persistent computers can contain newer files than their last portable
         // backup. Never delete that volume when a fresh checkpoint is unavailable.
@@ -655,17 +968,21 @@ export async function replaceComputer(
     if (oldRef) {
       await deps.sandbox.releaseScreen?.(oldRef, context).catch(() => undefined);
       try {
-        await deps.sandbox.destroy(oldRef, context);
+        await step(() => deps.sandbox.destroy(oldRef, context));
       } catch (error) {
         if (requiresFreshCheckpoint || (mode !== "recover" && !isUnrecoverableSandboxError(error)))
           throw error;
       }
       resumeWorkspace = undefined;
     }
-    await deps.prisma.computer.update({
-      where: { id: computerId },
+    const released = await deps.prisma.computer.updateMany({
+      where: maintenanceOwner(),
       data: {
         state: "stopped",
+        startupOperationId: null,
+        startupExpiresAt: null,
+        startupDrainUntil: null,
+        startupBotId: null,
         providerRef: null,
         controlHolder: "none",
         controlLeaseId: null,
@@ -674,18 +991,25 @@ export async function replaceComputer(
         controlRunId: null,
       },
     });
+    if (released.count !== 1) throw new ComputerBusyError();
     return provisionComputer(deps, computerId, context, controlHolder);
   } catch (error) {
     let failure = error;
     try {
-      await resumeWorkspace?.();
+      if (resumeWorkspace && !context.signal.aborted) await step(resumeWorkspace);
     } catch (resumeError) {
       failure = new AggregateError([error, resumeError], "Computer replacement and resume failed");
     }
     await deps.prisma.computer
       .updateMany({
-        where: { id: computerId },
-        data: { state: "error" },
+        where: maintenanceOwner(),
+        data: {
+          state: "error",
+          ...(!context.signal.aborted
+            ? { startupOperationId: null, startupExpiresAt: null, startupDrainUntil: null }
+            : {}),
+          startupBotId: null,
+        },
       })
       .catch(() => undefined);
     throw failure;
