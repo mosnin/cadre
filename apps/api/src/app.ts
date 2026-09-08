@@ -145,15 +145,18 @@ export async function createApp(
     runSecretWriter: createRunSecretWriter(secrets),
   });
   const environmentSignupPolicy = signupPolicyFromEnv(env);
-  const deploymentSettings = await prisma.deploymentSettings.upsert({
-    where: { id: "default" },
-    create: {
+  // Multiple API/worker processes can start against an empty database together.
+  await prisma.deploymentSettings.createMany({
+    data: {
       id: "default",
       signupsEnabled: environmentSignupPolicy.enabled,
       signupAllowlist: environmentSignupPolicy.allowlist.join(","),
       signupPolicyInitialized: true,
     },
-    update: {},
+    skipDuplicates: true,
+  });
+  const deploymentSettings = await prisma.deploymentSettings.findUniqueOrThrow({
+    where: { id: "default" },
   });
   if (!deploymentSettings.signupPolicyInitialized) {
     // Older versions created this row with schema defaults even though auth
@@ -459,6 +462,10 @@ export async function createApp(
     return auth.handler(c.req.raw);
   });
   app.use("/rpc/*", async (c, next) => {
+    const origin = c.req.header("origin");
+    if (origin && !isTrustedOrigin(origin, env)) {
+      return c.json({ error: "Untrusted request origin" }, 403);
+    }
     const session = await getSession(sessionHeaders(c.req.raw));
     const requestedSpaceId = c.req.header("x-rakazo-space-id");
     const actor = session?.user

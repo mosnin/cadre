@@ -83,7 +83,7 @@ export async function reconcileManagedConnection(
       userId: run.userId,
     },
   });
-  if (!row) return "missing";
+  if (!row || row.userRevoked) return "missing";
   if (row.status === "connected") return "connected";
   if (row.status !== "pending") return "missing";
   const connector = connectors?.managed(row.connectorId);
@@ -91,11 +91,11 @@ export async function reconcileManagedConnection(
   try {
     const ready = await connector.connectionReady(context, row.provider);
     if (ready) {
-      await prisma.connection.update({
-        where: { id: row.id },
+      const updated = await prisma.connection.updateMany({
+        where: { id: row.id, userRevoked: false },
         data: { status: "connected" },
       });
-      return "connected";
+      return updated.count === 1 ? "connected" : "missing";
     }
   } catch {
     return "pending";
@@ -150,9 +150,10 @@ export async function tryCompleteConnectionWithCode(
       spaceId: run.spaceId,
       userId: run.userId,
       status: { in: ["pending", "connected"] },
+      userRevoked: false,
     },
   });
-  if (!row) return { connected: false };
+  if (!row || row.userRevoked) return { connected: false };
   // Already finished on a prior attempt; do not resubmit the OTP.
   if (row.status === "connected") return { connected: true };
   const connector = connectors?.managed(row.connectorId);
@@ -162,10 +163,11 @@ export async function tryCompleteConnectionWithCode(
     await connector.complete({ state, code }, context);
     const ready = await connector.connectionReady(context, row.provider);
     if (ready) {
-      await prisma.connection.update({
-        where: { id: row.id },
+      const updated = await prisma.connection.updateMany({
+        where: { id: row.id, userRevoked: false },
         data: { status: "connected" },
       });
+      return { connected: updated.count === 1 };
     }
     return { connected: ready };
   } catch {

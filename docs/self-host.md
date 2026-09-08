@@ -198,11 +198,31 @@ AGENT_RUNTIME=pi          # Keep scripted only for pnpm test.
 WAKEUP_DRIVER=graphile
 SANDBOX_IDLE_MS=600000    # pause the bot computer after 10 minutes idle
 SANDBOX_COMMAND_TIMEOUT_MS=300000 # stop a shell command after 5 minutes
-MAX_TOOL_CALLS_PER_TURN=  # optional Pi turn tool-call fuse; unset/0 = unlimited
+MAX_TOOL_CALLS_PER_TURN=200 # durable executor tool budget; maximum 1000
+MAX_RUN_DURATION_MS=1200000 # Pi attempt deadline, including subagents; maximum 3600000
+MAX_RUN_TOKENS=500000 # aggregate Pi model usage; maximum 2000000
 E2B_API_KEY=              # when SANDBOX_PROVIDER=e2b
 DAYTONA_API_KEY=          # when SANDBOX_PROVIDER=daytona
 BOX_API_KEY=              # when SANDBOX_PROVIDER=box
 ```
+
+Run safeguards cannot be disabled with zero or an empty value; those values select the defaults.
+The executor reserves tool calls in the database before execution, sharing the limit across
+concurrent calls and resumed attempts. The Pi runtime also shares its tool, time, and token limits
+with subagents. Token usage is checked after each model response, so in-flight responses can exceed
+the threshold. Already-issued external effects may finish after cancellation.
+
+Six identical tool calls within the last 24 calls stop the run, even with intervening text.
+Each run can create at most four bots or four schedules, send eight peer messages, and hand off
+once. Bot and schedule creation requires a user-triggered run; automated turns cannot create more
+persistent automation. A guardrail failure pauses its originating schedule. Review the failure
+before manually resuming the schedule or sending a new request. Three failed setup attempts stop
+the run instead of retrying indefinitely.
+
+Apply database migrations before starting updated API and worker processes. The connection migration
+preserves older revoked connections as disconnected; reconnect explicitly when needed. A failed
+remote disconnect still denies local access, and late OAuth completion cannot reverse that denial.
+Retire old workers before validating these guarantees during a rolling deployment.
 
 To use an operator-controlled OpenAI-compatible server such as Ollama, LM Studio, llama.cpp, or
 MLX, list its model IDs and an endpoint that both the API and worker processes can reach:

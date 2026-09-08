@@ -2,7 +2,15 @@ import type { ConnectorTool } from "@rakazo/adapter-kit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const fakeAgentState = vi.hoisted(() => ({
-  mode: "dispatch" as "dispatch" | "empty" | "two-boundaries" | "subagent-limit" | "parent-limit",
+  mode: "dispatch" as
+    | "dispatch"
+    | "empty"
+    | "two-boundaries"
+    | "subagent-limit"
+    | "parent-limit"
+    | "hang"
+    | "tokens"
+    | "unguarded-batch",
   abortCount: 0,
   tools: [] as Array<{
     name: string;
@@ -29,6 +37,7 @@ vi.mock("@earendil-works/pi-agent-core", () => ({
       context: { messages: unknown[] };
     }) => Promise<{ context?: { messages: unknown[] } } | undefined>;
     private aborted = false;
+    private abortWaiter?: () => void;
 
     constructor(options: {
       initialState: { tools: typeof fakeAgentState.tools; messages: unknown[] };
@@ -58,6 +67,26 @@ vi.mock("@earendil-works/pi-agent-core", () => ({
         return;
       }
 
+      if (fakeAgentState.mode === "hang") {
+        await new Promise<void>((resolve) => {
+          this.abortWaiter = resolve;
+        });
+        return;
+      }
+      if (fakeAgentState.mode === "tokens") {
+        this.emit({
+          type: "message_end",
+          message: { role: "assistant", content: [], usage: { input: 500_000, output: 10 } },
+        });
+        await this.tools[0]!.execute("late-tool", {});
+        return;
+      }
+      if (fakeAgentState.mode === "unguarded-batch") {
+        await Promise.all(
+          Array.from({ length: 12 }, (_, i) => this.tools[0]!.execute(`parallel-${i}`, {})),
+        );
+        return;
+      }
       if (fakeAgentState.mode === "dispatch") {
         const target =
           this.tools.find((tool) => tool.name === fakeAgentState.invoke.name) ?? this.tools[0];
@@ -107,6 +136,7 @@ vi.mock("@earendil-works/pi-agent-core", () => ({
 
     abort() {
       this.aborted = true;
+      this.abortWaiter?.();
       // Mirror pi-agent-core: abort settles the run with an errorMessage that
       // would otherwise make PiAgentRuntime throw and skip a final reply.
       this.state.errorMessage = "Request aborted by user";
@@ -584,6 +614,46 @@ describe("Pi connector tool dispatch", () => {
     expect(events.at(-1)).toEqual({ type: "done", text: "No response. Try again." });
   });
 
+  it.each(["tokens", "hang", "unguarded-batch"] as const)(
+    "enforces %s limits at execution",
+    async (mode) => {
+      fakeAgentState.mode = mode;
+      vi.stubEnv("MAX_RUN_DURATION_MS", mode === "hang" ? "100" : "60000");
+      vi.stubEnv("MAX_TOOL_CALLS_PER_TURN", "3");
+      const executeTool = vi.fn(async () => ({ ok: true }));
+      const events: unknown[] = [];
+      const work = (async () => {
+        for await (const event of new PiAgentRuntime().run(
+          {
+            botId: "b",
+            threadId: "t",
+            runId: `safety-${mode}`,
+            prompt: "Test limits",
+            instructions: "Use shell",
+            history: [],
+            tools: [shellTool],
+            model: { provider: "test", id: "dispatch-test-model" },
+            executeTool,
+          },
+          { signal: new AbortController().signal },
+        ))
+          events.push(event);
+      })();
+      try {
+        if (mode === "unguarded-batch") {
+          await work;
+          expect(executeTool).toHaveBeenCalledTimes(3);
+          expect(events).toContainEqual(expect.objectContaining({ type: "guardrail" }));
+        } else {
+          await expect(work).rejects.toThrow(mode === "tokens" ? "token limit" : "time limit");
+          expect(executeTool).not.toHaveBeenCalled();
+        }
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    },
+  );
+
   it("allows more than 80 tool calls by default when no fuse is configured", async () => {
     fakeAgentState.mode = "parent-limit";
     const executeTool = vi.fn(async () => ({ ok: true }));
@@ -738,12 +808,12 @@ describe("Pi connector tool dispatch", () => {
     );
   });
 
-  it("treats unset, empty, and non-positive MAX_TOOL_CALLS_PER_TURN as unlimited", () => {
-    expect(maxToolCallsPerTurn({})).toBe(0);
-    expect(maxToolCallsPerTurn({ MAX_TOOL_CALLS_PER_TURN: "" })).toBe(0);
-    expect(maxToolCallsPerTurn({ MAX_TOOL_CALLS_PER_TURN: "0" })).toBe(0);
-    expect(maxToolCallsPerTurn({ MAX_TOOL_CALLS_PER_TURN: "-5" })).toBe(0);
-    expect(maxToolCallsPerTurn({ MAX_TOOL_CALLS_PER_TURN: "abc" })).toBe(0);
+  it("uses a finite default for unset, empty, and non-positive MAX_TOOL_CALLS_PER_TURN", () => {
+    expect(maxToolCallsPerTurn({})).toBe(200);
+    expect(maxToolCallsPerTurn({ MAX_TOOL_CALLS_PER_TURN: "" })).toBe(200);
+    expect(maxToolCallsPerTurn({ MAX_TOOL_CALLS_PER_TURN: "0" })).toBe(200);
+    expect(maxToolCallsPerTurn({ MAX_TOOL_CALLS_PER_TURN: "-5" })).toBe(200);
+    expect(maxToolCallsPerTurn({ MAX_TOOL_CALLS_PER_TURN: "abc" })).toBe(200);
     expect(maxToolCallsPerTurn({ MAX_TOOL_CALLS_PER_TURN: "80" })).toBe(80);
     expect(maxToolCallsPerTurn({ MAX_TOOL_CALLS_PER_TURN: " 12.9 " })).toBe(12);
   });

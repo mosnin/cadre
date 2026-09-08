@@ -70,6 +70,9 @@ services:
       WAKEUP_DRIVER: graphile
       SANDBOX_PROVIDER: docker
       AGENT_RUNTIME: pi
+      MAX_TOOL_CALLS_PER_TURN: ${MAX_TOOL_CALLS_PER_TURN:-200}
+      MAX_RUN_DURATION_MS: ${MAX_RUN_DURATION_MS:-1200000}
+      MAX_RUN_TOKENS: ${MAX_RUN_TOKENS:-500000}
       # Optional egress proxy (Mainland / corporate). Empty = unset; either case works.
       HTTP_PROXY: ${HTTP_PROXY:-${http_proxy:-}}
       HTTPS_PROXY: ${HTTPS_PROXY:-${https_proxy:-}}
@@ -103,6 +106,9 @@ services:
       SANDBOX_PROVIDER: docker
       SCREEN_PROXY_SECRET: ""
       AGENT_RUNTIME: pi
+      MAX_TOOL_CALLS_PER_TURN: ${MAX_TOOL_CALLS_PER_TURN:-200}
+      MAX_RUN_DURATION_MS: ${MAX_RUN_DURATION_MS:-1200000}
+      MAX_RUN_TOKENS: ${MAX_RUN_TOKENS:-500000}
       # Optional egress proxy (Mainland / corporate). Empty = unset; either case works.
       HTTP_PROXY: ${HTTP_PROXY:-${http_proxy:-}}
       HTTPS_PROXY: ${HTTPS_PROXY:-${https_proxy:-}}

@@ -371,6 +371,26 @@ describe("composio tool mapping", () => {
     expect(needsLivePluginSync([{ status: "error" }])).toBe(true);
   });
 
+  it("never recovers an explicit disconnect from live provider state", () => {
+    const rows = [
+      {
+        id: "revoked",
+        provider: "GMAIL",
+        displayName: "Gmail",
+        status: "revoked",
+        userRevoked: true,
+      },
+    ];
+    expect(needsLivePluginSync(rows)).toBe(false);
+    expect(mergeConnectedPlugins(rows, ["GMAIL"])).toEqual([]);
+    expect(planLiveConnectionSync(rows, ["GMAIL"])).toEqual({ connectIds: [], revokeIds: [] });
+  });
+
+  it("refuses an unscoped execution session when no apps remain connected", async () => {
+    const provider = new ComposioConnector();
+    await expect(provider.sessionForExecute("test-user", [])).rejects.toThrow("No connected apps");
+  });
+
   it("keeps DB-connected plugins when live Composio listing is empty", () => {
     expect(
       mergeConnectedPlugins(

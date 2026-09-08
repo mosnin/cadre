@@ -117,7 +117,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
     ]);
   });
 
-  it("returns the remote catalog when local reconciliation fails", async () => {
+  it("fails closed when local connection access cannot be checked", async () => {
     const cookie = await signup(app, `db-failure-connections-${stamp}@rakazo.test`, "DB Failure");
     const actor = await rpc<Actor>(app, cookie, "me");
     await connectRemote(composio, actor, "SLACK");
@@ -128,14 +128,9 @@ describeWithDatabase("Composio catalog reconciliation", () => {
       .spyOn(handles.prisma.connection, "findMany")
       .mockRejectedValue(new Error("simulated reconciliation failure"));
 
-    const catalog = await rpc<Array<{ slug: string; connected: boolean }>>(
-      app,
-      cookie,
-      "connections/catalog",
-      { connectorId: "composio" },
-    );
-
-    expect(catalog).toContainEqual(expect.objectContaining({ slug: "SLACK", connected: true }));
+    await expect(
+      rpc(app, cookie, "connections/catalog", { connectorId: "composio" }),
+    ).rejects.toThrow("connections/catalog 502");
     failure.mockRestore();
     await expect(statuses([pending.id])).resolves.toEqual([{ id: pending.id, status: "pending" }]);
   });
@@ -176,7 +171,17 @@ describeWithDatabase("Composio catalog reconciliation", () => {
       { id: pending.id, status: "connected" },
     ]);
     await rpc(app, cookie, "connections/revoke", { connectionId: pending.id });
+    // A stale live-provider response or a late OAuth callback must not undo explicit disconnect.
+    await connectRemote(composio, actor, "GMAIL");
+    await rpc(app, cookie, "connections/complete", { connectionId: pending.id });
     await chat();
+    const catalog = await rpc<Array<{ slug: string; connected: boolean }>>(
+      app,
+      cookie,
+      "connections/catalog",
+      { connectorId: "composio" },
+    );
+    expect(catalog).toContainEqual(expect.objectContaining({ slug: "GMAIL", connected: false }));
     await expect(statuses([pending.id])).resolves.toEqual([{ id: pending.id, status: "revoked" }]);
   });
 
@@ -188,7 +193,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
     );
     const actor = await rpc<Actor>(app, cookie, "me");
     const first = await createConnection(actor, "GMAIL");
-    const duplicate = await createConnection(actor, "GMAIL");
+    const duplicate = await createConnection(actor, "gmail");
     const other = await createConnection(actor, "SLACK");
     await handles.prisma.connection.updateMany({
       where: { id: { in: [first.id, duplicate.id, other.id] } },
@@ -199,6 +204,23 @@ describeWithDatabase("Composio catalog reconciliation", () => {
       (await statuses([first.id, duplicate.id])).every((row) => row.status === "revoked"),
     ).toBe(true);
     await expect(statuses([other.id])).resolves.toEqual([{ id: other.id, status: "connected" }]);
+  });
+
+  it("retains local denial when the remote disconnect fails", async () => {
+    const cookie = await signup(app, `remote-revoke-${stamp}@rakazo.test`, "Remote revoke");
+    const actor = await rpc<Actor>(app, cookie, "me");
+    const row = await createConnection(actor, "GMAIL");
+    await connectRemote(composio, actor, "GMAIL");
+    vi.spyOn(composio, "revoke").mockRejectedValueOnce(new Error("remote unavailable"));
+    await expect(rpc(app, cookie, "connections/revoke", { connectionId: row.id })).rejects.toThrow(
+      "connections/revoke 400",
+    );
+    expect(
+      await handles.prisma.connection.findUniqueOrThrow({ where: { id: row.id } }),
+    ).toMatchObject({ status: "revoked", userRevoked: true });
+    await expect(
+      rpc(app, cookie, "connections/complete", { connectionId: row.id }),
+    ).resolves.toMatchObject({ status: "revoked" });
   });
 
   it("does not mutate local state when the provider catalog fails", async () => {

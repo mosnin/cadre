@@ -1,10 +1,11 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { ScriptedAgentRuntime } from "@rakazo/adapters";
+import { FakeSandboxProvider, ScriptedAgentRuntime } from "@rakazo/adapters";
 import { approvalEffectKey } from "@rakazo/core/node/approval-effect-key";
 import { createThreadEvents } from "@rakazo/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { reserveRunTool } from "../../adapters/src/run-guardrails.js";
 
 process.env.WAKEUP_DRIVER = "memory";
 process.env.SANDBOX_PROVIDER = "fake";
@@ -109,6 +110,149 @@ describeIntegration("run executor lifecycle", () => {
       }
     },
   );
+
+  it("atomically caps concurrent tools and retains the budget across a new lease", async () => {
+    const seeded = await seedRun("tool-budget", "Prepare a report", {
+      status: "running",
+      leaseOwner: "budget-worker",
+      leaseFence: 1,
+      leaseExpiresAt: new Date(Date.now() + 60_000),
+    });
+    vi.stubEnv("MAX_TOOL_CALLS_PER_TURN", "3");
+    try {
+      const results = await Promise.allSettled(
+        Array.from({ length: 12 }, (_, i) =>
+          reserveRunTool(handles.prisma, seeded.run, "budget-worker", 1, "shell", {
+            command: `echo ${i}`,
+          }),
+        ),
+      );
+      expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(3);
+      await handles.prisma.run.update({
+        where: { id: seeded.run.id },
+        data: { leaseOwner: "resumed-worker", leaseFence: 2 },
+      });
+      await expect(
+        reserveRunTool(handles.prisma, seeded.run, "resumed-worker", 2, "shell", {}),
+      ).rejects.toThrow("3-tool");
+      await expect(
+        reserveRunTool(handles.prisma, seeded.run, "budget-worker", 1, "shell", {}),
+      ).rejects.toThrow("no longer owns");
+      await expect(
+        reserveRunTool(
+          handles.prisma,
+          { ...seeded.run, userId: "another-user" },
+          "resumed-worker",
+          2,
+          "shell",
+          {},
+        ),
+      ).rejects.toThrow("no longer owns");
+    } finally {
+      vi.unstubAllEnvs();
+      await handles.prisma.run.update({
+        where: { id: seeded.run.id },
+        data: { status: "cancelled", leaseExpiresAt: null },
+      });
+    }
+  });
+
+  it("rejects tool execution after cancellation", async () => {
+    const seeded = await seedRun("cancelled-tool", "Stop", {
+      status: "cancelled",
+      leaseOwner: "worker",
+      leaseFence: 1,
+      leaseExpiresAt: new Date(Date.now() + 60_000),
+    });
+    await expect(
+      reserveRunTool(handles.prisma, seeded.run, "worker", 1, "shell", {}),
+    ).rejects.toThrow("no longer owns");
+  });
+
+  it.each(["runtime", "repeated-tool"])(
+    "pauses the schedule at a %s safety limit",
+    async (mode) => {
+      const seeded = await seedRun(`routine-guard-${mode}`, "Check progress");
+      const routine = await handles.prisma.routine.create({
+        data: {
+          spaceId: seeded.me.spaceId,
+          userId: seeded.me.userId,
+          botId: seeded.bot.id,
+          threadId: seeded.thread.id,
+          name: "Scheduled check",
+          prompt: "Check progress",
+          crons: ["* * * * *"],
+          active: true,
+          nextRunAt: new Date(Date.now() + 60_000),
+        },
+      });
+      await handles.prisma.run.update({
+        where: { id: seeded.run.id },
+        data: { trigger: "routine", routineId: routine.id },
+      });
+      const runtime = vi
+        .spyOn(ScriptedAgentRuntime.prototype, "run")
+        .mockImplementation(async function* () {
+          if (mode === "runtime") {
+            yield { type: "guardrail", reason: "Run safety limit reached." };
+            return;
+          }
+          for (let i = 0; i < 6; i++) {
+            yield { type: "text", text: "Checking progress." };
+            yield {
+              type: "tool",
+              name: "message_user",
+              args: { message: "Progress check" },
+              executionId: `loop-${i}`,
+            };
+          }
+          yield { type: "done", text: "This must not finish successfully." };
+        });
+      try {
+        await handles.executor.continueRun(seeded.run.id, "routine-worker");
+        expect(
+          await handles.prisma.run.findUniqueOrThrow({ where: { id: seeded.run.id } }),
+        ).toMatchObject({
+          status: "failed",
+          error:
+            mode === "runtime"
+              ? "Run safety limit reached."
+              : expect.stringContaining("repeated tool-call loop"),
+        });
+        if (mode === "repeated-tool") {
+          expect(
+            (await handles.prisma.run.findUniqueOrThrow({ where: { id: seeded.run.id } }))
+              .guardrailState,
+          ).toMatchObject({ count: 5 });
+        }
+        expect(
+          await handles.prisma.routine.findUniqueOrThrow({ where: { id: routine.id } }),
+        ).toMatchObject({ active: false, nextRunAt: null });
+      } finally {
+        runtime.mockRestore();
+      }
+    },
+  );
+
+  it("ends repeated setup failures instead of requeuing forever", async () => {
+    const seeded = await seedRun("setup-guard", "Prepare a report");
+    const provision = vi
+      .spyOn(FakeSandboxProvider.prototype, "provision")
+      .mockRejectedValue(new Error("Fixture provider unavailable"));
+    try {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        await expect(handles.executor.continueRun(seeded.run.id, "setup-worker")).rejects.toThrow(
+          "retrying",
+        );
+      }
+      await handles.executor.continueRun(seeded.run.id, "setup-worker");
+      expect(
+        await handles.prisma.run.findUniqueOrThrow({ where: { id: seeded.run.id } }),
+      ).toMatchObject({ status: "failed", error: expect.stringContaining("three times") });
+    } finally {
+      provision.mockRestore();
+    }
+  });
 
   it("allows only one worker to claim a queued run", async () => {
     const seeded = await seedRun("concurrent", "write a file that says one-claim");

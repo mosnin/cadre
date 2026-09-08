@@ -359,7 +359,8 @@ describe("connections.complete", () => {
           status: "pending",
           createdAt: new Date("2026-08-26T00:00:00.000Z"),
         }),
-        update,
+        updateMany: update,
+        findUniqueOrThrow: update,
       },
     } as unknown as PrismaClient;
     const deps = {
@@ -732,7 +733,12 @@ describe("connector readiness", () => {
       const update = vi.fn().mockResolvedValue({});
       const connectionReady = vi.fn().mockResolvedValue(ready);
       const deps = {
-        prisma: { connection: { create: vi.fn().mockResolvedValue({ id: "connection" }), update } },
+        prisma: {
+          connection: {
+            create: vi.fn().mockResolvedValue({ id: "connection" }),
+            updateMany: update,
+          },
+        },
         connectors: {
           managed: () => ({
             begin: async () => ({ authorizationUrl: null, state: "pending-provider" }),
@@ -818,7 +824,10 @@ describe("connector catalog recovery", () => {
     ];
     const response = await catalog(
       { describe: () => ({ id: "composio" }), catalog: async () => items },
-      vi.fn().mockResolvedValue([{ provider: "hackernews" }, { provider: "github" }]),
+      vi.fn().mockResolvedValue([
+        { provider: "hackernews", status: "connected" },
+        { provider: "github", status: "connected" },
+      ]),
     );
     expect(response.status).toBe(200);
     const body = await response.json();

@@ -182,7 +182,7 @@ describe("Pi agent thinking level", () => {
 
   it("removes the abort listener when prompting fails", async () => {
     const controller = new AbortController();
-    const removeEventListener = vi.spyOn(controller.signal, "removeEventListener");
+    const removeEventListener = vi.spyOn(AbortSignal.prototype, "removeEventListener");
     fakeAgentState.failPrompt = true;
 
     await expect(runWithModel("plain-model", "test", controller.signal)).rejects.toThrow(

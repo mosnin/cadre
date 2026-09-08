@@ -387,6 +387,7 @@ export interface ScriptedTurn {
 }
 
 export type AgentRuntimeEvent =
+  | { type: "guardrail"; reason: string }
   | { type: "text"; text: string }
   | {
       type: "progress";

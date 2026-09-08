@@ -28,6 +28,15 @@ import {
   registerOpenAiCompatibleCatalog,
   registerOpenAiCompatibleRuntime,
 } from "./pi-openai-compatible-provider.js";
+import {
+  maxRunDurationMs,
+  maxRunTokens,
+  maxToolCallsPerTurn,
+  RunGuardrailError,
+} from "./run-guardrails.js";
+
+export { maxToolCallsPerTurn } from "./run-guardrails.js";
+
 import { textContentArg } from "./tool-text.js";
 
 const running = new Map<string, AbortController>();
@@ -59,15 +68,6 @@ const AGENT_TOOL_NAME_PATTERN = /^[a-zA-Z0-9_-]+$/;
 const MAX_AGENT_TOOL_NAME_LENGTH = 64;
 const FALLBACK_AGENT_TOOL_NAME = "connector_tool";
 
-/** Optional self-host fuse. Unset, empty, or 0 means unlimited (default). */
-export function maxToolCallsPerTurn(env: NodeJS.ProcessEnv = process.env): number {
-  const raw = env.MAX_TOOL_CALLS_PER_TURN?.trim();
-  if (!raw) return 0;
-  const parsed = Number(raw);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
-  return Math.floor(parsed);
-}
-
 export class PiAgentRuntime implements AgentRuntime {
   describe() {
     return {
@@ -88,7 +88,17 @@ export class PiAgentRuntime implements AgentRuntime {
   ): AsyncIterable<AgentRuntimeEvent> {
     const controller = new AbortController();
     running.set(request.runId, controller);
-    const signal = context?.signal ?? controller.signal;
+    const signal = context?.signal
+      ? AbortSignal.any([context.signal, controller.signal])
+      : controller.signal;
+    const deadline = setTimeout(
+      () =>
+        controller.abort(
+          new RunGuardrailError("Run time limit reached. Send a new message to continue."),
+        ),
+      maxRunDurationMs(),
+    );
+    deadline.unref?.();
     const queue = createQueue();
 
     const work = (async () => {
@@ -139,6 +149,7 @@ export class PiAgentRuntime implements AgentRuntime {
           nestedAgents,
           subagentGate: createGate(MAX_PARALLEL_SUBAGENTS),
           toolCallBudget: { count: 0, exceeded: false, limit: maxToolCallsPerTurn() },
+          tokenBudget: { count: 0, limit: maxRunTokens(), exceeded: false },
           toolCallSeq: { value: 0 },
           abortTurn: () => undefined,
           signal,
@@ -202,6 +213,7 @@ export class PiAgentRuntime implements AgentRuntime {
         };
         host.abortTurn = onAbort;
         if (signal.aborted) {
+          if (controller.signal.reason instanceof RunGuardrailError) throw controller.signal.reason;
           queue.push({ type: "done", text: "stopped" });
           return;
         }
@@ -212,7 +224,7 @@ export class PiAgentRuntime implements AgentRuntime {
         let toolActivityShowing = false;
         agent.subscribe((event) => {
           if (event.type === "tool_execution_start") {
-            if (!consumeToolCall(host)) return;
+            if (host.signal.aborted || host.toolCallBudget.exceeded) return;
             toolCalls += 1;
             // Live activity feedback: without this the thread shows a bare
             // "working…" for the whole tool call with nothing actionable.
@@ -245,6 +257,7 @@ export class PiAgentRuntime implements AgentRuntime {
               queue.push({ type: "text", text });
             }
             if ("usage" in event.message && event.message.usage) {
+              consumeTokens(host, event.message.usage);
               queue.push({
                 type: "usage",
                 inputTokens: event.message.usage.input ?? 0,
@@ -269,9 +282,11 @@ export class PiAgentRuntime implements AgentRuntime {
           signal.removeEventListener("abort", onAbort);
         }
 
-        // Budget abort stops the agent underneath the model, which leaves
-        // errorMessage set. Treat that as a soft stop so the turn still ends
-        // with a durable assistant message instead of a failed run.
+        // Report budget aborts distinctly so the executor can fail the run and pause its schedule.
+        if (controller.signal.aborted && controller.signal.reason instanceof RunGuardrailError)
+          throw controller.signal.reason;
+        if (host.tokenBudget.exceeded)
+          throw new RunGuardrailError("Run token limit reached. Send a new message to continue.");
         const budgetExceeded = host.toolCallBudget.exceeded;
         const error = agent.state.errorMessage;
         if (error && !budgetExceeded) {
@@ -279,6 +294,7 @@ export class PiAgentRuntime implements AgentRuntime {
         }
         if (budgetExceeded) {
           const budgetMessage = toolCallBudgetExceededMessage(host.toolCallBudget.limit);
+          queue.push({ type: "guardrail", reason: budgetMessage });
           if (streamed.trim()) {
             const suffix = `\n\n${budgetMessage}`;
             queue.push({ type: "text", text: suffix });
@@ -302,7 +318,9 @@ export class PiAgentRuntime implements AgentRuntime {
         queue.push(streamed.trim() ? { type: "done", text: streamed } : { type: "done" });
       } catch (error) {
         const message = sanitizeError(error instanceof Error ? error.message : String(error));
-        queue.fail(new Error(message));
+        queue.fail(
+          error instanceof RunGuardrailError ? new RunGuardrailError(message) : new Error(message),
+        );
       } finally {
         queue.close();
       }
@@ -312,6 +330,8 @@ export class PiAgentRuntime implements AgentRuntime {
       yield* queue.iterate();
       await work;
     } finally {
+      clearTimeout(deadline);
+      controller.abort();
       running.delete(request.runId);
     }
   }
@@ -633,6 +653,13 @@ function toAgentTool(tool: ConnectorTool, host: ToolHost, exposedName: string): 
       return raw as never;
     },
     execute: async (toolCallId, params) => {
+      if (host.signal.aborted || host.tokenBudget.exceeded || !consumeToolCall(host)) {
+        return {
+          content: [{ type: "text", text: "Run safety limit reached; no tool was executed." }],
+          details: { stopped: true },
+          terminate: true,
+        };
+      }
       const args = (params ?? {}) as Record<string, unknown>;
       const executionId =
         toolCallId || `${host.request.runId}:${tool.name}:${host.toolCallSeq.value++}`;
@@ -722,6 +749,10 @@ function toAgentTool(tool: ConnectorTool, host: ToolHost, exposedName: string): 
 async function executeSubagent(host: ToolHost, executionId: string, args: Record<string, unknown>) {
   if (host.depth > 0) return "Subagents cannot nest further.";
   await host.subagentGate.acquire();
+  if (host.signal.aborted || host.toolCallBudget.exceeded || host.tokenBudget.exceeded) {
+    host.subagentGate.release();
+    return "Run stopped before the queued subagent started.";
+  }
   const agentId = executionId;
   const name =
     String(args.name ?? "helper")
@@ -768,7 +799,7 @@ async function executeSubagent(host: ToolHost, executionId: string, args: Record
   let lastPush = 0;
   nested.subscribe((event) => {
     if (event.type === "tool_execution_start") {
-      if (!consumeToolCall(host)) return;
+      if (host.signal.aborted || host.toolCallBudget.exceeded) return;
       const toolName = "toolName" in event && event.toolName ? String(event.toolName) : "a tool";
       host.queue.push({
         type: "subagent",
@@ -801,6 +832,7 @@ async function executeSubagent(host: ToolHost, executionId: string, args: Record
       const text = assistantText(event.message);
       if (text && !streamed) streamed = text;
       if ("usage" in event.message && event.message.usage) {
+        consumeTokens(host, event.message.usage);
         host.queue.push({
           type: "usage",
           inputTokens: event.message.usage.input ?? 0,
@@ -1132,6 +1164,7 @@ interface ToolHost {
   nestedAgents: Set<Agent>;
   subagentGate: { acquire(): Promise<void>; release(): void };
   toolCallBudget: { count: number; exceeded: boolean; limit: number };
+  tokenBudget: { count: number; exceeded: boolean; limit: number };
   /** Shared fallback uniqueness when the model omits toolCallId (nested hosts reuse this). */
   toolCallSeq: { value: number };
   abortTurn(): void;
@@ -1144,11 +1177,24 @@ function toolCallBudgetExceededMessage(limit: number) {
   return `I stopped after reaching the limit of ${limit} tool calls in this turn. Send another message to continue.`;
 }
 
+function consumeTokens(
+  host: ToolHost,
+  usage: { input?: number; output?: number; cacheRead?: number; cacheWrite?: number },
+) {
+  for (const value of [usage.input, usage.output, usage.cacheRead, usage.cacheWrite]) {
+    if (typeof value === "number" && Number.isFinite(value) && value > 0)
+      host.tokenBudget.count += value;
+  }
+  if (host.tokenBudget.count >= host.tokenBudget.limit) {
+    host.tokenBudget.exceeded = true;
+    host.abortTurn();
+  }
+}
+
 function consumeToolCall(host: ToolHost): boolean {
   host.toolCallBudget.count += 1;
   const limit = host.toolCallBudget.limit;
-  // limit <= 0 means unlimited — do not abort.
-  if (limit <= 0 || host.toolCallBudget.count <= limit) return true;
+  if (host.toolCallBudget.count <= limit && !host.toolCallBudget.exceeded) return true;
   if (!host.toolCallBudget.exceeded) {
     host.toolCallBudget.exceeded = true;
     host.queue.push({
