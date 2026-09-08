@@ -16,6 +16,10 @@ import { captureTaskDraft } from "./lib/task-draft";
 import { McpOAuthCallbackPage } from "./pages/McpOAuthCallback";
 import { ShellPage } from "./pages/Shell";
 
+const AdminPage = lazy(() =>
+  import("./pages/Admin").then((module) => ({ default: module.AdminPage })),
+);
+
 const AuthPage = lazy(() =>
   import("./pages/Auth").then((module) => ({ default: module.AuthPage })),
 );
@@ -147,6 +151,10 @@ export function App() {
                 />
               )
             }
+          />
+          <Route
+            path="/app/admin"
+            element={user ? <AdminPage /> : <Navigate to="/login?next=%2Fapp%2Fadmin" replace />}
           />
           <Route
             path="/app"

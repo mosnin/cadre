@@ -66,6 +66,71 @@ describeWithDatabase("API authorization and resource isolation", () => {
   it("rejects unauthenticated calls to every protected RPC family", async () => {
     const calls = exhaustiveProtectedCalls([
       ["me"],
+      ["admin/status"],
+      ["admin/claim", { requestId: "00000000-0000-4000-8000-000000000001" }],
+      ["admin/overview"],
+      ["admin/users", {}],
+      ["admin/user", { userId: "missing" }],
+      [
+        "admin/userAction",
+        {
+          userId: "missing",
+          action: "suspend",
+          reason: "Test reason",
+          requestId: "00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      ["admin/runs", {}],
+      [
+        "admin/stopRun",
+        {
+          runId: "missing",
+          reason: "Test reason",
+          requestId: "00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      ["admin/schedules", {}],
+      [
+        "admin/scheduleAction",
+        {
+          routineId: "missing",
+          active: false,
+          reason: "Test reason",
+          requestId: "00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      ["admin/audit", {}],
+      ["admin/settings"],
+      [
+        "admin/updateSettings",
+        {
+          signupsEnabled: false,
+          signupAllowlist: [],
+          reason: "Test reason",
+          requestId: "00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      ["admin/billing", { userId: "missing" }],
+      [
+        "admin/linkBilling",
+        {
+          userId: "missing",
+          customerId: "cus_fixture",
+          reason: "Test reason",
+          requestId: "00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      [
+        "admin/updateSubscription",
+        {
+          userId: "missing",
+          subscriptionId: "sub_fixture",
+          cancelAtPeriodEnd: true,
+          reason: "Test reason",
+          requestId: "00000000-0000-4000-8000-000000000001",
+        },
+      ],
+
       ["deployment/get"],
       ["deployment/update", { signupsEnabled: true }],
       ["updater/status"],

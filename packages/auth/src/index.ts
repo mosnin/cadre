@@ -192,6 +192,19 @@ export function createAuth(prisma: PrismaClient, env: AuthEnv) {
       },
     },
     databaseHooks: {
+      session: {
+        create: {
+          before: async (session) => {
+            const user = await prisma.user.findUnique({
+              where: { id: session.userId },
+              select: { suspendedAt: true },
+            });
+            if (!user || user.suspendedAt)
+              throw new APIError("FORBIDDEN", { message: "This account is suspended." });
+            return { data: session };
+          },
+        },
+      },
       account: {
         create: {
           before: async (account) => {

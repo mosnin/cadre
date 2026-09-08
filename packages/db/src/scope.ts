@@ -21,7 +21,7 @@ export async function requireMembership(
     orderBy: [{ space: { isDefault: "desc" } }, { createdAt: "asc" }, { id: "asc" }],
     include: { member: { include: { user: true } } },
   });
-  if (!membership) {
+  if (!membership || membership.member.user.suspendedAt) {
     throw new IsolationError("No personal space");
   }
   const settings = await prisma.deploymentSettings.findUnique({

@@ -3,6 +3,7 @@ import { rm } from "node:fs/promises";
 import { ORPCError, onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import type {
+  BillingProvider,
   JobPublisher,
   ManagedConnectorProvider,
   MessagingSurface,
@@ -52,6 +53,7 @@ import {
   ScriptedAgentRuntime,
   SmtpEmailProvider,
   SpaceMemoryProviderResolver,
+  StripeBillingProvider,
 } from "@rakazo/adapters";
 import {
   blockedAuthPaths,
@@ -109,11 +111,13 @@ export async function createApp(
     pipedream?: ManagedConnectorProvider;
     messaging?: MessagingSurface;
     email?: TransactionalEmailProvider;
+    billing?: BillingProvider;
     remoteConnectors?: RemoteConnectorDependencies;
     logger?: Logger;
   } = {},
 ): Promise<AppHandles> {
   const {
+    billing: billingOverride,
     prisma: prismaOverride,
     realtime: realtimeOverride,
     composio: composioOverride,
@@ -337,6 +341,13 @@ export async function createApp(
       ? { provider: "openai", apiKey: env.deploymentVoiceKey, voiceId: "coral" }
       : undefined;
   const router = createRouter({
+    admin: {
+      emails: env.adminEmails,
+      bootstrapTokenHash: env.adminBootstrapTokenHash,
+      billing:
+        billingOverride ??
+        (env.stripeSecretKey ? new StripeBillingProvider(env.stripeSecretKey) : undefined),
+    },
     deploymentVoice,
     prisma,
     events,
@@ -383,6 +394,13 @@ export async function createApp(
     : undefined;
   const getSession = async (headers: Headers) => {
     const session = await auth.api.getSession({ headers });
+    if (session) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { suspendedAt: true },
+      });
+      if (!user || user.suspendedAt) return null;
+    }
     if (session && oauthCredential) {
       try {
         await oauthCredential(session.user.id);
@@ -476,7 +494,7 @@ export async function createApp(
     }
     const { matched, response } = await rpc.handle(c.req.raw, {
       prefix: "/rpc",
-      context: { actor, signal: c.req.raw.signal },
+      context: { actor, signal: c.req.raw.signal, sessionId: session?.session.id },
     });
     if (matched) return c.newResponse(response.body, response);
     await next();
