@@ -550,6 +550,7 @@ model Run {
   routine              Routine?         @relation(fields: [routineId], references: [id], onDelete: SetNull)
   startedAt            DateTime?
   completedAt          DateTime?
+  guardrailState       Json?
   botOutcomeReturnedAt DateTime?
   messagingMirroredAt  DateTime?
   createdAt            DateTime         @default(now())
@@ -727,6 +728,7 @@ model Connection {
   status      String
   secretId    String?
   providerRef String?
+  userRevoked Boolean  @default(false)
   metadata    Json     @default("{}")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

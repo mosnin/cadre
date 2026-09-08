@@ -127,7 +127,7 @@ describe("reconcileManagedConnection", () => {
           provider: "gmail",
           status: "pending",
         }),
-        update: vi.fn().mockResolvedValue({}),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
     };
     const connectors = {
@@ -145,8 +145,8 @@ describe("reconcileManagedConnection", () => {
     ).resolves.toBe("connected");
 
     expect(connectionReady).toHaveBeenCalled();
-    expect(prisma.connection.update).toHaveBeenCalledWith({
-      where: { id: "conn-1" },
+    expect(prisma.connection.updateMany).toHaveBeenCalledWith({
+      where: { id: "conn-1", userRevoked: false },
       data: { status: "connected" },
     });
   });
@@ -173,7 +173,7 @@ describe("tryCompleteConnectionWithCode", () => {
           providerRef: "gmail-state",
           status: "pending",
         }),
-        update: vi.fn().mockResolvedValue({}),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
     };
     const connectors = {
@@ -197,11 +197,46 @@ describe("tryCompleteConnectionWithCode", () => {
         spaceId: "workspace-1",
         userId: "user-1",
         status: { in: ["pending", "connected"] },
+        userRevoked: false,
       },
     });
     expect(complete).toHaveBeenCalledWith({ state: "gmail-state", code: "123456" }, context);
-    expect(prisma.connection.update).toHaveBeenCalledWith({
-      where: { id: "conn-1" },
+    expect(prisma.connection.updateMany).toHaveBeenCalledWith({
+      where: { id: "conn-1", userRevoked: false },
+      data: { status: "connected" },
+    });
+  });
+
+  it("does not report connected when revocation wins during provider completion", async () => {
+    const prisma = {
+      connection: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: "conn-1",
+          connectorId: "composio",
+          provider: "gmail",
+          status: "pending",
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      },
+    };
+    const connectors = {
+      managed: () => ({
+        complete: vi.fn().mockResolvedValue({}),
+        connectionReady: vi.fn().mockResolvedValue(true),
+      }),
+    };
+    await expect(
+      tryCompleteConnectionWithCode(
+        prisma as never,
+        connectors as never,
+        { spaceId: "workspace-1", userId: "user-1" },
+        context,
+        "conn-1",
+        "123456",
+      ),
+    ).resolves.toEqual({ connected: false });
+    expect(prisma.connection.updateMany).toHaveBeenCalledWith({
+      where: { id: "conn-1", userRevoked: false },
       data: { status: "connected" },
     });
   });
@@ -217,7 +252,7 @@ describe("tryCompleteConnectionWithCode", () => {
           providerRef: "gmail-state",
           status: "connected",
         }),
-        update: vi.fn(),
+        updateMany: vi.fn(),
       },
     };
     const connectors = {
@@ -236,7 +271,7 @@ describe("tryCompleteConnectionWithCode", () => {
     ).resolves.toEqual({ connected: true });
 
     expect(complete).not.toHaveBeenCalled();
-    expect(prisma.connection.update).not.toHaveBeenCalled();
+    expect(prisma.connection.updateMany).not.toHaveBeenCalled();
   });
 
   it("returns a connector error instead of throwing", async () => {
@@ -250,7 +285,7 @@ describe("tryCompleteConnectionWithCode", () => {
           providerRef: "gmail-state",
           status: "pending",
         }),
-        update: vi.fn(),
+        updateMany: vi.fn(),
       },
     };
     const connectors = {

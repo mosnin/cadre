@@ -190,6 +190,7 @@ async function reconcilePendingConnections(
         userId: owner.userId,
         connectorId,
         status: { in: ["pending", "connected"] },
+        userRevoked: false,
       },
       select: { id: true, provider: true, displayName: true, status: true },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
@@ -204,6 +205,7 @@ async function reconcilePendingConnections(
           prisma.connection.updateMany({
             where: {
               id: { in: sync.connectIds },
+              userRevoked: false,
               spaceId: owner.spaceId,
               userId: owner.userId,
               status: "pending",
@@ -2895,24 +2897,25 @@ export function createRouter(deps: RouterDeps) {
                   );
                 });
               }
-              const noAuth = items.filter((item) => item.noAuth).map((item) => item.slug);
-              if (noAuth.length) {
-                const selected = await deps.prisma.connection.findMany({
-                  where: {
-                    spaceId: context.actor.spaceId,
-                    userId: context.actor.userId,
-                    connectorId: provider.describe().id,
-                    provider: { in: noAuth },
-                    status: "connected",
-                  },
-                  select: { provider: true },
-                });
-                const connected = new Set(selected.map((row) => row.provider));
-                return items.map((item) =>
-                  item.noAuth && connected.has(item.slug) ? { ...item, connected: true } : item,
+              const local = await deps.prisma.connection.findMany({
+                where: {
+                  spaceId: context.actor.spaceId,
+                  userId: context.actor.userId,
+                  connectorId: provider.describe().id,
+                },
+                select: { provider: true, status: true, userRevoked: true },
+              });
+              return items.map((item) => {
+                const rows = local.filter(
+                  (row) => row.provider.toLowerCase() === item.slug.toLowerCase(),
                 );
-              }
-              return items;
+                const selected = rows.some((row) => !row.userRevoked && row.status === "connected");
+                const revoked = rows.some((row) => row.userRevoked);
+                return {
+                  ...item,
+                  connected: item.noAuth ? selected : item.connected && (!revoked || selected),
+                };
+              });
             } catch (error) {
               throw new ORPCError("BAD_GATEWAY", { message: sanitizeComposioError(error) });
             }
@@ -2934,7 +2937,11 @@ export function createRouter(deps: RouterDeps) {
           connectorId: row.connectorId,
           provider: row.provider,
           displayName: row.displayName,
-          status: row.status as "pending" | "connected" | "revoked" | "error",
+          status: (row.userRevoked ? "revoked" : row.status) as
+            | "pending"
+            | "connected"
+            | "revoked"
+            | "error",
           capabilities: [],
           createdAt: row.createdAt.toISOString(),
         }));
@@ -2961,8 +2968,8 @@ export function createRouter(deps: RouterDeps) {
             { provider: input.provider, redirectUrl: `${deps.env.webOrigin}/app` },
             connectionContext(context.actor, "connections.begin", context.signal),
           );
-          await deps.prisma.connection.update({
-            where: { id: row.id },
+          await deps.prisma.connection.updateMany({
+            where: { id: row.id, userRevoked: false },
             data: {
               status:
                 !auth.authorizationUrl &&
@@ -2978,8 +2985,8 @@ export function createRouter(deps: RouterDeps) {
           });
           return { connectionId: row.id, authorizationUrl: auth.authorizationUrl };
         } catch (error) {
-          await deps.prisma.connection.update({
-            where: { id: row.id },
+          await deps.prisma.connection.updateMany({
+            where: { id: row.id, userRevoked: false },
             data: { status: "error" },
           });
           throw new ORPCError("BAD_REQUEST", { message: sanitizeComposioError(error) });
@@ -3001,7 +3008,7 @@ export function createRouter(deps: RouterDeps) {
           });
         }
         let row = existing;
-        if (existing.status !== "connected") {
+        if (!existing.userRevoked && existing.status !== "connected") {
           if (input.code) {
             const state = existing.providerRef ?? existing.provider;
             try {
@@ -3018,10 +3025,11 @@ export function createRouter(deps: RouterDeps) {
             existing.provider,
           );
           if (ready) {
-            row = await deps.prisma.connection.update({
-              where: { id: existing.id },
+            await deps.prisma.connection.updateMany({
+              where: { id: existing.id, userRevoked: false },
               data: { status: "connected" },
             });
+            row = await deps.prisma.connection.findUniqueOrThrow({ where: { id: existing.id } });
           }
         }
         return {
@@ -3029,7 +3037,11 @@ export function createRouter(deps: RouterDeps) {
           connectorId: row.connectorId,
           provider: row.provider,
           displayName: row.displayName,
-          status: row.status as "pending" | "connected" | "revoked" | "error",
+          status: (row.userRevoked ? "revoked" : row.status) as
+            | "pending"
+            | "connected"
+            | "revoked"
+            | "error",
           capabilities: [],
           createdAt: row.createdAt.toISOString(),
         };
@@ -3041,6 +3053,19 @@ export function createRouter(deps: RouterDeps) {
             spaceId: context.actor.spaceId,
             userId: context.actor.userId,
           },
+        });
+        await deps.prisma.connection.updateMany({
+          where: {
+            ...(row
+              ? {
+                  connectorId: row.connectorId,
+                  provider: { equals: row.provider, mode: "insensitive" },
+                }
+              : { id: input.connectionId }),
+            spaceId: context.actor.spaceId,
+            userId: context.actor.userId,
+          },
+          data: { status: "revoked", userRevoked: true },
         });
         if (row) {
           const connector = deps.connectors.managed(row.connectorId);
@@ -3058,16 +3083,7 @@ export function createRouter(deps: RouterDeps) {
             throw new ORPCError("BAD_REQUEST", { message: sanitizeComposioError(error) });
           }
         }
-        await deps.prisma.connection.updateMany({
-          where: {
-            ...(row
-              ? { connectorId: row.connectorId, provider: row.provider }
-              : { id: input.connectionId }),
-            spaceId: context.actor.spaceId,
-            userId: context.actor.userId,
-          },
-          data: { status: "revoked" },
-        });
+
         return { ok: true as const };
       }),
     },

@@ -49,6 +49,20 @@ describeWithDatabase("API authorization and resource isolation", () => {
     rmSync(dataDir, { recursive: true, force: true });
   });
 
+  it("rejects cross-origin authenticated mutations before changing state", async () => {
+    const cookie = await signup(app, `origin-${stamp}@rakazo.test`, "Origin test");
+    const before = await handles.prisma.bot.count();
+    const response = await app.request("/rpc/bots/create", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "https://untrusted.example", cookie },
+      body: JSON.stringify({ json: botInput("Must not be created") }),
+    });
+    expect(response.status).toBe(403);
+    expect(await handles.prisma.bot.count()).toBe(before);
+    const allowed = await rpc<Bot>(app, cookie, "bots/create", botInput("Trusted origin"));
+    expect(allowed.name).toBe("Trusted origin");
+  });
+
   it("rejects unauthenticated calls to every protected RPC family", async () => {
     const calls = exhaustiveProtectedCalls([
       ["me"],

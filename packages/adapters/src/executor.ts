@@ -41,7 +41,6 @@ import {
   expandSkillReferencesInPrompt,
   formatSkillRunPrompt,
   formatSkillsCatalogInstruction,
-  humanizeToolName,
   inferAttachmentMimeType,
   isMessagingChannelRun,
   isOneShotRoutineCrons,
@@ -56,7 +55,6 @@ import {
   renderBotDirectory,
   resolveActionApprovalDetail,
   sandboxCommandTimeoutMs,
-  type ToolCallStreak,
   toolRequiresApproval,
   toolRequiresExplicitApproval,
   userTurnBlocksForRun,
@@ -201,6 +199,7 @@ import {
   renderPlotSpecToSvg,
   searchChartCatalog,
 } from "./plot-tool.js";
+import { RunGuardrailError, reserveRunTool } from "./run-guardrails.js";
 import {
   commitConsumedRunSecret,
   reconcileManagedConnection,
@@ -241,7 +240,6 @@ import {
   currentTurnFilesInstruction,
   materializeCurrentTurnFiles,
 } from "./thread-artifacts.js";
-import { advanceToolCallLoopGuard } from "./tool-loop.js";
 import { textContentArg } from "./tool-text.js";
 import {
   alreadyPublishedProgress,
@@ -471,6 +469,7 @@ async function persistLivePluginConnections(
     await prisma.connection.updateMany({
       where: {
         id: { in: sync.connectIds },
+        userRevoked: false,
         userId: owner.userId,
         spaceId: owner.spaceId,
       },
@@ -902,6 +901,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               connectorId: true,
               provider: true,
               providerRef: true,
+              userRevoked: true,
               displayName: true,
               status: true,
             },
@@ -947,8 +947,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
         );
         const connectedPlugins = storedConnections.filter(
           (connection) =>
-            connection.status === "connected" ||
-            activeKeys.has(`${connection.connectorId}:${connection.provider}`),
+            !connection.userRevoked &&
+            (connection.status === "connected" ||
+              activeKeys.has(`${connection.connectorId}:${connection.provider}`)),
         );
         const context = {
           operationId: runId,
@@ -1324,7 +1325,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
         let pendingProgress = "";
         let lastProgressAt = 0;
         let hasStreamedText = false;
-        let toolCallStreak: ToolCallStreak = { key: undefined, count: 0 };
         let lastComputerFrameId: string | undefined;
         let terminalCheckpointComplete = false;
         let approvalPausePending = false;
@@ -1399,16 +1399,50 @@ export function createRunExecutor(deps: ExecutorDeps) {
           return secretPausedToolResult();
         };
 
+        let guardrailFailure: RunGuardrailError | undefined;
         const applyTool = async (
           name: string,
           args: Record<string, unknown>,
           executionId: string,
         ) => {
+          if (guardrailFailure) throw guardrailFailure;
+          if (context.signal.aborted) throw new Error("Run stopped before tool execution.");
+          try {
+            await reserveRunTool(deps.prisma, run, workerId, fence, name, args);
+          } catch (error) {
+            if (error instanceof RunGuardrailError) {
+              guardrailFailure = error;
+              runAbortController?.abort();
+            }
+            throw error;
+          }
+          if (guardrailFailure) throw guardrailFailure;
+          if (context.signal.aborted) throw new Error("Run stopped before tool execution.");
           if (handedOff) {
             return { error: "This stage was handed off. End the turn without more tool calls." };
           }
           if (IMAGE_RETURNING_COMPUTER_TOOLS.has(name) && !acceptsImages) {
             return { error: MODEL_CANNOT_SEE_MESSAGE };
+          }
+          if (!BUILTIN_AGENT_TOOL_NAMES.has(name)) {
+            // A disconnect during a run must take effect before its next provider call.
+            const allowed = await deps.prisma.connection.findMany({
+              where: {
+                id: { in: context.connectedConnections.map((row) => row.id) },
+                spaceId: run.spaceId,
+                userId: run.userId,
+                userRevoked: false,
+                status: "connected",
+              },
+              select: { id: true },
+            });
+            const ids = new Set(allowed.map((row) => row.id));
+            context.connectedConnections = context.connectedConnections.filter((row) =>
+              ids.has(row.id),
+            );
+            context.connectedProviders = context.connectedConnections
+              .filter((row) => row.connectorId === "composio")
+              .map((row) => row.externalId);
           }
           let connectorCall: ConnectorCall = {
             tool: name,
@@ -3095,10 +3129,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
               }
             }
 
+            if (event.type === "guardrail") {
+              guardrailFailure = new RunGuardrailError(event.reason);
+              runAbortController?.abort();
+              throw guardrailFailure;
+            }
             if (event.type === "text") {
               assembled += event.text;
               currentTextSegment += event.text;
-              toolCallStreak = { key: undefined, count: 0 };
               tryFlushPendingTools();
               pendingProgress += progressRedactor.push(event.text);
               const now = Date.now();
@@ -3106,7 +3144,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 await flushProgress();
               }
             } else if (event.type === "progress") {
-              toolCallStreak = { key: undefined, count: 0 };
               // Flush batched text deltas first so an activity line cannot land
               // ahead of text the model streamed before the tool call.
               if (pendingProgress) {
@@ -3234,47 +3271,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
               });
               pendingToolNames.push(event.name);
               tryFlushPendingTools();
-              const loopGuard = advanceToolCallLoopGuard(toolCallStreak, event.name, event.args);
-              toolCallStreak = loopGuard.streak;
-              if (loopGuard.stuck) {
-                approvedEffectReplays.assertDrained();
-                flushPendingTools();
-                if (!(await renewRunLease(deps, runId, workerId, fence))) return;
-                if (messageSegments.length > 0) {
-                  await publishMessage(deps, run, "bot", redactBlocks(messageSegments, runSecrets));
-                }
-                await workspaceCheckpoint.flush();
-                terminalCheckpointComplete = true;
-                const stuckText = `I got stuck calling ${humanizeToolName(event.name)} with the same input ${toolCallStreak.count} times in a row without making progress, so I stopped early. Try rephrasing this, or ask me to try a different approach.`;
-                const stopped = await deps.events.finalizeRun({
-                  spaceId: run.spaceId,
-                  threadId: thread.id,
-                  botId: bot.id,
-                  runId,
-                  taskId: run.taskId,
-                  attemptId: attempt.id,
-                  leaseOwner: workerId,
-                  leaseFence: fence,
-                  outcome: "completed",
-                  blocks: [{ kind: "text", text: stuckText }],
-                });
-                if (!stopped) return;
-                if (stopped.continuationRunId) {
-                  await deps.jobs
-                    .enqueue(runContinueJob(stopped.continuationRunId))
-                    .catch((error) => getLogger().error("steering continuation enqueue", error));
-                }
-                if (run.trigger === "bot_message") {
-                  await returnBotMessageOutcome(
-                    deps,
-                    { ...run, sourceMessageId: run.sourceMessageId },
-                    { id: bot.id, name: bot.name },
-                    stuckText,
-                  ).catch((error) => getLogger().error("bot message loop-guard return", error));
-                }
-                runAbortController?.abort();
-                return;
-              }
               if (scripted) {
                 const result = await applyTool(event.name, event.args, event.executionId);
                 if (isToolPauseResult(result)) return;
@@ -3352,6 +3348,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           pendingProgress += progressRedactor.finish();
           await flushProgress();
 
+          if (guardrailFailure) throw guardrailFailure;
           for (const turn of script ?? []) {
             for (const file of turn.files ?? []) {
               workspaceCheckpoint.markDirty();
@@ -3488,6 +3485,20 @@ export function createRunExecutor(deps: ExecutorDeps) {
             getLogger().error("history.compact enqueue failed", error);
           }
         } catch (error) {
+          // Some runtimes wrap tool errors when aborting; retain the actionable stop reason.
+          error = guardrailFailure ?? error;
+          if (error instanceof RunGuardrailError && run.routineId) {
+            await deps.prisma.routine.updateMany({
+              where: {
+                id: run.routineId,
+                spaceId: run.spaceId,
+                userId: run.userId,
+                botId: run.botId,
+              },
+              data: { active: false, nextRunAt: null },
+            });
+            await deps.jobs.cancel(routineJobKey(run.routineId)).catch(() => undefined);
+          }
           if (!terminalCheckpointComplete) {
             await workspaceCheckpoint.flush().catch(() => undefined);
           }
@@ -3556,6 +3567,24 @@ export function createRunExecutor(deps: ExecutorDeps) {
               runSecrets,
             ),
           );
+        }
+        if (
+          !computerBusy &&
+          (await deps.prisma.attempt.count({ where: { runId, status: "setup_failed" } })) >= 2
+        ) {
+          await deps.events.finalizeRun({
+            spaceId: run.spaceId,
+            threadId: run.threadId,
+            botId: run.botId,
+            runId,
+            taskId: run.taskId,
+            attemptId: attempt.id,
+            leaseOwner: workerId,
+            leaseFence: fence,
+            outcome: "failed",
+            error: "Setup failed three times. Check the computer or provider before retrying.",
+          });
+          return;
         }
         const released = await deps.prisma.run.updateMany({
           where: { id: runId, status: "running", leaseOwner: workerId, leaseFence: fence },

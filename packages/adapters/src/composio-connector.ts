@@ -117,26 +117,29 @@ export function executeSessionKey(toolkits: string[]): string {
 }
 
 export type PluginConnectionRow = {
+  userRevoked?: boolean;
   id: string;
   provider: string;
   status: string;
   displayName: string;
 };
 
-export function needsLivePluginSync(rows: { status: string }[]): boolean {
+export function needsLivePluginSync(rows: { status: string; userRevoked?: boolean }[]): boolean {
   return rows.some(
-    (row) => row.status === "pending" || row.status === "error" || row.status === "revoked",
+    (row) =>
+      !row.userRevoked &&
+      (row.status === "pending" || row.status === "error" || row.status === "revoked"),
   );
 }
 
 export function mergeConnectedPlugins(
-  rows: { provider: string; displayName: string; status?: string }[],
+  rows: { provider: string; displayName: string; status?: string; userRevoked?: boolean }[],
   liveSlugs: string[],
 ): { provider: string; displayName: string }[] {
   const live = new Set(liveSlugs.map((slug) => composioSlugKey(slug)).filter(Boolean));
   const byProvider = new Map<string, { provider: string; displayName: string }>();
   for (const row of rows) {
-    if (!row.provider) continue;
+    if (!row.provider || row.userRevoked) continue;
     const include =
       row.status === "connected" ||
       row.status === undefined ||
@@ -157,6 +160,7 @@ export function planLiveConnectionSync(
   rows: PluginConnectionRow[],
   liveSlugs: string[],
 ): { connectIds: string[]; revokeIds: string[] } {
+  rows = rows.filter((row) => !row.userRevoked);
   const live = new Set(liveSlugs.map(composioSlugKey).filter(Boolean));
   const connectIds: string[] = [];
   const connectedProviders = new Set(
@@ -221,7 +225,8 @@ export class ComposioConnector implements ComposioProvider {
   async sessionForExecute(userId: string, toolkits: string[]): Promise<ComposioSession> {
     const canonicalToolkits = await this.canonicalizeToolkits(toolkits);
     const key = executeSessionKey(canonicalToolkits);
-    if (!key) return this.sessionFor(userId);
+    if (!key)
+      throw new Error("No connected apps are available. Connect an app before using its tools.");
     const composio = this.sdk();
     const existing = this.executeSessions.get(userId);
     if (existing?.key === key) {
