@@ -17,15 +17,28 @@ export PATH="$AGENT_HOME/.local/bin:/usr/local/bin:$PATH"
 export NPM_CONFIG_PREFIX="$AGENT_HOME/.local"
 export PIP_USER=1
 cd "$AGENT_HOME"
+# Each display owns its own diagnostics; parallel agents never overwrite them.
+LOG_DIR="/tmp/rakazo/display-$DISPLAY_NUMBER"
+mkdir -p "$LOG_DIR"
+cleanup() {
+  trap - EXIT TERM INT
+  jobs -pr | xargs -r kill 2>/dev/null || true
+}
+trap cleanup EXIT
+trap 'exit 0' TERM INT
+port_ready() { (echo >/dev/tcp/127.0.0.1/"$1") >/dev/null 2>&1; }
 
 if [[ -n "${RAKAZO_COMPUTER_CONTROL_TOKEN:-}" ]]; then
-  /usr/local/bin/rakazo-computer-control >/tmp/rakazo/control.log 2>&1 &
+  /usr/local/bin/rakazo-computer-control >"$LOG_DIR"/control.log 2>&1 &
 fi
 
-rm -f "/tmp/.X$DISPLAY_NUMBER-lock" "/tmp/.X11-unix/X$DISPLAY_NUMBER"
-
-Xvfb "$DISPLAY" -nolisten tcp -screen 0 1280x800x24 -ac +extension RANDR +render -noreset >/tmp/rakazo/xvfb.log 2>&1 &
-XVFB_PID=$!
+# Reattaching a supervisor must never remove a live server's X socket.
+DESKTOP_FRESH=0
+if ! xdpyinfo -display "$DISPLAY" >/dev/null 2>&1; then
+  rm -f "/tmp/.X$DISPLAY_NUMBER-lock" "/tmp/.X11-unix/X$DISPLAY_NUMBER"
+  Xvfb "$DISPLAY" -nolisten tcp -screen 0 1280x800x24 -ac +extension RANDR +render -noreset >"$LOG_DIR"/xvfb.log 2>&1 &
+  DESKTOP_FRESH=1
+fi
 
 ready=0
 for _ in $(seq 1 100); do
@@ -37,10 +50,11 @@ for _ in $(seq 1 100); do
 done
 if [[ "$ready" -ne 1 ]]; then
   echo "Xvfb failed to start" >&2
-  cat /tmp/rakazo/xvfb.log >&2 || true
+  cat "$LOG_DIR"/xvfb.log >&2 || true
   exit 1
 fi
 
+if [[ "$DESKTOP_FRESH" -eq 1 ]]; then
 if command -v dbus-launch >/dev/null 2>&1; then
   eval "$(dbus-launch --sh-syntax)"
 fi
@@ -55,9 +69,9 @@ cat > ${FLUX_HOME}/.fluxbox/startup <<EOF
 exec fluxbox -rc ${FLUX_HOME}/.fluxbox/init
 EOF
 chmod +x ${FLUX_HOME}/.fluxbox/startup
-HOME=${FLUX_HOME} ${FLUX_HOME}/.fluxbox/startup >/tmp/rakazo/fluxbox.log 2>&1 &
+HOME=${FLUX_HOME} ${FLUX_HOME}/.fluxbox/startup >"$LOG_DIR"/fluxbox.log 2>&1 &
 
-tint2 -c /etc/rakazo/tint2rc >/tmp/rakazo/dock.log 2>&1 &
+tint2 -c /etc/rakazo/tint2rc >"$LOG_DIR"/dock.log 2>&1 &
 
 register_browser_handler() {
   local mime="$1"
@@ -80,7 +94,7 @@ rm -f "$PROFILE/SingletonLock" \
   "$PROFILE/SingletonCookie" \
   "$PROFILE/SingletonSocket"
 
-HOME="$AGENT_HOME" rakazo-browser >/tmp/rakazo/browser.log 2>&1 &
+HOME="$AGENT_HOME" rakazo-browser >"$LOG_DIR"/browser.log 2>&1 &
 browser_up=0
 for _ in $(seq 1 40); do
   if xdotool search --onlyvisible --class chromium >/dev/null 2>&1; then
@@ -95,11 +109,15 @@ for _ in $(seq 1 40); do
 done
 if [[ "$browser_up" -ne 1 ]]; then
   echo "browser failed to start" >&2
-  cat /tmp/rakazo/browser.log >&2 || true
-  xterm -geometry 100x28+48+48 -bg "#111113" -fg "#E8E8EA" -cr "#E8E8EA" -title "Terminal" >/tmp/rakazo/xterm.log 2>&1 &
+  cat "$LOG_DIR"/browser.log >&2 || true
+  xterm -geometry 100x28+48+48 -bg "#111113" -fg "#E8E8EA" -cr "#E8E8EA" -title "Terminal" >"$LOG_DIR"/xterm.log 2>&1 &
 fi
 
-x11vnc -display "$DISPLAY" -forever -shared -viewonly -nopw -listen 127.0.0.1 -rfbport "$VIEW_VNC_PORT" -xkb -ncache 0 >/tmp/rakazo/x11vnc.log 2>&1 &
+fi # fresh desktop
+
+start_view_vnc() {
+  x11vnc -display "$DISPLAY" -forever -shared -viewonly -nopw -listen 127.0.0.1 -rfbport "$VIEW_VNC_PORT" -xkb -ncache 0 >"$LOG_DIR"/x11vnc.log 2>&1 &
+}
 
 NOVNC_ROOT=/usr/share/novnc
 if [[ ! -d "$NOVNC_ROOT" ]]; then
@@ -114,9 +132,14 @@ if [[ ! -f "$NOVNC_ROOT/clipboard-bridge.js" ]]; then
   echo "noVNC clipboard-bridge.js is missing from the computer image" >&2
   exit 1
 fi
-websockify --heartbeat=30 --web="$NOVNC_ROOT" "${RAKAZO_VNC_HOST:-0.0.0.0}:$VIEW_PORT" "127.0.0.1:$VIEW_VNC_PORT" >/tmp/rakazo/novnc.log 2>&1 &
+start_view_proxy() {
+  websockify --heartbeat=30 --web="$NOVNC_ROOT" "${RAKAZO_VNC_HOST:-0.0.0.0}:$VIEW_PORT" "127.0.0.1:$VIEW_VNC_PORT" >"$LOG_DIR"/novnc.log 2>&1 &
+}
 
-while kill -0 "$XVFB_PID" 2>/dev/null; do
+# Repair a dropped stream without replacing the desktop or its browser tabs.
+while xdpyinfo -display "$DISPLAY" >/dev/null 2>&1; do
+  port_ready "$VIEW_VNC_PORT" || start_view_vnc
+  port_ready "$VIEW_PORT" || start_view_proxy
   sleep 2
 done
 echo "Xvfb exited" >&2

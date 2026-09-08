@@ -46,6 +46,12 @@ export interface AgentModelOAuthCredential {
   accountId?: string;
 }
 
+/** Atomically refresh against the authoritative credential, then persist before releasing its lock. */
+export type ModifyModelOAuthCredential = (
+  update: (current: AgentModelOAuthCredential) => Promise<AgentModelOAuthCredential | undefined>,
+  signal?: AbortSignal,
+) => Promise<AgentModelOAuthCredential>;
+
 export interface PortableFile {
   path: string;
   content: Uint8Array;
@@ -81,11 +87,15 @@ export interface ScreenRequest {
   view: "stream" | "snapshot";
   /** Request a separately authorized control stream instead of the read-only viewer. */
   interactive?: boolean;
+  /** Authorize concurrent human input without pausing the agent or taking its lease. */
+  sharedInput?: boolean;
   /** Fences an interactive stream so an older lease cannot revoke its replacement. */
   controlToken?: string;
 }
 
 export interface ScreenSession {
+  /** Actual runtime support, negotiated for persistent machines on older images. */
+  sharedInput?: boolean;
   url: string | null;
   mimeType: string;
   close(): Promise<void>;
@@ -181,6 +191,8 @@ export interface SandboxCapabilities {
   persistentHome: boolean;
   /** Distinct graphical screens for concurrent Team bots on one computer. */
   multiScreen?: boolean;
+  /** Human input can share a bot display without taking its execution lease. */
+  sharedInput?: boolean;
   /** Provider keeps the running desktop alive between user sessions. */
   persistentRunning?: boolean;
 }
@@ -355,6 +367,7 @@ export interface AgentRunRequest {
     oauth?: {
       credential: AgentModelOAuthCredential;
       persist?: (credential: AgentModelOAuthCredential) => Promise<void>;
+      modify?: ModifyModelOAuthCredential;
     };
   };
   resumeFromCheckpoint?: string;

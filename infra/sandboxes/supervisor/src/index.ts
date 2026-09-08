@@ -659,6 +659,7 @@ async function ensureComputerImage() {
             "rakazo-browser",
             "rakazo-browser.desktop",
             "embed.html",
+            "viewer-connection.js",
             "clipboard-bridge.js",
             "mobile-controls.js",
             "touch-navigation.js",

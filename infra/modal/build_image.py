@@ -9,6 +9,8 @@ image = (modal.Image.from_dockerfile(COMPUTER / 'Dockerfile', context_dir=COMPUT
     .apt_install('python3-websocket')
     .add_local_file(HERE / 'browser_sessions.py', '/opt/cadre/browser_sessions.py', copy=True)
     .add_local_file(HERE / 'computer_rpc.py', '/opt/cadre/computer_rpc.py', copy=True)
+    .add_local_file(HERE / 'input_epoch.py', '/opt/cadre/input_epoch.py', copy=True)
+    .add_local_file(HERE / 'rfb_input_proxy.py', '/opt/cadre/rfb_input_proxy.py', copy=True)
     .add_local_file(HERE / 'screens.py', '/opt/cadre/screens.py', copy=True)
     .add_local_file(HERE / 'screen_gateway.py', '/opt/cadre/screen_gateway.py', copy=True)
     .add_local_file(HERE / 'start.sh', '/opt/cadre/start.sh', copy=True))

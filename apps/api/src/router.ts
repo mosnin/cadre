@@ -88,6 +88,7 @@ import {
 import {
   ACTIVE_RUN_STATUSES,
   AttachmentValidationError,
+  computerInputForDomKey,
   containsSecret,
   expandSkillReferencesInPrompt,
   hasMixedOneShotSchedule,
@@ -1697,7 +1698,14 @@ export function createRouter(deps: RouterDeps) {
       input: authed.computer.input.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         const computer = bot.computer;
-        if (!computer || !hasActiveComputerControl(computer) || computer.controlBotId !== bot.id) {
+        const sharedInput = Boolean(
+          computer?.providerRef &&
+            computer.state === "running" &&
+            deps.sandbox.supportsSharedInput?.(toComputerRef(computer)),
+        );
+        const exclusiveInput =
+          hasActiveComputerControl(computer) && computer?.controlBotId === bot.id;
+        if (!computer || (!sharedInput && !exclusiveInput)) {
           await expireStaleComputerControl(deps, computer);
           throw new ORPCError("FORBIDDEN");
         }
@@ -1725,7 +1733,15 @@ export function createRouter(deps: RouterDeps) {
                   };
         const outcome = await taughtSkills.recordInput(context.actor, bot.id, mapped);
         if (outcome === "stale") return { ok: true as const };
-        if (outcome !== "recorded") {
+        if (outcome !== "recorded" && sharedInput && !exclusiveInput) {
+          const action = mapped.kind === "key" ? computerInputForDomKey(mapped.key) : mapped;
+          if (!deps.sandbox.sendSharedInput) throw new ORPCError("FORBIDDEN");
+          await deps.sandbox.sendSharedInput(
+            toComputerRef(computer),
+            action,
+            computerContext(context.actor, bot.id, "input.shared"),
+          );
+        } else if (outcome !== "recorded") {
           await applyTeachingDesktopInput(
             deps.sandbox,
             computer,
@@ -1803,11 +1819,15 @@ export function createRouter(deps: RouterDeps) {
           return { url: null };
         }
         const computer = bot.computer;
+        const sharedInput =
+          Boolean(deps.sandbox.supportsSharedInput?.(toComputerRef(computer))) &&
+          !(hasActiveComputerControl(computer) && computer.controlBotId === bot.id);
         const session = await deps.sandbox
           .connectScreen(
             toComputerRef(computer),
             {
               view: "stream",
+              sharedInput,
               interactive: hasActiveComputerControl(computer) && computer.controlBotId === bot.id,
               controlToken:
                 computer.controlBotId === bot.id
@@ -1837,11 +1857,14 @@ export function createRouter(deps: RouterDeps) {
           });
         if (!session?.url) return { url: null };
         scheduleComputerSleep(deps.jobs, bot.computer.id);
+        const negotiatedSharedInput = sharedInput && session.sharedInput === true;
         const viewUrl = withViewOnly(
           session.url,
-          !(hasActiveComputerControl(bot.computer) && bot.computer.controlBotId === bot.id),
+          !negotiatedSharedInput &&
+            !(hasActiveComputerControl(bot.computer) && bot.computer.controlBotId === bot.id),
         );
         return {
+          sharedInput: negotiatedSharedInput,
           url: addScreenProxyCapability(
             viewUrl,
             deps.env.screenProxySecret,
@@ -4066,7 +4089,7 @@ function computerHostFor(
   return null;
 }
 
-async function persistModelCredential(
+export async function persistModelCredential(
   deps: RouterDeps,
   actor: Actor,
   input: {
@@ -4078,6 +4101,17 @@ async function persistModelCredential(
   },
 ) {
   throwIfAborted(input.signal);
+  // A deployment default belongs to its provider. Never pair a subscription
+  // credential with another vendor's model when a client omits the selection.
+  const defaultModel =
+    input.modelId ??
+    (input.provider === deps.env.defaultProvider
+      ? deps.env.defaultModel
+      : listPiCatalog().find((entry) => entry.provider === input.provider && !entry.placeholder)
+          ?.id);
+  if (!defaultModel) {
+    throw new ORPCError("BAD_REQUEST", { message: "Choose a model for this provider." });
+  }
   const stored = await deps.secrets.put(input.plaintext, {
     operationId: "cred",
     traceId: "cred",
@@ -4122,7 +4156,6 @@ async function persistModelCredential(
               },
             });
         throwIfAborted(input.signal);
-        const defaultModel = input.modelId ?? deps.env.defaultModel;
         await selectSpaceModelPreference(tx, actor, credential.id, defaultModel);
         throwIfAborted(input.signal);
         if (existing) {

@@ -842,3 +842,107 @@ describe("connector catalog recovery", () => {
     expect(response.status).toBe(502);
   });
 });
+
+describe("shared computer input", () => {
+  function harness(sharedInput = true, state = "running", allowed = true) {
+    const actor = {
+      spaceId: "space",
+      userId: "user",
+      email: "user@example.test",
+      isDeploymentOwner: true,
+    } satisfies Actor;
+    const computer = {
+      id: "computer",
+      homeKey: "home",
+      kind: "fly",
+      scope: "team",
+      state,
+      providerRef: "machine",
+      controlHolder: "none",
+      controlLeaseId: null,
+      controlLeaseExpiresAt: null,
+      controlBotId: null,
+      controlRunId: null,
+    };
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const act = vi.fn().mockResolvedValue({ completed: 1 });
+    const connectScreen = vi.fn().mockResolvedValue({
+      url: "https://computer.example/embed.html?view_only=false",
+      sharedInput: true,
+      close: async () => {},
+    });
+    const deps = {
+      prisma: {
+        bot: { findFirst: vi.fn().mockResolvedValue(allowed ? { id: "bot", computer } : null) },
+        computer: { updateMany },
+        computerExecutionLease: {
+          findUnique: vi.fn().mockResolvedValue({
+            runId: "run",
+            fence: 1,
+            expiresAt: new Date(Date.now() + 60_000),
+          }),
+        },
+        taughtSkill: { findFirst: vi.fn().mockResolvedValue(null) },
+      },
+      sandbox: { supportsSharedInput: () => sharedInput, sendSharedInput: act, connectScreen },
+      jobs: { enqueue: vi.fn().mockResolvedValue(undefined) },
+      env: {
+        defaultProvider: "fake",
+        defaultModel: "fake-model",
+        webOrigin: "https://app.example",
+        screenProxySecret: "test-secret",
+      },
+    } as unknown as RouterDeps;
+    const handler = new RPCHandler(createRouter(deps));
+    const call = async (method: string, input: Record<string, unknown>) =>
+      (
+        await handler.handle(
+          new Request(`http://localhost/rpc/computer/${method}`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ json: { botId: "bot", ...input } }),
+          }),
+          { prefix: "/rpc", context: { actor } },
+        )
+      ).response;
+    return { call, act, connectScreen, updateMany };
+  }
+  it("accepts authorized human input during an agent run without taking its lease", async () => {
+    const h = harness();
+    const response = await h.call("input", { kind: "key", payload: { key: "Enter" } });
+    expect(response.status).toBe(200);
+    expect(h.act).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "fly" }),
+      { kind: "key", key: "Return" },
+      expect.objectContaining({ botId: "bot", userId: "user" }),
+    );
+    expect(h.updateMany).toHaveBeenCalledWith({
+      where: { id: "computer", state: "running" },
+      data: { updatedAt: expect.any(Date) },
+    });
+  });
+  it("returns a shared viewer while leaving the active agent execution lease alone", async () => {
+    const h = harness();
+    const response = await h.call("screenUrl", {});
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      json: { sharedInput: true, url: expect.stringContaining("/novnc/remote/control/") },
+    });
+    expect(h.connectScreen).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ sharedInput: true, interactive: false }),
+      expect.objectContaining({ botId: "bot" }),
+    );
+    expect(h.updateMany).not.toHaveBeenCalled();
+  });
+  it.each([
+    [false, "running", true],
+    [true, "stopped", true],
+    [true, "running", false],
+  ])("rejects unavailable or unauthorized shared input", async (supported, state, allowed) => {
+    const h = harness(supported, state, allowed);
+    const response = await h.call("input", { kind: "pointer", payload: { x: 1, y: 1 } });
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(h.act).not.toHaveBeenCalled();
+  });
+});

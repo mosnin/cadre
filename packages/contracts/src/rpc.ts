@@ -329,7 +329,9 @@ export const appContract = {
     readFile: oc
       .input(z.object({ botId: Id, path: z.string() }))
       .output(z.object({ path: z.string(), content: z.string() })),
-    screenUrl: oc.input(botId).output(z.object({ url: z.string().nullable() })),
+    screenUrl: oc
+      .input(botId)
+      .output(z.object({ url: z.string().nullable(), sharedInput: z.boolean().optional() })),
     heartbeat: oc.input(botId).output(z.object({ ok: z.literal(true) })),
   },
   memory: {

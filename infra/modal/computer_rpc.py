@@ -14,6 +14,7 @@ from contextlib import contextmanager
 import uuid
 import time
 import screens
+import input_epoch
 
 ROOT = Path('/home/rakazo').resolve()
 LIMIT = 64 * 1024 * 1024
@@ -67,6 +68,8 @@ def execute(req):
             screen_key, state = screens.resolve(req['screenKey'], req.get('screenLease'))
             env = {**screens.child_env(state['index'], screen_key), **req.get('env', {})}
             env['DISPLAY'] = f":{state['index']+1}"
+            env['CADRE_HUMAN_INPUT_EPOCH'] = str(input_epoch.current(screen_key))
+            env['CADRE_HUMAN_INPUT_PATH'] = str(input_epoch.public_path(screen_key))
         except screens.ScreenUnavailableError:
             # File and shell work can continue without borrowing another bot's display.
             env['DISPLAY'] = ''
@@ -99,10 +102,12 @@ def execute(req):
             marker(key + ':cancel').unlink(missing_ok=True)
 
 def screenshot(req):
-    _, state = screens.resolve(req.get('screenKey'), req.get('screenLease'))
+    key, state = screens.resolve(req.get('screenKey'), req.get('screenLease'))
+    epoch=input_epoch.current(key)
     display = f":{state['index']+1}"
     image = subprocess.check_output(['import', '-display', display, '-window', 'root', 'png:-'], timeout=20)
     dims = subprocess.check_output(['xdotool', 'getdisplaygeometry'], env={**os.environ, 'DISPLAY': display}, timeout=5).decode().split()
+    input_epoch.observed(key,req.get('screenLease'),epoch)
     return {'image': base64.b64encode(image).decode(), 'mimeType': 'image/png', 'width': int(dims[0]), 'height': int(dims[1])}
 
 def actions(req):
@@ -111,6 +116,7 @@ def actions(req):
     key, state = screens.resolve(req.get('screenKey'), req.get('screenLease'))
     env = screens.child_env(state['index'], key)
     for a in values:
+        input_epoch.require_fresh(key,req.get('screenLease'))
         kind = a['kind']
         argv = None
         if kind == 'wait': time.sleep(min(max(a['ms'], 0), 5000) / 1000)
@@ -146,10 +152,17 @@ def run(req):
             except ProcessLookupError: pass
         return {'ok': True}
     if op == 'observe': return screenshot(req)
+    if op == 'sharedInput':
+        current = screens.load(screens.screen_key(req.get('screenKey'))) or {}
+        if current.get('sharedUntil',0) <= time.time():
+            raise ValueError('Open the computer viewer before sending input')
+        input_epoch.advance(screens.screen_key(req.get('screenKey')))
+        return actions(req)
     if op == 'input':
         current = screens.load(screens.screen_key(req.get('screenKey'))) or {}
         if not req.get('leaseId') or current.get('controlLease') != req['leaseId'] or current.get('expiresAt', 0) <= time.time():
             raise ValueError('Control lease expired')
+        input_epoch.advance(screens.screen_key(req.get('screenKey')))
         return actions(req)
     if op == 'actions': return actions(req)
     if op == 'list':
@@ -192,8 +205,8 @@ def run(req):
         return screens.control(req.get('screenKey'), req.get('leaseId'), req.get('controlToken'), req.get('interactive'))
     if op == 'releaseScreen': return screens.release(req.get('screenKey'), req.get('screenLease'))
     if op == 'resolveScreen':
-        key, state = screens.resolve(req.get('screenKey'), req.get('screenLease'))
-        return {'key': key, 'index': state['index']}
+        key, state = screens.resolve(req.get('screenKey'), req.get('screenLease'), shared_input=req.get('sharedInput') is True)
+        return {'key': key, 'index': state['index'], **({'sharedUntil':state['sharedUntil']} if req.get('sharedInput') is True else {})}
     if op == 'restoreBegin': return screens.pause_browsers()
     if op == 'restoreEnd': return screens.resume_browsers()
     if op == 'readBatch':

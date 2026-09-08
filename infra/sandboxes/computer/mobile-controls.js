@@ -21,14 +21,18 @@ export function attachMobileControls(rfb, Keyboard, pasteHostText) {
   const keyboardButton = document.getElementById("keyboard-button");
   const clipboard = document.getElementById("clipboard-dialog");
   const clipboardText = document.getElementById("clipboard-text");
-  if (rfb.viewOnly) return;
+  if (rfb.viewOnly) return () => {};
+  const abort = new AbortController();
+  const signal = abort.signal;
+  const listen = (target, type, listener, options = {}) =>
+    target.addEventListener(type, listener, { ...options, signal });
   toolbar.hidden = false;
   let previous = "_".repeat(32);
   input.value = previous;
   const keyboard = new Keyboard(input);
   keyboard.onkeyevent = (keysym, code, down) => rfb.sendKey(keysym, code, down);
   keyboard.grab();
-  input.addEventListener("input", () => {
+  listen(input, "input", () => {
     const edits = textEdits(previous, input.value);
     for (let i = 0; i < edits.backspaces; i++) rfb.sendKey(0xff08, "Backspace");
     for (const keysym of textKeysyms(edits.text)) rfb.sendKey(keysym);
@@ -39,50 +43,56 @@ export function attachMobileControls(rfb, Keyboard, pasteHostText) {
       input.setSelectionRange(previous.length, previous.length);
     }
   });
-  keyboardButton.addEventListener("pointerdown", (event) => event.preventDefault());
-  keyboardButton.addEventListener("click", () => {
+  listen(keyboardButton, "pointerdown", (event) => event.preventDefault());
+  listen(keyboardButton, "click", () => {
     if (document.activeElement === input) input.blur();
     else {
       input.focus();
       input.setSelectionRange(input.value.length, input.value.length);
     }
   });
-  input.addEventListener("focus", () => {
+  listen(input, "focus", () => {
     rfb.focusOnClick = false;
     keyboardButton.setAttribute("aria-pressed", "true");
   });
-  input.addEventListener("blur", () => {
+  listen(input, "blur", () => {
     rfb.focusOnClick = true;
     keyboardButton.setAttribute("aria-pressed", "false");
   });
   // Keep the phone keyboard open while tapping the remote desktop.
-  document.getElementById("screen").addEventListener(
+  listen(
+    document.getElementById("screen"),
     "mousedown",
     (event) => {
       if (document.activeElement === input) event.preventDefault();
     },
-    true,
+    { capture: true },
   );
-  document.getElementById("clipboard-button").addEventListener("click", () => {
+  listen(document.getElementById("clipboard-button"), "click", () => {
     input.blur();
     clipboard.showModal();
   });
   rfb.addEventListener("clipboard", (event) => {
     clipboardText.value = event.detail.text;
   });
-  document.getElementById("clipboard-close").addEventListener("click", () => clipboard.close());
-  document.getElementById("clipboard-paste").addEventListener("click", () => {
+  listen(document.getElementById("clipboard-close"), "click", () => clipboard.close());
+  listen(document.getElementById("clipboard-paste"), "click", () => {
     if (pasteHostText(rfb, clipboardText.value)) clipboard.close();
   });
-  document.getElementById("clipboard-copy").addEventListener("click", () => {
+  listen(document.getElementById("clipboard-copy"), "click", () => {
     clipboardText.focus();
     clipboardText.select();
     document.execCommand("copy");
   });
   // The outer app resizes with the visual viewport when the phone keyboard opens.
-  rfb.addEventListener("disconnect", () => {
+  const detach = () => {
+    if (signal.aborted) return;
+    input.blur();
     keyboard.ungrab();
     toolbar.hidden = true;
-    input.blur();
-  });
+    clipboard.close();
+    abort.abort();
+  };
+  rfb.addEventListener("disconnect", detach, { once: true });
+  return detach;
 }

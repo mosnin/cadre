@@ -42,3 +42,22 @@ export function selectedProviderOutsideSearchResults(
   }
   return allProviders.find((entry) => entry.provider === selectedProvider);
 }
+
+/** Match the names users know, including subscription branding such as ChatGPT. */
+export function modelCatalogEntryMatchesQuery(entry: ModelCatalogEntry, query: string): boolean {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  return [
+    entry.provider,
+    entry.providerName,
+    entry.id,
+    entry.label,
+    entry.authHint,
+    entry.oauthLabel,
+    entry.billing,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes(normalized);
+}

@@ -2,6 +2,41 @@ import { describe, expect, it, vi } from "vitest";
 import { loadComputerScreen } from "./computer-screen";
 
 describe("computer screen requests", () => {
+  it("keeps shared input paired with its authorized URL and clears it on denial", async () => {
+    const commit = vi.fn();
+    const options = { isCurrent: () => true, commit, fallbackError: "Unavailable" };
+    await loadComputerScreen({
+      ...options,
+      load: async () => ({ url: "https://screen.example", sharedInput: true }),
+    });
+    expect(commit).toHaveBeenLastCalledWith({
+      url: "https://screen.example",
+      sharedInput: true,
+      error: null,
+    });
+    await loadComputerScreen({
+      ...options,
+      previousUrl: "https://screen.example",
+      previousSharedInput: true,
+      load: async () => {
+        throw new Error("Temporary outage");
+      },
+    });
+    expect(commit).toHaveBeenLastCalledWith({
+      url: "https://screen.example",
+      sharedInput: true,
+      error: null,
+    });
+    await loadComputerScreen({
+      ...options,
+      previousUrl: "https://screen.example",
+      previousSharedInput: true,
+      load: async () => {
+        throw Object.assign(new Error("Denied"), { status: 403 });
+      },
+    });
+    expect(commit).toHaveBeenLastCalledWith({ url: null, error: "Denied" });
+  });
   it("shows connection failures and lets a successful retry clear them", async () => {
     const commit = vi.fn();
     const options = {

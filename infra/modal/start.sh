@@ -2,7 +2,8 @@
 set -euo pipefail
 : "${CADRE_SCREEN_VIEW_TOKEN:?Screen capability required}"
 # Runtime grants and X sockets must not survive filesystem snapshot restore.
-rm -rf /run/cadre
+rm -rf /run/cadre /run/cadre-input
+install -d -m 755 /run/cadre-input
 install -d -m 700 /run/cadre
 rm -f /tmp/.X?-lock /tmp/.X11-unix/X?
 python3 -c 'import sys; sys.path.insert(0,"/opt/cadre"); import screens; screens.resume_sessions()'
@@ -15,7 +16,9 @@ for _ in $(seq 1 100); do
   sleep 0.1
 done
 x11vnc -display :1 -forever -shared -nopw -listen 127.0.0.1 -rfbport 5901 -xkb -noshm -no6 >/tmp/cadre-control-vnc.log 2>&1 &
-websockify --heartbeat=30 --web=/usr/share/novnc 127.0.0.1:6081 127.0.0.1:5901 >/tmp/cadre-control-web.log 2>&1 &
+DEFAULT_SCREEN_KEY=$(python3 -c 'import sys; sys.path.insert(0,"/opt/cadre"); import screens; print(screens.screen_key())')
+python3 /opt/cadre/rfb_input_proxy.py 6001 5901 "$DEFAULT_SCREEN_KEY" >/tmp/cadre-control-input.log 2>&1 &
+websockify --heartbeat=30 --web=/usr/share/novnc 127.0.0.1:6081 127.0.0.1:6001 >/tmp/cadre-control-web.log 2>&1 &
 sessions_ready=0
 for _ in $(seq 1 200); do
   if [ -f /tmp/cadre-browser-sessions-ready ]; then sessions_ready=1; break; fi

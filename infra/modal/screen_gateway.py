@@ -28,9 +28,19 @@ class Handler(BaseHTTPRequestHandler):
         state = state or {'index':0}
         index = state['index']
         port = 6080 + index * 2 if upgrade else 6080
+        shared_until = 0
         if upgrade:
             token = query.get('cadre_token', [''])[0]
-            if query.get('view_only', ['true'])[0] == 'false':
+            if query.get('view_only', ['true'])[0] == 'false' and query.get('shared_until'):
+                try: shared_until = int(query['shared_until'][0])
+                except (ValueError, TypeError):
+                    self.send_error(403); return
+                expected = ''
+                root_token = os.environ.get('CADRE_SCREEN_VIEW_TOKEN', '')
+                if root_token and time.time() < shared_until <= state.get('sharedUntil',0):
+                    expected = hmac.new(root_token.encode(),f'shared:{key}:{shared_until}'.encode(),hashlib.sha256).hexdigest()
+                port = 6081 + index * 2
+            elif query.get('view_only', ['true'])[0] == 'false':
                 try: state = screens.load(key) or {}
                 except (FileNotFoundError, json.JSONDecodeError): state = {}
                 expected = state.get('token', '') if state.get('expiresAt', 0) > time.time() else ''
@@ -53,6 +63,7 @@ class Handler(BaseHTTPRequestHandler):
                 upstream.settimeout(None)
                 self.connection.settimeout(None)
                 deadline = time.monotonic() + 3600
+                last_shared_touch = 0.0
                 while time.monotonic() < deadline:
                     ready, _, _ = select.select([self.connection, upstream], [], [], 5)
                     for source in ready:
@@ -62,7 +73,12 @@ class Handler(BaseHTTPRequestHandler):
                     if upgrade and query.get('view_only', ['true'])[0] == 'false':
                         try: current = screens.load(key) or {}
                         except (FileNotFoundError, json.JSONDecodeError): return
-                        if current.get('token') != token or current.get('expiresAt', 0) <= time.time(): return
+                        if shared_until:
+                            if current.get('index') != index or not time.time() < shared_until <= current.get('sharedUntil',0): return
+                            if time.monotonic()-last_shared_touch >= 10:
+                                screens.touch_shared(key,index,shared_until)
+                                last_shared_touch=time.monotonic()
+                        elif current.get('token') != token or current.get('expiresAt', 0) <= time.time(): return
         except (OSError, TimeoutError): return
 
 if __name__ == '__main__':

@@ -53,6 +53,18 @@ def snapshot_nodes(nodes):
     return elements, '\n'.join(content)[:8000], refs
 
 
+def human_input_epoch():
+    path = os.environ.get('CADRE_HUMAN_INPUT_PATH')
+    if not path: return os.environ.get('CADRE_HUMAN_INPUT_EPOCH', '0')
+    try: return Path(path).read_text().strip() or '0'
+    except FileNotFoundError: return '0'
+
+
+def validate_human_input(observed):
+    if observed != human_input_epoch():
+        raise ValueError('The user changed this screen. Take a fresh browser snapshot before acting.')
+
+
 def validate_reference(state, req, target, loader):
     if state.get('snapshotId') != req.get('snapshotId') or state.get('target') != target or state.get('loader') != loader:
         raise ValueError('The browser snapshot is stale. Take a new snapshot before acting.')
@@ -72,12 +84,32 @@ class VisibleBrowser:
         except (FileNotFoundError, ValueError): self.state = {}
         self.pages = [p for p in self.cdp.call('Target.getTargets')['targetInfos'] if p['type'] == 'page']
         if not self.pages: raise ValueError('The visible browser has no tab. Open the browser first.')
-        newly_opened = [p for p in self.pages if self.state.get('pages') and p['targetId'] not in self.state['pages']]
-        self.page = newly_opened[-1] if newly_opened else next((p for p in self.pages if p['targetId'] == self.state.get('target')), self.pages[-1])
+        self.page = None
         self.session = None
 
     def attach(self):
+        if self.session:
+            try: self.cdp.call('Target.detachFromTarget', {'sessionId': self.session})
+            except RuntimeError: pass
         self.session = self.cdp.call('Target.attachToTarget', {'targetId': self.page['targetId'], 'flatten': True})['sessionId']
+
+    def visible_page(self):
+        # Observe the tab the human sees. Reading a snapshot must never activate
+        # the agent's remembered tab or steal focus from a human-selected tab.
+        visible = []
+        for page in self.pages:
+            self.page = page
+            try:
+                self.attach()
+                visibility = self.call('Runtime.evaluate', {'expression': '({visible:document.visibilityState === "visible",focused:document.hasFocus()})', 'returnByValue': True})['result'].get('value', {})
+                if visibility.get('visible'):
+                    if visibility.get('focused'): return page
+                    visible.append(page)
+            except RuntimeError: continue  # A human may have closed this tab.
+        if len(visible) == 1: return visible[0]
+        if len(visible) > 1:
+            raise ValueError('Several browser windows are visible. Select a tab explicitly before acting.')
+        raise ValueError('No browser tab is visible. Open a browser tab or select one explicitly.')
 
     def call(self, method, params=None):
         return self.cdp.call(method, params, self.session)
@@ -90,23 +122,31 @@ class VisibleBrowser:
         temporary.write_text(json.dumps(state)); temporary.chmod(0o600); temporary.replace(self.state_path)
 
     def snapshot(self):
+        epoch = human_input_epoch()
         nodes = self.call('Accessibility.getFullAXTree')['nodes']
         elements, content, refs = snapshot_nodes(nodes)
         snapshot_id = uuid.uuid4().hex
-        state = {'snapshotId': snapshot_id, 'target': self.page['targetId'], 'loader': self.loader(), 'refs': refs, 'pages': [p['targetId'] for p in self.pages]}
-        self.save(state)
+        state = {'snapshotId': snapshot_id, 'target': self.page['targetId'], 'loader': self.loader(), 'refs': refs, 'pages': [p['targetId'] for p in self.pages], 'humanInputEpoch': epoch}
         current = self.call('Runtime.evaluate', {'expression': '({url:location.href,title:document.title})', 'returnByValue': True})['result'].get('value', {})
+        validate_human_input(epoch)
+        self.save(state)
         return {**current, 'snapshotId': snapshot_id, 'elements': elements, 'text': content, 'visible': True}
 
     def act(self, req):
         action = bounded_request(req)
+        starting_epoch = human_input_epoch()
         if action == 'tabs': return {'tabs': [{'id': p['targetId'], 'title': p['title'][:240], 'url': p['url']} for p in self.pages]}
         if action == 'select_tab':
             self.page = next((p for p in self.pages if p['targetId'] == req.get('tabId')), None)
             if not self.page: raise ValueError('Unknown tab. List tabs again.')
+        else:
+            self.page = self.visible_page()
         self.attach()
-        self.call('Page.bringToFront')
+        if action == 'select_tab':
+            validate_human_input(starting_epoch)
+            self.call('Page.bringToFront')
         if action in ('click', 'fill', 'press'):
+            validate_human_input(self.state.get('humanInputEpoch', '0'))
             ref = validate_reference(self.state, req, self.page['targetId'], self.loader())
             # A rerender can replace a control without navigating. Refuse replaced nodes.
             tree = self.call('Accessibility.getPartialAXTree', {'backendNodeId': ref['backend'], 'fetchRelatives': False})['nodes']
@@ -119,6 +159,7 @@ class VisibleBrowser:
                 raise ValueError('This control is not a text field. Take a fresh snapshot.')
             if action == 'fill' and (attributes.get('type', '').lower() == 'password' or attributes.get('autocomplete', '').lower() in ('one-time-code', 'current-password', 'new-password')):
                 raise ValueError('Use protected secret entry or request user takeover for this field.')
+            validate_human_input(self.state.get('humanInputEpoch', '0'))
             self.save({})  # Consume refs before mutation, even if the action times out.
             self.call('DOM.scrollIntoViewIfNeeded', {'backendNodeId': ref['backend']})
             if action == 'click':
@@ -137,10 +178,12 @@ class VisibleBrowser:
                     for kind in ('keyDown', 'keyUp'):
                         self.call('Input.dispatchKeyEvent', {'type': kind, 'key': ' ' if req['key'] == 'Space' else req['key'], 'code': req['key'], 'windowsVirtualKeyCode': codes[req['key']], **({'text': '\r'} if req['key'] == 'Enter' and kind == 'keyDown' else {})})
         elif action == 'navigate':
+            validate_human_input(starting_epoch)
             self.save({})
             result = self.call('Page.navigate', {'url': req['url']})
             if result.get('errorText'): raise ValueError('Browser navigation failed')
         elif action == 'scroll':
+            validate_human_input(starting_epoch)
             self.save({})
             self.call('Input.dispatchMouseEvent', {'type': 'mouseWheel', 'x': 640, 'y': 400, 'deltaX': 0, 'deltaY': -500 if req.get('direction') == 'up' else 500})
         if action != 'snapshot':
@@ -152,12 +195,9 @@ class VisibleBrowser:
                 except RuntimeError: pass
                 time.sleep(.1)
         pages = [p for p in self.cdp.call('Target.getTargets')['targetInfos'] if p['type'] == 'page']
-        new_pages = [p for p in pages if p['targetId'] not in {old['targetId'] for old in self.pages}]
-        if new_pages:
-            self.page = new_pages[-1]
-            self.attach()
-            self.call('Page.bringToFront')
         self.pages = pages
+        self.page = self.visible_page()
+        self.attach()
         return self.snapshot()
 
 

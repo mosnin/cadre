@@ -134,3 +134,16 @@ it("uses the existing computer provider's stop durability during migration", asy
     sandbox.isStoppedWithPersistentWorkspace({ ...ref, kind: "fly" }, ctx),
   ).resolves.toBe(true);
 });
+
+it("does not grant shared input to a legacy provider based on the primary capabilities", () => {
+  const primary = new FakeSandboxProvider();
+  const legacy = new FakeSandboxProvider();
+  vi.spyOn(primary, "describe").mockReturnValue({ ...primary.describe(), id: "fly" });
+  vi.spyOn(legacy, "describe").mockReturnValue({ ...legacy.describe(), id: "modal" });
+  const shared = Object.assign(primary, { supportsSharedInput: vi.fn().mockReturnValue(true) });
+  const sandbox = new HostAwareSandbox(shared, legacy, async () => false);
+  const ref = { id: "test", providerRef: "test", botId: "home", kind: "modal" as const };
+  expect(sandbox.supportsSharedInput(ref)).toBe(false);
+  expect(shared.supportsSharedInput).not.toHaveBeenCalled();
+  expect(sandbox.supportsSharedInput({ ...ref, kind: "fly" })).toBe(true);
+});

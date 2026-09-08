@@ -4,11 +4,16 @@ import {
   openAiCompatibleConnectReady,
   openAiCompatibleProbeSuccessMessage,
 } from "@rakazo/contracts";
-import { featuredModelProviders, selectedProviderOutsideSearchResults } from "@rakazo/core";
+import {
+  featuredModelProviders,
+  modelCatalogEntryMatchesQuery,
+  selectedProviderOutsideSearchResults,
+} from "@rakazo/core";
 import { Button, Input, NativeSelect, NativeSelectOption, Textarea } from "@rakazo/ui-web";
 import { Check } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ChatGptDeviceCodeHelp } from "../components/chatgpt-device-code-help";
 import { useAuthCapabilities } from "../lib/auth-capabilities";
 import { localizedProviderHint } from "../lib/localized-provider-hint";
 import type { ModelCatalogEntry } from "../lib/model-auth";
@@ -92,11 +97,7 @@ export function OnboardingPage() {
     if (!q) return providers;
     const matching = new Set(
       catalog
-        .filter((entry) =>
-          `${entry.provider} ${entry.providerName ?? ""} ${entry.label} ${entry.id} ${entry.billing} ${entry.oauthLabel ?? ""}`
-            .toLowerCase()
-            .includes(q),
-        )
+        .filter((entry) => modelCatalogEntryMatchesQuery(entry, q))
         .map((entry) => entry.provider),
     );
     return providers.filter((entry) => matching.has(entry.provider));
@@ -444,6 +445,7 @@ export function OnboardingPage() {
             </div>
             {subscriptionSignIn ? (
               <div className="mt-4">
+                <ChatGptDeviceCodeHelp provider={selected.provider} />
                 {oauth ? (
                   <div className="rounded-lg border border-border px-3.5 py-3">
                     {oauth.mode === "auth-url" ? (

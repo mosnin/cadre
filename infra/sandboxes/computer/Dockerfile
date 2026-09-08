@@ -70,6 +70,7 @@ COPY --chmod=644 rakazo-browser.desktop /usr/share/applications/rakazo-browser.d
 COPY --chmod=644 fluxbox.init /etc/rakazo/fluxbox/init
 COPY --chmod=644 fluxbox.apps /etc/rakazo/fluxbox/apps
 COPY --chmod=644 fluxbox.menu /etc/rakazo/fluxbox/menu
+COPY --chmod=644 viewer-connection.js /usr/share/novnc/viewer-connection.js
 COPY --chmod=644 embed.html /usr/share/novnc/embed.html
 COPY --chmod=644 mobile-controls.js /usr/share/novnc/mobile-controls.js
 COPY --chmod=644 touch-navigation.js /usr/share/novnc/touch-navigation.js
