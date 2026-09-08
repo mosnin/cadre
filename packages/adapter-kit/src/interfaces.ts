@@ -136,7 +136,9 @@ export interface SandboxProvider {
     options?: { maxBytes?: number },
   ): Promise<Uint8Array>;
   writeFile(computer: ComputerRef, file: PortableFile, context: AdapterContext): Promise<void>;
-  /** Flush current writes to provider-owned persistent storage. True skips a per-task portable export, not explicit backups or stop checkpoints. */
+  /** Live files stay on provider storage; stopped portable copies may be stale. */
+  requiresRunningForWorkspaceAccess?(computer: Pick<ComputerRef, "kind">): boolean;
+  /** Flush writes to durable provider storage for work completion or nondestructive restart. This does not replace explicit portable backups or migration checkpoints. */
   persistWorkspace?(computer: ComputerRef, context: AdapterContext): Promise<boolean>;
   exportWorkspace(computer: ComputerRef, context: AdapterContext): AsyncIterable<PortableFile>;
   importWorkspace(

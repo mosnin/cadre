@@ -63,10 +63,14 @@ export async function provisionComputer(
   controlHolder: "bot" | "none" = "none",
   expectedVersion?: Date,
 ): Promise<ComputerRef> {
-  let existing = await deps.prisma.computer.findUniqueOrThrow({ where: { id: computerId } });
+  let existing = await deps.prisma.computer.findUniqueOrThrow({
+    where: { id: computerId },
+  });
   if (existing.controlLeaseId && !hasActiveComputerControl(existing)) {
     await expireComputerControl(deps, existing.id, existing.controlLeaseId);
-    existing = await deps.prisma.computer.findUniqueOrThrow({ where: { id: computerId } });
+    existing = await deps.prisma.computer.findUniqueOrThrow({
+      where: { id: computerId },
+    });
     if (existing.controlLeaseId && !hasActiveComputerControl(existing)) {
       throw new Error("computer control revocation is still in progress");
     }
@@ -165,7 +169,7 @@ export async function provisionComputer(
     return ref;
   } catch (error) {
     const rollbackError = provisioned
-      ? await rollbackProvisionedComputer(deps.sandbox, provisioned, context, error)
+      ? await rollbackProvisionedComputer(deps.sandbox, provisioned, context)
       : undefined;
     try {
       await deps.prisma.computer.updateMany({
@@ -253,7 +257,7 @@ async function reconnectComputer(
     // Only tear down a sandbox this reconnect created. A pre-existing ref
     // (fresh: false) may belong to the user even when providerRef changed.
     const rollbackError = ownsRef
-      ? await rollbackProvisionedComputer(deps.sandbox, ref, context, error)
+      ? await rollbackProvisionedComputer(deps.sandbox, ref, context)
       : undefined;
     if (rollbackError) {
       throw new AggregateError(
@@ -327,19 +331,14 @@ async function rollbackProvisionedComputer(
   sandbox: SandboxProvider,
   computer: ComputerRef,
   context: AdapterContext,
-  cause: unknown,
 ): Promise<unknown | undefined> {
   try {
     await sandbox.releaseScreen?.(computer, context).catch(() => undefined);
     if (computer.fresh) {
       await sandbox.destroy(computer, context);
-    } else if (cause instanceof ComputerBusyError) {
-      try {
-        await sandbox.stop(computer, context);
-      } catch {
-        await sandbox.destroy(computer, context);
-      }
     } else {
+      // A reused machine owns durable user files. Failure to stop during a
+      // startup race never authorizes deleting that existing machine/volume.
       await sandbox.stop(computer, context);
     }
     return undefined;
@@ -372,7 +371,9 @@ export async function acquireComputerExecutionLease(
     resumeHeldLease?: boolean;
   },
 ): Promise<ComputerExecutionLease | null> {
-  const computer = await prisma.computer.findUniqueOrThrow({ where: { id: input.computerId } });
+  const computer = await prisma.computer.findUniqueOrThrow({
+    where: { id: input.computerId },
+  });
   if (computer.scope !== "team") return null;
   if (computer.state === "suspending") throw new ComputerBusyError();
   const now = new Date();
@@ -510,10 +511,14 @@ export async function replaceComputer(
   context: AdapterContext,
   controlHolder: "bot" | "none" = "none",
 ): Promise<ComputerRef> {
-  let existing = await deps.prisma.computer.findUniqueOrThrow({ where: { id: computerId } });
+  let existing = await deps.prisma.computer.findUniqueOrThrow({
+    where: { id: computerId },
+  });
   if (existing.controlLeaseId && !hasActiveComputerControl(existing)) {
     const expired = await expireComputerControl(deps, existing.id, existing.controlLeaseId);
-    existing = await deps.prisma.computer.findUniqueOrThrow({ where: { id: computerId } });
+    existing = await deps.prisma.computer.findUniqueOrThrow({
+      where: { id: computerId },
+    });
     // Failed provider revoke keeps the lease for retry; do not wipe it and continue reset.
     if (!expired && existing.controlLeaseId && !hasActiveComputerControl(existing)) {
       throw new Error("computer control revocation is still in progress");
@@ -526,7 +531,9 @@ export async function replaceComputer(
     !existing.controlLeaseId
   ) {
     await clearInactiveUserComputerControl(deps.prisma, existing.id);
-    existing = await deps.prisma.computer.findUniqueOrThrow({ where: { id: computerId } });
+    existing = await deps.prisma.computer.findUniqueOrThrow({
+      where: { id: computerId },
+    });
     if (existing.controlHolder === "user" && !hasActiveComputerControl(existing)) {
       throw new Error("computer control revocation is still in progress");
     }
@@ -546,7 +553,9 @@ export async function replaceComputer(
     where: {
       id: computerId,
       state: previousState,
-      executionLeases: { none: { botId: { not: botId }, expiresAt: { gt: now } } },
+      executionLeases: {
+        none: { botId: { not: botId }, expiresAt: { gt: now } },
+      },
       OR: [
         { controlHolder: { not: "user" } },
         { controlLeaseId: null },
@@ -578,22 +587,23 @@ export async function replaceComputer(
   );
   let resumeWorkspace: (() => Promise<void>) | undefined;
   try {
-    if (oldRef && mode !== "reset" && (existing.state === "running" || requiresFreshCheckpoint)) {
-      try {
-        if (requiresFreshCheckpoint && existing.state === "running") {
-          resumeWorkspace = await deps.sandbox.pauseWorkspaceForStop?.(oldRef, context);
-        }
-        await checkpointAndRecordComputerWorkspace(deps, existing, oldRef, context);
-      } catch (error) {
-        // Persistent computers can contain newer files than their last portable
-        // backup. Never delete that volume when a fresh checkpoint is unavailable.
-        if (requiresFreshCheckpoint || (mode !== "recover" && !isUnrecoverableSandboxError(error)))
-          throw error;
-      }
-    }
     if (oldRef && mode === "update" && deps.sandbox.updateImage) {
+      let portableCheckpointed = false;
+      // Updating the same durable machine preserves its files in place. A
+      // stopped persistent VM is already safe and cannot run a live sync.
+      if (!(await deps.sandbox.isStoppedWithPersistentWorkspace?.(oldRef, context))) {
+        resumeWorkspace = await deps.sandbox.pauseWorkspaceForStop?.(oldRef, context);
+        if (!(await deps.sandbox.persistWorkspace?.(oldRef, context))) {
+          await checkpointAndRecordComputerWorkspace(deps, existing, oldRef, context);
+          portableCheckpointed = true;
+        }
+      }
       const updating = await deps.prisma.computer.updateMany({
-        where: { id: computerId, state: "suspending", providerRef: oldRef.providerRef },
+        where: {
+          id: computerId,
+          state: "suspending",
+          providerRef: oldRef.providerRef,
+        },
         data: { state: "booting" },
       });
       if (updating.count !== 1) throw new ComputerBusyError();
@@ -607,7 +617,11 @@ export async function replaceComputer(
           throw new Error("Computer update changed workspace identity");
         await deps.sandbox.prepare(updated, context);
         const activated = await deps.prisma.computer.updateMany({
-          where: { id: computerId, state: "booting", providerRef: oldRef.providerRef },
+          where: {
+            id: computerId,
+            state: "booting",
+            providerRef: oldRef.providerRef,
+          },
           data: { state: "running", controlHolder },
         });
         if (activated.count !== 1) throw new ComputerBusyError();
@@ -616,8 +630,27 @@ export async function replaceComputer(
         resumeWorkspace = undefined;
         return updated;
       }
-      // Unsupported providers retain their existing replacement path. Only an
-      // explicit no-effect result permits fallback; errors never reach destroy.
+      // A volume flush is not a portable backup. An unsupported in-place
+      // update may replace the machine only after a fresh export succeeds.
+      if (!portableCheckpointed) {
+        await checkpointAndRecordComputerWorkspace(deps, existing, oldRef, context);
+      }
+    } else if (
+      oldRef &&
+      mode !== "reset" &&
+      (existing.state === "running" || requiresFreshCheckpoint)
+    ) {
+      try {
+        if (requiresFreshCheckpoint && existing.state === "running") {
+          resumeWorkspace = await deps.sandbox.pauseWorkspaceForStop?.(oldRef, context);
+        }
+        await checkpointAndRecordComputerWorkspace(deps, existing, oldRef, context);
+      } catch (error) {
+        // Persistent computers can contain newer files than their last portable
+        // backup. Never delete that volume when a fresh checkpoint is unavailable.
+        if (requiresFreshCheckpoint || (mode !== "recover" && !isUnrecoverableSandboxError(error)))
+          throw error;
+      }
     }
     if (oldRef) {
       await deps.sandbox.releaseScreen?.(oldRef, context).catch(() => undefined);

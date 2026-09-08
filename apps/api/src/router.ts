@@ -4,6 +4,7 @@ import {
   type AdapterContext,
   type AgentHomeStore,
   type ArtifactStore,
+  type ComputerRef,
   type ConnectorCatalogItem,
   computerControlExpireJobKey,
   type JobPublisher,
@@ -103,6 +104,7 @@ import {
   createSpaceForMember,
   createThreadMessageInTransaction,
   deleteUnreferencedCredentialSecret,
+  expireComputerExecutionLeases,
   findDefaultModelCredential,
   findModelCredential,
   findSpaceMemoryConfig,
@@ -825,8 +827,9 @@ export function createRouter(deps: RouterDeps) {
               await checkpointAndRecordComputerWorkspace(deps, bot.computer, ref, ctx);
               await deps.sandbox.stop(ref, ctx);
             }
-            await deps.prisma.computerExecutionLease.deleteMany({
-              where: { computerId: bot.computer.id, botId: bot.id },
+            await expireComputerExecutionLeases(deps.prisma, {
+              computerId: bot.computer.id,
+              botId: bot.id,
             });
             await deps.prisma.computer.update({
               where: { id: bot.computer.id },
@@ -1427,8 +1430,9 @@ export function createRouter(deps: RouterDeps) {
             message: "Other Team bots are still using this computer",
           });
         }
-        await deps.prisma.computerExecutionLease.deleteMany({
-          where: { computerId: bot.computer.id, botId: bot.id },
+        await expireComputerExecutionLeases(deps.prisma, {
+          computerId: bot.computer.id,
+          botId: bot.id,
         });
         try {
           let providerGone = false;
@@ -1747,6 +1751,7 @@ export function createRouter(deps: RouterDeps) {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
         const computer = bot.computer;
+        assertCurrentWorkspaceAccess(deps.sandbox, computer);
         const computerMode = parseComputerMode(computer.scope);
         const ctx = computerContext(context.actor, bot.id, "files");
         const storedPath = resolveBotWorkspacePath(computerMode, bot.id, input.path);
@@ -1769,6 +1774,7 @@ export function createRouter(deps: RouterDeps) {
       readFile: authed.computer.readFile.handler(async ({ context, input }) => {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.computer) throw new IsolationError();
+        assertCurrentWorkspaceAccess(deps.sandbox, bot.computer);
         const computerMode = parseComputerMode(bot.computer.scope);
         const ctx = computerContext(context.actor, bot.id, "read");
         const storedPath = resolveBotWorkspacePath(computerMode, bot.id, input.path);
@@ -3542,6 +3548,7 @@ export function createRouter(deps: RouterDeps) {
         const bot = await repos.getBot(context.actor, input.botId);
         if (!bot.thread || !bot.computer) throw new IsolationError();
         const computer = bot.computer;
+        assertCurrentWorkspaceAccess(deps.sandbox, computer);
         const homeKey = computer.homeKey;
         const exportContext = {
           operationId: "export",
@@ -4437,4 +4444,16 @@ async function messagingConnectionDto(
     status: connection.status as "pending" | "approved" | "declined" | "revoked",
     incoming,
   };
+}
+
+function assertCurrentWorkspaceAccess(
+  sandbox: SandboxProvider,
+  computer: { kind: string; state: string; providerRef: string | null },
+) {
+  if (
+    (computer.state !== "running" || !computer.providerRef) &&
+    sandbox.requiresRunningForWorkspaceAccess?.({ kind: computer.kind as ComputerRef["kind"] })
+  ) {
+    throw new ORPCError("CONFLICT", { message: "Start computer to access current files" });
+  }
 }

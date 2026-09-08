@@ -3506,3 +3506,19 @@ msgstr "Resume audio"
 #: src/pages/RealtimeCallView.tsx:140
 msgid "Thinking…"
 msgstr "Thinking…"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Could not export bot"
+msgstr "Could not export bot"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Exporting…"
+msgstr "Exporting…"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Starting computer…"
+msgstr "Starting computer…"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Start computer and retry export"
+msgstr "Start computer and retry export"

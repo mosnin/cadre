@@ -136,9 +136,13 @@ export async function checkpointComputerWorkspace(
   }
 }
 
-/** Keep task completion bounded on durable, running computers. Portable exports still run before stops and migrations. */
+/** Keep task completion bounded on durable, running computers. Portable exports remain required before destructive replacements. */
 export async function checkpointAfterComputerWork(
-  deps: { home: AgentHomeStore; sandbox: SandboxProvider; prisma: PrismaClient },
+  deps: {
+    home: AgentHomeStore;
+    sandbox: SandboxProvider;
+    prisma: PrismaClient;
+  },
   computerRecord: { id: string; homeKey: string },
   computer: ComputerRef,
   context: AdapterContext,
@@ -148,7 +152,11 @@ export async function checkpointAfterComputerWork(
 }
 
 export async function checkpointAndRecordComputerWorkspace(
-  deps: { home: AgentHomeStore; sandbox: SandboxProvider; prisma: PrismaClient },
+  deps: {
+    home: AgentHomeStore;
+    sandbox: SandboxProvider;
+    prisma: PrismaClient;
+  },
   computerRecord: { id: string; homeKey: string },
   computer: ComputerRef,
   context: AdapterContext,
@@ -176,14 +184,20 @@ async function writePortableFile(root: string, file: PortableFile) {
     throw new Error("Workspace snapshot path escapes its staging directory");
   }
   await mkdir(path.dirname(target), { recursive: true });
-  await writeFile(target, file.content, { mode: file.executable ? 0o700 : 0o600 });
+  await writeFile(target, file.content, {
+    mode: file.executable ? 0o700 : 0o600,
+  });
 }
 
-/** Reconcile an already stopped persistent VM without reading its unavailable desktop.
- * Running computers still checkpoint so stopped file previews and migrations stay current.
+/** Quiesce and preserve a computer before a non-destructive Stop.
+ * A verified durable volume needs no portable export or new homeRevision.
  */
 export async function checkpointBeforeComputerStop(
-  deps: { home: AgentHomeStore; sandbox: SandboxProvider; prisma: PrismaClient },
+  deps: {
+    home: AgentHomeStore;
+    sandbox: SandboxProvider;
+    prisma: PrismaClient;
+  },
   computerRecord: { id: string; homeKey: string },
   computer: ComputerRef,
   context: AdapterContext,
@@ -191,7 +205,9 @@ export async function checkpointBeforeComputerStop(
   if (await deps.sandbox.isStoppedWithPersistentWorkspace?.(computer, context)) return;
   const resume = await deps.sandbox.pauseWorkspaceForStop?.(computer, context);
   try {
-    await checkpointAndRecordComputerWorkspace(deps, computerRecord, computer, context);
+    if (!(await deps.sandbox.persistWorkspace?.(computer, context))) {
+      await checkpointAndRecordComputerWorkspace(deps, computerRecord, computer, context);
+    }
     return resume;
   } catch (error) {
     await resume?.();

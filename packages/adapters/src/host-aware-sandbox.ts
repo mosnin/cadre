@@ -64,8 +64,12 @@ export class HostAwareSandbox implements SandboxProvider {
     return this.isolated.describe();
   }
 
-  private route(computer: ComputerRef) {
+  private route(computer: Pick<ComputerRef, "kind">) {
     return computer.kind === this.host.describe().id ? this.host : this.isolated;
+  }
+
+  requiresRunningForWorkspaceAccess(computer: Pick<ComputerRef, "kind">) {
+    return this.route(computer).requiresRunningForWorkspaceAccess?.(computer) ?? false;
   }
 
   async provision(

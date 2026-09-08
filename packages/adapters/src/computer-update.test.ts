@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { replaceComputer } from "./computer-lifecycle.js";
 import { checkpointAndRecordComputerWorkspace } from "./computer-workspace.js";
 
@@ -50,6 +50,8 @@ function harness() {
   const sandbox = {
     describe: () => ({ id: "fly", capabilities: { persistentRunning: true } }),
     pauseWorkspaceForStop: vi.fn().mockResolvedValue(resume),
+    persistWorkspace: vi.fn().mockResolvedValue(true),
+    isStoppedWithPersistentWorkspace: vi.fn().mockResolvedValue(false),
     updateImage: vi.fn().mockResolvedValue(ref),
     prepare: vi.fn().mockResolvedValue(undefined),
     destroy: vi.fn().mockResolvedValue(undefined),
@@ -80,18 +82,30 @@ function harness() {
   return { row, ref, deps, sandbox, resume, replace };
 }
 describe("in-place computer updates", () => {
-  it("checkpoints and activates the same workspace without destroy, provision, or restore", async () => {
+  beforeEach(() => {
+    vi.mocked(checkpointAndRecordComputerWorkspace).mockReset().mockResolvedValue("checkpoint");
+  });
+  it("persists and activates a large workspace without exporting or changing its home revision", async () => {
     const h = harness();
+    vi.mocked(checkpointAndRecordComputerWorkspace).mockRejectedValue(
+      new Error("Workspace exceeds checkpoint limit"),
+    );
     const ref = await h.replace();
     expect(ref).toEqual(h.ref);
     expect(h.row).toMatchObject({ state: "running", providerRef: "machine" });
     expect(h.sandbox.destroy).not.toHaveBeenCalled();
     expect(h.sandbox.provision).not.toHaveBeenCalled();
     expect(h.sandbox.prepare).toHaveBeenCalledWith(h.ref, context);
-    expect(
-      vi.mocked(checkpointAndRecordComputerWorkspace).mock.invocationCallOrder.at(-1)!,
-    ).toBeLessThan(h.sandbox.updateImage.mock.invocationCallOrder[0]!);
+    expect(h.sandbox.persistWorkspace.mock.invocationCallOrder[0]!).toBeLessThan(
+      h.sandbox.updateImage.mock.invocationCallOrder[0]!,
+    );
     expect(h.resume).not.toHaveBeenCalled();
+    expect(checkpointAndRecordComputerWorkspace).not.toHaveBeenCalled();
+    expect(
+      h.deps.prisma.computer.updateMany.mock.calls.every(
+        ([call]) => !("homeRevision" in call.data),
+      ),
+    ).toBe(true);
   });
   it.each(["update", "prepare"])(
     "keeps the original ref recoverable after %s fails",
@@ -107,6 +121,56 @@ describe("in-place computer updates", () => {
       expect(h.resume).toHaveBeenCalledOnce();
     },
   );
+
+  it("exports before updating when the provider cannot preserve the volume", async () => {
+    const h = harness();
+    h.sandbox.persistWorkspace.mockResolvedValue(false);
+    await h.replace();
+    expect(checkpointAndRecordComputerWorkspace).toHaveBeenCalledOnce();
+    expect(
+      vi.mocked(checkpointAndRecordComputerWorkspace).mock.invocationCallOrder[0],
+    ).toBeLessThan(h.sandbox.updateImage.mock.invocationCallOrder[0]!);
+  });
+  it("resumes paused services and never updates or destroys after a failed durable flush", async () => {
+    const h = harness();
+    h.sandbox.persistWorkspace.mockRejectedValue(new Error("disk failed"));
+    await expect(h.replace()).rejects.toThrow("disk failed");
+    expect(h.resume).toHaveBeenCalledOnce();
+    expect(h.sandbox.updateImage).not.toHaveBeenCalled();
+    expect(h.sandbox.destroy).not.toHaveBeenCalled();
+    expect(h.row.providerRef).toBe("machine");
+  });
+  it.each(["stopped", "suspended"])(
+    "updates a verified %s persistent VM without running sync or export",
+    async (state) => {
+      const h = harness();
+      h.row.state = state;
+      h.sandbox.isStoppedWithPersistentWorkspace.mockResolvedValue(true);
+      await h.replace();
+      expect(h.sandbox.persistWorkspace).not.toHaveBeenCalled();
+      expect(h.sandbox.pauseWorkspaceForStop).not.toHaveBeenCalled();
+      expect(checkpointAndRecordComputerWorkspace).not.toHaveBeenCalled();
+      expect(h.sandbox.updateImage).toHaveBeenCalledOnce();
+    },
+  );
+  it.each([false, true])(
+    "requires a fresh portable backup before unsupported fallback (stopped=%s)",
+    async (stopped) => {
+      const h = harness();
+      h.sandbox.isStoppedWithPersistentWorkspace.mockResolvedValue(stopped);
+      if (stopped) h.row.state = "stopped";
+      h.sandbox.updateImage.mockResolvedValue(undefined as never);
+      vi.mocked(checkpointAndRecordComputerWorkspace).mockRejectedValue(
+        new Error("Workspace exceeds checkpoint limit"),
+      );
+      await expect(h.replace()).rejects.toThrow("Workspace exceeds checkpoint limit");
+      expect(checkpointAndRecordComputerWorkspace).toHaveBeenCalledOnce();
+      expect(h.sandbox.destroy).not.toHaveBeenCalled();
+      expect(h.sandbox.provision).not.toHaveBeenCalled();
+      expect(h.row.providerRef).toBe("machine");
+      expect(h.resume).toHaveBeenCalledTimes(stopped ? 0 : 1);
+    },
+  );
   it("uses replacement only when the provider explicitly reports unsupported", async () => {
     const dir = await mkdtemp(path.join(tmpdir(), "computer-update-test-"));
     try {
@@ -114,6 +178,10 @@ describe("in-place computer updates", () => {
       h.sandbox.updateImage.mockResolvedValueOnce(undefined as never);
       const ref = await h.replace(dir);
       expect(ref.providerRef).toBe("replacement");
+      expect(checkpointAndRecordComputerWorkspace).toHaveBeenCalledOnce();
+      expect(
+        vi.mocked(checkpointAndRecordComputerWorkspace).mock.invocationCallOrder[0],
+      ).toBeLessThan(h.sandbox.destroy.mock.invocationCallOrder[0]!);
       expect(h.sandbox.destroy).toHaveBeenCalledOnce();
       expect(h.sandbox.provision).toHaveBeenCalledOnce();
     } finally {
