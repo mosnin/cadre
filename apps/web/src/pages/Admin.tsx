@@ -279,7 +279,7 @@ function Overview({ revision, onError }: { revision: number; onError: (message: 
           <Metric label="Suspended users" value={count(data.suspendedUsers)} />
           <Metric
             label="Billing provider"
-            value={data.billingConfigured ? "Connected" : "Not connected"}
+            value={data.billingConfigured ? "Configured" : "Not configured"}
           />
         </dl>
       </section>
@@ -550,7 +550,7 @@ function UserDetail({
         {!billing ? (
           <Loading />
         ) : !billing.configured ? (
-          <Empty>Billing is not connected.</Empty>
+          <Empty>Billing is not configured.</Empty>
         ) : (
           <>
             <form
