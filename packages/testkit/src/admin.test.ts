@@ -239,13 +239,16 @@ withDb("platform administration security", () => {
     const provision = vi.spyOn(FakeSandboxProvider.prototype, "provision");
     try {
       await handles.executor.continueRun(run.id, "fixture-worker");
-      expect(provision).not.toHaveBeenCalled();
+      // The shared test database can contain other users' queued work. Scope the spy
+      // to this late webhook; unrelated background reconciliation may provision normally.
+      expect(provision.mock.calls.some(([, context]) => context.runId === run.id)).toBe(false);
     } finally {
       provision.mockRestore();
     }
     expect(await handles.prisma.run.findUniqueOrThrow({ where: { id: run.id } })).toMatchObject({
       status: "cancelled",
     });
+    expect(await handles.prisma.attempt.count({ where: { runId: run.id } })).toBe(0);
     expect(
       (
         await raw(
