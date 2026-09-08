@@ -122,7 +122,10 @@ jobs:
 
   publish-mobile-update:
     name: Publish compatible mobile update
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      vars.MOBILE_OTA_ENABLED == 'true'
     needs: [lint, check, build, test, test-integration, test-e2e]
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -227,7 +230,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           if [[ -z "$EXPO_TOKEN" ]]; then
-            echo "Add an EXPO_TOKEN repository secret with access to the inbox-zero/rakazo Expo project." >&2
+            echo "Add an EXPO_TOKEN repository secret with access to the configured mobile Expo project." >&2
             exit 1
           fi
 
