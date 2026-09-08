@@ -1747,7 +1747,9 @@ export function ShellPage() {
   const replyTargetName = activeReplyTarget
     ? activeReplyTarget.role === "user"
       ? t`You`
-      : (resolveTranscriptMemberName(activeReplyTarget.botId) ?? active?.name ?? t`Bot`)
+      : (resolveTranscriptMemberName(activeReplyTarget.botId) ??
+        active?.name ??
+        t({ id: "Bot", message: "Bot" }))
     : undefined;
   const composerMentionTargets = useMemo(
     () =>
@@ -5071,7 +5073,9 @@ const Composer = memo(function Composer({
                   : t`Message…`
                 : undefined
             }
-            aria-label={activeName ? t`Message ${activeName}` : t`Message`}
+            aria-label={
+              activeName ? t`Message ${activeName}` : t({ id: "Message", message: "Message" })
+            }
             role="combobox"
             aria-autocomplete="list"
             aria-haspopup="listbox"

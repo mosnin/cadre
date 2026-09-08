@@ -2,6 +2,10 @@ import { expect, test } from "@playwright/test";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
 
 test("message hover shows Reply and Copy; reply links to parent", async ({ page }, testInfo) => {
+  const warnings: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "warning") warnings.push(message.text());
+  });
   const stamp = Date.now();
   await signup(page, `hover-actions-${stamp}@rakazo.test`, "password12", "Hover Actions");
   await completeOnboarding(page);
@@ -109,10 +113,6 @@ test("message hover shows Reply and Copy; reply links to parent", async ({ page 
         message.blocks = [{ kind: "steps", steps: [{ label: "Read page", count: 1 }] }];
     }
     await route.fulfill({ response, json: body });
-  });
-  const warnings: string[] = [];
-  page.on("console", (message) => {
-    if (message.type() === "warning") warnings.push(message.text());
   });
   await page.reload();
   await expect(parentPreview).toHaveText("Message");
