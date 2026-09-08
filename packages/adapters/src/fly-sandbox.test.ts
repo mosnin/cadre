@@ -35,6 +35,78 @@ const options = {
 const json = (body: unknown) => new Response(JSON.stringify(body));
 
 describe("persistent Fly computers", () => {
+  it("does not resume services after an expired workspace import", async () => {
+    const controller = new AbortController();
+    const operations: string[] = [];
+    let started!: () => void;
+    const writing = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const request = vi.fn<typeof fetch>().mockImplementation(async (url, init) => {
+      if (String(url).includes("api.machines.dev")) return json(machine);
+      const body = JSON.parse(String(init?.body));
+      operations.push(body.op);
+      if (body.op !== "writeBatch") return json({ ok: true });
+      const signal = init?.signal as AbortSignal;
+      started();
+      return new Promise<Response>((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+      });
+    });
+    const provider = new FlySandboxProvider(options, request);
+    async function* files() {
+      yield { path: "result.txt", content: Buffer.from("owned workspace") };
+    }
+    const rejected = expect(
+      provider.importWorkspace(ref, files(), { ...context, signal: controller.signal }),
+    ).rejects.toThrow("startup expired");
+    await writing;
+    controller.abort(new Error("startup expired"));
+    await rejected;
+    expect(operations).toEqual(["restoreBegin", "writeBatch"]);
+  });
+  it("aborts a stalled command request and sends one bounded remote cancellation", async () => {
+    const controller = new AbortController();
+    let commandSignal: AbortSignal | undefined;
+    let commandStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      commandStarted = resolve;
+    });
+    const requests: Record<string, unknown>[] = [];
+    const request = vi.fn<typeof fetch>().mockImplementation(async (url, init) => {
+      if (String(url).includes("api.machines.dev")) return json(machine);
+      const body = JSON.parse(String(init?.body));
+      requests.push(body);
+      if (body.op === "cancel") return json({ ok: true });
+      commandSignal = init?.signal as AbortSignal;
+      commandStarted();
+      return new Promise<Response>((_resolve, reject) => {
+        commandSignal!.addEventListener("abort", () => reject(commandSignal!.reason), {
+          once: true,
+        });
+      });
+    });
+    const provider = new FlySandboxProvider(options, request);
+    const execution = (async () => {
+      for await (const _event of provider.execute(
+        ref,
+        { argv: ["sleep", "300"] },
+        {
+          ...context,
+          signal: controller.signal,
+        },
+      )) {
+        /* consume command events */
+      }
+    })();
+    const rejection = expect(execution).rejects.toThrow("startup expired");
+    await started;
+    controller.abort(new Error("startup expired"));
+    await rejection;
+    expect(commandSignal?.aborted).toBe(true);
+    expect(requests.map((entry) => entry.op)).toEqual(["exec", "cancel"]);
+    expect(requests[1]?.operationId).toBe(requests[0]?.operationId);
+  });
   it("reuses the same running machine without creating or restarting resources", async () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(json(machine));
     const provider = new FlySandboxProvider(options, request);

@@ -10,6 +10,10 @@ import { getLogger } from "@rakazo/logging";
 import type { PoolClient } from "pg";
 import { returnBotMessageOutcome } from "./bot-messages.js";
 import { scheduleComputerControlExpiry } from "./computer-control.js";
+import {
+  COMPUTER_STARTUP_MAX_ATTEMPTS,
+  expiredComputerStartupWhere,
+} from "./computer-lifecycle.js";
 import { isUserProgressClientNonce } from "./user-progress.js";
 
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -111,6 +115,7 @@ export function createJobReconciler(
   const batchSize = options.batchSize ?? DEFAULT_BATCH_SIZE;
   let timer: ReturnType<typeof setInterval> | undefined;
   let reconciling: Promise<void> | undefined;
+  let startupCursor: string | undefined;
   let runCursor: Cursor | undefined;
   let routineCursor: Cursor | undefined;
   let controlCursor: ControlCursor | undefined;
@@ -227,6 +232,57 @@ export function createJobReconciler(
           select: { id: true },
         }),
       ]);
+
+      const abandonedStartups = await deps.prisma.computer.findMany({
+        where: {
+          AND: [
+            expiredComputerStartupWhere(now),
+            ...(startupCursor ? [{ id: { gt: startupCursor } }] : []),
+          ],
+        },
+        orderBy: { id: "asc" },
+        take: batchSize,
+        select: {
+          id: true,
+          updatedAt: true,
+          startupOperationId: true,
+          startupRequestedAt: true,
+          startupAttempts: true,
+          bots: {
+            where: { archivedAt: null },
+            orderBy: { id: "asc" },
+            take: 1,
+            select: { id: true },
+          },
+        },
+      });
+      for (const computer of abandonedStartups) {
+        const bot = computer.bots[0];
+        if (!bot || computer.startupAttempts >= COMPUTER_STARTUP_MAX_ATTEMPTS) {
+          await deps.prisma.computer.updateMany({
+            where: {
+              id: computer.id,
+              startupOperationId: computer.startupOperationId,
+              AND: [expiredComputerStartupWhere(now)],
+            },
+            data: {
+              state: "error",
+              startupOperationId: null,
+              startupExpiresAt: null,
+              startupBotId: null,
+            },
+          });
+        } else {
+          const version = (computer.startupRequestedAt ?? computer.updatedAt).toISOString();
+          await deps.jobs.enqueue({
+            name: "computer.warm",
+            payload: { botId: bot.id, version },
+            replaceKey: `computer.warm:${computer.id}:${version}`,
+          });
+        }
+      }
+      startupCursor =
+        abandonedStartups.length === batchSize ? abandonedStartups.at(-1)?.id : undefined;
 
       const events = deps.events;
       if (events) {

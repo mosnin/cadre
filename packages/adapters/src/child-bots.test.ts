@@ -191,6 +191,7 @@ describe("destroyBot", () => {
     );
     const prisma = {
       bot: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         findUnique: vi.fn(),
       },
       computer: { findUnique: vi.fn().mockResolvedValue(null) },
@@ -341,6 +342,7 @@ describe("destroyBot", () => {
       }),
     );
     const prisma = {
+      bot: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
       computer: { findUnique: vi.fn().mockResolvedValue(null) },
       run: {
         findMany: vi.fn().mockResolvedValue([]),
@@ -438,6 +440,7 @@ describe("destroyBot", () => {
     const transaction = vi.fn().mockRejectedValue(new Error("delete failed"));
     const prisma = {
       bot: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         findUnique: vi.fn(),
       },
       computer: { findUnique: vi.fn().mockResolvedValue(null) },
@@ -480,6 +483,7 @@ describe("destroyBot", () => {
     const finalError = new Error("second attempt reached");
     const transaction = vi.fn().mockRejectedValueOnce(conflict).mockRejectedValueOnce(finalError);
     const prisma = {
+      bot: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
       computer: { findUnique: vi.fn().mockResolvedValue(null) },
       run: {
         findMany: vi.fn().mockResolvedValue([]),
@@ -515,6 +519,7 @@ describe("destroyBot", () => {
 describe("archiveBot", () => {
   it("stops work and routines while preserving the bot", async () => {
     const updateBot = vi.fn().mockResolvedValue({});
+    const invalidateStartup = vi.fn().mockResolvedValue({ count: 0 });
     const disableRoutines = vi.fn().mockResolvedValue({ count: 2 });
     const groupCleanup = noGroupMemberships();
     const transaction = vi.fn(async (callback: (tx: unknown) => Promise<void>) =>
@@ -526,7 +531,7 @@ describe("archiveBot", () => {
         computerExecutionLease: {
           updateMany: vi.fn().mockResolvedValue({ count: 0 }),
         },
-        computer: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        computer: { updateMany: invalidateStartup },
         bot: { update: updateBot },
       }),
     );
@@ -561,6 +566,17 @@ describe("archiveBot", () => {
       context,
     );
 
+    expect(invalidateStartup).toHaveBeenCalledWith({
+      where: { startupBotId: "bot-1", state: "booting" },
+      data: {
+        state: "stopped",
+        startupOperationId: null,
+        startupExpiresAt: null,
+        startupRequestedAt: null,
+        startupBotId: null,
+        startupAttempts: 0,
+      },
+    });
     expect(disableRoutines).toHaveBeenCalledWith({
       where: { botId: "bot-1" },
       data: { active: false, nextRunAt: null },

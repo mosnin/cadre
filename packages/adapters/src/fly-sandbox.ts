@@ -136,6 +136,7 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
     machine: Machine,
     request: Record<string, unknown>,
     timeoutMs = 30000,
+    signal?: AbortSignal,
   ): Promise<T> {
     const owner = machine.config.metadata?.cadre_owner;
     if (!owner || !/^[a-f0-9]{64}$/.test(owner)) throw new Error("Computer access denied");
@@ -147,7 +148,9 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
         "fly-force-instance-id": machine.id,
       },
       body: JSON.stringify(request),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
+        : AbortSignal.timeout(timeoutMs),
     });
     if (!response.ok) throw new Error(`Computer connection failed (${response.status})`);
     const result = (await response.json()) as T & { error?: string };

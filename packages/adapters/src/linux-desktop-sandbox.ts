@@ -35,6 +35,7 @@ export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
     handle: Handle,
     request: Record<string, unknown>,
     timeoutMs?: number,
+    signal?: AbortSignal,
   ): Promise<T>;
   protected abstract alive(handle: Handle): Promise<boolean>;
   protected abstract multiscreen(handle: Handle): boolean;
@@ -81,7 +82,9 @@ export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
     const timeoutMs = Math.min(Math.max(request.timeoutMs ?? 300000, 1), 3600000);
     let cancellation: Promise<unknown> | undefined;
     const cancel = () => {
-      cancellation = this.rpc(sandbox, { op: "cancel", operationId }).catch(() => undefined);
+      cancellation ??= this.rpc(sandbox, { op: "cancel", operationId }, 5000).catch(
+        () => undefined,
+      );
     };
     ctx.signal.addEventListener("abort", cancel, { once: true });
     try {
@@ -97,6 +100,7 @@ export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
           screenLease: ctx.screenLeaseId,
         },
         timeoutMs + 15000,
+        ctx.signal,
       );
       ctx.signal.throwIfAborted();
       if (result.stdout) yield { type: "stdout", data: result.stdout };
@@ -354,22 +358,29 @@ export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
     if (!this.multiscreen(sandbox)) {
       for await (const file of files) {
         ctx.signal.throwIfAborted();
-        await this.rpc(sandbox, {
-          op: "write",
-          path: file.path,
-          executable: file.executable,
-          content: Buffer.from(file.content).toString("base64"),
-        });
+        await this.rpc(
+          sandbox,
+          {
+            op: "write",
+            path: file.path,
+            executable: file.executable,
+            content: Buffer.from(file.content).toString("base64"),
+          },
+          30000,
+          ctx.signal,
+        );
       }
       return;
     }
-    await this.rpc(sandbox, { op: "restoreBegin" });
+    ctx.signal.throwIfAborted();
+    await this.rpc(sandbox, { op: "restoreBegin" }, 30000, ctx.signal);
     try {
       let batch: Array<{ path: string; executable?: boolean; content: string }> = [];
       let bytes = 0;
       const flush = async () => {
+        ctx.signal.throwIfAborted();
         if (!batch.length) return;
-        await this.rpc(sandbox, { op: "writeBatch", files: batch });
+        await this.rpc(sandbox, { op: "writeBatch", files: batch }, 30000, ctx.signal);
         batch = [];
         bytes = 0;
       };
@@ -386,7 +397,9 @@ export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
       }
       await flush();
     } finally {
-      await this.rpc(sandbox, { op: "restoreEnd" });
+      // An expired startup must not resume services during its successor's import.
+      // A later valid startup owns completing the interrupted restore.
+      if (!ctx.signal.aborted) await this.rpc(sandbox, { op: "restoreEnd" }, 30000, ctx.signal);
     }
   }
 }

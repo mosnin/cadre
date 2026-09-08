@@ -1,6 +1,7 @@
 # One workspace computer, independent agent screens
 
-The hosted Team Computer allocates one Modal sandbox per workspace home. Agent
+The hosted Team Computer allocates one persistent Fly machine per workspace home
+(other providers remain optional). Agent
 screens are X displays on that computer, not additional sandboxes. Each screen
 has its own window manager, browser tabs, pointer, keyboard focus, and control
 lease. The primary screen plus eight agent screens can coexist; idle agent
@@ -49,6 +50,21 @@ stops the session worker and browsers. After restoring the home, a new worker
 loads restored state before the browsers reconnect. Native filesystem snapshots
 use the same durable state; live browser connections and input grants do not
 survive a restart.
+
+Persistent startup is a durable database intent followed by a worker job. The
+Start endpoint returns the current state promptly; clients poll status before
+exporting files, teaching a task, or requesting exclusive control. A queued job
+lost during delivery is recovered by reconciliation. Startup records an operation
+ID, an expiry, its originating bot, and a bounded attempt count. Completion and
+failure must still own that operation. Stop, Archive, and computer switching cannot
+allow an older startup to revive a cancelled intent.
+
+The startup deadline precedes lease expiry, allowing bounded native requests to
+drain before another worker claims an expired operation. A provider reference is
+recorded before preparation; an interrupted portable restore remains marked as
+pending. Recovery reuses the retained machine and home volume. A late provisioning
+result after Stop is cleaned up only under a separate database claim that excludes
+a newer startup. It is never destroyed by a stale worker.
 
 The implementation uses the published DevTools Storage and DOMStorage APIs:
 https://chromedevtools.github.io/devtools-protocol/tot/Storage/

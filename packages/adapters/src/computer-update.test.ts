@@ -95,7 +95,10 @@ describe("in-place computer updates", () => {
     expect(h.row).toMatchObject({ state: "running", providerRef: "machine" });
     expect(h.sandbox.destroy).not.toHaveBeenCalled();
     expect(h.sandbox.provision).not.toHaveBeenCalled();
-    expect(h.sandbox.prepare).toHaveBeenCalledWith(h.ref, context);
+    expect(h.sandbox.prepare).toHaveBeenCalledWith(
+      h.ref,
+      expect.objectContaining({ botId: context.botId }),
+    );
     expect(h.sandbox.persistWorkspace.mock.invocationCallOrder[0]!).toBeLessThan(
       h.sandbox.updateImage.mock.invocationCallOrder[0]!,
     );
@@ -187,5 +190,43 @@ describe("in-place computer updates", () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+  it("checks the maintenance deadline after the ownership acknowledgement before provider work", async () => {
+    const h = harness();
+    const original = h.deps.prisma.computer.updateMany.getMockImplementation()!;
+    let clock: ReturnType<typeof vi.spyOn> | undefined;
+    h.deps.prisma.computer.updateMany
+      .mockImplementationOnce(original)
+      .mockImplementationOnce(async (args) => {
+        const result = await original(args);
+        clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 160000);
+        return result;
+      });
+    try {
+      await expect(h.replace()).rejects.toThrow("maintenance deadline expired");
+      expect(h.sandbox.persistWorkspace).not.toHaveBeenCalled();
+      expect(h.sandbox.updateImage).not.toHaveBeenCalled();
+      expect(h.sandbox.destroy).not.toHaveBeenCalled();
+    } finally {
+      clock?.mockRestore();
+    }
+  });
+  it("cannot activate or resume after another owner supersedes an in-place update", async () => {
+    const h = harness();
+    const original = h.deps.prisma.computer.updateMany.getMockImplementation()!;
+    h.deps.prisma.computer.updateMany.mockImplementation(async (args) => {
+      const owner = (args as { where?: { startupOperationId?: string } }).where?.startupOperationId;
+      if (owner && owner !== Reflect.get(h.row, "startupOperationId")) return { count: 0 };
+      return original(args);
+    });
+    h.sandbox.updateImage.mockImplementationOnce(async () => {
+      Object.assign(h.row, { startupOperationId: "successor", state: "running" });
+      return h.ref;
+    });
+    await expect(h.replace()).rejects.toThrow();
+    expect(h.row.state).toBe("running");
+    expect(Reflect.get(h.row, "startupOperationId")).toBe("successor");
+    expect(h.sandbox.destroy).not.toHaveBeenCalled();
+    expect(h.resume).not.toHaveBeenCalled();
   });
 });

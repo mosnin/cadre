@@ -54,6 +54,7 @@ import {
   speechFromBlocks,
   truncateSlashDescription,
   userVisibleMessages,
+  waitForComputerStartup,
 } from "@rakazo/core";
 import {
   AvatarStyleProvider,
@@ -605,6 +606,13 @@ export function ShellPage() {
   routeGroupId.current = groupId;
   const activeBotId = useRef<string | undefined>(inGroup ? undefined : active?.id);
   activeBotId.current = inGroup ? undefined : active?.id;
+  const computerViewMounted = useRef(true);
+  useEffect(() => {
+    computerViewMounted.current = true;
+    return () => {
+      computerViewMounted.current = false;
+    };
+  }, []);
   const activeGroupId = useRef<string | undefined>(groupId);
   activeGroupId.current = groupId;
   const screenRequest = useRef(0);
@@ -2370,13 +2378,24 @@ export function ShellPage() {
       if (needsBoot) {
         let boot = computerBootRequests.current.get(botId);
         if (!boot) {
-          boot = rpc.computer.boot({ botId }).finally(() => {
-            computerBootRequests.current.delete(botId);
-          });
+          boot = rpc.computer
+            .boot({ botId })
+            .then((initial) =>
+              waitForComputerStartup(initial, () => {
+                if (!computerViewMounted.current || activeBotId.current !== botId)
+                  throw new Error("Computer view changed");
+                return rpc.computer.status({ botId });
+              }),
+            )
+            .finally(() => {
+              computerBootRequests.current.delete(botId);
+            });
           computerBootRequests.current.set(botId, boot);
         }
         await boot;
       }
+      if (!computerViewMounted.current || activeBotId.current !== botId)
+        throw new Error("Computer view changed");
       if (takeControl) await rpc.computer.takeover({ botId });
       await refreshThread(botId);
     } catch (error) {

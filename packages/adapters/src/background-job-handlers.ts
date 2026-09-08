@@ -12,7 +12,11 @@ import type { PrismaClient, ThreadEvents } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import { expireComputerControl } from "./computer-control.js";
 import { scheduleComputerSleep, sleepComputerIfIdle } from "./computer-idle.js";
-import { ComputerBusyError, provisionComputer } from "./computer-lifecycle.js";
+import {
+  COMPUTER_STARTUP_MAX_ATTEMPTS,
+  ComputerBusyError,
+  provisionComputer,
+} from "./computer-lifecycle.js";
 import type { createRunExecutor } from "./executor.js";
 import { compactHistory } from "./history-compaction.js";
 import type { MemoryProviderResolver } from "./memory-provider-factory.js";
@@ -83,7 +87,9 @@ export function createBackgroundJobHandlers(deps: {
         bot.archivedAt ||
         !computer ||
         computer.state === "running" ||
-        computer.updatedAt.toISOString() !== version
+        computer.startupAttempts >= COMPUTER_STARTUP_MAX_ATTEMPTS ||
+        (computer.updatedAt.toISOString() !== version &&
+          computer.startupRequestedAt?.toISOString() !== version)
       )
         return;
       const context = {
@@ -101,7 +107,9 @@ export function createBackgroundJobHandlers(deps: {
         if (error instanceof ComputerBusyError) return;
         throw error;
       }
-      await deps.sandbox.connectScreen(ref, { view: "stream", interactive: false }, context);
+      // Infrastructure readiness must not allocate an agent screen using an old
+      // screen lease. The authorized viewer/current run binds its own screen.
+      void ref;
       scheduleComputerSleep(deps.jobs, computer.id);
       if (bot.thread)
         await deps.events.append({
