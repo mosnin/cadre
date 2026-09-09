@@ -11,6 +11,24 @@ export const DELEGATION_TOOL_NAMES = new Set([
 
 export const builtinAgentTools: ConnectorTool[] = [
   {
+    name: "chippi_team_action",
+    description:
+      "Carry out work in the current Chippi team. Start with action=catalog for exact schemas. Create assignments, update handoffs, or edit explicitly delegated shared-record fields. Reuse request IDs on retries. Never claim success without a returned item or receipt.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          enum: ["catalog", "create_team_work", "update_team_work", "edit_shared_record"],
+        },
+        args: { type: "object", additionalProperties: true },
+      },
+      required: ["action"],
+      additionalProperties: false,
+    },
+    readOnly: false,
+  },
+  {
     name: "chippi_crm_query",
     description:
       "Read the current Chippi CRM directly. Call operation=catalog for available query names and exact argument schemas, workspaces for accessible CRM workspaces, or query with tool and args. Brokerage queries require a spaceId returned by workspaces. This tool cannot send messages or mutate records; use connected action tools or the computer for separately authorized work. Never invent CRM data.",

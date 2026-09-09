@@ -1218,9 +1218,18 @@ export function createRunExecutor(deps: ExecutorDeps) {
           // Cross-owner agent connections only exist for chat-linked bots.
           ...(hasMessagingIdentity ? agentConnectionTools : []),
         ].filter((tool) =>
-          tool.name === "chippi_crm_query"
-            ? Boolean(process.env.CHIPPI_WORKFORCE_SECRET)
-            : !(process.env.CHIPPI_WORKFORCE_SECRET && tool.name === "create_space"),
+          tool.name === "chippi_team_action"
+            ? Boolean(
+                process.env.CHIPPI_WORKFORCE_SECRET &&
+                  process.env.CHIPPI_TEAM_ACTIONS_ENABLED === "true" &&
+                  typeof run.workforceAuthority === "object" &&
+                  run.workforceAuthority !== null &&
+                  "kind" in run.workforceAuthority &&
+                  run.workforceAuthority.kind === "team",
+              )
+            : tool.name === "chippi_crm_query"
+              ? Boolean(process.env.CHIPPI_WORKFORCE_SECRET)
+              : !(process.env.CHIPPI_WORKFORCE_SECRET && tool.name === "create_space"),
         );
         const exposedConnectorTools = discovered.filter(
           (tool) => !builtinAgentTools.some((builtin) => builtin.name === tool.name),
@@ -2232,6 +2241,20 @@ export function createRunExecutor(deps: ExecutorDeps) {
               context,
             );
             return finish({ ok: true });
+          }
+          if (name === "chippi_team_action") {
+            return finish(
+              await queryChippiCrm(
+                run.workforceAuthority,
+                run.spaceId,
+                {
+                  operation: args.action === "catalog" ? "action_catalog" : "action",
+                  tool: args.action,
+                  args: args.args,
+                },
+                context.signal,
+              ),
+            );
           }
           if (name === "chippi_crm_query") {
             return finish(
