@@ -3522,3 +3522,37 @@ msgstr "कंप्यूटर शुरू हो रहा है…"
 #: src/pages/shell/bot-panel.tsx
 msgid "Start computer and retry export"
 msgstr "कंप्यूटर शुरू करें और फिर से एक्सपोर्ट करें"
+
+#: src/pages/Shell.tsx:3197
+msgid "Account settings"
+msgstr ""
+
+#: src/pages/PluginsOverlay.tsx:289
+msgid "Apps"
+msgstr ""
+
+#: src/pages/PluginsOverlay.tsx:577
+msgid "Authentication"
+msgstr ""
+
+#: src/pages/PluginsOverlay.tsx:611
+msgid "Cadre verifies the source before saving it. Credentials are encrypted and are never returned to clients or exposed to the model."
+msgstr ""
+
+#: src/pages/PluginsOverlay.tsx:107
+msgid "Could not load custom plugins"
+msgstr ""
+
+#: src/pages/PluginsOverlay.tsx:296
+#: src/pages/PluginsOverlay.tsx:490
+msgid "Custom plugins"
+msgstr ""
+
+#: src/pages/Shell.tsx:3373
+#: src/pages/Shell.tsx:3511
+msgid "Schedules"
+msgstr ""
+
+#: src/pages/PluginsOverlay.tsx:564
+msgid "Source URL"
+msgstr ""
