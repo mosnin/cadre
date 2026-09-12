@@ -49,7 +49,7 @@ import {
 import { mobileTokens, resolveMobileAppearance } from "../lib/appearance";
 import { allowFocusPrompt, scheduleFocusPrompt } from "../lib/focus-prompt";
 import { t, useI18n } from "../lib/i18n";
-import { botTag, filterBots, formatThreadTime, userInitials } from "../lib/inbox";
+import { botTag, filterBots, formatThreadTime } from "../lib/inbox";
 import { dismissThreadNotifications, resumeLiveNotifications } from "../lib/live-notifications";
 import { native, useThemedStyles } from "../lib/native";
 import { previewSnippet } from "../lib/preview";
@@ -305,7 +305,6 @@ export default function Home() {
       ]);
     });
   }, [botSections, locale, me, spaces, query, searching, searchHits, visible, visibleGroups]);
-  const initials = userInitials(me?.name ?? "");
   const organizeChat = organizeTarget
     ? organizeTarget.kind === "bot"
       ? bots.find((bot) => bot.id === organizeTarget.id)
@@ -356,9 +355,15 @@ export default function Home() {
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) }]}>
       <View style={styles.header}>
-        <CircleButton accessibilityLabel={t("Account")} onPress={() => router.push("/account")}>
-          <Text style={styles.profileInitials}>{initials}</Text>
-        </CircleButton>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("Settings")}
+          onPress={() => router.push("/account")}
+          style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 8 }}
+        >
+          <NativeSymbol ios="gearshape" android="settings-outline" size={22} color={native.label} />
+          <Text style={{ color: native.label }}>{t("Settings")}</Text>
+        </Pressable>
         <View style={styles.headerActions}>
           <CircleButton
             accessibilityLabel={t("Activity")}

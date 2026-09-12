@@ -522,14 +522,31 @@ function Thread() {
             />
           </Pressable>
         ) : (
-          <Pressable accessibilityLabel={t("Bot actions")} hitSlop={8} onPress={showBotActions}>
-            <NativeSymbol
-              ios="ellipsis"
-              android="ellipsis-horizontal"
-              size={21}
-              color={tokens.foreground}
-            />
-          </Pressable>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("Schedules")}
+              hitSlop={8}
+              onPress={() =>
+                router.push({ pathname: "/schedules", params: { botId: botId ?? "" } })
+              }
+            >
+              <NativeSymbol
+                ios="calendar"
+                android="calendar-outline"
+                size={21}
+                color={tokens.foreground}
+              />
+            </Pressable>
+            <Pressable accessibilityLabel={t("Bot actions")} hitSlop={8} onPress={showBotActions}>
+              <NativeSymbol
+                ios="ellipsis"
+                android="ellipsis-horizontal"
+                size={21}
+                color={tokens.foreground}
+              />
+            </Pressable>
+          </View>
         ),
     });
   }, [
@@ -569,6 +586,14 @@ function Thread() {
   }
 
   const botActions = [
+    {
+      text: t("Schedules"),
+      onPress: () => router.push({ pathname: "/schedules", params: { botId: botId ?? "" } }),
+    },
+    {
+      text: t("Settings"),
+      onPress: () => router.push({ pathname: "/bot-settings", params: { botId: botId ?? "" } }),
+    },
     {
       text: t("Open computer"),
       onPress: () =>

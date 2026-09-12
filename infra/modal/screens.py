@@ -1,4 +1,5 @@
 """Sandbox-local screen registry. Only the trusted Modal controller can mutate it."""
+from contextlib import contextmanager
 import fcntl
 import hashlib
 import json
@@ -94,30 +95,52 @@ def retire(state):
         time.sleep(.1)
     raise RuntimeError('Computer screen is still closing')
 
+@contextmanager
+def screen_lock(key, blocking=True):
+    # One lock per stable bot identity, separate from slot allocation. Keep lock
+    # files when a screen is retired so waiters always synchronize on one inode.
+    with open(STATE / (key + '.lock'), 'a') as lock:
+        try: fcntl.flock(lock, fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
+        except BlockingIOError:
+            yield False
+            return
+        yield True
+
+
 def resolve(value=None, lease=None, start=True, shared_input=False):
     key = screen_key(value)
-    with open(STATE / 'registry.lock','a') as lock:
-        fcntl.flock(lock,fcntl.LOCK_EX)
-        state = load(key)
-        if state is None:
-            entries = [(p.stem,json.loads(p.read_text())) for p in STATE.glob('*.json')]
-            used = {s['index'] for _,s in entries}
-            if key != screen_key(): used.add(0)  # Keep the startup browser separate from agent profiles.
-            free = next((i for i in range(LIMIT) if i not in used),None)
-            if free is None:
-                idle = [(k,s) for k,s in entries if s['index'] != 0 and not s.get('lease') and max(s.get('expiresAt',0), shared_active_until(k,s)) <= time.time()]
-                if not idle: raise ScreenUnavailableError('Cannot allocate another screen')
-                old_key, old = min(idle,key=lambda pair:pair[1].get('usedAt',0))
-                retire(old); (STATE / (old_key+'.json')).unlink(); free=old['index']
-            state = {'index':free}
-        current = state.get('lease')
-        if lease and current and current != lease and fence(lease) <= fence(current):
-            raise RuntimeError('Stale computer screen lease')
-        if lease: state['lease'] = lease
-        state['usedAt'] = time.time()
-        # Reserve the display before starting processes. A failed startup must
-        # never let another bot adopt its still-starting browser/profile.
-        save(key,state)
+    with screen_lock(key):
+        with open(STATE / 'registry.lock','a') as lock:
+            fcntl.flock(lock,fcntl.LOCK_EX)
+            state = load(key)
+            if state is None:
+                entries = [(p.stem,json.loads(p.read_text())) for p in STATE.glob('*.json')]
+                used = {s['index'] for _,s in entries}
+                if key != screen_key(): used.add(0)  # Keep the startup browser separate from agent profiles.
+                free = next((i for i in range(LIMIT) if i not in used),None)
+                if free is None:
+                    idle = [(k,s) for k,s in entries if s['index'] != 0 and not s.get('lease') and max(s.get('expiresAt',0), shared_active_until(k,s)) <= time.time()]
+                    if not idle: raise ScreenUnavailableError('Cannot allocate another screen')
+                    # Never wait on another screen while holding the registry lock.
+                    # A starting/repairing screen can be idle but still owns its slot.
+                    for old_key, old in sorted(idle,key=lambda pair:pair[1].get('usedAt',0)):
+                        with screen_lock(old_key, blocking=False) as acquired:
+                            if not acquired: continue
+                            current_idle = load(old_key)
+                            if not current_idle or current_idle['index'] != old['index']: continue
+                            if current_idle.get('lease') or max(current_idle.get('expiresAt',0), shared_active_until(old_key,current_idle)) > time.time(): continue
+                            retire(current_idle); (STATE / (old_key+'.json')).unlink(); free=old['index']
+                            break
+                    if free is None: raise ScreenUnavailableError('Cannot allocate another screen')
+                state = {'index':free}
+            current = state.get('lease')
+            if lease and current and current != lease and fence(lease) <= fence(current):
+                raise RuntimeError('Stale computer screen lease')
+            if lease: state['lease'] = lease
+            state['usedAt'] = time.time()
+            # Reserve the display before starting processes. A failed startup must
+            # never let another bot adopt its still-starting browser/profile.
+            save(key,state)
         try:
             if start: ensure(state,key)
             if shared_input:
@@ -154,9 +177,9 @@ def touch_shared(key, index, until):
 
 def control(value, lease, token, interactive):
     key,state = resolve(value,start=interactive)
-    with open(STATE / 'registry.lock','a') as lock:
-        fcntl.flock(lock,fcntl.LOCK_EX)
+    with screen_lock(key):
         state=load(key)
+        if not state: raise ScreenUnavailableError('Computer screen was retired. Retry in a moment.')
         if interactive:
             if not token or not lease: raise ValueError('Control lease required')
             state.update(token=token,controlLease=lease,expiresAt=time.time()+3600)
@@ -167,8 +190,7 @@ def control(value, lease, token, interactive):
 
 def release(value, lease):
     key=screen_key(value)
-    with open(STATE / 'registry.lock','a') as lock:
-        fcntl.flock(lock,fcntl.LOCK_EX)
+    with screen_lock(key):
         state=load(key)
         if not state: return {'ok':True}
         current=state.get('lease')

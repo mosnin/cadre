@@ -252,6 +252,7 @@ type Panel =
   | "computer"
   | "settings"
   | "routine"
+  | "schedules"
   | "create"
   | "create-group"
   | "group-settings"
@@ -3148,6 +3149,22 @@ export function ShellPage() {
             <Trans>Integrations</Trans>
           </span>
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            setMobileSidebarOpen(false);
+            setAccountSettingsFocusUsage(false);
+            setAccountSettingsOpen(true);
+          }}
+          className="mx-3 mb-1 flex items-center gap-3 rounded-[11px] px-2.5 py-2 hover:bg-background"
+        >
+          <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-muted text-foreground/75">
+            <Settings size={15} strokeWidth={1.7} />
+          </span>
+          <span className="text-[14.5px] text-foreground/90">
+            <Trans>Settings</Trans>
+          </span>
+        </button>
         {capabilities?.companyOsOrigin ? (
           <button
             type="button"
@@ -3177,7 +3194,7 @@ export function ShellPage() {
               <Button
                 variant="ghost"
                 className="w-full justify-start font-normal"
-                aria-label={t`Settings`}
+                aria-label={t`Account settings`}
                 onClick={() => {
                   setMenuOpen(false);
                   setAccountSettingsFocusUsage(false);
@@ -3301,8 +3318,8 @@ export function ShellPage() {
       />
 
       <main
-        aria-hidden={mobileSidebarOpen || undefined}
-        inert={mobileSidebarOpen}
+        aria-hidden={mobileSidebarOpen || (!desktopLayout && Boolean(panel)) || undefined}
+        inert={mobileSidebarOpen || (!desktopLayout && Boolean(panel))}
         className="flex min-w-0 flex-1 flex-col bg-background"
       >
         <div className="app-drag flex items-center justify-between border-b border-sidebar-border px-3 py-[17px] md:px-[22px]">
@@ -3344,6 +3361,18 @@ export function ShellPage() {
             </button>
           </div>
           <div className="flex items-center gap-1">
+            {!inGroup && active ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="app-no-drag"
+                aria-pressed={panel === "schedules"}
+                onClick={() => setPanel(panel === "schedules" ? null : "schedules")}
+              >
+                <Clock size={17} />
+                <Trans>Schedules</Trans>
+              </Button>
+            ) : null}
             {!inGroup ? (
               <button
                 type="button"
@@ -3462,7 +3491,7 @@ export function ShellPage() {
       <aside
         data-testid="side-panel"
         data-panel={panel ?? "closed"}
-        className={`absolute inset-y-0 end-0 z-20 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background transition-[width] duration-150 ease-out md:relative ${
+        className={`absolute inset-y-0 end-0 z-40 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background md:relative md:z-20 ${
           panel && (active || activeGroup)
             ? "w-full max-w-[384px] border-s border-sidebar-border md:w-[384px] md:max-w-none"
             : "pointer-events-none w-0"
@@ -3478,6 +3507,8 @@ export function ShellPage() {
                 <span className="text-[13.5px] text-muted-foreground">
                   {panel === "settings" ? (
                     <Trans>Settings</Trans>
+                  ) : panel === "schedules" ? (
+                    <Trans>Schedules</Trans>
                   ) : active ? (
                     (computer?.state ?? active.status)
                   ) : (
@@ -3577,6 +3608,10 @@ export function ShellPage() {
                 <p className="mt-2 truncate text-[13.5px] text-muted-foreground" dir="auto">
                   {t`${active.name}'s screen`}
                 </p>
+              </div>
+            ) : null}
+            {(panel === "computer" || panel === "schedules") && active ? (
+              <div>
                 <RoutineListHeader
                   onCreate={() => {
                     setRoutineDraft(emptyRoutineDraft());
@@ -3693,7 +3728,7 @@ export function ShellPage() {
                 saving={savingRoutine}
                 running={runningRoutine}
                 error={routineError}
-                onBack={() => setPanel("computer")}
+                onBack={() => setPanel("schedules")}
                 onClose={() => setPanel(null)}
                 onEnsureWebhook={async () => {
                   const result = await rpc.bots.rotateWebhookSecret({ botId: active.id });
@@ -3826,7 +3861,7 @@ export function ShellPage() {
                     setDeleteRoutineTarget(editingRoutine);
                     return;
                   }
-                  setPanel("computer");
+                  setPanel("schedules");
                 }}
               />
             ) : null}
@@ -4033,7 +4068,7 @@ export function ShellPage() {
               setEditingRoutine((current) => (current?.id === target.id ? null : current));
               if (activeBotId.current !== target.botId) return;
               await refreshThread(target.botId);
-              if (activeBotId.current === target.botId) setPanel("computer");
+              if (activeBotId.current === target.botId) setPanel("schedules");
             }}
           />
         ) : null}
@@ -4127,7 +4162,7 @@ export function ShellPage() {
 
       {computerOpen && active ? (
         <div
-          className="absolute inset-0 z-30 flex flex-col bg-background"
+          className="absolute inset-0 z-40 flex flex-col bg-background"
           style={{ height: computerViewportHeight }}
         >
           <div

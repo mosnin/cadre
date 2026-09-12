@@ -109,7 +109,7 @@ test("changes and recovers an email password", async ({ page }, testInfo) => {
   await page.waitForURL(/\/app\/[^/]+$/);
 
   await page.getByTestId("user-menu-trigger").click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Account settings", exact: true }).click();
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
   await settings.getByLabel("Current password").fill(originalPassword);

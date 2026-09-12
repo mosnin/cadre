@@ -1,5 +1,6 @@
 """The only tunneled sandbox port. Static viewer assets are public; RFB requires a capability."""
 import hmac
+import http.client
 import hashlib
 import re
 import screens
@@ -53,6 +54,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_error(403); return
         elif parsed.path == '/websockify':
             self.send_error(403); return
+        if not upgrade:
+            self.serve_asset(parsed.path or '/')
+            return
         try:
             with socket.create_connection(('127.0.0.1', port), timeout=10) as upstream:
                 lines = [f'GET {parsed.path or "/"} HTTP/1.1', f'Host: 127.0.0.1:{port}']
@@ -80,6 +84,32 @@ class Handler(BaseHTTPRequestHandler):
                                 last_shared_touch=time.monotonic()
                         elif current.get('token') != token or current.get('expiresAt', 0) <= time.time(): return
         except (OSError, TimeoutError): return
+
+    def serve_asset(self, path):
+        # HTTP asset requests must each return through machine routing. A raw
+        # keep-alive tunnel forwards later /m/... requests without stripping the
+        # route and can bypass the checks on a later WebSocket upgrade.
+        upstream = http.client.HTTPConnection('127.0.0.1', 6080, timeout=10)
+        self.close_connection = True
+        try:
+            headers = {key: value for key, value in self.headers.items()
+                       if key.lower() not in ('host', 'authorization', 'cookie',
+                           'connection', 'upgrade', 'content-length', 'transfer-encoding', 'expect')}
+            headers['Connection'] = 'close'
+            upstream.request('GET', path, headers=headers)
+            response = upstream.getresponse()
+            self.send_response(response.status)
+            for key, value in response.getheaders():
+                if key.lower() not in ('connection', 'transfer-encoding', 'keep-alive', 'server', 'date'):
+                    self.send_header(key, value)
+            self.send_header('Connection', 'close')
+            self.end_headers()
+            while data := response.read(65536):
+                self.wfile.write(data)
+        except (OSError, http.client.HTTPException):
+            return
+        finally:
+            upstream.close()
 
 if __name__ == '__main__':
     ThreadingHTTPServer(('0.0.0.0', 8080), Handler).serve_forever()

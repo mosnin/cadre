@@ -62,5 +62,17 @@ test("screen connection failures stay visible and can be retried", async ({ page
   await captureScreenshot(page, testInfo, "computer-mobile-stable-stream");
   await page.getByTestId("computer-more-button").click();
   await expect(page.getByRole("menuitem", { name: "Release", exact: true })).toHaveCount(0);
+  const menu = page.getByTestId("computer-more-menu");
+  await expect(menu).toBeVisible();
+  expect(
+    await menu.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return element.contains(
+        document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2),
+      );
+    }),
+  ).toBe(true);
   await captureScreenshot(page, testInfo, "computer-mobile-actions-menu");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Close computer" }).click();
 });
