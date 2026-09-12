@@ -78,10 +78,12 @@ class StaticAssetConnectionTest(unittest.TestCase):
         import threading
         from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+        asset_requests = []
         class Assets(BaseHTTPRequestHandler):
             protocol_version = 'HTTP/1.1'
             def log_message(self, *_args): pass
             def do_GET(self):
+                asset_requests.append(self.path)
                 body = self.path.encode()
                 self.send_response(200)
                 self.send_header('Content-Length', str(len(body)))
@@ -108,6 +110,12 @@ class StaticAssetConnectionTest(unittest.TestCase):
                 for path in ['/embed.html', '/core/input/keyboard.js']:
                     client.request('GET', '/machine' + path)
                     self.assertEqual(client.getresponse().read().decode(), path)
+                client.request('GET', '/machine/websockify?screen=' + screens.screen_key('agent'),
+                               headers={'Upgrade': 'websocket', 'Connection': 'Upgrade'})
+                response = client.getresponse()
+                self.assertEqual(response.status, 403)
+                response.read()
+                self.assertEqual(asset_requests, ['/embed.html', '/core/input/keyboard.js'])
         finally:
             client.close()
             for server in servers:
