@@ -147,11 +147,16 @@ export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
     if (request.sharedInput && !requestSharedInput)
       throw new Error("Shared computer input is unavailable");
     const screen = this.multiscreen(sandbox)
-      ? await this.rpc<{ key: string; sharedUntil?: number }>(sandbox, {
-          op: "resolveScreen",
-          screenKey: screenSessionKey(ctx),
-          ...(requestSharedInput ? { sharedInput: true } : {}),
-        })
+      ? await this.rpc<{ key: string; sharedUntil?: number }>(
+          sandbox,
+          {
+            op: "resolveScreen",
+            screenKey: screenSessionKey(ctx),
+            ...(requestSharedInput ? { sharedInput: true } : {}),
+          },
+          25000,
+          ctx.signal,
+        )
       : undefined;
     // Persistent machines may still run the preceding image. Negotiate from
     // the runtime response; an older image remains view-only until upgraded.

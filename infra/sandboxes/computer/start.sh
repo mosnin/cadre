@@ -26,7 +26,28 @@ cleanup() {
 }
 trap cleanup EXIT
 trap 'exit 0' TERM INT
-port_ready() { (echo >/dev/tcp/127.0.0.1/"$1") >/dev/null 2>&1; }
+port_ready() { python3 - "$1" <<'PYPORT'
+import socket, sys
+try:
+    with socket.create_connection(('127.0.0.1', int(sys.argv[1])), timeout=1): pass
+except OSError: sys.exit(1)
+PYPORT
+}
+vnc_ready() { python3 - "$VIEW_VNC_PORT" <<'PYVNC'
+import socket, sys
+try:
+    with socket.create_connection(('127.0.0.1', int(sys.argv[1])), timeout=1) as connection:
+        connection.settimeout(1)
+        banner = b''
+        while len(banner) < 12:
+            part = connection.recv(12 - len(banner))
+            if not part: sys.exit(1)
+            banner += part
+        if not banner.startswith(b'RFB '): sys.exit(1)
+        connection.sendall(b'RFB 003.008\n')
+except OSError: sys.exit(1)
+PYVNC
+}
 
 if [[ -n "${RAKAZO_COMPUTER_CONTROL_TOKEN:-}" ]]; then
   /usr/local/bin/rakazo-computer-control >"$LOG_DIR"/control.log 2>&1 &
@@ -116,7 +137,9 @@ fi
 fi # fresh desktop
 
 start_view_vnc() {
-  x11vnc -display "$DISPLAY" -forever -shared -viewonly -nopw -listen 127.0.0.1 -rfbport "$VIEW_VNC_PORT" -xkb -ncache 0 >"$LOG_DIR"/x11vnc.log 2>&1 &
+  x11vnc -display "$DISPLAY" -forever -shared -viewonly -nopw -listen 127.0.0.1 -rfbport "$VIEW_VNC_PORT" -xkb -ncache 0 -noshm -no6 >"$LOG_DIR"/x11vnc.log 2>&1 &
+  VIEW_VNC_PID=$!
+  VNC_FAILURES=0
 }
 
 NOVNC_ROOT=/usr/share/novnc
@@ -137,8 +160,30 @@ start_view_proxy() {
 }
 
 # Repair a dropped stream without replacing the desktop or its browser tabs.
+VIEW_VNC_PID=""
+VNC_FAILURES=0
 while xdpyinfo -display "$DISPLAY" >/dev/null 2>&1; do
-  port_ready "$VIEW_VNC_PORT" || start_view_vnc
+  if vnc_ready; then
+    VNC_FAILURES=0
+  else
+    VNC_FAILURES=$((VNC_FAILURES + 1))
+    if [[ -n "$VIEW_VNC_PID" ]] && kill -0 "$VIEW_VNC_PID" 2>/dev/null; then
+      # A listening socket can belong to a wedged server. Repair only the
+      # viewing child this supervisor owns, never Xvfb or Chromium.
+      if [[ "$VNC_FAILURES" -ge 3 ]]; then
+        kill "$VIEW_VNC_PID" 2>/dev/null || true
+        for _ in $(seq 1 10); do
+          kill -0 "$VIEW_VNC_PID" 2>/dev/null || break
+          sleep .1
+        done
+        kill -KILL "$VIEW_VNC_PID" 2>/dev/null || true
+        wait "$VIEW_VNC_PID" 2>/dev/null || true
+        VIEW_VNC_PID=""
+      fi
+    elif ! port_ready "$VIEW_VNC_PORT"; then
+      start_view_vnc
+    fi
+  fi
   port_ready "$VIEW_PORT" || start_view_proxy
   sleep 2
 done

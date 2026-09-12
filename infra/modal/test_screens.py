@@ -1,5 +1,6 @@
 import concurrent.futures
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -16,6 +17,55 @@ class ScreensTest(unittest.TestCase):
             rows=list(pool.map(lambda i:screens.resolve(f'bot-{i}',f'run-{i}:1'),range(8)))
         self.assertEqual({s['index'] for _,s in rows},set(range(1,9)))
         with self.assertRaises(RuntimeError):screens.resolve('ninth','run:1')
+    def test_cold_start_does_not_block_another_agent(self):
+        entered=threading.Event(); finish=threading.Event()
+        def slow(state,key):
+            if key == screens.screen_key('slow'):
+                entered.set(); finish.wait(3)
+            return state
+        with patch.object(screens,'ensure',side_effect=slow), concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            pending=pool.submit(screens.resolve,'slow','slow:1')
+            self.assertTrue(entered.wait(1))
+            try:
+                peer=pool.submit(screens.resolve,'peer','peer:1').result(timeout=1)
+                self.assertEqual(peer[1]['index'],2)
+                self.assertFalse(pending.done())
+            finally: finish.set()
+            self.assertEqual(pending.result()[1]['index'],1)
+
+    def test_starting_idle_screen_is_not_reclaimed(self):
+        entered=threading.Event(); finish=threading.Event()
+        def slow(state,key):
+            if key == screens.screen_key('slow'):
+                entered.set(); finish.wait(3)
+            return state
+        with patch.object(screens,'ensure',side_effect=slow), concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            pending=pool.submit(screens.resolve,'slow')
+            self.assertTrue(entered.wait(1))
+            try:
+                for i in range(7): screens.resolve(f'peer-{i}',f'run-{i}:1')
+                with self.assertRaises(screens.ScreenUnavailableError): screens.resolve('new','new:1')
+            finally: finish.set()
+            pending.result()
+
+    def test_late_control_grant_prevents_idle_reclamation(self):
+        from contextlib import contextmanager
+        key,_=screens.resolve('idle')
+        for i in range(7): screens.resolve(f'peer-{i}',f'run-{i}:1')
+        original=screens.screen_lock
+        @contextmanager
+        def granting_lock(target,blocking=True):
+            with original(target,blocking) as acquired:
+                if target == key and not blocking:
+                    state=screens.load(key)
+                    state.update(controlLease='human',expiresAt=screens.time.time()+60)
+                    screens.save(key,state)
+                yield acquired
+        with patch.object(screens,'screen_lock',side_effect=granting_lock), patch.object(screens,'retire') as retire:
+            with self.assertRaises(screens.ScreenUnavailableError): screens.resolve('new','new:1')
+            retire.assert_not_called()
+        self.assertEqual(screens.load(key)['controlLease'],'human')
+
     def test_stale_release_and_takeover_do_not_touch_new_grant(self):
         key,_=screens.resolve('bot','run:2')
         with self.assertRaises(RuntimeError):screens.resolve('bot','old:1')
