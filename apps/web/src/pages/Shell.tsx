@@ -145,6 +145,7 @@ import {
   shouldNotifyBrowser,
 } from "../lib/browser-notifications";
 import { loadComputerScreen } from "../lib/computer-screen";
+import { desktopBridge } from "../lib/desktop";
 import { dictation } from "../lib/dictation";
 import { scheduleFocusPrompt } from "../lib/focus-prompt";
 import { localTimezone } from "../lib/local-timezone";
@@ -2645,8 +2646,18 @@ export function ShellPage() {
         }`}
       >
         <div className="app-drag flex items-center justify-between px-[18px] pb-3 pt-4">
-          <WindowChrome />
-          <span className="h-11 w-11 md:hidden" />
+          <div className="flex shrink-0 items-center gap-3">
+            {desktopBridge() ? <WindowChrome /> : null}
+            <span className="h-11 w-11 md:hidden" />
+            <img
+              src="/brand/cadre-icon.svg"
+              alt="Cadre"
+              width={32}
+              height={32}
+              className="cadre-mark size-8 shrink-0"
+              draggable={false}
+            />
+          </div>
           <div className="relative flex items-center gap-2.5">
             <button
               type="button"
@@ -3365,7 +3376,7 @@ export function ShellPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="app-no-drag"
+                className="app-no-drag text-foreground"
                 aria-pressed={panel === "schedules"}
                 onClick={() => setPanel(panel === "schedules" ? null : "schedules")}
               >
