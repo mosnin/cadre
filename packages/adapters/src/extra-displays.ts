@@ -175,7 +175,7 @@ export function ensureExtraDisplayCommand(
     `pkill -f '${websockifyProcessPattern(layout.viewPort)}' || true`,
     `pkill -f '${noVncProxyProcessPattern(layout.viewPort)}' || true`,
     `x11vnc -storepasswd "$view_password" ${shellQuote(passwordAuthFile)} >/dev/null`,
-    `x11vnc -display ${layout.display} -forever -shared -viewonly -rfbauth ${shellQuote(passwordAuthFile)} -listen 127.0.0.1 -rfbport ${layout.viewVncPort} -xkb -ncache 0 8>&- >${log}-x11vnc.log 2>&1 &`,
+    `x11vnc -display ${layout.display} -forever -nocursorshape -nocursorpos -shared -viewonly -rfbauth ${shellQuote(passwordAuthFile)} -listen 127.0.0.1 -rfbport ${layout.viewVncPort} -xkb -ncache 0 8>&- >${log}-x11vnc.log 2>&1 &`,
     `if command -v websockify >/dev/null 2>&1; then`,
     `  websockify --web=/usr/share/novnc 0.0.0.0:${layout.viewPort} 127.0.0.1:${layout.viewVncPort} 8>&- >${log}-novnc.log 2>&1 &`,
     `elif [ -d /opt/noVNC/utils ]; then`,
@@ -213,7 +213,7 @@ export function extraDisplayControlStartCommand(
     `mkdir -p /tmp/rakazo`,
     `printf %s ${shellQuote(controlToken)} > ${tokenFile}`,
     `x11vnc -storepasswd ${shellQuote(password)} ${passwordFile} >/dev/null`,
-    `x11vnc -bg -display ${shellQuote(layout.display)} -forever -wait 50 -shared -rfbport ${vncPort} -rfbauth ${passwordFile} 2>${log}-control-x11vnc.log`,
+    `x11vnc -bg -display ${shellQuote(layout.display)} -forever -nocursorshape -nocursorpos -wait 50 -shared -rfbport ${vncPort} -rfbauth ${passwordFile} 2>${log}-control-x11vnc.log`,
     // Require the new x11vnc itself — proxy listen alone can pass with a leftover server.
     `for i in $(seq 1 50); do (echo >/dev/tcp/127.0.0.1/${vncPort}) >/dev/null 2>&1 && break; sleep 0.1; done`,
     `if ! (echo >/dev/tcp/127.0.0.1/${vncPort}) >/dev/null 2>&1; then exit 1; fi`,

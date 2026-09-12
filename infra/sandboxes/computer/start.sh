@@ -137,7 +137,8 @@ fi
 fi # fresh desktop
 
 start_view_vnc() {
-  x11vnc -display "$DISPLAY" -forever -shared -viewonly -nopw -listen 127.0.0.1 -rfbport "$VIEW_VNC_PORT" -xkb -ncache 0 -noshm -no6 >"$LOG_DIR"/x11vnc.log 2>&1 &
+  # Render the real desktop cursor into frames so passive browser viewers see agents move it.
+  x11vnc -display "$DISPLAY" -forever -nocursorshape -nocursorpos -shared -viewonly -nopw -listen 127.0.0.1 -rfbport "$VIEW_VNC_PORT" -xkb -ncache 0 -noshm -no6 >"$LOG_DIR"/x11vnc.log 2>&1 &
   VIEW_VNC_PID=$!
   VNC_FAILURES=0
 }

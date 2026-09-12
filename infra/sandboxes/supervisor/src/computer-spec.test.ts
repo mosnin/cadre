@@ -142,6 +142,7 @@ describe("graphical computer spec", () => {
     expect(start).toMatch(/xdg-settings set default-web-browser rakazo-browser\.desktop/);
     expect(start).not.toMatch(/xdg-mime default rakazo-browser\.desktop .*\|\| true/);
     expect(start).toMatch(/x11vnc .* -viewonly /);
+    expect(start).toContain("-nocursorshape -nocursorpos");
     expect(browser).toMatch(/\.browser-profiles\/chromium/);
     expect(browser).toMatch(/chromium-screen-\$\{DISPLAY/);
     expect(browser).toMatch(/USER_DATA_DIR_SET/);
