@@ -58,7 +58,7 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
   await captureScreenshot(page, testInfo, "27-created-bot");
 
   await page.locator("main").getByRole("button", { name: "New Bot", exact: true }).click();
-  await expect(page.getByText("Settings", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("side-panel").getByText("Settings", { exact: true })).toBeVisible();
   const nameInput = page.locator("label:has-text('Name') input");
   const titleInput = page.locator("label:has-text('Title') input");
   const descriptionInput = page.locator("label:has-text('Description') textarea");
