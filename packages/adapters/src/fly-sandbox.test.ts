@@ -147,6 +147,8 @@ describe("persistent Fly computers", () => {
     const disk = JSON.parse(String(request.mock.calls[2]![1]!.body));
     const vm = JSON.parse(String(request.mock.calls[3]![1]!.body));
     expect(disk).toMatchObject({ encrypted: true, size_gb: 10 });
+    expect(disk.compute).toEqual({ cpu_kind: "shared", cpus: 2, memory_mb: 4096 });
+    expect(disk.compute).toEqual(vm.config.guest);
     expect(vm.config).toMatchObject({
       mounts: [{ volume: "vol_test", path: "/home/rakazo" }],
       restart: { policy: "always" },

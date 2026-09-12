@@ -18,6 +18,7 @@ type Volume = {
   state?: string;
   attached_machine_id?: string | null;
 };
+const computerGuest = { cpu_kind: "shared", cpus: 2, memory_mb: 4096 };
 export interface FlySandboxOptions {
   appName: string;
   apiToken: string;
@@ -225,6 +226,7 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
             region: this.options.region ?? "iad",
             size_gb: 10,
             encrypted: true,
+            compute: computerGuest,
           },
           ctx.signal,
         ));
@@ -243,7 +245,7 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
               CADRE_SCREEN_VIEW_TOKEN: this.viewToken(req.botId, ctx),
               CADRE_RPC_TOKEN: this.rpcToken(owner),
             },
-            guest: { cpu_kind: "shared", cpus: 2, memory_mb: 4096 },
+            guest: computerGuest,
             mounts: [{ volume: volume.id, path: "/home/rakazo" }],
             restart: { policy: "always" },
             services: [
