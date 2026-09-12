@@ -71,4 +71,47 @@ class GatewayTest(unittest.TestCase):
             handler.do_GET()
         select.assert_called_once()
 
+
+class StaticAssetConnectionTest(unittest.TestCase):
+    def test_each_asset_request_returns_through_gateway_routing(self):
+        import http.client
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+        class Assets(BaseHTTPRequestHandler):
+            protocol_version = 'HTTP/1.1'
+            def log_message(self, *_args): pass
+            def do_GET(self):
+                body = self.path.encode()
+                self.send_response(200)
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+        class RoutedGateway(gateway.Handler):
+            def do_GET(self):
+                self.path = self.path.removeprefix('/machine')
+                super().do_GET()
+
+        upstream = ThreadingHTTPServer(('127.0.0.1', 0), Assets)
+        proxy = ThreadingHTTPServer(('127.0.0.1', 0), RoutedGateway)
+        servers = [upstream, proxy]
+        for server in servers:
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+        original_connect = gateway.socket.create_connection
+        def connect(address, *args, **kwargs):
+            if address == ('127.0.0.1', 6080): address = upstream.server_address
+            return original_connect(address, *args, **kwargs)
+        client = http.client.HTTPConnection(*proxy.server_address, timeout=2)
+        try:
+            with patch.object(gateway.socket, 'create_connection', side_effect=connect), patch.object(screens, 'load', return_value=None):
+                for path in ['/embed.html', '/core/input/keyboard.js']:
+                    client.request('GET', '/machine' + path)
+                    self.assertEqual(client.getresponse().read().decode(), path)
+        finally:
+            client.close()
+            for server in servers:
+                server.shutdown()
+                server.server_close()
+
 if __name__=='__main__':unittest.main()
