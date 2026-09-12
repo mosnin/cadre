@@ -4162,7 +4162,7 @@ export function ShellPage() {
 
       {computerOpen && active ? (
         <div
-          className="absolute inset-0 z-50 flex flex-col bg-background"
+          className="absolute inset-0 z-40 flex flex-col bg-background"
           style={{ height: computerViewportHeight }}
         >
           <div
