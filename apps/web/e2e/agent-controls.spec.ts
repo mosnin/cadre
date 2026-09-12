@@ -9,6 +9,14 @@ for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 844 });
     await signup(page, `controls-${width}-${Date.now()}@rakazo.test`, "password12", "Controls");
     await completeOnboarding(page);
+    if (width < 768) await page.getByRole("button", { name: "Open navigation" }).click();
+    const logo = page.getByTestId("bots-sidebar").getByRole("img", { name: "Cadre", exact: true });
+    await expect(logo).toBeVisible();
+    await expect
+      .poll(() => logo.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+      .toBeGreaterThan(0);
+    await captureScreenshot(page, testInfo, `sidebar-brand-${width}`);
+    if (width < 768) await page.getByRole("button", { name: "Close navigation" }).click();
     const computerRequests: string[] = [];
     page.on("request", (request) => {
       if (/\/rpc\/computer\/(boot|screenUrl)/.test(request.url()))
