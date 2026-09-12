@@ -178,9 +178,7 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await expect(linearRow.getByRole("button", { name: "Add", exact: true })).toBeVisible();
 
   const advanced = page.getByTestId("integrations-advanced");
-  await advanced.evaluate((element) => {
-    (element as HTMLDetailsElement).open = true;
-  });
+  await page.getByRole("button", { name: "Custom plugins", exact: true }).click();
   await expect(page.getByRole("button", { name: "MCP servers", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add MCP server", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add OpenAPI", exact: true })).toBeVisible();

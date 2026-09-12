@@ -54,9 +54,11 @@ export function PluginsOverlay({
   activeBotId?: string;
 }) {
   const { t } = useLingui();
+  const [customOpen, setCustomOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(CONNECTION_CATALOG_PAGE_SIZE);
   const [catalog, setCatalog] = useState<ConnectionCatalogItem[]>([]);
+  const removedSources = useRef(new Set<string>());
   const [sources, setSources] = useState<CapabilityInstall[]>([]);
   const [sourceKind, setSourceKind] = useState<SourceKind | null>(null);
   const [sourceName, setSourceName] = useState("");
@@ -68,25 +70,46 @@ export function PluginsOverlay({
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const customSection = useRef<HTMLDetailsElement>(null);
+  const installingSource = useRef(false);
   const connectionAttempt = useRef<AbortController | null>(null);
 
-  async function refresh() {
-    const [items, installs] = await Promise.all([
-      rpc.connections.catalog({}),
-      rpc.capabilities.list(),
-    ]);
-    setCatalog(items);
-    setSources(installs.filter((install) => install.kind === "mcp" || install.kind === "api"));
-    return items;
-  }
-
   useEffect(() => {
-    void refresh()
-      .catch((err: unknown) =>
-        setCatalogError(err instanceof Error ? err.message : t`Could not load integrations`),
-      )
-      .finally(() => setLoading(false));
-    return () => connectionAttempt.current?.abort();
+    let cancelled = false;
+    void rpc.connections
+      .catalog({})
+      .then((items) => {
+        if (!cancelled) setCatalog(items);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled)
+          setCatalogError(err instanceof Error ? err.message : t`Could not load integrations`);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    void rpc.capabilities
+      .list()
+      .then((installs) => {
+        if (!cancelled)
+          setSources((current) => [
+            ...installs.filter(
+              (item) =>
+                (item.kind === "mcp" || item.kind === "api") &&
+                !removedSources.current.has(item.id) &&
+                !current.some((saved) => saved.id === item.id),
+            ),
+            ...current,
+          ]);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled)
+          setSourceError(err instanceof Error ? err.message : t`Could not load custom plugins`);
+      });
+    return () => {
+      cancelled = true;
+      connectionAttempt.current?.abort();
+    };
   }, []);
 
   const featuredTiles = useMemo(() => buildFeaturedConnectorTiles(catalog), [catalog]);
@@ -186,7 +209,8 @@ export function PluginsOverlay({
   }
 
   async function installSource() {
-    if (!sourceKind) return;
+    if (!sourceKind || installingSource.current) return;
+    installingSource.current = true;
     setSourceError(null);
     setPending("install-source");
     try {
@@ -194,7 +218,7 @@ export function PluginsOverlay({
         type: authType,
         ...(authType === "header" ? { name: authName.trim() } : {}),
       };
-      await rpc.capabilities.install({
+      const installed = await rpc.capabilities.install({
         kind: sourceKind === "api" ? "api" : "mcp",
         name: sourceName.trim() || (sourceKind === "treg" ? "Treg" : "Custom connector"),
         source: sourceUrl.trim(),
@@ -208,10 +232,14 @@ export function PluginsOverlay({
       });
       setCredential("");
       setSourceKind(null);
-      await refresh();
+      setSources((current) => [
+        ...current.filter((source) => source.id !== installed.id),
+        installed,
+      ]);
     } catch (err) {
       setSourceError(err instanceof Error ? err.message : t`Could not install connector`);
     } finally {
+      installingSource.current = false;
       setPending(null);
     }
   }
@@ -221,6 +249,7 @@ export function PluginsOverlay({
     setSourceError(null);
     try {
       await rpc.capabilities.remove({ id: install.id });
+      removedSources.current.add(install.id);
       setSources((current) => current.filter((source) => source.id !== install.id));
     } catch (err) {
       setSourceError(err instanceof Error ? err.message : t`Could not remove connector`);
@@ -251,7 +280,23 @@ export function PluginsOverlay({
           </DialogClose>
         </DialogHeader>
 
-        <div className="px-8 pt-4">
+        <div className="flex gap-2 px-8 pt-4">
+          <Button
+            variant={customOpen ? "ghost" : "secondary"}
+            aria-pressed={!customOpen}
+            onClick={() => setCustomOpen(false)}
+          >
+            <Trans>Apps</Trans>
+          </Button>
+          <Button
+            variant={customOpen ? "secondary" : "ghost"}
+            aria-pressed={customOpen}
+            onClick={() => setCustomOpen(true)}
+          >
+            <Trans>Custom plugins</Trans>
+          </Button>
+        </div>
+        <div className="px-8 pt-4" hidden={customOpen}>
           <Input
             value={query}
             onChange={(event) => {
@@ -265,162 +310,169 @@ export function PluginsOverlay({
         </div>
 
         <div id="integration-list" className="rk-scroll flex-1 overflow-y-auto px-8 py-6">
-          {catalogError ? <p className="mb-4 text-sm text-destructive">{catalogError}</p> : null}
-          {loading ? (
-            <p className="text-muted-foreground/80">
-              <Trans>Loading integrations…</Trans>
-            </p>
-          ) : null}
+          <div hidden={customOpen}>
+            {catalogError ? <p className="mb-4 text-sm text-destructive">{catalogError}</p> : null}
+            {loading ? (
+              <p className="text-muted-foreground/80">
+                <Trans>Loading integrations…</Trans>
+              </p>
+            ) : null}
 
-          {showFeatured ? (
-            <div className="mb-6" data-testid="featured-connectors">
-              {!loading && catalog.length === 0 ? (
-                <p className="text-[13.5px] leading-6 text-muted-foreground/80">
-                  {EMPTY_PLUGIN_CATALOG_MESSAGE}
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  {featuredTiles.map((tile) => {
-                    const item = tile.item;
-                    const key = item ? itemKey(item) : tile.id;
-                    const disabled = tile.missing || !item;
-                    const connected = item?.connected ?? false;
-                    return (
-                      <div
-                        key={key}
-                        className={`flex min-w-0 items-center gap-3 rounded-xl px-2.5 py-2 ${
-                          disabled ? "opacity-70" : ""
-                        }`}
-                      >
-                        {item?.logo ? (
-                          <img
-                            src={item.logo}
-                            alt=""
-                            loading="lazy"
-                            decoding="async"
-                            className="h-9 w-9 shrink-0 rounded-xl bg-accent object-contain"
-                          />
-                        ) : (
-                          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent text-sm font-semibold text-foreground">
-                            {tile.label[0]}
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-[15px] font-medium text-foreground">
-                            {tile.label}
-                          </div>
-                          {disabled ? (
-                            <div className="truncate text-[12.5px] text-muted-foreground">
-                              <Trans>Not in the plugin catalog</Trans>
+            {showFeatured ? (
+              <div className="mb-6" data-testid="featured-connectors">
+                {!loading && catalog.length === 0 ? (
+                  <p className="text-[13.5px] leading-6 text-muted-foreground/80">
+                    {EMPTY_PLUGIN_CATALOG_MESSAGE}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {featuredTiles.map((tile) => {
+                      const item = tile.item;
+                      const key = item ? itemKey(item) : tile.id;
+                      const disabled = tile.missing || !item;
+                      const connected = item?.connected ?? false;
+                      return (
+                        <div
+                          key={key}
+                          className={`flex min-w-0 items-center gap-3 rounded-xl px-2.5 py-2 ${
+                            disabled ? "opacity-70" : ""
+                          }`}
+                        >
+                          {item?.logo ? (
+                            <img
+                              src={item.logo}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="h-9 w-9 shrink-0 rounded-xl bg-accent object-contain"
+                            />
+                          ) : (
+                            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent text-sm font-semibold text-foreground">
+                              {tile.label[0]}
                             </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-[15px] font-medium text-foreground">
+                              {tile.label}
+                            </div>
+                            {disabled ? (
+                              <div className="truncate text-[12.5px] text-muted-foreground">
+                                <Trans>Not in the plugin catalog</Trans>
+                              </div>
+                            ) : null}
+                          </div>
+                          {item && !tile.missing ? (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              className="rounded-full"
+                              size="sm"
+                              disabled={pending === key}
+                              onClick={() => void (connected ? revoke(item) : connect(item))}
+                            >
+                              {pending === key ? (
+                                connected ? (
+                                  <Trans>Removing…</Trans>
+                                ) : (
+                                  <Trans>Adding…</Trans>
+                                )
+                              ) : connected ? (
+                                <Trans>Remove</Trans>
+                              ) : (
+                                <Trans>Add</Trans>
+                              )}
+                            </Button>
                           ) : null}
                         </div>
-                        {item && !tile.missing ? (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            className="rounded-full"
-                            size="sm"
-                            disabled={pending === key}
-                            onClick={() => void (connected ? revoke(item) : connect(item))}
-                          >
-                            {pending === key ? (
-                              connected ? (
-                                <Trans>Removing…</Trans>
-                              ) : (
-                                <Trans>Adding…</Trans>
-                              )
-                            ) : connected ? (
-                              <Trans>Remove</Trans>
-                            ) : (
-                              <Trans>Add</Trans>
-                            )}
-                          </Button>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          ) : null}
-
-          {!loading && catalog.length === 0 && !showFeatured ? (
-            <p className="text-muted-foreground/80">
-              <Trans>No managed app catalog is configured on this deployment.</Trans>
-            </p>
-          ) : null}
-          {!loading && catalog.length > 0 && visible.length === 0 && !showFeatured ? (
-            <p className="text-muted-foreground/80">
-              <Trans>No apps match your search.</Trans>
-            </p>
-          ) : null}
-          {visible.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2">
-              {rendered.map((item) => {
-                const key = itemKey(item);
-                return (
-                  <div key={key} className="flex min-w-0 items-center gap-3 rounded-xl px-2.5 py-2">
-                    {item.logo ? (
-                      <img
-                        src={item.logo}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="h-9 w-9 shrink-0 rounded-xl bg-accent object-contain"
-                      />
-                    ) : (
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent text-sm font-semibold text-foreground">
-                        {item.name[0]}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[15px] font-medium text-foreground">
-                        {item.name}
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="rounded-full"
-                      size="sm"
-                      disabled={pending === key}
-                      onClick={() => void (item.connected ? revoke(item) : connect(item))}
-                    >
-                      {pending === key ? (
-                        item.connected ? (
-                          <Trans>Removing…</Trans>
-                        ) : (
-                          <Trans>Adding…</Trans>
-                        )
-                      ) : item.connected ? (
-                        <Trans>Remove</Trans>
-                      ) : (
-                        <Trans>Add</Trans>
-                      )}
-                    </Button>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          ) : null}
-          {rendered.length < visible.length ? (
-            <div className="mt-4 flex justify-center">
-              <Button
-                type="button"
-                variant="secondary"
-                className="rounded-full"
-                size="sm"
-                onClick={() => setVisibleCount((count) => count + CONNECTION_CATALOG_PAGE_SIZE)}
-              >
-                <Trans>Show more</Trans>
-              </Button>
-            </div>
-          ) : null}
+                )}
+              </div>
+            ) : null}
 
+            {!loading && catalog.length === 0 && !showFeatured ? (
+              <p className="text-muted-foreground/80">
+                <Trans>No managed app catalog is configured on this deployment.</Trans>
+              </p>
+            ) : null}
+            {!loading && catalog.length > 0 && visible.length === 0 && !showFeatured ? (
+              <p className="text-muted-foreground/80">
+                <Trans>No apps match your search.</Trans>
+              </p>
+            ) : null}
+            {visible.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {rendered.map((item) => {
+                  const key = itemKey(item);
+                  return (
+                    <div
+                      key={key}
+                      className="flex min-w-0 items-center gap-3 rounded-xl px-2.5 py-2"
+                    >
+                      {item.logo ? (
+                        <img
+                          src={item.logo}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-9 w-9 shrink-0 rounded-xl bg-accent object-contain"
+                        />
+                      ) : (
+                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent text-sm font-semibold text-foreground">
+                          {item.name[0]}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[15px] font-medium text-foreground">
+                          {item.name}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="rounded-full"
+                        size="sm"
+                        disabled={pending === key}
+                        onClick={() => void (item.connected ? revoke(item) : connect(item))}
+                      >
+                        {pending === key ? (
+                          item.connected ? (
+                            <Trans>Removing…</Trans>
+                          ) : (
+                            <Trans>Adding…</Trans>
+                          )
+                        ) : item.connected ? (
+                          <Trans>Remove</Trans>
+                        ) : (
+                          <Trans>Add</Trans>
+                        )}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+            {rendered.length < visible.length ? (
+              <div className="mt-4 flex justify-center">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="rounded-full"
+                  size="sm"
+                  onClick={() => setVisibleCount((count) => count + CONNECTION_CATALOG_PAGE_SIZE)}
+                >
+                  <Trans>Show more</Trans>
+                </Button>
+              </div>
+            ) : null}
+          </div>
           <details
+            ref={customSection}
+            open={customOpen || undefined}
+            hidden={!customOpen}
             data-testid="integrations-advanced"
-            className="group mt-8"
+            className="group"
             onToggle={(event) => {
               if (!(event.currentTarget as HTMLDetailsElement).open) {
                 setSourceKind(null);
@@ -433,9 +485,9 @@ export function PluginsOverlay({
               }
             }}
           >
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[14px] text-muted-foreground">
+            <summary className="hidden cursor-pointer list-none items-center justify-between gap-3 text-[14px] text-muted-foreground">
               <span className="text-muted-foreground">
-                <Trans>Advanced</Trans>
+                <Trans>Custom plugins</Trans>
               </span>
               <span aria-hidden="true" className="transition-transform group-open:rotate-90">
                 ›
@@ -504,10 +556,12 @@ export function PluginsOverlay({
                     <Input
                       value={sourceName}
                       onChange={(event) => setSourceName(event.target.value)}
+                      aria-label={t`Display name`}
                       placeholder={t`Display name`}
                     />
                     {sourceKind !== "treg" ? (
                       <Input
+                        aria-label={t`Source URL`}
                         value={sourceUrl}
                         onChange={(event) => setSourceUrl(event.target.value)}
                         placeholder={
@@ -520,6 +574,7 @@ export function PluginsOverlay({
                     {sourceKind !== "treg" ? (
                       <NativeSelect
                         className="w-full"
+                        aria-label={t`Authentication`}
                         value={authType}
                         onChange={(event) => setAuthType(event.target.value as typeof authType)}
                       >
@@ -538,11 +593,13 @@ export function PluginsOverlay({
                       <Input
                         value={authName}
                         onChange={(event) => setAuthName(event.target.value)}
+                        aria-label={t`Header name`}
                         placeholder={t`Header name`}
                       />
                     ) : null}
                     {sourceKind === "treg" || authType !== "none" ? (
                       <Input
+                        aria-label={t`Credential`}
                         type="password"
                         autoComplete="new-password"
                         value={credential}
@@ -552,7 +609,7 @@ export function PluginsOverlay({
                     ) : null}
                     <p className="text-xs leading-5 text-muted-foreground">
                       <Trans>
-                        Rakazo verifies the source before saving it. Credentials are encrypted and
+                        Cadre verifies the source before saving it. Credentials are encrypted and
                         are never returned to clients or exposed to the model.
                       </Trans>
                     </p>

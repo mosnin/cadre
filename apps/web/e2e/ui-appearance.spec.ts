@@ -50,7 +50,7 @@ test("account settings appearance control switches to light mode", async ({ page
   await completeOnboarding(page, testInfo);
 
   await page.getByTestId("user-menu-trigger").click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Account settings", exact: true }).click();
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
   await expect(settings.getByRole("heading", { name: "Appearance", exact: true })).toBeVisible();
@@ -85,7 +85,7 @@ test("account settings appearance control switches to light mode", async ({ page
   await captureScreenshot(page, testInfo, "inline-code-light");
 
   await page.getByTestId("user-menu-trigger").click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Account settings", exact: true }).click();
   await expect(settings).toBeVisible();
   await settings.getByTestId("ui-appearance-dark").click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");

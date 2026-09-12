@@ -9,7 +9,7 @@ test("account settings language picker includes Simplified Chinese and applies i
   await completeOnboarding(page, testInfo);
 
   await page.getByTestId("user-menu-trigger").click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Account settings", exact: true }).click();
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
   await expect(settings.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
@@ -35,7 +35,7 @@ test("account settings language picker includes Korean and applies it", async ({
   await completeOnboarding(page, testInfo);
 
   await page.getByTestId("user-menu-trigger").click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Account settings", exact: true }).click();
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
   await expect(settings.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
@@ -61,7 +61,7 @@ test("account settings language picker includes Spanish and applies it", async (
   await completeOnboarding(page, testInfo);
 
   await page.getByTestId("user-menu-trigger").click();
-  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await page.getByRole("button", { name: "Account settings", exact: true }).click();
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
   await expect(settings.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
