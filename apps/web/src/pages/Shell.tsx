@@ -3376,7 +3376,7 @@ export function ShellPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="app-no-drag"
+                className="app-no-drag text-foreground"
                 aria-pressed={panel === "schedules"}
                 onClick={() => setPanel(panel === "schedules" ? null : "schedules")}
               >
