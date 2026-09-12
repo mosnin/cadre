@@ -415,6 +415,7 @@ describe("sandbox supervisor input containment", () => {
     expect(interactiveScreenCommand(false)).not.toMatch(/x11vnc -display/);
     expect(interactiveScreenCommand(true, "lease-new")).toMatch(/x11vnc -display .* -rfbport 5901/);
     expect(interactiveScreenCommand(true, "lease-new")).toMatch(/6081/);
+    expect(interactiveScreenCommand(true, "lease-new")).toContain("-nocursorshape -nocursorpos");
     expect(interactiveScreenCommand(true, "lease-new")).not.toMatch(/-rfbport 5900/);
     expect(interactiveScreenCommand(false, "lease-old")).toContain("!= 'lease-old'");
   });

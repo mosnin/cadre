@@ -806,7 +806,7 @@ export class E2BSandboxProvider implements SandboxProvider {
         `if netstat -tuln | grep -q ':${vncPort} '; then exit 1; fi`,
         `printf %s ${shellQuote(controlToken)} > ${tokenFile}`,
         `x11vnc -storepasswd ${shellQuote(password)} ${passwordFile} >/dev/null`,
-        `x11vnc -bg -display ${shellQuote(desktop.display)} -forever -wait 50 -shared -rfbport ${vncPort} -rfbauth ${passwordFile} 2>/tmp/rakazo-control-x11vnc.log`,
+        `x11vnc -bg -display ${shellQuote(desktop.display)} -forever -nocursorshape -nocursorpos -wait 50 -shared -rfbport ${vncPort} -rfbauth ${passwordFile} 2>/tmp/rakazo-control-x11vnc.log`,
         // Require the new x11vnc itself — proxy listen alone can pass with a leftover server.
         `for i in $(seq 1 50); do netstat -tuln | grep -q ':${vncPort} ' && break; sleep 0.1; done`,
         `if ! netstat -tuln | grep -q ':${vncPort} '; then exit 1; fi`,
@@ -877,7 +877,7 @@ export function ensureE2BPrimaryViewCommand(display: string, password: string): 
     "if (echo >/dev/tcp/127.0.0.1/5900) >/dev/null 2>&1 || (echo >/dev/tcp/127.0.0.1/6080) >/dev/null 2>&1; then exit 1; fi",
     `if [ -s ${passwordFile} ]; then password=$(cat ${passwordFile}); else password=${shellQuote(password)}; printf %s "$password" >${passwordFile}; fi`,
     `x11vnc -storepasswd "$password" ${authFile} >/dev/null 2>&1`,
-    `x11vnc -bg -display ${shellQuote(display)} -forever -wait 50 -shared -viewonly -listen 127.0.0.1 -rfbport 5900 -rfbauth ${authFile} 8>&- >/tmp/rakazo-primary-view-x11vnc.log 2>&1`,
+    `x11vnc -bg -display ${shellQuote(display)} -forever -nocursorshape -nocursorpos -wait 50 -shared -viewonly -listen 127.0.0.1 -rfbport 5900 -rfbauth ${authFile} 8>&- >/tmp/rakazo-primary-view-x11vnc.log 2>&1`,
     "cd /opt/noVNC/utils",
     "(nohup ./novnc_proxy --vnc localhost:5900 --listen 6080 --web /opt/noVNC &) 8>&- >/tmp/rakazo-primary-view-novnc.log 2>&1",
     `for i in $(seq 1 50); do if (echo >/dev/tcp/127.0.0.1/5900) >/dev/null 2>&1 && (echo >/dev/tcp/127.0.0.1/6080) >/dev/null 2>&1; then printf 'RAKAZO_SCREEN_PASSWORD=%s\\n' "$password"; exit 0; fi; sleep 0.1; done`,

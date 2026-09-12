@@ -71,7 +71,7 @@ def ensure(state, key):
     if not (ready(6081 + index * 2) and ready(5901 + index * 2) and ready(6001 + index * 2)):
         env = child_env(index,key)
         for command in [
-            ['x11vnc','-display',env['DISPLAY'],'-forever','-shared','-nopw','-listen','127.0.0.1','-rfbport',str(5901+index*2),'-xkb','-noshm','-no6'],
+            ['x11vnc','-display',env['DISPLAY'],'-forever','-nocursorshape','-nocursorpos','-shared','-nopw','-listen','127.0.0.1','-rfbport',str(5901+index*2),'-xkb','-noshm','-no6'],
             ['python3','/opt/cadre/rfb_input_proxy.py',str(6001+index*2),str(5901+index*2),key],
             ['websockify','--heartbeat=30','--web=/usr/share/novnc',f'127.0.0.1:{6081+index*2}',f'127.0.0.1:{6001+index*2}'],
         ]:
