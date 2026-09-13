@@ -20,6 +20,9 @@ export function mountCodexOAuth(
     const p = new URLSearchParams(text);
     for (const key of p.keys())
       if (p.getAll(key).length !== 1) throw new Error("duplicate_parameter");
+    // Native clients send the full MCP connection URL as the resource.
+    // The reviewed facade belongs to the same protected RPC API.
+    if (p.get("resource") === `${resource}/mcp`) p.set("resource", resource);
     return Object.fromEntries(p);
   };
   app.get("/api/oauth/codex/metadata", (c) =>
