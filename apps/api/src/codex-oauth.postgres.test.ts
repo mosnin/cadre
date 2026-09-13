@@ -9,7 +9,9 @@ import {
 import { createDb } from "@rakazo/db";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-const databaseUrl = process.env.CODEX_OAUTH_TEST_DATABASE_URL;
+const databaseUrl =
+  process.env.CODEX_OAUTH_TEST_DATABASE_URL ??
+  (process.env.VERIFY_DATABASE ? process.env.DATABASE_URL : undefined);
 const postgres = databaseUrl ? describe.sequential : describe.skip;
 postgres("Codex grants in isolated PostgreSQL schema", () => {
   const schema = "codex_oauth_test_" + randomUUID().replaceAll("-", "");
