@@ -77,7 +77,7 @@ export function createCodexOAuth(pool: Pool) {
       try {
         await db.query("BEGIN");
         await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [
-          "codex-consent:" + userId,
+          `codex-consent:${userId}`,
         ]);
         const active = await db.query(
           'SELECT id FROM "user" WHERE id=$1 AND "suspendedAt" IS NULL FOR SHARE',
@@ -99,6 +99,7 @@ export function createCodexOAuth(pool: Pool) {
         );
         await db.query("COMMIT");
         const redirect = new URL(p.redirect_uri);
+        redirect.searchParams.set("iss", p.resource.replace(/\/rpc$/, "/codex"));
         redirect.searchParams.set("code", code);
         redirect.searchParams.set("state", p.state);
         return redirect.toString();

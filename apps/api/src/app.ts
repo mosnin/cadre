@@ -81,6 +81,7 @@ import { requestLogging } from "@rakazo/logging/hono";
 import { MarkdownMemoryStore } from "@rakazo/memory";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { mountCodexMcp } from "./codex-mcp-http.js";
 import { mountCodexOAuth } from "./codex-oauth-http.js";
 import { type AppEnv, loadEnv } from "./env.js";
 import { createMessagingInboundHandler } from "./messaging-inbound.js";
@@ -486,6 +487,7 @@ export async function createApp(
     webOrigin: env.webOrigin,
     session: getSession,
   });
+  mountCodexMcp(app, codexOAuth, env.apiUrl);
   app.use("/rpc/*", async (c, next) => {
     const origin = c.req.header("origin");
     if (origin && !isTrustedOrigin(origin, env)) {

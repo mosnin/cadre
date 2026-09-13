@@ -12,7 +12,7 @@ export function mountCodexOAuth(
   },
 ) {
   const api = options.apiUrl.replace(/\/$/, ""),
-    resource = api + "/rpc";
+    resource = `${api}/rpc`;
   const service = options.pool ? createCodexOAuth(options.pool) : null;
   const json = (body: unknown, status = 200) =>
     Response.json(body, { status, headers: { "Cache-Control": "no-store", Pragma: "no-cache" } });
@@ -24,16 +24,20 @@ export function mountCodexOAuth(
   };
   app.get("/api/oauth/codex/metadata", (c) =>
     c.json({
-      issuer: api,
-      authorization_endpoint: options.webOrigin + "/app/oauth/codex",
-      token_endpoint: api + "/api/oauth/codex/token",
-      revocation_endpoint: api + "/api/oauth/codex/revoke",
+      issuer: `${api}/codex`,
+      authorization_response_iss_parameter_supported: true,
+      authorization_endpoint: `${options.webOrigin}/app/oauth/codex`,
+      token_endpoint: `${api}/api/oauth/codex/token`,
+      revocation_endpoint: `${api}/api/oauth/codex/revoke`,
       response_types_supported: ["code"],
       grant_types_supported: ["authorization_code", "refresh_token"],
       code_challenge_methods_supported: ["S256"],
       token_endpoint_auth_methods_supported: ["none"],
       scopes_supported: ["cadre:read", "cadre:execute"],
     }),
+  );
+  app.get("/.well-known/oauth-authorization-server/codex", () =>
+    app.request(`${api}/api/oauth/codex/metadata`),
   );
   app.get("/api/oauth/codex/consent", async (c) => {
     try {
@@ -65,6 +69,7 @@ export function mountCodexOAuth(
         return json({ error: "account_changed" }, 401);
       if (p.decision === "deny") {
         const redirect = new URL(p.redirect_uri);
+        redirect.searchParams.set("iss", `${api}/codex`);
         redirect.searchParams.set("error", "access_denied");
         redirect.searchParams.set("state", p.state);
         return json({ redirect: redirect.toString() });
@@ -76,7 +81,7 @@ export function mountCodexOAuth(
     }
   });
   for (const operation of ["token", "revoke"] as const)
-    app.post("/api/oauth/codex/" + operation, async (c) => {
+    app.post(`/api/oauth/codex/${operation}`, async (c) => {
       try {
         if (!service) return json({ error: "temporarily_unavailable" }, 503);
         if (c.req.header("content-type")?.split(";")[0] !== "application/x-www-form-urlencoded")
