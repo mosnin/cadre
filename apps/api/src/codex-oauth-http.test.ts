@@ -16,7 +16,7 @@ const p = {
   code_challenge: "a".repeat(43),
   code_challenge_method: "S256",
   scope: "cadre:read",
-  resource: api + "/rpc",
+  resource: `${api}/rpc`,
   state: "fixture-state",
 };
 let app: Hono;
@@ -53,7 +53,7 @@ it("checks CSRF origin and the exact account shown before consent", async () => 
       .status,
   ).toBe(401);
   expect(service.approve).not.toHaveBeenCalled();
-  service.approve.mockResolvedValue(p.redirect_uri + "?code=fixture");
+  service.approve.mockResolvedValue(`${p.redirect_uri}?code=fixture`);
   expect(
     (await post("/api/oauth/codex/consent", { ...p, expected_user_id: "actor", decision: "allow" }))
       .status,
@@ -76,7 +76,7 @@ it("rejects wrong resource before token exchange and never caches tokens", async
   service.exchange.mockResolvedValue({ access_token: "fixture" });
   const response = await post("/api/oauth/codex/token", {
     client_id: CODEX_CLIENT,
-    resource: api + "/rpc",
+    resource: `${api}/rpc`,
     grant_type: "authorization_code",
   });
   expect(response.status).toBe(200);
@@ -102,4 +102,40 @@ it("rejects duplicate and oversized parameters", async () => {
   expect(response.status).toBe(503);
   expect(service.exchange).not.toHaveBeenCalled();
   expect((await post("/api/oauth/codex/token", { padding: "x".repeat(17000) })).status).toBe(413);
+});
+
+it("accepts the native MCP URL for consent and token exchange", async () => {
+  service.approve.mockResolvedValue(`${p.redirect_uri}?code=fixture`);
+  const consent = await post("/api/oauth/codex/consent", {
+    ...p,
+    resource: `${api}/rpc/mcp`,
+    expected_user_id: "actor",
+    decision: "allow",
+  });
+  expect(consent.status).toBe(200);
+  expect(service.approve).toHaveBeenCalledWith(
+    "actor",
+    expect.objectContaining({ resource: `${api}/rpc` }),
+  );
+  service.exchange.mockResolvedValue({ access_token: "fixture" });
+  expect(
+    (
+      await post("/api/oauth/codex/token", {
+        client_id: CODEX_CLIENT,
+        resource: `${api}/rpc/mcp`,
+        grant_type: "authorization_code",
+      })
+    ).status,
+  ).toBe(200);
+  expect(service.exchange).toHaveBeenCalledWith(
+    expect.objectContaining({ resource: `${api}/rpc` }),
+  );
+});
+it("does not treat other RPC subpaths or query variants as the MCP resource", async () => {
+  for (const resource of [`${api}/rpc/other`, `${api}/rpc/mcp?other=1`, `${api}/rpc/mcp#x`]) {
+    expect(
+      (await post("/api/oauth/codex/token", { client_id: CODEX_CLIENT, resource })).status,
+    ).toBe(400);
+  }
+  expect(service.exchange).not.toHaveBeenCalled();
 });
