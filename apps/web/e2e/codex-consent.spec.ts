@@ -22,7 +22,10 @@ test("reviews all-space Codex consent before issuing access", async ({ page }, t
     resource: "https://api.cadre.test/rpc",
     state: "fixture-state",
   });
-  await page.goto("/app/oauth/codex?" + params);
+  const document = await page.request.get(`/app/oauth/codex?${params}`);
+  expect(document.headers()["x-frame-options"]).toBe("DENY");
+  expect(document.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+  await page.goto(`/app/oauth/codex?${params}`);
   await expect(page.getByRole("heading", { name: "Connect Cadre to Codex" })).toBeVisible();
   await expect(page.getByText("Read work across all spaces you can access.")).toBeVisible();
   await captureScreenshot(page, testInfo, "codex-consent");

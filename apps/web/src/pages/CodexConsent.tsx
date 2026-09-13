@@ -4,16 +4,18 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 export function CodexConsentPage() {
   const location = useLocation();
+  const framed = window.self !== window.top;
   const [account, setAccount] = useState<{ userId: string; name: string; execute: boolean } | null>(
     null,
   );
   const [failed, setFailed] = useState(false),
     [busy, setBusy] = useState(false);
   useEffect(() => {
+    if (framed) return;
     const abort = new AbortController();
     setAccount(null);
     setFailed(false);
-    void fetch("/api/oauth/codex/consent" + location.search, {
+    void fetch(`/api/oauth/codex/consent${location.search}`, {
       credentials: "include",
       signal: abort.signal,
     })
@@ -25,9 +27,9 @@ export function CodexConsentPage() {
         if (!abort.signal.aborted) setFailed(true);
       });
     return () => abort.abort();
-  }, [location.search]);
+  }, [location.search, framed]);
   async function decide(decision: "allow" | "deny") {
-    if (!account || busy) return;
+    if (!account || busy || framed) return;
     setBusy(true);
     setFailed(false);
     try {
@@ -48,6 +50,14 @@ export function CodexConsentPage() {
       setFailed(true);
     }
   }
+  if (framed)
+    return (
+      <main className="p-6">
+        <p role="alert">
+          <Trans>Access is unavailable. Return to Codex and start sign-in again.</Trans>
+        </p>
+      </main>
+    );
   return (
     <main className="grid min-h-dvh place-items-center bg-background p-6">
       <section className="w-full max-w-md space-y-6 rounded-xl border border-border bg-card p-6">

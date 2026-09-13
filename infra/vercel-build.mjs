@@ -26,6 +26,11 @@ await writeFile(
   JSON.stringify({
     version: 3,
     routes: [
+      {
+        src: "/app/oauth/codex/?",
+        headers: { "content-security-policy": "frame-ancestors 'none'", "x-frame-options": "DENY" },
+        continue: true,
+      },
       ...["api", "rpc"].map((prefix) => ({
         src: `/${prefix}/(.*)`,
         dest: `${runtime.origin}/${prefix}/$1`,
