@@ -16,6 +16,10 @@ import { captureTaskDraft } from "./lib/task-draft";
 import { McpOAuthCallbackPage } from "./pages/McpOAuthCallback";
 import { ShellPage } from "./pages/Shell";
 
+const CodexConsentPage = lazy(() =>
+  import("./pages/CodexConsent").then((module) => ({ default: module.CodexConsentPage })),
+);
+
 const AdminPage = lazy(() =>
   import("./pages/Admin").then((module) => ({ default: module.AdminPage })),
 );
@@ -72,6 +76,19 @@ export function App() {
     <div className="h-full" data-rakazo-app-state="ready">
       <Suspense fallback={<div className="h-full bg-background" />}>
         <Routes>
+          <Route
+            path="/app/oauth/codex"
+            element={
+              user ? (
+                <CodexConsentPage />
+              ) : (
+                <Navigate
+                  to={"/login?next=" + encodeURIComponent(location.pathname + location.search)}
+                  replace
+                />
+              )
+            }
+          />
           <Route
             path="/"
             element={

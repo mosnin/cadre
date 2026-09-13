@@ -1,0 +1,9 @@
+# Codex OAuth
+
+Design before implementation: delegate a closed set of product RPC operations through a dedicated public PKCE client. One user grant covers all currently accessible spaces; every call still uses native membership checks. It must never become a browser session or permit admin, credential or integration management. Read and execution consent are separate. Store only digests, enforce single use in PostgreSQL, rotate refresh credentials and revoke replayed families. Existing Company OS sign-in checks stay authoritative on delegated calls.
+
+The consent page uses shared buttons and semantic tokens, shows account and all-space access, and has Allow/Cancel actions. Browser sign-in remains the existing web login. Desktop and mobile can authorize through that web surface; no native-only credential flow is introduced. Rendered consent and real account acceptance remain required.
+
+Implementation: `cadre-codex-local` is the fixed public client. Configure the reviewed API `/rpc` URL; OAuth metadata is `/api/oauth/codex/metadata` on that API. The consent page is `/app/oauth/codex` on the configured web origin. Deploy migration `20260913020000_codex_rpc_oauth` before the API. Tokens live in dedicated grant tables, never in browser-session storage. Default read scope exposes the closed read catalog; `cadre:execute` adds task send/stop and computer boot/stop only.
+
+Verification: six real PostgreSQL tests use a disposable isolated schema and cover concurrent redemption, refresh replay, revocation, suspension and expiry. HTTP boundary tests cover consent origin/account binding, cancellation, wrong-resource and oversized requests. Native router/auth regressions and TypeScript are checked separately. The browser screenshot test is included for CI; no real hosted account, provider run or desktop/mobile acceptance is implied.

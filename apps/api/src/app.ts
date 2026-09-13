@@ -81,6 +81,7 @@ import { requestLogging } from "@rakazo/logging/hono";
 import { MarkdownMemoryStore } from "@rakazo/memory";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { mountCodexOAuth } from "./codex-oauth-http.js";
 import { type AppEnv, loadEnv } from "./env.js";
 import { createMessagingInboundHandler } from "./messaging-inbound.js";
 import { mountMessagingWebhookRoutes } from "./messaging-webhook.js";
@@ -479,15 +480,35 @@ export async function createApp(
     }
     return auth.handler(c.req.raw);
   });
+  const codexOAuth = mountCodexOAuth(app, {
+    pool: created.pool,
+    apiUrl: env.apiUrl,
+    webOrigin: env.webOrigin,
+    session: getSession,
+  });
   app.use("/rpc/*", async (c, next) => {
     const origin = c.req.header("origin");
     if (origin && !isTrustedOrigin(origin, env)) {
       return c.json({ error: "Untrusted request origin" }, 403);
     }
-    const session = await getSession(sessionHeaders(c.req.raw));
+    const bearer = c.req.header("authorization")?.match(/^Bearer (cdr_at_[A-Za-z0-9_-]+)$/i)?.[1];
+    const delegated = bearer
+      ? await codexOAuth?.authenticate(bearer, new URL(c.req.url).pathname)
+      : null;
+    if (bearer && !delegated)
+      return c.json({ error: "OAuth access is unavailable for this operation" }, 403);
+    if (delegated && oauthCredential) {
+      try {
+        await oauthCredential(delegated.userId);
+      } catch {
+        return c.json({ error: "Sign in again" }, 401);
+      }
+    }
+    const session = bearer ? null : await getSession(sessionHeaders(c.req.raw));
+    const userId = delegated?.userId ?? session?.user.id;
     const requestedSpaceId = c.req.header("x-rakazo-space-id");
-    const actor = session?.user
-      ? await requireMembership(prisma, session.user.id, requestedSpaceId).catch(() => null)
+    const actor = userId
+      ? await requireMembership(prisma, userId, requestedSpaceId).catch(() => null)
       : null;
     if (actor) {
       enrichLogContext({ "user.id": actor.userId, "space.id": actor.spaceId });
