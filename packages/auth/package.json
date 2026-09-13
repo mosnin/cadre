@@ -8,6 +8,10 @@
       "types": "./src/index.ts",
       "development": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./codex-oauth": {
+      "types": "./src/codex-oauth.ts",
+      "default": "./src/codex-oauth.ts"
     }
   },
   "scripts": {

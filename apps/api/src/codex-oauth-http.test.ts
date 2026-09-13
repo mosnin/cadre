@@ -1,10 +1,10 @@
+import { CODEX_CLIENT, createCodexOAuth } from "@rakazo/auth/codex-oauth";
 import { Hono } from "hono";
 import { beforeEach, expect, it, vi } from "vitest";
-import { CODEX_CLIENT, createCodexOAuth } from "./codex-oauth.js";
 import { mountCodexOAuth } from "./codex-oauth-http.js";
 
-vi.mock("./codex-oauth.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./codex-oauth.js")>()),
+vi.mock("@rakazo/auth/codex-oauth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@rakazo/auth/codex-oauth")>()),
   createCodexOAuth: vi.fn(),
 }));
 const api = "https://api.cadre.test",

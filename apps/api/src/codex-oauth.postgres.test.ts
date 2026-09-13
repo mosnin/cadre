@@ -1,20 +1,22 @@
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { Pool } from "pg";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   allowsRoute,
   CODEX_CLIENT,
   createCodexOAuth,
   validRequest,
-} from "../../../apps/api/src/codex-oauth.js";
+} from "@rakazo/auth/codex-oauth";
+import { createDb } from "@rakazo/db";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 const databaseUrl = process.env.CODEX_OAUTH_TEST_DATABASE_URL;
 const postgres = databaseUrl ? describe.sequential : describe.skip;
 postgres("Codex grants in isolated PostgreSQL schema", () => {
   const schema = "codex_oauth_test_" + randomUUID().replaceAll("-", "");
-  const admin = new Pool({ connectionString: databaseUrl });
-  const pool = new Pool({ connectionString: databaseUrl, options: `-c search_path=${schema}` });
+  const admin = createDb(databaseUrl ?? "postgresql://localhost/postgres").pool;
+  const isolatedUrl = new URL(databaseUrl ?? "postgresql://localhost/postgres");
+  isolatedUrl.searchParams.set("options", `-c search_path=${schema}`);
+  const pool = createDb(isolatedUrl.toString()).pool;
   const service = createCodexOAuth(pool);
   const verifier = "v".repeat(43),
     resource = "https://api.cadre.test/rpc";
@@ -34,7 +36,7 @@ postgres("Codex grants in isolated PostgreSQL schema", () => {
     await pool.query(
       readFileSync(
         new URL(
-          "../prisma/migrations/20260913020000_codex_rpc_oauth/migration.sql",
+          "../../../packages/db/prisma/migrations/20260913020000_codex_rpc_oauth/migration.sql",
           import.meta.url,
         ),
         "utf8",
