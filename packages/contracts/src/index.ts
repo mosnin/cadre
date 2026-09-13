@@ -1,5 +1,6 @@
 export * from "./admin.js";
 export * from "./attachments.js";
+export { codexMcpTools } from "./codex-mcp.js";
 export * from "./desktop.js";
 export * from "./domain.js";
 export * from "./events.js";

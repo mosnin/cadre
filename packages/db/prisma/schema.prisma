@@ -8,6 +8,7 @@ datasource db {
 }
 
 model User {
+  codexOAuthGrants CodexOAuthGrant[]
   workforceConnections WorkforceConnection[]
   id                          String                       @id
   name                        String
@@ -1182,4 +1183,33 @@ model WorkforceAssignment {
   @@unique([connectionId, dispatchId])
   @@index([connectionId, acknowledged])
   @@map("workforce_assignments")
+}
+
+
+model CodexOAuthGrant {
+  id String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scope String
+  redirectUri String
+  challenge String
+  codeHash String @unique
+  codeExpiresAt DateTime @db.Timestamptz
+  codeUsedAt DateTime? @db.Timestamptz
+  accessHash String? @unique
+  accessExpiresAt DateTime? @db.Timestamptz
+  refreshHash String? @unique
+  expiresAt DateTime @db.Timestamptz
+  revokedAt DateTime? @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+  spent CodexOAuthSpent[]
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+model CodexOAuthSpent {
+  createdAt DateTime @default(now()) @db.Timestamptz
+  @@index([grantId, createdAt])
+  hash String @id
+  grantId String
+  grant CodexOAuthGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
 }

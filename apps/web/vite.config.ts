@@ -151,6 +151,16 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string)
   });
 }
 
+function attachOAuthFrameProtection(server: ViteDevServer | PreviewServer) {
+  server.middlewares.use((req, res, next) => {
+    if (req.url?.split("?", 1)[0]?.replace(/\/+$/, "") === "/app/oauth/codex") {
+      res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
+      res.setHeader("X-Frame-Options", "DENY");
+    }
+    next();
+  });
+}
+
 export default defineConfig(({ mode }) => {
   const rootEnv = loadEnv(mode, path.resolve(import.meta.dirname, "../.."), "");
   const api = process.env.API_PROXY_TARGET ?? rootEnv.API_PROXY_TARGET ?? "http://127.0.0.1:3100";
@@ -174,6 +184,11 @@ export default defineConfig(({ mode }) => {
           plugins: ["@lingui/babel-plugin-lingui-macro"],
         },
       }),
+      {
+        name: "codex-consent-frame-protection",
+        configureServer: attachOAuthFrameProtection,
+        configurePreviewServer: attachOAuthFrameProtection,
+      },
       lingui(),
       tailwindcss(),
       {
