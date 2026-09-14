@@ -39,6 +39,10 @@ await writeFile(
       ...(marketing
         ? [
             { src: "/", dest: `${marketing.origin}/` },
+            {
+              src: "/((?:product|solutions|guides)(?:/.*)?|about/?|pricing/?)",
+              dest: `${marketing.origin}/$1`,
+            },
             { src: "/(_next|svg)/(.*)", dest: `${marketing.origin}/$1/$2` },
             {
               src: "/(icon.svg|apple-icon.svg|sitemap.xml|robots.txt)",
