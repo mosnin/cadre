@@ -93,6 +93,8 @@ jobs:
         env:
           DATABASE_URL: postgres://rakazo:rakazo@127.0.0.1:5433/rakazo
       - run: pnpm test
+      - name: Public gateway routing
+        run: node --test infra/vercel-routing.test.mjs
       - name: Modal screen and filesystem boundaries
         run: |
           python3 -m unittest discover -s infra/modal -p 'test_*.py'
