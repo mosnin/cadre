@@ -87,6 +87,7 @@ import {
   Mic,
   Monitor,
   PanelLeftClose,
+  PanelLeftOpen,
   Paperclip,
   Plus,
   Puzzle,
@@ -446,6 +447,8 @@ export function ShellPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const sidebarSearchRef = useRef<HTMLInputElement>(null);
+  const showBotsRef = useRef<HTMLButtonElement>(null);
+  const minimizeBotsRef = useRef<HTMLButtonElement>(null);
   const [desktopLayout, setDesktopLayout] = useState(
     () => window.matchMedia("(min-width: 768px)").matches,
   );
@@ -2291,6 +2294,9 @@ export function ShellPage() {
   function setBotsSidebarCollapsedPref(collapsed: boolean) {
     setBotsSidebarCollapsed(collapsed);
     writeBotsSidebarCollapsed(userId, collapsed);
+    requestAnimationFrame(() => {
+      (collapsed ? showBotsRef : minimizeBotsRef).current?.focus();
+    });
   }
 
   async function createBot(input: {
@@ -2554,6 +2560,7 @@ export function ShellPage() {
   }
 
   const embeddedScreenUrl = embeddableScreenUrl(screenUrl);
+  const previewScreenUrl = embeddableScreenUrl(screenUrl, true);
   const hasControl = userHoldsComputerControl(computer, active?.id);
   const canInteractWithComputer = hasControl || sharedComputerInput;
   async function retryComputerViewer() {
@@ -2634,6 +2641,7 @@ export function ShellPage() {
         </button>
       ) : null}
       <aside
+        id="bots-sidebar"
         data-testid="bots-sidebar"
         data-collapsed={botsSidebarCollapsed ? "true" : "false"}
         inert={desktopLayout ? botsSidebarCollapsed : !mobileSidebarOpen}
@@ -2685,6 +2693,9 @@ export function ShellPage() {
               aria-label={t`Minimize bots`}
               title={t`Minimize bots`}
               data-testid="minimize-bots-sidebar"
+              ref={minimizeBotsRef}
+              aria-controls="bots-sidebar"
+              aria-expanded={!botsSidebarCollapsed}
               onClick={() => setBotsSidebarCollapsedPref(true)}
             >
               <PanelLeftClose size={15} strokeWidth={1.8} aria-hidden="true" />
@@ -3290,6 +3301,13 @@ export function ShellPage() {
         data-testid="bots-sidebar-edge"
         aria-label={botsSidebarCollapsed ? t`Show bots` : t`Hide bots`}
         aria-pressed={!botsSidebarCollapsed}
+        aria-controls="bots-sidebar"
+        aria-expanded={!botsSidebarCollapsed}
+        onClick={(event) => {
+          // Pointer activation is handled by the drag gesture below. Keyboard
+          // and assistive activation dispatch a click without pointer events.
+          if (event.detail === 0) setBotsSidebarCollapsedPref(!botsSidebarCollapsed);
+        }}
         className={`absolute inset-y-0 z-50 hidden w-2 cursor-ew-resize touch-none border-0 bg-transparent p-0 md:block ${
           botsSidebarCollapsed ? "start-0" : "start-[308px]"
         }`}
@@ -3335,6 +3353,21 @@ export function ShellPage() {
       >
         <div className="app-drag flex items-center justify-between border-b border-sidebar-border px-3 py-[17px] md:px-[22px]">
           <div className="flex min-w-0 items-center gap-2">
+            {botsSidebarCollapsed ? (
+              <button
+                ref={showBotsRef}
+                type="button"
+                aria-label={t`Show bots`}
+                title={t`Show bots`}
+                aria-controls="bots-sidebar"
+                aria-expanded={false}
+                data-testid="show-bots-sidebar"
+                onClick={() => setBotsSidebarCollapsedPref(false)}
+                className="app-no-drag hidden h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground/75 hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 md:inline-flex"
+              >
+                <PanelLeftOpen size={20} strokeWidth={1.8} aria-hidden="true" />
+              </button>
+            ) : null}
             <button
               type="button"
               aria-label={t`Open navigation`}
@@ -3581,8 +3614,9 @@ export function ShellPage() {
                   ) : computer?.state === "running" && embeddedScreenUrl && !computerScreenError ? (
                     <iframe
                       title={t`Bot screen preview`}
-                      src={embeddedScreenUrl}
-                      sandbox={screenIframeSandbox(embeddedScreenUrl)}
+                      src={previewScreenUrl ?? undefined}
+                      sandbox={screenIframeSandbox(previewScreenUrl)}
+                      tabIndex={-1}
                       className="h-full w-full border-0 bg-black"
                       allow="clipboard-read; clipboard-write"
                       style={{ pointerEvents: "none" }}
@@ -5868,7 +5902,7 @@ const MessageView = memo(function MessageView({
   );
 });
 
-function embeddableScreenUrl(url: string | null): string | null {
+function embeddableScreenUrl(url: string | null, viewOnly = false): string | null {
   if (!url) return null;
   try {
     const parsed = new URL(url, window.location.href);
@@ -5878,6 +5912,9 @@ function embeddableScreenUrl(url: string | null): string | null {
     if (local && parsed.port && parsed.port !== pagePort) {
       return null;
     }
+    // A preview cannot receive input. Reuse the viewer's existing read-only
+    // mode so its toolbar does not shrink the desktop inside the fixed frame.
+    if (viewOnly) parsed.searchParams.set("view_only", "true");
     return parsed.toString();
   } catch {
     return url;

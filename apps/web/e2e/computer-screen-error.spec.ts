@@ -46,7 +46,8 @@ test("screen connection failures stay visible and can be retried", async ({ page
 
   failScreen = false;
   await preview.getByRole("button", { name: "Retry screen" }).click();
-  await expect(preview.locator("iframe")).toHaveAttribute("src", screenUrl);
+  await expect(preview.locator("iframe")).toHaveAttribute("src", `${screenUrl}?view_only=true`);
+  await expect(preview.locator("iframe")).toHaveAttribute("tabindex", "-1");
   await expect(preview.getByRole("alert")).toHaveCount(0);
 
   failScreen = true;

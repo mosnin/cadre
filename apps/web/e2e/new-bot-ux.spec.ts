@@ -32,6 +32,16 @@ test("create opens empty chat, picker lists bots, and sidebar collapses", async 
 
   await page.getByTestId("minimize-bots-sidebar").click();
   await expect(page.getByTestId("bots-sidebar")).toHaveAttribute("data-collapsed", "true");
+  const showBots = page.getByTestId("show-bots-sidebar");
+  await expect(showBots).toBeVisible();
+  await expect(showBots).toBeFocused();
+  await showBots.press("Enter");
+  await expect(page.getByTestId("bots-sidebar")).toHaveAttribute("data-collapsed", "false");
+  await expect(page.getByTestId("minimize-bots-sidebar")).toBeFocused();
+  await page.getByTestId("minimize-bots-sidebar").press("Space");
+  await expect(showBots).toBeVisible();
+  await page.reload();
+  await expect(showBots).toBeVisible();
   const edge = page.getByTestId("bots-sidebar-edge");
   await expect(edge).toBeVisible();
   await captureScreenshot(page, testInfo, "bots-sidebar-collapsed");
@@ -44,6 +54,10 @@ test("create opens empty chat, picker lists bots, and sidebar collapses", async 
   await page.mouse.up();
   await expect(page.getByTestId("bots-sidebar")).toHaveAttribute("data-collapsed", "false");
   await captureScreenshot(page, testInfo, "bots-sidebar-expanded");
+  await edge.press("Enter");
+  await expect(showBots).toBeVisible();
+  await showBots.click();
+  await expect(page.getByTestId("bots-sidebar")).toHaveAttribute("data-collapsed", "false");
 });
 
 test("later bot waits before showing the focus card; sending cancels it", async ({ page }) => {
