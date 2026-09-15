@@ -11,6 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@rakazo/ui-web";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { rpc, selectSpace, withSpaceHeaders } from "../lib/rpc";
 
@@ -23,11 +24,12 @@ async function request(path = "", method = "GET", spaceId?: string) {
   });
   const value = await response.json();
   if (!response.ok) throw new Error(value.error ?? "Could not load Company OS connection");
+  if (path === "/disconnect" && method === "POST")
+    window.dispatchEvent(new Event("company-workspaces-changed"));
   return value;
 }
-export function CompanyWorkspaceSettings() {
+export function CompanyWorkspaceSettings({ onConnect }: { onConnect: (spaceId: string) => void }) {
   const { t } = useLingui();
-  const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [available, setAvailable] = useState<boolean>();
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -54,7 +56,12 @@ export function CompanyWorkspaceSettings() {
       <h3 className="text-[15px] font-medium">
         <Trans>Company OS</Trans>
       </h3>
-      {connection ? <p className="mt-2 text-sm">{connection.companyName}</p> : null}
+      <p className="mt-2 text-sm">{connection?.companyName ?? t`No company connected`}</p>
+      {connection ? (
+        <p className="mt-1 text-sm text-muted-foreground">
+          {connection.connected ? t`Connected` : t`Disconnected`}
+        </p>
+      ) : null}
       {available === false ? (
         <p className="mt-2 text-sm text-muted-foreground">
           <Trans>Company OS connection is not configured on this deployment.</Trans>
@@ -65,8 +72,8 @@ export function CompanyWorkspaceSettings() {
           {error}
         </p>
       ) : null}
-      <div className="mt-3 flex gap-2">
-        <Button variant="outline" disabled={!available} onClick={() => setOpen(true)}>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button variant="outline" disabled={!available} onClick={() => onConnect(current)}>
           {connection?.connected ? t`Reconnect Company OS` : t`Connect Company OS`}
         </Button>
         {connection?.connected ? (
@@ -87,18 +94,17 @@ export function CompanyWorkspaceSettings() {
           </Button>
         ) : null}
       </div>
-      {open ? (
-        <CompanyConnectionDialog initialSpaceId={current} onClose={() => setOpen(false)} />
-      ) : null}
     </section>
   );
 }
 export function CompanyConnectionDialog({
   onClose,
   initialSpaceId = "",
+  createCompany = false,
 }: {
   onClose: () => void;
   initialSpaceId?: string;
+  createCompany?: boolean;
 }) {
   const { t } = useLingui();
   const [spaces, setSpaces] = useState<Space[]>([]);
@@ -132,11 +138,12 @@ export function CompanyConnectionDialog({
         if (!value && !pending) onClose();
       }}
     >
-      <DialogContent className="max-w-md" aria-label={t`Connect a company`}>
+      <DialogContent
+        className="max-w-md"
+        aria-label={createCompany ? t`Create a company` : t`Connect a company`}
+      >
         <DialogHeader>
-          <DialogTitle>
-            <Trans>Connect a company</Trans>
-          </DialogTitle>
+          <DialogTitle>{createCompany ? t`Create a company` : t`Connect a company`}</DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4"
@@ -152,7 +159,11 @@ export function CompanyConnectionDialog({
                 setSpaces((rows) => [...rows, created]);
                 setSpaceId(target);
               }
-              const result = await request("/connect", "POST", target);
+              const result = await request(
+                createCompany ? "/connect?create=1" : "/connect",
+                "POST",
+                target,
+              );
               window.location.assign(result.url);
             } catch (e) {
               setError(e instanceof Error ? e.message : t`Could not connect Company OS`);
@@ -194,8 +205,8 @@ export function CompanyConnectionDialog({
           ) : null}
           <p className="text-sm text-muted-foreground">
             <Trans>
-              Choose your business and permissions in Company OS. Its context stays in this
-              workspace. Use a new workspace for a different business.
+              Create a company or choose an existing business in Company OS, then approve access.
+              Its context stays in this workspace.
             </Trans>
           </p>
           {error ? (
@@ -216,24 +227,38 @@ export function WorkspaceSwitcher({
   currentSpaceId,
   onSwitch,
   onCreate,
+  onManage,
 }: {
   spaces: Space[];
   currentSpaceId?: string;
   onSwitch: (spaceId: string, path: string) => void;
   onCreate: () => void;
+  onManage: () => void;
 }) {
   const { t } = useLingui();
   const [open, setOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
+  const [createCompany, setCreateCompany] = useState(false);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [message, setMessage] = useState("");
+  const [connectionState, setConnectionState] = useState<"loading" | "ready" | "error">("loading");
   useEffect(() => {
     let alive = true;
-    void request()
-      .then((result) => {
-        if (alive) setConnections(result.connections);
-      })
-      .catch(() => {});
+    const refresh = () => {
+      setConnectionState("loading");
+      void request()
+        .then((result) => {
+          if (alive) {
+            setConnections(result.connections);
+            setConnectionState("ready");
+          }
+        })
+        .catch(() => {
+          if (alive) setConnectionState("error");
+        });
+    };
+    refresh();
+    window.addEventListener("company-workspaces-changed", refresh);
     const params = new URLSearchParams(window.location.search);
     if (params.has("company-connected")) {
       const target = params.get("company-connected")!;
@@ -254,6 +279,7 @@ export function WorkspaceSwitcher({
     );
     return () => {
       alive = false;
+      window.removeEventListener("company-workspaces-changed", refresh);
     };
   }, [currentSpaceId]);
   const current = spaces.find((space) => space.id === currentSpaceId);
@@ -265,31 +291,30 @@ export function WorkspaceSwitcher({
           className="flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm hover:bg-muted"
           aria-label={t`Switch workspace`}
         >
-          <span className="truncate">
-            {company
-              ? `${company.companyName} / ${current?.name ?? t`Workspace`}`
-              : (current?.name ?? t`Workspace`)}
-          </span>
-          <span aria-hidden="true">⌄</span>
+          <span className="truncate">{current?.name ?? t`Workspace`}</span>
+          <ChevronDown aria-hidden="true" />
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-64 p-1">
-          {spaces.map((space) => {
-            const linked = connections.find((row) => row.spaceId === space.id);
-            return (
-              <Button
-                key={space.id}
-                variant="ghost"
-                className="w-full justify-start"
-                aria-current={space.id === currentSpaceId ? "true" : undefined}
-                onClick={() => {
-                  setOpen(false);
-                  onSwitch(space.id, "/app");
-                }}
-              >
-                {linked ? `${linked.companyName} / ${space.name}` : space.name}
-              </Button>
-            );
-          })}
+        <PopoverContent align="start" className="w-72 max-w-[calc(100vw-2rem)] gap-1 p-2">
+          <div className="max-h-64 overflow-y-auto">
+            {spaces.map((space) => {
+              const linked = connections.find((row) => row.spaceId === space.id);
+              return (
+                <Button
+                  key={space.id}
+                  variant="ghost"
+                  className="w-full justify-start"
+                  aria-current={space.id === currentSpaceId ? "true" : undefined}
+                  onClick={() => {
+                    setOpen(false);
+                    onSwitch(space.id, "/app");
+                  }}
+                >
+                  {linked ? `${linked.companyName} / ${space.name}` : space.name}
+                </Button>
+              );
+            })}
+          </div>
+          <div className="my-1 border-t border-border" />
           <Button
             variant="ghost"
             className="w-full justify-start"
@@ -305,19 +330,68 @@ export function WorkspaceSwitcher({
             className="w-full justify-start"
             onClick={() => {
               setOpen(false);
+              setCreateCompany(false);
               setConnectOpen(true);
             }}
           >
             <Trans>Connect Company OS</Trans>
           </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            onClick={() => {
+              setOpen(false);
+              setCreateCompany(true);
+              setConnectOpen(true);
+            }}
+          >
+            <Trans>Create company</Trans>
+          </Button>
         </PopoverContent>
       </Popover>
+      <div className="mt-2 border-t border-border pt-3" data-testid="workspace-company-status">
+        <div className="px-2 text-xs text-muted-foreground">
+          <Trans>Company OS</Trans>
+        </div>
+        <div className="mt-1 px-2 text-sm truncate">
+          {connectionState === "loading"
+            ? t`Loading connection…`
+            : connectionState === "error"
+              ? t`Could not load company connection`
+              : (company?.companyName ?? t`No company connected`)}
+        </div>
+        {company && connectionState === "ready" ? (
+          <div className="mt-1 px-2 text-xs text-muted-foreground">
+            {company.connected ? t`Connected` : t`Disconnected`}
+          </div>
+        ) : null}
+        <Button
+          variant="ghost"
+          className="mt-1 w-full justify-start"
+          onClick={() => {
+            if (company?.connected) {
+              onManage();
+              return;
+            }
+            setCreateCompany(false);
+            setConnectOpen(true);
+          }}
+        >
+          {company?.connected ? t`Manage connection` : t`Connect Company OS`}
+        </Button>
+      </div>
       {message ? (
         <p role="status" className="mt-2 text-sm text-muted-foreground">
           {message}
         </p>
       ) : null}
-      {connectOpen ? <CompanyConnectionDialog onClose={() => setConnectOpen(false)} /> : null}
+      {connectOpen ? (
+        <CompanyConnectionDialog
+          createCompany={createCompany}
+          initialSpaceId={createCompany ? "" : currentSpaceId}
+          onClose={() => setConnectOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

@@ -38,7 +38,7 @@ import {
   setUiAppearance,
 } from "../lib/ui-appearance";
 import { UI_LOCALE_LABELS, UI_LOCALES, type UiLocale } from "../lib/ui-locale";
-import { CompanyWorkspaceSettings } from "./CompanyWorkspaces";
+import { CompanyConnectionDialog, CompanyWorkspaceSettings } from "./CompanyWorkspaces";
 
 export function AccountSettingsOverlay({
   email,
@@ -67,6 +67,7 @@ export function AccountSettingsOverlay({
 }) {
   const { t } = useLingui();
   const [canAdmin, setCanAdmin] = useState(false);
+  const [companySpaceId, setCompanySpaceId] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
     rpc.admin
@@ -112,6 +113,14 @@ export function AccountSettingsOverlay({
     }
   }
 
+  if (companySpaceId !== null)
+    return (
+      <CompanyConnectionDialog
+        initialSpaceId={companySpaceId}
+        onClose={() => setCompanySpaceId(null)}
+      />
+    );
+
   return (
     <Dialog
       open
@@ -146,7 +155,7 @@ export function AccountSettingsOverlay({
           {email ? <p className="mt-1 text-[13px] text-muted-foreground/70">{email}</p> : null}
         </section>
 
-        <CompanyWorkspaceSettings />
+        <CompanyWorkspaceSettings onConnect={setCompanySpaceId} />
         <ChangePasswordSection />
 
         {messagingEnabled && onOpenMessaging ? (

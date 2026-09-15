@@ -55,3 +55,13 @@ body,
 [data-theme="dark"] .cadre-mark {
   filter: invert(1);
 }
+
+/* One optical weight across application controls, regardless of local SVG props. */
+svg.lucide {
+  stroke-width: 1.75;
+}
+:where(button, a, [role="button"]) svg.lucide {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}

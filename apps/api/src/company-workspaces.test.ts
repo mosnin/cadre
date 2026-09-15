@@ -58,6 +58,7 @@ describe("Company workspace HTTP boundary", () => {
     expect(service.start).toHaveBeenCalledWith(
       expect.objectContaining({ userId: "user-one", spaceId: "workspace-one" }),
       "session-one",
+      false,
     );
   });
   it("supports an unconfigured deployment without pretending it connected", async () => {
