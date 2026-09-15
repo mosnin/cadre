@@ -14,8 +14,10 @@ import type {
 import {
   applyMessagingOutboundStatus,
   ChatSdkMessagingSurface,
+  CompanyWorkspaces,
   type ComposioProvider,
   type ConnectorRegistry,
+  companyWorkspaceConfig,
   createBackgroundJobHandlers,
   createCompanyOsWorkforce,
   createConnectorStack,
@@ -83,6 +85,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { mountCodexMcp } from "./codex-mcp-http.js";
 import { mountCodexOAuth } from "./codex-oauth-http.js";
+import { mountCompanyWorkspaceRoutes } from "./company-workspaces.js";
 import { type AppEnv, loadEnv } from "./env.js";
 import { createMessagingInboundHandler } from "./messaging-inbound.js";
 import { mountMessagingWebhookRoutes } from "./messaging-webhook.js";
@@ -200,10 +203,24 @@ export async function createApp(
   const oauthLogins = new PiOAuthLogins();
   const { home, artifacts } = createDurableStorage(env.dataDir);
   const memory = new MarkdownMemoryStore(prisma);
+  const workspaceConfig = companyWorkspaceConfig();
+  const companyWorkspaces =
+    workspaceConfig && created.pool
+      ? new CompanyWorkspaces({
+          prisma,
+          pool: created.pool,
+          secrets,
+          config: workspaceConfig,
+          webOrigin: env.webOrigin,
+        })
+      : undefined;
   const mcp = new McpConnector(
     prisma,
     secrets,
     {
+      prepareCompanyWorkspace: companyWorkspaces
+        ? (context) => companyWorkspaces.prepare(context)
+        : undefined,
       stdioEnabled: env.mcpStdioEnabled,
       allowedCommands: env.mcpStdioAllowedCommands,
       network: remoteConnectors,
@@ -533,6 +550,21 @@ export async function createApp(
     if (actor) enrichLogContext({ "user.id": actor.userId, "space.id": actor.spaceId });
     return actor;
   });
+  mountCompanyWorkspaceRoutes(
+    app,
+    companyWorkspaces,
+    async (c) => {
+      const session = await getSession(sessionHeaders(c.req.raw));
+      if (!session?.user) return null;
+      const actor = await requireMembership(
+        prisma,
+        session.user.id,
+        c.req.header("x-rakazo-space-id"),
+      ).catch(() => null);
+      return actor ? { actor, sessionId: session.session.id } : null;
+    },
+    env.webOrigin,
+  );
   mountWorkforceRoutes(
     app,
     createCompanyOsWorkforce({

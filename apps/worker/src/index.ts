@@ -5,6 +5,8 @@ loadRootEnv();
 
 import {
   ChatSdkMessagingSurface,
+  CompanyWorkspaces,
+  companyWorkspaceConfig,
   createBackgroundJobHandlers,
   createCompanyOsWorkforce,
   createConnectorStack,
@@ -84,10 +86,24 @@ async function main() {
     prisma,
   });
   const mcpOAuth = new McpOAuthBroker(prisma, secrets);
+  const workspaceConfig = companyWorkspaceConfig();
+  const companyWorkspaces =
+    workspaceConfig && pool
+      ? new CompanyWorkspaces({
+          prisma,
+          pool,
+          secrets,
+          config: workspaceConfig,
+          webOrigin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
+        })
+      : undefined;
   const mcp = new McpConnector(
     prisma,
     secrets,
     {
+      prepareCompanyWorkspace: companyWorkspaces
+        ? (context) => companyWorkspaces.prepare(context)
+        : undefined,
       stdioEnabled: process.env.MCP_STDIO_ENABLED === "true",
       allowedCommands: (process.env.MCP_STDIO_ALLOWED_COMMANDS ?? "")
         .split(",")

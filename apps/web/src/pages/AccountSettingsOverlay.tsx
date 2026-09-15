@@ -38,6 +38,7 @@ import {
   setUiAppearance,
 } from "../lib/ui-appearance";
 import { UI_LOCALE_LABELS, UI_LOCALES, type UiLocale } from "../lib/ui-locale";
+import { CompanyWorkspaceSettings } from "./CompanyWorkspaces";
 
 export function AccountSettingsOverlay({
   email,
@@ -145,6 +146,7 @@ export function AccountSettingsOverlay({
           {email ? <p className="mt-1 text-[13px] text-muted-foreground/70">{email}</p> : null}
         </section>
 
+        <CompanyWorkspaceSettings />
         <ChangePasswordSection />
 
         {messagingEnabled && onOpenMessaging ? (

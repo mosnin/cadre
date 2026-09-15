@@ -182,6 +182,7 @@ import {
 import { speaker } from "../lib/tts";
 import { ActivityList } from "./ActivityList";
 import type { ContextMenuPosition } from "./BotContextMenu";
+import { WorkspaceSwitcher } from "./CompanyWorkspaces";
 import { CreateGroupForm, GroupSettings, memberName } from "./GroupPanel";
 import { HostComputerPrompt } from "./HostComputerPrompt";
 import {
@@ -1445,9 +1446,11 @@ export function ShellPage() {
     const needle = query.toLowerCase();
     const sidebarSpaces =
       spaces.length > 0
-        ? spaces.map((space) =>
-            space.id === bootstrapMe?.spaceId ? { ...space, bots, groups, botSections } : space,
-          )
+        ? spaces
+            .filter((space) => space.id === bootstrapMe?.spaceId)
+            .map((space) =>
+              space.id === bootstrapMe?.spaceId ? { ...space, bots, groups, botSections } : space,
+            )
         : bootstrapMe
           ? [
               {
@@ -2753,6 +2756,12 @@ export function ShellPage() {
             </Popover>
           </div>
         </div>
+        <WorkspaceSwitcher
+          spaces={spaces}
+          currentSpaceId={bootstrapMe?.spaceId}
+          onSwitch={openSpaceChat}
+          onCreate={() => setNewSpaceOpen(true)}
+        />
         <InputGroup
           data-testid="sidebar-search"
           className={`mx-4 md:mx-2.5 mb-3 w-auto rounded-full bg-card ${mobileSearchOpen || query ? "" : "hidden md:flex"}`}
