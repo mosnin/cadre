@@ -1,9 +1,7 @@
 {
   "version": 1,
   "status": "in_progress_not_accepted",
-  "entrypoints": [
-    "apps/web/src/main.tsx"
-  ],
+  "entrypoints": ["apps/web/src/main.tsx"],
   "build_receipt": "apps/web/dist/component-build-receipt.json",
   "inventory": [
     {
