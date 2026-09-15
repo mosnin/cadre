@@ -8,6 +8,8 @@ datasource db {
 }
 
 model User {
+  companyWorkspaceGrants CompanyWorkspaceGrant[]
+  companyWorkspaceStates CompanyWorkspaceOAuthState[]
   codexOAuthGrants CodexOAuthGrant[]
   workforceConnections WorkforceConnection[]
   id                          String                       @id
@@ -150,6 +152,11 @@ model Member {
 }
 
 model Space {
+  companyOsCompanyId String?
+  companyOsCompanyName String?
+  companyOsCompanySlug String?
+  companyWorkspaceGrants CompanyWorkspaceGrant[]
+  companyWorkspaceStates CompanyWorkspaceOAuthState[]
   workforceConnections WorkforceConnection[]
   id                          String                       @id
   organizationId              String
@@ -1212,4 +1219,33 @@ model CodexOAuthSpent {
   hash String @id
   grantId String
   grant CodexOAuthGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+}
+
+
+model CompanyWorkspaceGrant {
+  id String @id
+  spaceId String
+  userId String
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId String
+  companyName String
+  companySlug String
+  subject String
+  ciphertext String
+  @@unique([spaceId, userId])
+  @@index([userId], map: "company_workspace_grants_user")
+  @@map("company_workspace_grants")
+}
+
+model CompanyWorkspaceOAuthState {
+  state String @id
+  spaceId String
+  userId String
+  sessionId String
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ciphertext String
+  expiresAt DateTime @db.Timestamptz
+  @@map("company_workspace_oauth_states")
 }

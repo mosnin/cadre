@@ -72,6 +72,7 @@ export class McpConnector implements ConnectorProvider {
     private readonly prisma: PrismaClient,
     private readonly secrets: EncryptedSecretStore,
     private readonly options: {
+      prepareCompanyWorkspace?: (context: AdapterContext) => Promise<void>;
       stdioEnabled?: boolean;
       allowedCommands?: string[];
       network?: RemoteTransportDependencies;
@@ -105,6 +106,7 @@ export class McpConnector implements ConnectorProvider {
 
   private async authorizedTools(context: AdapterContext): Promise<ConnectorTool[]> {
     if (!context.botId) return [];
+    await this.options.prepareCompanyWorkspace?.(context);
     const assignments = await this.prisma.botMcpServer.findMany({
       where: {
         botId: context.botId,
@@ -116,6 +118,11 @@ export class McpConnector implements ConnectorProvider {
     });
     const groups = await Promise.all(
       assignments.map(async (assignment): Promise<ConnectorTool[]> => {
+        if (
+          assignment.server.slug === "company-os-context" &&
+          !this.options.prepareCompanyWorkspace
+        )
+          return [];
         try {
           const session = await this.sessionFor(assignment.server, context);
           const listed = await session.listTools({ signal: context.signal });
@@ -177,6 +184,7 @@ export class McpConnector implements ConnectorProvider {
       yield { type: "error", message: "MCP tools require a bot context" };
       return;
     }
+    await this.options.prepareCompanyWorkspace?.(context);
     const assignment = await this.prisma.botMcpServer.findFirst({
       where: {
         botId: context.botId,
@@ -189,6 +197,7 @@ export class McpConnector implements ConnectorProvider {
     });
     if (
       !assignment ||
+      (assignment.server.slug === "company-os-context" && !this.options.prepareCompanyWorkspace) ||
       (!assignment.allowAllTools &&
         !(assignment.allowedTools as unknown[]).includes(call.route.toolName))
     ) {

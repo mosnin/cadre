@@ -12,6 +12,7 @@ export * from "./chat-sdk-surface.js";
 export * from "./child-bots.js";
 export * from "./cloud-storage.js";
 export * from "./company-os-workforce.js";
+export * from "./company-workspaces.js";
 export * from "./composio-catalog-cache.js";
 export * from "./composio-connector.js";
 export * from "./composio-emulator.js";
