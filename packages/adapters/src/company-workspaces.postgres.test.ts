@@ -52,6 +52,7 @@ suite("Company workspace OAuth isolation", () => {
   let revoked = false;
   let refreshCount = 0;
   let challenge = "";
+  let removeMembershipOnIdentity: string | undefined;
   const grants = new Map<string, { company: string; subject: string }>();
   const fetcher = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     expect(init?.redirect).toBe("error");
@@ -85,6 +86,12 @@ suite("Company workspace OAuth isolation", () => {
     if (revoked) return new Response(null, { status: 401 });
     const token = new Headers(init?.headers).get("authorization")!.replace("Bearer ", "");
     const grant = grants.get(token)!;
+    if (removeMembershipOnIdentity) {
+      await db.prisma.spaceMember.delete({
+        where: { spaceId_userId: { spaceId: removeMembershipOnIdentity, userId } },
+      });
+      removeMembershipOnIdentity = undefined;
+    }
     return Response.json({
       sub: grant.subject,
       client_id: clientId,
@@ -240,6 +247,23 @@ suite("Company workspace OAuth isolation", () => {
       (await db.prisma.mcpServer.findUniqueOrThrow({ where: { id: server.id } })).enabled,
     ).toBe(false);
     revoked = false;
+  });
+  it("refuses binding when membership is removed during the provider exchange", async () => {
+    const space = await createSpaceForMember(db.prisma, {
+      currentSpaceId: first.spaceId,
+      userId,
+      name: "Revoked during consent",
+    });
+    const actor = await requireMembership(db.prisma, userId, space.id);
+    const params = await start(actor);
+    removeMembershipOnIdentity = space.id;
+    await expect(service.finish(userId, "session-one", params)).rejects.toThrow(
+      "access was removed",
+    );
+    expect(await db.prisma.companyWorkspaceGrant.count({ where: { spaceId: space.id } })).toBe(0);
+    expect(
+      (await db.prisma.space.findUniqueOrThrow({ where: { id: space.id } })).companyOsCompanyId,
+    ).toBeNull();
   });
   it("disconnects one workspace while retaining its binding and the other grant", async () => {
     await service.disconnect(first);

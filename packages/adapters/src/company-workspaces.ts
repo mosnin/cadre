@@ -179,6 +179,12 @@ export class CompanyWorkspaces {
     const lock = await this.deps.pool.connect();
     try {
       await lock.query("BEGIN");
+      // Keep membership valid through the binding commit, including revocation during consent.
+      const membership = await lock.query(
+        'SELECT id FROM space_members WHERE "spaceId"=$1 AND "userId"=$2 FOR SHARE',
+        [actor.spaceId, userId],
+      );
+      if (!membership.rowCount) throw new Error("Workspace access was removed");
       // Serialize both account identity and workspace binding, including concurrent callbacks.
       await lock.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))", [
         `company-account:${userId}`,
