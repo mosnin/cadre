@@ -37,10 +37,10 @@
     </script>
   </head>
   <body>
-    <section id="startup-status" role="status" style="position:fixed;inset:0;display:grid;place-content:center;padding:24px;background:Canvas;color:CanvasText;font:16px system-ui;z-index:1000">
-      <h1 style="font-size:20px;font-weight:500">Loading Cadre…</h1>
-      <p id="startup-detail" hidden>Check your connection, then reload. Your workspace is saved.</p>
-      <button id="startup-reload" hidden type="button" style="min-height:44px;padding:8px 16px" onclick="location.reload()">Reload Cadre</button>
+    <section id="startup-status" role="status" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:16px;padding:24px max(24px,calc((100vw - 480px)/2));background:Canvas;color:CanvasText;font:16px system-ui;z-index:1000">
+      <h1 style="margin:0;font-size:20px;font-weight:500;line-height:1.4">Loading Cadre…</h1>
+      <p id="startup-detail" style="margin:0;font-size:15px;line-height:1.5" hidden>Check your connection, then reload. Your workspace is saved.</p>
+      <button id="startup-reload" hidden type="button" style="min-height:44px;padding:8px 16px;border:1px solid GrayText;border-radius:12px;background:Canvas;color:CanvasText;font:inherit;cursor:pointer" onclick="location.reload()">Reload Cadre</button>
     </section>
     <script>
       (() => {
