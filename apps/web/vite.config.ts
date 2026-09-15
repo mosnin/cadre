@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { readdirSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
@@ -178,6 +179,21 @@ export default defineConfig(({ mode }) => {
     process.env.RAKAZO_DESKTOP_STACK_TOKEN ?? rootEnv.RAKAZO_DESKTOP_STACK_TOKEN ?? "";
   const imageTag = process.env.RAKAZO_IMAGE_TAG ?? rootEnv.RAKAZO_IMAGE_TAG ?? "edge";
   return {
+    // Compile fixture entrypoints only for the browser harness. Hosted releases
+    // retain the normal single app entrypoint.
+    build:
+      process.env.PLAYWRIGHT_PRODUCTION === "1"
+        ? {
+            rollupOptions: {
+              input: [
+                path.resolve(import.meta.dirname, "index.html"),
+                ...readdirSync(path.resolve(import.meta.dirname, "e2e/fixtures"))
+                  .filter((file) => file.endsWith(".html"))
+                  .map((file) => path.resolve(import.meta.dirname, "e2e/fixtures", file)),
+              ],
+            },
+          }
+        : undefined,
     plugins: [
       react({
         babel: {
