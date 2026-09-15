@@ -1,7 +1,9 @@
 {
   "version": 1,
   "status": "in_progress_not_accepted",
-  "entrypoints": ["apps/web/src/main.tsx"],
+  "entrypoints": [
+    "apps/web/src/main.tsx"
+  ],
   "build_receipt": "apps/web/dist/component-build-receipt.json",
   "inventory": [
     {
@@ -299,7 +301,7 @@
         {
           "path": "packages/ui-web/src/directory/popover.tsx",
           "upstream_path": "components/motion/popover.tsx",
-          "sha256": "8f3c3c2514bcd09eba48645a8b7320f573e517330fb8d558d81186abd9caaeec",
+          "sha256": "db8b69d0abaa91a7e043ea1f01a1935df64323cf27f23566d644548dd3cc7bb7",
           "adaptation_reason": "Preserve directory implementation; use product tokens and real data, native input contracts, accessible names and keyboard focus, touch targets and reduced motion. See design review record for component-specific changes."
         }
       ]

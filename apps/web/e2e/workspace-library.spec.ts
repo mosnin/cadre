@@ -14,6 +14,7 @@ test("workspace library saves edits and imports complete plugin references", asy
   await openNavigation(page);
   await page.getByRole("button", { name: "Workspace library", exact: true }).click();
   const library = page.getByRole("dialog");
+  await expect(library).toHaveAccessibleName("Workspace library");
   await library.getByRole("button", { name: "New skill or workflow" }).click();
   await library.getByLabel("Name", { exact: true }).fill("Weekly review");
   await library.getByLabel("When to use it").fill("Review completed work each week");
