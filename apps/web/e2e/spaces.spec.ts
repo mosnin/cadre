@@ -141,5 +141,34 @@ for (const phone of [false, true]) {
     await expect(status).toContainText("Example Company");
     await expect(status).toContainText("Connected");
     await captureScreenshot(page, testInfo, "connected-company-identity");
+    const glyphs = await page
+      .getByTestId("bots-sidebar")
+      .locator("button svg.lucide")
+      .evaluateAll((nodes) =>
+        nodes
+          .filter((node) => node.getBoundingClientRect().width > 0)
+          .map((node) => ({
+            width: node.getBoundingClientRect().width,
+            height: node.getBoundingClientRect().height,
+            stroke: getComputedStyle(node).strokeWidth,
+          })),
+      );
+    expect(glyphs.length).toBeGreaterThan(0);
+    for (const glyph of glyphs) expect(glyph).toEqual({ width: 18, height: 18, stroke: "1.75px" });
+    if (phone) {
+      await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
+      await captureScreenshot(page, testInfo, "connected-company-dark");
+      await page.setViewportSize({ width: 390, height: 568 });
+      await expect(
+        status.getByRole("button", { name: "Manage connection", exact: true }),
+      ).toBeVisible();
+      await captureScreenshot(page, testInfo, "company-short-phone");
+      await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+      await expect(
+        page.getByRole("button", { name: "Open navigation", exact: true }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+      await expect(status).toBeVisible();
+    }
   });
 }
