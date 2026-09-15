@@ -232,7 +232,7 @@ async function setComputerMode(
   await expect(settings.locator("label:has-text('Name') input")).toHaveValue(botName);
   const advanced = settings.getByTestId("bot-settings-advanced");
   const disclosure = advanced.getByRole("button", { name: "Advanced", exact: true });
-  if (await disclosure.getAttribute("aria-expanded") !== "true") await disclosure.click();
+  if ((await disclosure.getAttribute("aria-expanded")) !== "true") await disclosure.click();
   await settings
     .getByRole("button", { name: mode === "team" ? "Team" : "Private", exact: true })
     .click();

@@ -32,7 +32,9 @@ test("workspace library saves edits and imports complete plugin references", asy
     );
   await page.route("**/rpc/agentSkills/list", (route) => route.abort("failed"));
   await library.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(library.getByRole("alert")).toHaveText("Changes saved. Reload the library to see them.");
+  await expect(library.getByRole("alert")).toHaveText(
+    "Changes saved. Reload the library to see them.",
+  );
   await page.unroute("**/rpc/agentSkills/list");
   await library.getByRole("button", { name: "Reload library", exact: true }).click();
   await expect(library.getByRole("alert")).toHaveCount(0);
@@ -70,6 +72,9 @@ test("workspace library saves edits and imports complete plugin references", asy
     await library.getByRole("button", { name: "Make a copy" }).click();
     await library.getByLabel("Name", { exact: true }).fill("Studio design review");
     await library.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(
+      library.getByRole("button", { name: /Studio design review Design useful/ }),
+    ).toBeVisible();
     const copy = await rpc<{ content: string }>(page, "agentSkills/get", {
       name: "Studio design review",
     });
