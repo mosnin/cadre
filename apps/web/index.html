@@ -37,6 +37,25 @@
     </script>
   </head>
   <body>
+    <section id="startup-status" role="status" style="position:fixed;inset:0;display:grid;place-content:center;padding:24px;background:Canvas;color:CanvasText;font:16px system-ui;z-index:1000">
+      <h1 style="font-size:20px;font-weight:500">Loading Cadre…</h1>
+      <p id="startup-detail" hidden>Check your connection, then reload. Your workspace is saved.</p>
+      <button id="startup-reload" hidden type="button" style="min-height:44px;padding:8px 16px" onclick="location.reload()">Reload Cadre</button>
+    </section>
+    <script>
+      (() => {
+        const failed = () => {
+          const panel = document.getElementById("startup-status");
+          if (!panel) return;
+          panel.querySelector("h1").textContent = "Cadre couldn’t load";
+          document.getElementById("startup-detail").hidden = false;
+          document.getElementById("startup-reload").hidden = false;
+        };
+        window.addEventListener("error", failed, true);
+        window.addEventListener("unhandledrejection", failed);
+        setTimeout(failed, 15000);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

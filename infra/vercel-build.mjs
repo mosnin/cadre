@@ -55,7 +55,8 @@ await writeFile(
           ]
         : []),
       { handle: "filesystem" },
-      { src: "/(.*)", dest: "/index.html" },
+      { src: "/assets/(.*)", status: 404 },
+      { src: "/(.*)", dest: "/index.html", headers: { "cache-control": "no-store" } },
     ],
   }),
 );

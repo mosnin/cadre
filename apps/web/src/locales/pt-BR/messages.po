@@ -499,7 +499,7 @@ msgstr ""
 msgid "Back"
 msgstr ""
 
-#: src/App.tsx:256
+#: src/App.tsx:262
 msgid "Back to Cadre"
 msgstr "Voltar ao Cadre"
 
@@ -561,7 +561,7 @@ msgstr "Traga sua própria chave. O provedor pode ser trocado; seus bots mantêm
 msgid "Cadre verifies the source before saving it. Credentials are encrypted and are never returned to clients or exposed to the model."
 msgstr ""
 
-#: src/App.tsx:300
+#: src/App.tsx:306
 msgid "Can't reach the server."
 msgstr "Não é possível acessar o servidor."
 
@@ -2012,6 +2012,7 @@ msgid "Loading voice providers…"
 msgstr "Carregando provedores de voz..."
 
 #: src/App.tsx:69
+#: src/App.tsx:80
 #: src/pages/Auth.tsx:138
 #: src/pages/Onboarding.tsx:247
 #: src/pages/PeerMessagesOverlay.tsx:99
@@ -2485,7 +2486,7 @@ msgstr "Abriu a conversa."
 msgid "Opening Company OS…"
 msgstr ""
 
-#: src/App.tsx:343
+#: src/App.tsx:349
 msgid "Opening your Space…"
 msgstr "Abrindo seu espaço de trabalho..."
 
@@ -2528,7 +2529,7 @@ msgstr "Chave da API da organização"
 msgid "Other model…"
 msgstr "Outro modelo..."
 
-#: src/App.tsx:253
+#: src/App.tsx:259
 msgid "Page not found"
 msgstr "Página não encontrada"
 
@@ -2666,7 +2667,7 @@ msgstr ""
 msgid "Reconnect OAuth"
 msgstr "Reconectar OAuth"
 
-#: src/App.tsx:298
+#: src/App.tsx:304
 msgid "Reconnecting"
 msgstr "Reconectando"
 
@@ -2828,7 +2829,7 @@ msgstr ""
 msgid "Resume audio"
 msgstr ""
 
-#: src/App.tsx:312
+#: src/App.tsx:318
 msgid "Retry now"
 msgstr "Nova tentativa agora"
 

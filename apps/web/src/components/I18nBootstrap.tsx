@@ -23,7 +23,9 @@ export function I18nBootstrap({ children }: { children: ReactNode }) {
       <div
         className="grid h-full place-items-center text-muted-foreground/80"
         data-rakazo-app-state="i18n-pending"
-      />
+      >
+        Loading Cadre…
+      </div>
     );
   }
 

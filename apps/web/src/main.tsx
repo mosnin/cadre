@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useLayoutEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
+import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { I18nBootstrap } from "./components/I18nBootstrap";
 import { applyUiDirection } from "./lib/apply-ui-direction";
 import { markAfterPaint, markOnce } from "./lib/performance";
@@ -20,6 +21,7 @@ applyUiAppearance();
 
 function PerformanceProbe() {
   useLayoutEffect(() => {
+    document.getElementById("startup-status")?.remove();
     markOnce("rk:renderer:first-react-commit");
     markAfterPaint("rk:renderer:first-react-painted");
   }, []);
@@ -33,12 +35,14 @@ function AppearanceSync() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <PerformanceProbe />
-    <AppearanceSync />
-    <I18nBootstrap>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </I18nBootstrap>
+    <AppErrorBoundary>
+      <PerformanceProbe />
+      <AppearanceSync />
+      <I18nBootstrap>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </I18nBootstrap>
+    </AppErrorBoundary>
   </StrictMode>,
 );
