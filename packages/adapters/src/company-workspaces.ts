@@ -133,7 +133,11 @@ export class CompanyWorkspaces {
     }
     return visible;
   }
-  async start(actor: { spaceId: string; userId: string }, sessionId: string) {
+  async start(
+    actor: { spaceId: string; userId: string },
+    sessionId: string,
+    createCompany = false,
+  ) {
     await requireMembership(this.deps.prisma, actor.userId, actor.spaceId);
     const state = randomBytes(32).toString("base64url");
     const verifier = randomBytes(32).toString("base64url");
@@ -157,6 +161,7 @@ export class CompanyWorkspaces {
       scope: "context:read context:write branch:create",
       resource: `${this.deps.config.origin}/api/mcp`,
     }).toString();
+    if (createCompany) url.searchParams.set("screen_hint", "create_company");
     return url.href;
   }
   async finish(userId: string, sessionId: string, params: URLSearchParams) {

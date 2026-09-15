@@ -54,7 +54,7 @@ msgstr "{0} MB"
 
 #. placeholder {0}: usage.runs
 #. placeholder {1}: usage.inputTokens + usage.outputTokens
-#: src/pages/AccountSettingsOverlay.tsx:228
+#: src/pages/AccountSettingsOverlay.tsx:237
 #: src/pages/Shell.tsx:3287
 msgid "{0} runs · {1} tokens"
 msgstr "{0} 次运行 · {1} tokens"
@@ -134,7 +134,7 @@ msgstr ""
 msgid "Access token (optional)"
 msgstr "访问令牌（可选）"
 
-#: src/pages/AccountSettingsOverlay.tsx:143
+#: src/pages/AccountSettingsOverlay.tsx:152
 msgid "Account"
 msgstr "账户"
 
@@ -253,11 +253,11 @@ msgstr ""
 msgid "Adding…"
 msgstr "正在添加…"
 
-#: src/pages/AccountSettingsOverlay.tsx:243
+#: src/pages/AccountSettingsOverlay.tsx:252
 msgid "Administration"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:267
+#: src/pages/AccountSettingsOverlay.tsx:276
 #: src/pages/McpServersOverlay.tsx:342
 #: src/pages/RoutineSchedule.tsx:43
 #: src/pages/shell/bot-panel.tsx:356
@@ -368,8 +368,8 @@ msgstr "API 密钥"
 msgid "API key header"
 msgstr "API 密钥请求头"
 
-#: src/pages/AccountSettingsOverlay.tsx:168
-#: src/pages/AccountSettingsOverlay.tsx:414
+#: src/pages/AccountSettingsOverlay.tsx:177
+#: src/pages/AccountSettingsOverlay.tsx:423
 msgid "Appearance"
 msgstr "外观"
 
@@ -491,7 +491,7 @@ msgstr "授权"
 msgid "Available after the routine is saved"
 msgstr "保存例行任务后可用"
 
-#: src/pages/AccountSettingsOverlay.tsx:188
+#: src/pages/AccountSettingsOverlay.tsx:197
 msgid "Avatars"
 msgstr "头像"
 
@@ -596,11 +596,11 @@ msgstr "取消回复"
 msgid "Cancelled"
 msgstr "已取消"
 
-#: src/pages/AccountSettingsOverlay.tsx:363
+#: src/pages/AccountSettingsOverlay.tsx:372
 msgid "Change password"
 msgstr "修改密码"
 
-#: src/pages/AccountSettingsOverlay.tsx:363
+#: src/pages/AccountSettingsOverlay.tsx:372
 msgid "Changing…"
 msgstr "正在修改…"
 
@@ -616,7 +616,7 @@ msgstr "图表渲染失败：{error}"
 msgid "Chat apps"
 msgstr "聊天应用"
 
-#: src/pages/AccountSettingsOverlay.tsx:158
+#: src/pages/AccountSettingsOverlay.tsx:167
 msgid "Chat apps, group channels, and agent connections."
 msgstr "聊天应用、群组频道和 Agent 连接。"
 
@@ -743,7 +743,7 @@ msgstr "关闭面板"
 msgid "Close preview"
 msgstr "关闭预览"
 
-#: src/pages/AccountSettingsOverlay.tsx:134
+#: src/pages/AccountSettingsOverlay.tsx:143
 msgid "Close user settings"
 msgstr "关闭用户设置"
 
@@ -777,17 +777,17 @@ msgstr "即将推出"
 msgid "Command"
 msgstr "命令"
 
-#: src/pages/CompanyWorkspaces.tsx:259
-#: src/pages/CompanyWorkspaces.tsx:261
+#: src/pages/CompanyWorkspaces.tsx:269
+#: src/pages/CompanyWorkspaces.tsx:271
 msgid "Company connected. Agents can now read its authorized context."
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:263
+#: src/pages/CompanyWorkspaces.tsx:273
 msgid "Company connection was not completed. Try again from Settings."
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:55
-#: src/pages/CompanyWorkspaces.tsx:347
+#: src/pages/CompanyWorkspaces.tsx:57
+#: src/pages/CompanyWorkspaces.tsx:354
 msgid "Company OS"
 msgstr ""
 
@@ -795,8 +795,8 @@ msgstr ""
 msgid "Company OS assignments"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:65
-#: src/pages/CompanyWorkspaces.tsx:125
+#: src/pages/CompanyWorkspaces.tsx:67
+#: src/pages/CompanyWorkspaces.tsx:124
 msgid "Company OS connection is not configured on this deployment."
 msgstr ""
 
@@ -829,7 +829,7 @@ msgstr ""
 msgid "Computer is stopped"
 msgstr "电脑已停止"
 
-#: src/pages/AccountSettingsOverlay.tsx:254
+#: src/pages/AccountSettingsOverlay.tsx:263
 msgid "Computers"
 msgstr "电脑"
 
@@ -849,7 +849,7 @@ msgstr "已配置的服务器"
 msgid "Confirm delete"
 msgstr "确认删除"
 
-#: src/pages/AccountSettingsOverlay.tsx:346
+#: src/pages/AccountSettingsOverlay.tsx:355
 #: src/pages/Auth.tsx:322
 msgid "Confirm password"
 msgstr "确认密码"
@@ -859,8 +859,8 @@ msgstr "确认密码"
 msgid "Connect"
 msgstr "连接"
 
-#: src/pages/CompanyWorkspaces.tsx:144
-#: src/pages/CompanyWorkspaces.tsx:147
+#: src/pages/CompanyWorkspaces.tsx:143
+#: src/pages/CompanyWorkspaces.tsx:146
 msgid "Connect a company"
 msgstr ""
 
@@ -880,9 +880,9 @@ msgstr "连接 API 密钥"
 msgid "Connect Cadre to Codex"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:75
-#: src/pages/CompanyWorkspaces.tsx:330
-#: src/pages/CompanyWorkspaces.tsx:369
+#: src/pages/CompanyWorkspaces.tsx:77
+#: src/pages/CompanyWorkspaces.tsx:337
+#: src/pages/CompanyWorkspaces.tsx:380
 msgid "Connect Company OS"
 msgstr ""
 
@@ -910,8 +910,8 @@ msgstr "连接 Treg"
 msgid "Connect workforce"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:60
-#: src/pages/CompanyWorkspaces.tsx:354
+#: src/pages/CompanyWorkspaces.tsx:62
+#: src/pages/CompanyWorkspaces.tsx:365
 #: src/pages/McpOAuthCallback.tsx:54
 #: src/pages/MemorySettingsOverlay.tsx:184
 #: src/pages/ModelSettingsOverlay.tsx:393
@@ -948,7 +948,7 @@ msgid "Connecting to your screen…"
 msgstr ""
 
 #: src/pages/CodexConsent.tsx:96
-#: src/pages/CompanyWorkspaces.tsx:219
+#: src/pages/CompanyWorkspaces.tsx:218
 #: src/pages/McpServersOverlay.tsx:38
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:82
 #: src/pages/RealtimeCallView.tsx:136
@@ -968,7 +968,7 @@ msgstr "与 {0} 的连接仍在等待。可以关闭此窗口稍后再看。"
 msgid "Continue"
 msgstr "继续"
 
-#: src/pages/CompanyWorkspaces.tsx:219
+#: src/pages/CompanyWorkspaces.tsx:218
 msgid "Continue to Company OS"
 msgstr ""
 
@@ -1004,7 +1004,7 @@ msgstr "无法批准此服务器"
 msgid "Could not authorize this app"
 msgstr "无法授权此应用"
 
-#: src/pages/AccountSettingsOverlay.tsx:312
+#: src/pages/AccountSettingsOverlay.tsx:321
 msgid "Could not change password"
 msgstr "无法修改密码"
 
@@ -1033,7 +1033,7 @@ msgstr "无法连接"
 msgid "Could not connect {0}"
 msgstr "无法连接 {0}"
 
-#: src/pages/CompanyWorkspaces.tsx:170
+#: src/pages/CompanyWorkspaces.tsx:169
 msgid "Could not connect Company OS"
 msgstr ""
 
@@ -1090,7 +1090,7 @@ msgstr "无法删除 MCP 服务器"
 msgid "Could not delete routine"
 msgstr "无法删除例行任务"
 
-#: src/pages/CompanyWorkspaces.tsx:87
+#: src/pages/CompanyWorkspaces.tsx:89
 msgid "Could not disconnect Company OS"
 msgstr ""
 
@@ -1127,7 +1127,11 @@ msgstr "无法安装连接器"
 msgid "Could not load approval rules"
 msgstr "无法加载审批规则"
 
-#: src/pages/CompanyWorkspaces.tsx:45
+#: src/pages/CompanyWorkspaces.tsx:360
+msgid "Could not load company connection"
+msgstr ""
+
+#: src/pages/CompanyWorkspaces.tsx:47
 msgid "Could not load Company OS connection"
 msgstr ""
 
@@ -1172,7 +1176,7 @@ msgstr "无法加载语音设置"
 msgid "Could not load workforce"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:129
+#: src/pages/CompanyWorkspaces.tsx:128
 msgid "Could not load workspaces"
 msgstr ""
 
@@ -1189,7 +1193,7 @@ msgstr "无法播放测试片段"
 msgid "Could not reach sign-in. Reconnecting…"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:320
+#: src/pages/AccountSettingsOverlay.tsx:329
 #: src/pages/Auth.tsx:85
 #: src/pages/Auth.tsx:295
 msgid "Could not reach the server"
@@ -1325,7 +1329,7 @@ msgstr ""
 msgid "Couldn't load messaging settings"
 msgstr "无法加载消息设置"
 
-#: src/pages/AccountSettingsOverlay.tsx:109
+#: src/pages/AccountSettingsOverlay.tsx:110
 msgid "Couldn't update avatars"
 msgstr "无法更新头像"
 
@@ -1340,12 +1344,12 @@ msgstr "无法更新消息设置"
 msgid "Create"
 msgstr "创建"
 
-#: src/pages/CompanyWorkspaces.tsx:144
-#: src/pages/CompanyWorkspaces.tsx:147
+#: src/pages/CompanyWorkspaces.tsx:143
+#: src/pages/CompanyWorkspaces.tsx:146
 msgid "Create a company"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:208
+#: src/pages/CompanyWorkspaces.tsx:207
 msgid "Create a company or choose an existing business in Company OS, then approve access. Its context stays in this workspace."
 msgstr ""
 
@@ -1358,7 +1362,7 @@ msgstr "创建分组并把 {0} 移入。"
 msgid "Create account"
 msgstr "创建账户"
 
-#: src/pages/CompanyWorkspaces.tsx:341
+#: src/pages/CompanyWorkspaces.tsx:348
 msgid "Create company"
 msgstr ""
 
@@ -1417,7 +1421,7 @@ msgstr "Cron"
 msgid "Cron expression"
 msgstr "Cron 表达式"
 
-#: src/pages/AccountSettingsOverlay.tsx:334
+#: src/pages/AccountSettingsOverlay.tsx:343
 msgid "Current password"
 msgstr "当前密码"
 
@@ -1430,7 +1434,7 @@ msgstr ""
 msgid "Customer support"
 msgstr "客户支持"
 
-#: src/pages/AccountSettingsOverlay.tsx:409
+#: src/pages/AccountSettingsOverlay.tsx:418
 msgid "Dark"
 msgstr "深色"
 
@@ -1524,14 +1528,14 @@ msgstr "描述"
 msgid "Dictate"
 msgstr "口述"
 
-#: src/pages/CompanyWorkspaces.tsx:91
+#: src/pages/CompanyWorkspaces.tsx:93
 #: src/pages/McpServersOverlay.tsx:493
 #: src/pages/MemorySettingsOverlay.tsx:207
 msgid "Disconnect"
 msgstr "断开"
 
-#: src/pages/CompanyWorkspaces.tsx:60
-#: src/pages/CompanyWorkspaces.tsx:354
+#: src/pages/CompanyWorkspaces.tsx:62
+#: src/pages/CompanyWorkspaces.tsx:365
 msgid "Disconnected"
 msgstr ""
 
@@ -1939,9 +1943,9 @@ msgstr "密钥"
 msgid "Keys stay on the server. The app only learns whether a provider is configured."
 msgstr "密钥留在服务器上。应用只知道提供方是否已配置。"
 
-#: src/pages/AccountSettingsOverlay.tsx:181
-#: src/pages/AccountSettingsOverlay.tsx:530
-#: src/pages/AccountSettingsOverlay.tsx:547
+#: src/pages/AccountSettingsOverlay.tsx:190
+#: src/pages/AccountSettingsOverlay.tsx:539
+#: src/pages/AccountSettingsOverlay.tsx:556
 msgid "Language"
 msgstr "语言"
 
@@ -1953,7 +1957,7 @@ msgstr "退出"
 msgid "Leave blank to keep saved key"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:408
+#: src/pages/AccountSettingsOverlay.tsx:417
 msgid "Light"
 msgstr "浅色"
 
@@ -1977,6 +1981,10 @@ msgstr "加载更早的消息"
 #: src/pages/ActivityList.tsx:60
 msgid "Loading activity…"
 msgstr "正在加载动态…"
+
+#: src/pages/CompanyWorkspaces.tsx:358
+msgid "Loading connection…"
+msgstr ""
 
 #: src/pages/PluginsOverlay.tsx:317
 msgid "Loading integrations…"
@@ -2028,11 +2036,11 @@ msgstr "低"
 msgid "macOS will not ask for extra permission if you let bots run on this Mac. They run as you."
 msgstr "若让 Bot 在这台 Mac 上运行，它们会使用你的账户权限，macOS 不会再逐项询问。"
 
-#: src/pages/CompanyWorkspaces.tsx:369
+#: src/pages/CompanyWorkspaces.tsx:380
 msgid "Manage connection"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:161
+#: src/pages/AccountSettingsOverlay.tsx:170
 msgid "Manage messaging settings"
 msgstr "管理消息设置"
 
@@ -2110,7 +2118,7 @@ msgstr "消息…"
 msgid "Messaged {peer}"
 msgstr "已发给 {peer}"
 
-#: src/pages/AccountSettingsOverlay.tsx:155
+#: src/pages/AccountSettingsOverlay.tsx:164
 #: src/pages/MessagingSettingsOverlay.tsx:92
 msgid "Messaging"
 msgstr "消息"
@@ -2163,7 +2171,7 @@ msgstr "模型选项"
 msgid "Model providers"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:234
+#: src/pages/AccountSettingsOverlay.tsx:243
 msgid "Model spend uses your provider keys."
 msgstr "模型费用使用你的提供方密钥。"
 
@@ -2267,7 +2275,7 @@ msgstr ""
 msgid "New open-work item"
 msgstr "新的待办"
 
-#: src/pages/AccountSettingsOverlay.tsx:340
+#: src/pages/AccountSettingsOverlay.tsx:349
 #: src/pages/Auth.tsx:316
 msgid "New password"
 msgstr "新密码"
@@ -2283,8 +2291,8 @@ msgstr "新建分组"
 msgid "New space"
 msgstr "新建工作区"
 
-#: src/pages/CompanyWorkspaces.tsx:186
-#: src/pages/CompanyWorkspaces.tsx:319
+#: src/pages/CompanyWorkspaces.tsx:185
+#: src/pages/CompanyWorkspaces.tsx:326
 msgid "New workspace"
 msgstr ""
 
@@ -2316,8 +2324,8 @@ msgstr ""
 msgid "No chat apps linked yet."
 msgstr "还没有关联聊天应用。"
 
-#: src/pages/CompanyWorkspaces.tsx:57
-#: src/pages/CompanyWorkspaces.tsx:350
+#: src/pages/CompanyWorkspaces.tsx:59
+#: src/pages/CompanyWorkspaces.tsx:361
 msgid "No company connected"
 msgstr ""
 
@@ -2491,7 +2499,7 @@ msgstr ""
 msgid "Optional"
 msgstr "可选"
 
-#: src/pages/AccountSettingsOverlay.tsx:270
+#: src/pages/AccountSettingsOverlay.tsx:279
 msgid "Optional controls most people never need"
 msgstr "多数人用不到的可选项"
 
@@ -2507,7 +2515,7 @@ msgstr "或连接 API 密钥"
 msgid "Or paste an API key"
 msgstr "或粘贴 API 密钥"
 
-#: src/pages/AccountSettingsOverlay.tsx:206
+#: src/pages/AccountSettingsOverlay.tsx:215
 msgid "Organic"
 msgstr "自然"
 
@@ -2533,7 +2541,7 @@ msgstr "PagerDuty 事件"
 msgid "Park"
 msgstr "搁置"
 
-#: src/pages/AccountSettingsOverlay.tsx:330
+#: src/pages/AccountSettingsOverlay.tsx:339
 #: src/pages/Auth.tsx:187
 #: src/pages/Auth.tsx:196
 msgid "Password"
@@ -2543,12 +2551,12 @@ msgstr "密码"
 msgid "Password recovery is not configured for this server"
 msgstr "此服务器未配置密码恢复"
 
-#: src/pages/AccountSettingsOverlay.tsx:365
+#: src/pages/AccountSettingsOverlay.tsx:374
 #: src/pages/Auth.tsx:306
 msgid "Password updated"
 msgstr "密码已更新"
 
-#: src/pages/AccountSettingsOverlay.tsx:299
+#: src/pages/AccountSettingsOverlay.tsx:308
 #: src/pages/Auth.tsx:282
 msgid "Passwords do not match"
 msgstr "两次密码不一致"
@@ -2650,7 +2658,7 @@ msgstr ""
 msgid "Reconnect"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:75
+#: src/pages/CompanyWorkspaces.tsx:77
 msgid "Reconnect Company OS"
 msgstr ""
 
@@ -2841,7 +2849,7 @@ msgstr "撤销"
 msgid "Right-click"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:206
+#: src/pages/AccountSettingsOverlay.tsx:215
 msgid "Robot"
 msgstr "机器人"
 
@@ -3027,7 +3035,7 @@ msgstr "服务器名称"
 msgid "Server URL"
 msgstr "服务器 URL"
 
-#: src/pages/AccountSettingsOverlay.tsx:131
+#: src/pages/AccountSettingsOverlay.tsx:140
 #: src/pages/Shell.tsx:3198
 #: src/pages/Shell.tsx:3238
 #: src/pages/Shell.tsx:3566
@@ -3244,7 +3252,7 @@ msgstr "已提交"
 msgid "Switch bot"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:281
+#: src/pages/CompanyWorkspaces.tsx:292
 msgid "Switch workspace"
 msgstr ""
 
@@ -3256,7 +3264,7 @@ msgstr "正在切换…"
 msgid "Synced"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:407
+#: src/pages/AccountSettingsOverlay.tsx:416
 msgid "System"
 msgstr "系统"
 
@@ -3495,7 +3503,7 @@ msgstr "已更新"
 msgid "Updating…"
 msgstr "正在更新…"
 
-#: src/pages/AccountSettingsOverlay.tsx:224
+#: src/pages/AccountSettingsOverlay.tsx:233
 #: src/pages/Shell.tsx:3283
 msgid "Usage"
 msgstr "用量"
@@ -3629,13 +3637,12 @@ msgstr ""
 msgid "Working…"
 msgstr "处理中…"
 
-#: src/pages/CompanyWorkspaces.tsx:177
-#: src/pages/CompanyWorkspaces.tsx:285
-#: src/pages/CompanyWorkspaces.tsx:286
+#: src/pages/CompanyWorkspaces.tsx:176
+#: src/pages/CompanyWorkspaces.tsx:294
 msgid "Workspace"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:196
+#: src/pages/CompanyWorkspaces.tsx:195
 msgid "Workspace name"
 msgstr ""
 

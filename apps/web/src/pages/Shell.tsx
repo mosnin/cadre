@@ -35,6 +35,7 @@ import {
   buildComposerMentionOptions,
   type ComposerMention,
   clampMentionHighlightIndex,
+  conversationPreview,
   cronFromPreset,
   groupBotsForSidebar,
   inferAttachmentMimeType,
@@ -2640,7 +2641,7 @@ export function ShellPage() {
           onClick={() => setMobileSidebarOpen(false)}
           className="absolute start-4 top-4 z-50 h-11 w-11 rounded-full md:hidden"
         >
-          <ArrowLeft size={20} className="mx-auto" />
+          <PanelLeftClose size={20} className="mx-auto" />
         </button>
       ) : null}
       <aside
@@ -2761,6 +2762,7 @@ export function ShellPage() {
           currentSpaceId={bootstrapMe?.spaceId}
           onSwitch={openSpaceChat}
           onCreate={() => setNewSpaceOpen(true)}
+          onManage={() => setAccountSettingsOpen(true)}
         />
         <InputGroup
           data-testid="sidebar-search"
@@ -3056,7 +3058,7 @@ export function ShellPage() {
                                     dir="auto"
                                     className="truncate text-[12.5px] text-muted-foreground/80"
                                   >
-                                    {item.chat.preview}
+                                    {conversationPreview(item.chat.preview)}
                                   </div>
                                 ) : null}
                               </>
@@ -3070,8 +3072,8 @@ export function ShellPage() {
                                 }`}
                               >
                                 {item.kind === "bot"
-                                  ? item.chat.preview
-                                  : item.chat.preview ||
+                                  ? conversationPreview(item.chat.preview)
+                                  : conversationPreview(item.chat.preview) ||
                                     item.chat.members.map((member) => member.name).join(", ")}
                               </div>
                             )}
@@ -3380,10 +3382,12 @@ export function ShellPage() {
             <button
               type="button"
               aria-label={t`Open navigation`}
+              aria-controls="bots-sidebar"
+              aria-expanded={mobileSidebarOpen}
               onClick={() => setMobileSidebarOpen(true)}
-              className="app-no-drag grid h-10 w-10 shrink-0 place-items-center rounded-full text-foreground/75 hover:bg-accent md:hidden"
+              className="app-no-drag grid h-11 w-11 shrink-0 place-items-center rounded-full text-foreground/75 hover:bg-accent md:hidden"
             >
-              <ArrowLeft size={21} strokeWidth={1.7} />
+              <PanelLeftOpen size={20} aria-hidden="true" />
             </button>
             <button
               type="button"
@@ -4230,7 +4234,7 @@ export function ShellPage() {
               aria-label={t`Close computer`}
               onClick={() => setComputerOpen(false)}
             >
-              <ArrowLeft size={21} strokeWidth={1.7} />
+              <PanelLeftOpen size={20} aria-hidden="true" />
             </Button>
             <div className="flex min-w-0 flex-1 items-center gap-2">
               <BotAvatar

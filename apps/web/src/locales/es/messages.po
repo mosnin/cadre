@@ -54,7 +54,7 @@ msgstr "{0} MB"
 
 #. placeholder {0}: usage.runs
 #. placeholder {1}: usage.inputTokens + usage.outputTokens
-#: src/pages/AccountSettingsOverlay.tsx:228
+#: src/pages/AccountSettingsOverlay.tsx:237
 #: src/pages/Shell.tsx:3287
 msgid "{0} runs · {1} tokens"
 msgstr "{0} ejecuciones · {1} tokens"
@@ -134,7 +134,7 @@ msgstr ""
 msgid "Access token (optional)"
 msgstr "Token de acceso (opcional)"
 
-#: src/pages/AccountSettingsOverlay.tsx:143
+#: src/pages/AccountSettingsOverlay.tsx:152
 msgid "Account"
 msgstr "Cuenta"
 
@@ -253,11 +253,11 @@ msgstr ""
 msgid "Adding…"
 msgstr "Agregando…"
 
-#: src/pages/AccountSettingsOverlay.tsx:243
+#: src/pages/AccountSettingsOverlay.tsx:252
 msgid "Administration"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:267
+#: src/pages/AccountSettingsOverlay.tsx:276
 #: src/pages/McpServersOverlay.tsx:342
 #: src/pages/RoutineSchedule.tsx:43
 #: src/pages/shell/bot-panel.tsx:356
@@ -368,8 +368,8 @@ msgstr "Clave de API"
 msgid "API key header"
 msgstr "Encabezado de clave de API"
 
-#: src/pages/AccountSettingsOverlay.tsx:168
-#: src/pages/AccountSettingsOverlay.tsx:414
+#: src/pages/AccountSettingsOverlay.tsx:177
+#: src/pages/AccountSettingsOverlay.tsx:423
 msgid "Appearance"
 msgstr "Apariencia"
 
@@ -491,7 +491,7 @@ msgstr "Autorizar"
 msgid "Available after the routine is saved"
 msgstr "Disponible después de guardar la rutina"
 
-#: src/pages/AccountSettingsOverlay.tsx:188
+#: src/pages/AccountSettingsOverlay.tsx:197
 msgid "Avatars"
 msgstr "Avatares"
 
@@ -596,11 +596,11 @@ msgstr "Cancelar respuesta"
 msgid "Cancelled"
 msgstr "Cancelado"
 
-#: src/pages/AccountSettingsOverlay.tsx:363
+#: src/pages/AccountSettingsOverlay.tsx:372
 msgid "Change password"
 msgstr "Cambiar contraseña"
 
-#: src/pages/AccountSettingsOverlay.tsx:363
+#: src/pages/AccountSettingsOverlay.tsx:372
 msgid "Changing…"
 msgstr "Cambiando…"
 
@@ -616,7 +616,7 @@ msgstr "No se pudo renderizar el gráfico: {error}"
 msgid "Chat apps"
 msgstr "Apps de chat"
 
-#: src/pages/AccountSettingsOverlay.tsx:158
+#: src/pages/AccountSettingsOverlay.tsx:167
 msgid "Chat apps, group channels, and agent connections."
 msgstr "Apps de chat, canales de grupo y conexiones de agentes."
 
@@ -743,7 +743,7 @@ msgstr "Cerrar panel"
 msgid "Close preview"
 msgstr "Cerrar vista previa"
 
-#: src/pages/AccountSettingsOverlay.tsx:134
+#: src/pages/AccountSettingsOverlay.tsx:143
 msgid "Close user settings"
 msgstr "Cerrar configuración de usuario"
 
@@ -777,17 +777,17 @@ msgstr "Próximamente"
 msgid "Command"
 msgstr "Comando"
 
-#: src/pages/CompanyWorkspaces.tsx:259
-#: src/pages/CompanyWorkspaces.tsx:261
+#: src/pages/CompanyWorkspaces.tsx:269
+#: src/pages/CompanyWorkspaces.tsx:271
 msgid "Company connected. Agents can now read its authorized context."
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:263
+#: src/pages/CompanyWorkspaces.tsx:273
 msgid "Company connection was not completed. Try again from Settings."
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:55
-#: src/pages/CompanyWorkspaces.tsx:347
+#: src/pages/CompanyWorkspaces.tsx:57
+#: src/pages/CompanyWorkspaces.tsx:354
 msgid "Company OS"
 msgstr ""
 
@@ -795,8 +795,8 @@ msgstr ""
 msgid "Company OS assignments"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:65
-#: src/pages/CompanyWorkspaces.tsx:125
+#: src/pages/CompanyWorkspaces.tsx:67
+#: src/pages/CompanyWorkspaces.tsx:124
 msgid "Company OS connection is not configured on this deployment."
 msgstr ""
 
@@ -829,7 +829,7 @@ msgstr "La computadora está en reposo. Ábrela para despertarla."
 msgid "Computer is stopped"
 msgstr "La computadora está detenida"
 
-#: src/pages/AccountSettingsOverlay.tsx:254
+#: src/pages/AccountSettingsOverlay.tsx:263
 msgid "Computers"
 msgstr "Computadoras"
 
@@ -849,7 +849,7 @@ msgstr "Servidores configurados"
 msgid "Confirm delete"
 msgstr "Confirmar eliminación"
 
-#: src/pages/AccountSettingsOverlay.tsx:346
+#: src/pages/AccountSettingsOverlay.tsx:355
 #: src/pages/Auth.tsx:322
 msgid "Confirm password"
 msgstr "Confirmar contraseña"
@@ -859,8 +859,8 @@ msgstr "Confirmar contraseña"
 msgid "Connect"
 msgstr "Conectar"
 
-#: src/pages/CompanyWorkspaces.tsx:144
-#: src/pages/CompanyWorkspaces.tsx:147
+#: src/pages/CompanyWorkspaces.tsx:143
+#: src/pages/CompanyWorkspaces.tsx:146
 msgid "Connect a company"
 msgstr ""
 
@@ -880,9 +880,9 @@ msgstr "Conectar clave de API"
 msgid "Connect Cadre to Codex"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:75
-#: src/pages/CompanyWorkspaces.tsx:330
-#: src/pages/CompanyWorkspaces.tsx:369
+#: src/pages/CompanyWorkspaces.tsx:77
+#: src/pages/CompanyWorkspaces.tsx:337
+#: src/pages/CompanyWorkspaces.tsx:380
 msgid "Connect Company OS"
 msgstr ""
 
@@ -910,8 +910,8 @@ msgstr "Conectar Treg"
 msgid "Connect workforce"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:60
-#: src/pages/CompanyWorkspaces.tsx:354
+#: src/pages/CompanyWorkspaces.tsx:62
+#: src/pages/CompanyWorkspaces.tsx:365
 #: src/pages/McpOAuthCallback.tsx:54
 #: src/pages/MemorySettingsOverlay.tsx:184
 #: src/pages/ModelSettingsOverlay.tsx:393
@@ -948,7 +948,7 @@ msgid "Connecting to your screen…"
 msgstr ""
 
 #: src/pages/CodexConsent.tsx:96
-#: src/pages/CompanyWorkspaces.tsx:219
+#: src/pages/CompanyWorkspaces.tsx:218
 #: src/pages/McpServersOverlay.tsx:38
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:82
 #: src/pages/RealtimeCallView.tsx:136
@@ -968,7 +968,7 @@ msgstr "La conexión con {0} sigue pendiente. Puedes cerrar esto y volver a comp
 msgid "Continue"
 msgstr "Continuar"
 
-#: src/pages/CompanyWorkspaces.tsx:219
+#: src/pages/CompanyWorkspaces.tsx:218
 msgid "Continue to Company OS"
 msgstr ""
 
@@ -1004,7 +1004,7 @@ msgstr "No se pudo aprobar este servidor"
 msgid "Could not authorize this app"
 msgstr "No se pudo autorizar esta app"
 
-#: src/pages/AccountSettingsOverlay.tsx:312
+#: src/pages/AccountSettingsOverlay.tsx:321
 msgid "Could not change password"
 msgstr "No se pudo cambiar la contraseña"
 
@@ -1033,7 +1033,7 @@ msgstr "No se pudo conectar"
 msgid "Could not connect {0}"
 msgstr "No se pudo conectar {0}"
 
-#: src/pages/CompanyWorkspaces.tsx:170
+#: src/pages/CompanyWorkspaces.tsx:169
 msgid "Could not connect Company OS"
 msgstr ""
 
@@ -1090,7 +1090,7 @@ msgstr "No se pudo eliminar el servidor MCP"
 msgid "Could not delete routine"
 msgstr "No se pudo eliminar la rutina"
 
-#: src/pages/CompanyWorkspaces.tsx:87
+#: src/pages/CompanyWorkspaces.tsx:89
 msgid "Could not disconnect Company OS"
 msgstr ""
 
@@ -1127,7 +1127,11 @@ msgstr "No se pudo instalar el conector"
 msgid "Could not load approval rules"
 msgstr "No se pudieron cargar las reglas de aprobación"
 
-#: src/pages/CompanyWorkspaces.tsx:45
+#: src/pages/CompanyWorkspaces.tsx:360
+msgid "Could not load company connection"
+msgstr ""
+
+#: src/pages/CompanyWorkspaces.tsx:47
 msgid "Could not load Company OS connection"
 msgstr ""
 
@@ -1172,7 +1176,7 @@ msgstr "No se pudo cargar la configuración de voz"
 msgid "Could not load workforce"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:129
+#: src/pages/CompanyWorkspaces.tsx:128
 msgid "Could not load workspaces"
 msgstr ""
 
@@ -1189,7 +1193,7 @@ msgstr "No se pudo reproducir un clip de prueba"
 msgid "Could not reach sign-in. Reconnecting…"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:320
+#: src/pages/AccountSettingsOverlay.tsx:329
 #: src/pages/Auth.tsx:85
 #: src/pages/Auth.tsx:295
 msgid "Could not reach the server"
@@ -1325,7 +1329,7 @@ msgstr ""
 msgid "Couldn't load messaging settings"
 msgstr "No se pudo cargar la configuración de mensajería"
 
-#: src/pages/AccountSettingsOverlay.tsx:109
+#: src/pages/AccountSettingsOverlay.tsx:110
 msgid "Couldn't update avatars"
 msgstr "No se pudieron actualizar los avatares"
 
@@ -1340,12 +1344,12 @@ msgstr "No se pudo actualizar la configuración de mensajería"
 msgid "Create"
 msgstr "Crear"
 
-#: src/pages/CompanyWorkspaces.tsx:144
-#: src/pages/CompanyWorkspaces.tsx:147
+#: src/pages/CompanyWorkspaces.tsx:143
+#: src/pages/CompanyWorkspaces.tsx:146
 msgid "Create a company"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:208
+#: src/pages/CompanyWorkspaces.tsx:207
 msgid "Create a company or choose an existing business in Company OS, then approve access. Its context stays in this workspace."
 msgstr ""
 
@@ -1358,7 +1362,7 @@ msgstr "Crea una sección y mueve {0} a ella."
 msgid "Create account"
 msgstr "Crear cuenta"
 
-#: src/pages/CompanyWorkspaces.tsx:341
+#: src/pages/CompanyWorkspaces.tsx:348
 msgid "Create company"
 msgstr ""
 
@@ -1417,7 +1421,7 @@ msgstr "Cron"
 msgid "Cron expression"
 msgstr "Expresión cron"
 
-#: src/pages/AccountSettingsOverlay.tsx:334
+#: src/pages/AccountSettingsOverlay.tsx:343
 msgid "Current password"
 msgstr "Contraseña actual"
 
@@ -1430,7 +1434,7 @@ msgstr ""
 msgid "Customer support"
 msgstr "Atención al cliente"
 
-#: src/pages/AccountSettingsOverlay.tsx:409
+#: src/pages/AccountSettingsOverlay.tsx:418
 msgid "Dark"
 msgstr "Oscuro"
 
@@ -1524,14 +1528,14 @@ msgstr "Descripción"
 msgid "Dictate"
 msgstr "Dictar"
 
-#: src/pages/CompanyWorkspaces.tsx:91
+#: src/pages/CompanyWorkspaces.tsx:93
 #: src/pages/McpServersOverlay.tsx:493
 #: src/pages/MemorySettingsOverlay.tsx:207
 msgid "Disconnect"
 msgstr "Desconectar"
 
-#: src/pages/CompanyWorkspaces.tsx:60
-#: src/pages/CompanyWorkspaces.tsx:354
+#: src/pages/CompanyWorkspaces.tsx:62
+#: src/pages/CompanyWorkspaces.tsx:365
 msgid "Disconnected"
 msgstr ""
 
@@ -1939,9 +1943,9 @@ msgstr "Clave"
 msgid "Keys stay on the server. The app only learns whether a provider is configured."
 msgstr "Las claves permanecen en el servidor. La app solo sabe si un proveedor está configurado."
 
-#: src/pages/AccountSettingsOverlay.tsx:181
-#: src/pages/AccountSettingsOverlay.tsx:530
-#: src/pages/AccountSettingsOverlay.tsx:547
+#: src/pages/AccountSettingsOverlay.tsx:190
+#: src/pages/AccountSettingsOverlay.tsx:539
+#: src/pages/AccountSettingsOverlay.tsx:556
 msgid "Language"
 msgstr "Idioma"
 
@@ -1953,7 +1957,7 @@ msgstr "Salir"
 msgid "Leave blank to keep saved key"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:408
+#: src/pages/AccountSettingsOverlay.tsx:417
 msgid "Light"
 msgstr "Claro"
 
@@ -1977,6 +1981,10 @@ msgstr "Cargar mensajes anteriores"
 #: src/pages/ActivityList.tsx:60
 msgid "Loading activity…"
 msgstr "Cargando actividad…"
+
+#: src/pages/CompanyWorkspaces.tsx:358
+msgid "Loading connection…"
+msgstr ""
 
 #: src/pages/PluginsOverlay.tsx:317
 msgid "Loading integrations…"
@@ -2028,11 +2036,11 @@ msgstr "Bajo"
 msgid "macOS will not ask for extra permission if you let bots run on this Mac. They run as you."
 msgstr "MacOS no pedirá permisos extra si dejas que los bots se ejecuten en esta Mac: se ejecutan como tú."
 
-#: src/pages/CompanyWorkspaces.tsx:369
+#: src/pages/CompanyWorkspaces.tsx:380
 msgid "Manage connection"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:161
+#: src/pages/AccountSettingsOverlay.tsx:170
 msgid "Manage messaging settings"
 msgstr "Administrar configuración de mensajería"
 
@@ -2110,7 +2118,7 @@ msgstr "Mensaje…"
 msgid "Messaged {peer}"
 msgstr "Mensaje enviado a {peer}"
 
-#: src/pages/AccountSettingsOverlay.tsx:155
+#: src/pages/AccountSettingsOverlay.tsx:164
 #: src/pages/MessagingSettingsOverlay.tsx:92
 msgid "Messaging"
 msgstr "Mensajería"
@@ -2163,7 +2171,7 @@ msgstr "Opciones del modelo"
 msgid "Model providers"
 msgstr "Proveedores de modelos"
 
-#: src/pages/AccountSettingsOverlay.tsx:234
+#: src/pages/AccountSettingsOverlay.tsx:243
 msgid "Model spend uses your provider keys."
 msgstr "El gasto del modelo usa tus claves de proveedor."
 
@@ -2267,7 +2275,7 @@ msgstr ""
 msgid "New open-work item"
 msgstr "Nuevo elemento de trabajo abierto"
 
-#: src/pages/AccountSettingsOverlay.tsx:340
+#: src/pages/AccountSettingsOverlay.tsx:349
 #: src/pages/Auth.tsx:316
 msgid "New password"
 msgstr "Nueva contraseña"
@@ -2283,8 +2291,8 @@ msgstr "Nueva sección"
 msgid "New space"
 msgstr "Nuevo space"
 
-#: src/pages/CompanyWorkspaces.tsx:186
-#: src/pages/CompanyWorkspaces.tsx:319
+#: src/pages/CompanyWorkspaces.tsx:185
+#: src/pages/CompanyWorkspaces.tsx:326
 msgid "New workspace"
 msgstr ""
 
@@ -2316,8 +2324,8 @@ msgstr ""
 msgid "No chat apps linked yet."
 msgstr "Aún no hay apps de chat vinculadas."
 
-#: src/pages/CompanyWorkspaces.tsx:57
-#: src/pages/CompanyWorkspaces.tsx:350
+#: src/pages/CompanyWorkspaces.tsx:59
+#: src/pages/CompanyWorkspaces.tsx:361
 msgid "No company connected"
 msgstr ""
 
@@ -2491,7 +2499,7 @@ msgstr ""
 msgid "Optional"
 msgstr "Opcional"
 
-#: src/pages/AccountSettingsOverlay.tsx:270
+#: src/pages/AccountSettingsOverlay.tsx:279
 msgid "Optional controls most people never need"
 msgstr "Controles opcionales que la mayoría nunca necesita"
 
@@ -2507,7 +2515,7 @@ msgstr "O conecta una clave de API"
 msgid "Or paste an API key"
 msgstr "O pega una clave de API"
 
-#: src/pages/AccountSettingsOverlay.tsx:206
+#: src/pages/AccountSettingsOverlay.tsx:215
 msgid "Organic"
 msgstr "Orgánico"
 
@@ -2533,7 +2541,7 @@ msgstr "Incidente de PagerDuty"
 msgid "Park"
 msgstr "Aparcar"
 
-#: src/pages/AccountSettingsOverlay.tsx:330
+#: src/pages/AccountSettingsOverlay.tsx:339
 #: src/pages/Auth.tsx:187
 #: src/pages/Auth.tsx:196
 msgid "Password"
@@ -2543,12 +2551,12 @@ msgstr "Contraseña"
 msgid "Password recovery is not configured for this server"
 msgstr "La recuperación de contraseña no está configurada para este servidor"
 
-#: src/pages/AccountSettingsOverlay.tsx:365
+#: src/pages/AccountSettingsOverlay.tsx:374
 #: src/pages/Auth.tsx:306
 msgid "Password updated"
 msgstr "Contraseña actualizada"
 
-#: src/pages/AccountSettingsOverlay.tsx:299
+#: src/pages/AccountSettingsOverlay.tsx:308
 #: src/pages/Auth.tsx:282
 msgid "Passwords do not match"
 msgstr "Las contraseñas no coinciden"
@@ -2650,7 +2658,7 @@ msgstr ""
 msgid "Reconnect"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:75
+#: src/pages/CompanyWorkspaces.tsx:77
 msgid "Reconnect Company OS"
 msgstr ""
 
@@ -2841,7 +2849,7 @@ msgstr "Revocar"
 msgid "Right-click"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:206
+#: src/pages/AccountSettingsOverlay.tsx:215
 msgid "Robot"
 msgstr "Robot"
 
@@ -3027,7 +3035,7 @@ msgstr "Nombre del servidor"
 msgid "Server URL"
 msgstr "URL del servidor"
 
-#: src/pages/AccountSettingsOverlay.tsx:131
+#: src/pages/AccountSettingsOverlay.tsx:140
 #: src/pages/Shell.tsx:3198
 #: src/pages/Shell.tsx:3238
 #: src/pages/Shell.tsx:3566
@@ -3244,7 +3252,7 @@ msgstr "Enviado"
 msgid "Switch bot"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:281
+#: src/pages/CompanyWorkspaces.tsx:292
 msgid "Switch workspace"
 msgstr ""
 
@@ -3256,7 +3264,7 @@ msgstr "Cambiando…"
 msgid "Synced"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:407
+#: src/pages/AccountSettingsOverlay.tsx:416
 msgid "System"
 msgstr "Sistema"
 
@@ -3495,7 +3503,7 @@ msgstr "Actualizado"
 msgid "Updating…"
 msgstr "Actualizando…"
 
-#: src/pages/AccountSettingsOverlay.tsx:224
+#: src/pages/AccountSettingsOverlay.tsx:233
 #: src/pages/Shell.tsx:3283
 msgid "Usage"
 msgstr "Uso"
@@ -3629,13 +3637,12 @@ msgstr ""
 msgid "Working…"
 msgstr "Trabajando…"
 
-#: src/pages/CompanyWorkspaces.tsx:177
-#: src/pages/CompanyWorkspaces.tsx:285
-#: src/pages/CompanyWorkspaces.tsx:286
+#: src/pages/CompanyWorkspaces.tsx:176
+#: src/pages/CompanyWorkspaces.tsx:294
 msgid "Workspace"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:196
+#: src/pages/CompanyWorkspaces.tsx:195
 msgid "Workspace name"
 msgstr ""
 

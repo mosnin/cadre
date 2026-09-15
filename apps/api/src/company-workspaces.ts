@@ -24,7 +24,9 @@ export function mountCompanyWorkspaceRoutes(
       return c.json({ error: "Invalid origin" }, 403);
     if (!service) return c.json({ error: "Company OS connection is not configured" }, 503);
     try {
-      return c.json({ url: await service.start(auth.actor, auth.sessionId) });
+      return c.json({
+        url: await service.start(auth.actor, auth.sessionId, c.req.query("create") === "1"),
+      });
     } catch {
       return c.json({ error: "Could not start Company OS connection" }, 400);
     }

@@ -10,7 +10,11 @@ test("workspace menu creates and switches isolated conversation contexts", async
   const switcher = page.getByRole("button", { name: "Switch workspace", exact: true });
   await expect(switcher).toBeVisible();
   await switcher.click();
-  await expect(page.getByRole("button", { name: "Connect Company OS", exact: true })).toBeVisible();
+  await expect(
+    page
+      .locator('[data-slot="popover-content"]')
+      .getByRole("button", { name: "Connect Company OS", exact: true }),
+  ).toBeVisible();
   await captureScreenshot(page, testInfo, "workspace-menu");
   await page.getByRole("button", { name: "New workspace", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "New space" });
@@ -28,9 +32,14 @@ test("workspace menu creates and switches isolated conversation contexts", async
   expect(await page.evaluate(() => localStorage.getItem("rakazo:space-id"))).not.toBe(supportId);
   await expect(sidebar.getByRole("button", { name: /^Chief/ })).toHaveCount(1);
   await switcher.click();
-  await page.getByRole("button", { name: "Connect Company OS", exact: true }).click();
+  await page
+    .locator('[data-slot="popover-content"]')
+    .getByRole("button", { name: "Connect Company OS", exact: true })
+    .click();
   await expect(page.getByRole("dialog", { name: "Connect a company" })).toBeVisible();
-  await expect(page.getByText(/Choose your business and permissions in Company OS/)).toBeVisible();
+  await expect(
+    page.getByText(/Create a company or choose an existing business in Company OS/),
+  ).toBeVisible();
   await captureScreenshot(page, testInfo, "company-workspace-onboarding");
 });
 
@@ -69,3 +78,97 @@ test("agent workspace creation still requires user approval", async ({ page }) =
   await page.getByRole("button", { name: "Switch workspace", exact: true }).click();
   await expect(page.getByRole("button", { name: "Customer support", exact: true })).toBeVisible();
 });
+
+for (const phone of [false, true]) {
+  test(`production workspace controls and company identity ${phone ? "phone" : "desktop"}`, async ({
+    page,
+  }, testInfo) => {
+    if (phone) await page.setViewportSize({ width: 390, height: 844 });
+    await page.route("**/api/v1/company-workspaces", (route) =>
+      route.fulfill({ json: { available: true, connections: [] } }),
+    );
+    await signup(
+      page,
+      `company-identity-${phone}-${Date.now()}@rakazo.test`,
+      "password12",
+      "Company Owner",
+    );
+    await completeOnboarding(page);
+    if (phone) {
+      const back = page.getByRole("button", { name: "Open navigation", exact: true });
+      if (await back.isVisible()) await back.click();
+    }
+    const status = page.getByTestId("workspace-company-status");
+    await expect(status).toContainText("Company OS");
+    await expect(status).toContainText("No company connected");
+    await page.getByRole("button", { name: "Switch workspace", exact: true }).click();
+    const menu = page.locator('[data-slot="popover-content"]');
+    await expect(menu.getByRole("button", { name: "New workspace", exact: true })).toBeVisible();
+    await expect(
+      menu.getByRole("button", { name: "Connect Company OS", exact: true }),
+    ).toBeVisible();
+    await expect(menu.getByRole("button", { name: "Create company", exact: true })).toBeVisible();
+    await captureScreenshot(page, testInfo, "company-workspace-actions");
+    await menu.getByRole("button", { name: "Create company", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Create a company", exact: true })).toBeVisible();
+    await expect(page.getByLabel("Workspace name")).toBeVisible();
+    await captureScreenshot(page, testInfo, "create-company-onboarding");
+    await page.keyboard.press("Escape");
+    const me = await page.request.post("/rpc/me", { data: { json: {} } });
+    const { json: actor } = await me.json();
+    await page.route("**/api/v1/company-workspaces", (route) =>
+      route.fulfill({
+        json: {
+          available: true,
+          connections: [
+            {
+              spaceId: actor.spaceId,
+              companyName: "Example Company",
+              companySlug: "example",
+              connected: true,
+            },
+          ],
+        },
+      }),
+    );
+    await page.reload();
+    await expect(page.getByTestId("shell-root")).toHaveAttribute("data-ready", "true");
+    if (phone) {
+      const navigation = page.getByRole("button", { name: "Open navigation", exact: true });
+      if (await navigation.isVisible()) await navigation.click();
+    }
+    await expect(status).toBeVisible();
+    await expect(status).toContainText("Example Company");
+    await expect(status).toContainText("Connected");
+    await captureScreenshot(page, testInfo, "connected-company-identity");
+    const glyphs = await page
+      .getByTestId("bots-sidebar")
+      .locator("button svg.lucide")
+      .evaluateAll((nodes) =>
+        nodes
+          .filter((node) => node.getBoundingClientRect().width > 0)
+          .map((node) => ({
+            width: node.getBoundingClientRect().width,
+            height: node.getBoundingClientRect().height,
+            stroke: getComputedStyle(node).strokeWidth,
+          })),
+      );
+    expect(glyphs.length).toBeGreaterThan(0);
+    for (const glyph of glyphs) expect(glyph).toEqual({ width: 18, height: 18, stroke: "1.75px" });
+    if (phone) {
+      await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
+      await captureScreenshot(page, testInfo, "connected-company-dark");
+      await page.setViewportSize({ width: 390, height: 568 });
+      await expect(
+        status.getByRole("button", { name: "Manage connection", exact: true }),
+      ).toBeVisible();
+      await captureScreenshot(page, testInfo, "company-short-phone");
+      await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+      await expect(
+        page.getByRole("button", { name: "Open navigation", exact: true }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+      await expect(status).toBeVisible();
+    }
+  });
+}

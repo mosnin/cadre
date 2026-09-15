@@ -93,6 +93,7 @@ jobs:
       - name: Run Playwright tests
         id: playwright_tests
         env:
+          PLAYWRIGHT_PRODUCTION: "1"
           SANDBOX_TEST_PROVIDER: ${{ inputs.sandbox_provider }}
           E2B_API_KEY: ${{ inputs.sandbox_provider == 'e2b' && secrets.E2B_API_KEY || '' }}
           DAYTONA_API_KEY: ${{ inputs.sandbox_provider == 'daytona' && secrets.DAYTONA_API_KEY || '' }}
