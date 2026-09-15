@@ -1,6 +1,13 @@
 import { expect, type Page, test } from "@playwright/test";
 import type { Bot, Routine } from "@rakazo/contracts";
-import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import {
+  activeBotId,
+  captureScreenshot,
+  completeOnboarding,
+  openNavigation,
+  rpc,
+  signup,
+} from "./helpers";
 
 async function addScheduleTrigger(page: Page, freq: string) {
   await page.getByRole("button", { name: "Add trigger" }).click();
@@ -85,7 +92,8 @@ test("routine editing updates in place, preserves timezone, and deletion persist
   await page.getByRole("button", { name: /Tokyo check-in/ }).click();
   await page.locator("label:has-text('Name') input").fill("Weekday check-in");
   await page.locator("label:has-text('Instruction') textarea").fill("Send the revised update");
-  await page.getByLabel("How often").selectOption("Weekdays");
+  await page.getByLabel("How often").click();
+  await page.getByRole("option", { name: "Weekdays", exact: true }).click();
   await saveAndReturn(page, "routines/update");
 
   const updatedButton = page.getByRole("button", { name: /Weekday check-in/ });
@@ -248,6 +256,7 @@ test("switching bots while a routine save is pending does not reopen stale state
 
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await updateIntercepted;
+  await openNavigation(page);
   await page
     .locator("aside")
     .first()
@@ -288,9 +297,11 @@ test("switching bots while a routine save is pending does not reopen stale state
       response.request().postData()?.includes(firstBotId) === true,
   );
 
+  await openNavigation(page);
   const botList = page.locator("aside").first();
   await botList.getByRole("button", { name: /^Chief/ }).click();
   await staleListIntercepted;
+  await openNavigation(page);
   await botList.getByRole("button", { name: /^Second/ }).click();
   await page.waitForURL(new RegExp(`/app/${secondBot.id}$`));
   releaseStaleList();

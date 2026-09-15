@@ -15,8 +15,12 @@ export function activeBotId(page: Page) {
   return id;
 }
 
-export async function rpc<T>(page: Page, procedure: string, body: unknown): Promise<T> {
-  const response = await page.request.post(`/rpc/${procedure}`, { data: { json: body } });
+export async function rpc<T>(page: Page, procedure: string, body?: unknown): Promise<T> {
+  const spaceId = await page.evaluate(() => localStorage.getItem("rakazo:space-id"));
+  const response = await page.request.post(`/rpc/${procedure}`, {
+    data: { json: body },
+    headers: spaceId ? { "x-rakazo-space-id": spaceId } : {},
+  });
   const parsed = (await response.json()) as { json?: T; error?: { message?: string } };
   if (!response.ok() || parsed.error) {
     throw new Error(`${procedure} ${response.status()}: ${parsed.error?.message ?? "failed"}`);
@@ -26,10 +30,21 @@ export async function rpc<T>(page: Page, procedure: string, body: unknown): Prom
 
 export async function completeOnboarding(page: Page, testInfo?: TestInfo) {
   await page.waitForURL(/\/(onboarding|app)/, { timeout: 20_000 });
-  const heading = page.getByRole("heading", { name: /Connect a model|Create your first bot/ });
-  const chief = page.getByText("Chief").first();
+  const heading = page.getByRole("heading", {
+    name: /Connect your company|Connect a model|Create your first agent/,
+  });
+  const chief = page.getByTestId("bot-settings-trigger").filter({ hasText: "Chief" });
   await heading.or(chief).waitFor({ timeout: 20_000 });
   if ((await chief.isVisible().catch(() => false)) && page.url().includes("/app")) return;
+  if (
+    await page
+      .getByRole("heading", { name: "Connect your company" })
+      .isVisible()
+      .catch(() => false)
+  ) {
+    if (testInfo) await captureScreenshot(page, testInfo, "02-connect-company");
+    await page.getByRole("button", { name: "Continue without a company" }).click();
+  }
   if (
     await page
       .getByRole("heading", { name: "Connect a model" })
@@ -39,13 +54,13 @@ export async function completeOnboarding(page: Page, testInfo?: TestInfo) {
     if (testInfo) await captureScreenshot(page, testInfo, "02-connect-model");
     await page.getByRole("button", { name: "Skip for now" }).click();
     await page
-      .getByRole("heading", { name: "Create your first bot" })
+      .getByRole("heading", { name: "Create your first agent" })
       .or(chief)
       .waitFor({ timeout: 20_000 });
   }
   if (
     await page
-      .getByRole("heading", { name: "Create your first bot" })
+      .getByRole("heading", { name: "Create your first agent" })
       .isVisible()
       .catch(() => false)
   ) {
@@ -54,12 +69,12 @@ export async function completeOnboarding(page: Page, testInfo?: TestInfo) {
     const created = page.waitForResponse(
       (response) => response.url().includes("/rpc/bots/create") && response.ok(),
     );
-    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("button", { name: "Create agent", exact: true }).click();
     await created;
     await page.waitForURL(/\/app\//, { timeout: 20_000 });
   }
   await page.waitForURL(/\/app/);
-  await expect(page.getByText("Chief").first()).toBeVisible();
+  await expect(chief).toBeVisible();
   if (testInfo) await captureScreenshot(page, testInfo, "06-onboarding-complete");
 }
 
@@ -73,13 +88,18 @@ export async function signup(
   await page.goto("/sign-up");
   await expect(page.getByRole("heading", { name: "Create your Cadre" })).toBeVisible();
   if (testInfo) await captureScreenshot(page, testInfo, "01-sign-up");
-  await page.getByPlaceholder("Your name").fill(name);
-  await page.getByPlaceholder("Your email address").fill(email);
-  await page.getByPlaceholder("Password").fill(password);
+  await page.getByLabel("Name", { exact: true }).fill(name);
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Create account" }).click();
 }
 
 export async function captureScreenshot(page: Page, testInfo: TestInfo, name: string) {
+  for (const panel of await page
+    .locator('[data-slot="popover-content"][data-open][data-settled]')
+    .all()) {
+    await expect(panel).toHaveAttribute("data-settled", "true");
+  }
   const screenshotPath = testInfo.outputPath(`${name}.png`);
   await page.screenshot({
     animations: "disabled",
@@ -90,24 +110,40 @@ export async function captureScreenshot(page: Page, testInfo: TestInfo, name: st
   await testInfo.attach(name, { contentType: "image/png", path: screenshotPath });
 }
 
+export async function openNavigation(page: Page) {
+  if (!(await page.getByTestId("bots-sidebar").isVisible())) {
+    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+  }
+}
+
+export async function openUserMenu(page: Page) {
+  await openNavigation(page);
+  await page.getByTestId("user-menu-trigger").click();
+}
+
 export async function openNewBot(page: Page) {
+  await openNavigation(page);
   await page.getByTestId("create-menu-trigger").click();
   await page.getByTestId("create-new-bot").click();
 }
 
 export async function openNewGroup(page: Page) {
+  await openNavigation(page);
   await page.getByTestId("create-menu-trigger").click();
   await page.getByTestId("create-new-group").click();
 }
 
 export async function openNewSpace(page: Page) {
+  await openNavigation(page);
   await page.getByTestId("create-menu-trigger").click();
   await page.getByTestId("create-new-space").click();
 }
 
-/** Instant-create a bot from the + picker and wait for its chat (side panel closed). */
+/** Create an agent through the visible name-and-purpose form. */
 export async function createBotFromPicker(page: Page) {
   await openNewBot(page);
+  await page.getByLabel("Name", { exact: true }).fill("New Bot");
+  await page.getByRole("button", { name: "Create agent", exact: true }).click();
   await page.waitForURL(/\/app\/[^/]+$/);
   await expect(page.getByTestId("side-panel")).toHaveAttribute("data-panel", "closed");
 }

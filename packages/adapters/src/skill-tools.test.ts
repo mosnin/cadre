@@ -11,6 +11,7 @@ import {
 function makePrisma(rows: Array<Record<string, unknown>> = []) {
   const store = [...rows];
   return {
+    capabilityInstall: { findMany: vi.fn(async () => []) },
     agentSkill: {
       findMany: vi.fn(async ({ where }: { where?: Record<string, string> } = {}) =>
         store

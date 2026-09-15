@@ -10,22 +10,39 @@ import {
   selectedProviderOutsideSearchResults,
 } from "@rakazo/core";
 import { Button, Input, NativeSelect, NativeSelectOption, Textarea } from "@rakazo/ui-web";
+import { Disclosure } from "@rakazo/ui-web/components/ui/disclosure";
 import { Check } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChatGptDeviceCodeHelp } from "../components/chatgpt-device-code-help";
+import { authClient } from "../lib/auth";
 import { useAuthCapabilities } from "../lib/auth-capabilities";
 import { localizedProviderHint } from "../lib/localized-provider-hint";
 import type { ModelCatalogEntry } from "../lib/model-auth";
-import { rpc } from "../lib/rpc";
+import { rpc, selectSpace } from "../lib/rpc";
 import { useModelOAuthSignIn } from "../lib/use-model-oauth-signin";
+import { readSetupDraft, saveSetupDraft, setupDraftKey } from "../lib/workspace-setup-draft";
+import { companyWorkspaceRequest } from "./CompanyWorkspaces";
 
 export function OnboardingPage() {
   const { t } = useLingui();
   const navigate = useNavigate();
   const capabilities = useAuthCapabilities();
+  const userId = authClient.useSession().data?.user.id;
+  const draftKey = useRef<string | null>(null);
+  const createdWorkspaceId = useRef<string | undefined>(undefined);
   const fieldId = useId();
-  const [step, setStep] = useState<"loading" | "model" | "bot">("loading");
+  const [step, setStep] = useState<"loading" | "workspace" | "company" | "model" | "bot">(
+    "loading",
+  );
+  const newWorkspace = new URLSearchParams(window.location.search).has("new");
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceId, setWorkspaceId] = useState("");
+  const [company, setCompany] = useState<{ companyName: string; connected: boolean } | null>(null);
+  const [companyAvailable, setCompanyAvailable] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const nextAfterCompany = useRef<"model" | "bot">("bot");
   const [catalog, setCatalog] = useState<ModelCatalogEntry[]>([]);
   const [query, setQuery] = useState("");
   const [showAllProviders, setShowAllProviders] = useState(false);
@@ -61,9 +78,36 @@ export function OnboardingPage() {
   });
 
   useEffect(() => {
-    if (!capabilities) return;
-    void Promise.all([rpc.me(), rpc.models.list().catch(() => [])])
-      .then(([me, models]) => {
+    if (!capabilities || !userId) return;
+    let alive = true;
+    void Promise.all([
+      rpc.me(),
+      rpc.models.list().catch(() => []),
+      rpc.spaces.list(),
+      companyWorkspaceRequest().catch(() => null),
+    ])
+      .then(([me, models, workspaceList, companyStatus]) => {
+        if (!alive) return;
+        const key = setupDraftKey(userId, newWorkspace ? "new" : me.spaceId);
+        const draft = readSetupDraft(key);
+        draftKey.current = key;
+        if (draft) {
+          setName(draft.name);
+          setTitle(draft.title);
+          setDescription(draft.description);
+          if (newWorkspace) setWorkspaceName(draft.workspaceName);
+          createdWorkspaceId.current = draft.createdWorkspaceId;
+        }
+        setWorkspaceId(me.spaceId);
+        if (!newWorkspace)
+          setWorkspaceName(
+            workspaceList.spaces.find((space) => space.id === me.spaceId)?.name ?? "",
+          );
+        const linked = companyStatus?.connections.find(
+          (row: { spaceId: string }) => row.spaceId === me.spaceId,
+        );
+        setCompany(linked ?? null);
+        setCompanyAvailable(companyStatus?.available ?? null);
         setCatalog(models);
         setNeedsModel(me.needsModel);
         const preferred =
@@ -76,13 +120,41 @@ export function OnboardingPage() {
           setProvider(preferred.provider);
           setModelId(preferred.provider === OPENAI_COMPATIBLE_PROVIDER_ID ? "" : preferred.id);
         }
-        setStep(capabilities.hosted && !me.needsModel ? "bot" : "model");
+        nextAfterCompany.current = capabilities.hosted && !me.needsModel ? "bot" : "model";
+        setStep(
+          newWorkspace
+            ? "workspace"
+            : linked?.connected
+              ? nextAfterCompany.current
+              : draft?.step === "bot" && !me.needsModel
+                ? "bot"
+                : draft?.step === "model"
+                  ? nextAfterCompany.current
+                  : "company",
+        );
       })
-      .catch(() => setStep("bot"));
+      .catch(() => {
+        if (!alive) return;
+        setError(t`Could not load setup. Reload to try again.`);
+      });
     return () => {
+      alive = false;
       probeRequestIdRef.current += 1;
     };
-  }, [capabilities]);
+  }, [capabilities, userId, newWorkspace]);
+
+  useEffect(() => {
+    if (!draftKey.current || step === "loading") return;
+    saveSetupDraft(draftKey.current, {
+      step,
+      workspaceName,
+      name,
+      title,
+      description,
+      createdWorkspaceId: createdWorkspaceId.current,
+      savedAt: Date.now(),
+    });
+  }, [step, workspaceName, name, title, description]);
 
   const providers = useMemo(() => {
     const seen = new Map<string, ModelCatalogEntry>();
@@ -215,6 +287,9 @@ export function OnboardingPage() {
   }
 
   async function createBot() {
+    if (savingRef.current || !name.trim()) return;
+    savingRef.current = true;
+    setSaving(true);
     setError(null);
     try {
       const bot = await rpc.bots.create({
@@ -233,19 +308,212 @@ export function OnboardingPage() {
       if (started) {
         await rpc.onboarding.promptFocus({ botId: bot.id }).catch(() => undefined);
       }
+      if (draftKey.current) saveSetupDraft(draftKey.current, null);
       navigate(`/app/${bot.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not create your bot`);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+
+  async function createWorkspace(event: React.FormEvent) {
+    event.preventDefault();
+    if (savingRef.current || !workspaceName.trim()) return;
+    savingRef.current = true;
+    setSaving(true);
+    setError(null);
+    try {
+      const spaceId =
+        createdWorkspaceId.current ?? (await rpc.spaces.create({ name: workspaceName.trim() })).id;
+      createdWorkspaceId.current = spaceId;
+      if (draftKey.current)
+        saveSetupDraft(draftKey.current, {
+          step: "workspace",
+          workspaceName,
+          name,
+          title,
+          description,
+          createdWorkspaceId: spaceId,
+          savedAt: Date.now(),
+        });
+      if (!selectSpace(spaceId))
+        throw new Error(
+          t`Your browser could not select this workspace. Enable site storage and reopen it from Workspaces.`,
+        );
+      if (draftKey.current) saveSetupDraft(draftKey.current, null);
+      window.location.assign("/onboarding?setup=company");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t`Could not create workspace`);
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+
+  async function connectCompany(create: boolean) {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    setError(null);
+    try {
+      const result = await companyWorkspaceRequest(
+        create ? "/connect?create=1" : "/connect",
+        "POST",
+        workspaceId,
+      );
+      window.location.assign(result.url);
+    } catch {
+      setError(t`Could not connect Company OS. Try again or continue without a company.`);
+      savingRef.current = false;
+      setSaving(false);
     }
   }
 
   return (
-    <div className="min-h-full bg-background px-6 py-12">
-      <div className="mx-auto w-full max-w-[560px]">
-        {step === "loading" ? (
-          <p className="text-muted-foreground">
-            <Trans>Loading…</Trans>
+    <div className="min-h-full bg-background px-6 py-6 sm:py-10" data-testid="workspace-setup">
+      <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4">
+        <a href="/app" className="flex min-h-11 items-center gap-3 font-medium">
+          <img src="/brand/cadre-icon.svg" alt="" className="cadre-mark size-7" />
+          Cadre
+        </a>
+        <Button variant="ghost" onClick={() => navigate("/app?setup-paused=1")} disabled={saving}>
+          <Trans>Close setup</Trans>
+        </Button>
+      </header>
+      <div className="mx-auto w-full max-w-[560px] py-10 sm:py-16">
+        {step !== "loading" ? (
+          <nav
+            aria-label={t`Setup progress`}
+            className="mb-10 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground"
+          >
+            <span
+              aria-current={step === "workspace" ? "step" : undefined}
+              className={step === "workspace" ? "text-foreground" : ""}
+            >
+              <Trans>Workspace</Trans>
+            </span>
+            <span
+              aria-current={step === "company" ? "step" : undefined}
+              className={step === "company" ? "text-foreground" : ""}
+            >
+              <Trans>Company</Trans>
+            </span>
+            <span
+              aria-current={step === "model" || step === "bot" ? "step" : undefined}
+              className={step === "model" || step === "bot" ? "text-foreground" : ""}
+            >
+              <Trans>Agent</Trans>
+            </span>
+            <span>
+              <Trans>First task</Trans>
+            </span>
+          </nav>
+        ) : null}
+        {step !== "workspace" && step !== "loading" ? (
+          <p className="mb-3 truncate text-sm text-muted-foreground">
+            {workspaceName}
+            {company?.connected ? ` · ${company.companyName}` : ""}
           </p>
+        ) : null}
+        {step === "workspace" ? (
+          <form onSubmit={createWorkspace}>
+            <h1 className="text-[32px] font-medium tracking-tight">
+              <Trans>Create a workspace</Trans>
+            </h1>
+            <p className="mt-3 text-muted-foreground">
+              <Trans>Keep a business’s agents, conversations and context together.</Trans>
+            </p>
+            <label className="mt-8 block text-sm" htmlFor={`${fieldId}-workspace`}>
+              <Trans>Workspace name</Trans>
+            </label>
+            <Input
+              id={`${fieldId}-workspace`}
+              className="mt-2"
+              value={workspaceName}
+              onChange={(event) => setWorkspaceName(event.target.value)}
+              maxLength={60}
+              required
+              disabled={saving}
+              autoComplete="off"
+            />
+            {error ? (
+              <p role="alert" className="mt-3 text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
+            <Button className="mt-8" type="submit" disabled={saving || !workspaceName.trim()}>
+              {saving ? t`Creating…` : t`Continue`}
+            </Button>
+          </form>
+        ) : null}
+        {step === "company" ? (
+          <div>
+            <h1 className="text-[32px] font-medium tracking-tight">
+              <Trans>Connect your company</Trans>
+            </h1>
+            <p className="mt-3 text-muted-foreground">
+              <Trans>Give agents access to the business context you authorize in Company OS.</Trans>
+            </p>
+            <div className="mt-8 flex flex-col items-start gap-3">
+              <Button
+                disabled={!companyAvailable || saving}
+                onClick={() => void connectCompany(false)}
+              >
+                {saving ? t`Connecting…` : t`Connect Company OS`}
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={!companyAvailable || saving}
+                onClick={() => void connectCompany(true)}
+              >
+                <Trans>Create a company in Company OS</Trans>
+              </Button>
+            </div>
+            {companyAvailable === false ? (
+              <p className="mt-4 text-sm text-muted-foreground">
+                <Trans>
+                  Company OS is not configured on this deployment. You can connect it later in
+                  Settings.
+                </Trans>
+              </p>
+            ) : null}
+            {companyAvailable === null ? (
+              <p role="alert" className="mt-4 text-sm text-destructive">
+                <Trans>Could not load Company OS. Reload to try again, or connect later.</Trans>
+              </p>
+            ) : null}
+            {error ? (
+              <p role="alert" className="mt-3 text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
+            <Button
+              className="mt-8"
+              variant="ghost"
+              disabled={saving}
+              onClick={() => {
+                setError(null);
+                setStep(nextAfterCompany.current);
+              }}
+            >
+              <Trans>Continue without a company</Trans>
+            </Button>
+          </div>
+        ) : null}
+        {step === "loading" ? (
+          error ? (
+            <div role="alert">
+              <p className="text-destructive">{error}</p>
+              <Button className="mt-4" onClick={() => window.location.reload()}>
+                <Trans>Reload</Trans>
+              </Button>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">
+              <Trans>Loading…</Trans>
+            </p>
+          )
         ) : null}
         {step === "model" ? (
           <div>
@@ -362,14 +630,14 @@ export function OnboardingPage() {
                       className="mt-2"
                     />
                   </label>
-                  <details className="mt-2 text-[13px] leading-[1.5] text-muted-foreground">
-                    <summary className="w-fit cursor-pointer select-none">
-                      <Trans>Setup help</Trans>
-                    </summary>
+                  <Disclosure
+                    className="mt-2 text-[13px] leading-[1.5] text-muted-foreground"
+                    summary={<Trans>Setup help</Trans>}
+                  >
                     <p className="mt-1">
                       {t`Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed.`}
                     </p>
-                  </details>
+                  </Disclosure>
                   <div className="mt-3">
                     <Button
                       variant="outline"
@@ -517,10 +785,10 @@ export function OnboardingPage() {
             ) : null}
             {acceptsKey ? (
               isOpenAiCompatible ? (
-                <details className="mt-4 text-sm text-muted-foreground">
-                  <summary className="w-fit cursor-pointer select-none">
-                    <Trans>API key</Trans>
-                  </summary>
+                <Disclosure
+                  className="mt-4 text-sm text-muted-foreground"
+                  summary={<Trans>API key</Trans>}
+                >
                   <Input
                     aria-label={t`API key`}
                     value={apiKey}
@@ -530,7 +798,7 @@ export function OnboardingPage() {
                     autoComplete="new-password"
                     className="mt-2"
                   />
-                </details>
+                </Disclosure>
               ) : (
                 <label
                   htmlFor={`${fieldId}-api-key`}
@@ -583,7 +851,7 @@ export function OnboardingPage() {
         {step === "bot" ? (
           <div>
             <h1 className="text-[32px] font-medium text-foreground">
-              <Trans>Create your first bot</Trans>
+              <Trans>Create your first agent</Trans>
             </h1>
             <label htmlFor={`${fieldId}-name`} className="mt-8 block text-sm text-muted-foreground">
               <Trans>Name</Trans>
@@ -591,20 +859,7 @@ export function OnboardingPage() {
                 id={`${fieldId}-name`}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={t`Name this bot`}
-                className="mt-2"
-              />
-            </label>
-            <label
-              htmlFor={`${fieldId}-title`}
-              className="mt-4 block text-sm text-muted-foreground"
-            >
-              <Trans>Title</Trans>
-              <Input
-                id={`${fieldId}-title`}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t`Describe what this bot does`}
+                placeholder={t`Name this agent`}
                 className="mt-2"
               />
             </label>
@@ -612,20 +867,47 @@ export function OnboardingPage() {
               htmlFor={`${fieldId}-description`}
               className="mt-4 block text-sm text-muted-foreground"
             >
-              <Trans>Description</Trans>
+              <Trans>Purpose</Trans>
               <Textarea
                 id={`${fieldId}-description`}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder={t`What this bot is for`}
+                placeholder={t`What should this agent help with?`}
                 rows={4}
                 className="mt-2"
               />
             </label>
+            <Disclosure className="mt-6 text-sm" summary={t`Advanced settings`}>
+              <label
+                htmlFor={`${fieldId}-title`}
+                className="mt-4 block text-sm text-muted-foreground"
+              >
+                <Trans>Title</Trans>
+                <Input
+                  id={`${fieldId}-title`}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t`Role or specialty`}
+                  className="mt-2"
+                />
+              </label>
+            </Disclosure>
             {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
-            <Button className="mt-6" disabled={!name.trim()} onClick={() => void createBot()}>
-              <Trans>Continue</Trans>
-            </Button>
+            <div className="mt-8 flex items-center gap-3">
+              <Button
+                variant="ghost"
+                disabled={saving}
+                onClick={() => {
+                  setError(null);
+                  setStep("company");
+                }}
+              >
+                <Trans>Back</Trans>
+              </Button>
+              <Button disabled={saving || !name.trim()} onClick={() => void createBot()}>
+                {saving ? t`Creating…` : t`Create agent`}
+              </Button>
+            </div>
           </div>
         ) : null}
       </div>

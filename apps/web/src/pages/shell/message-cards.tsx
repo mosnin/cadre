@@ -4,7 +4,7 @@ import { abortableDelay } from "@rakazo/core";
 import { Button, Dialog, DialogClose, DialogContent, DialogTitle } from "@rakazo/ui-web";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { BuiCard, SuccessPop } from "../../components/ai/primitives";
+import { BuiCard, SuccessStatus } from "../../components/ai/primitives";
 import { type ArtifactTarget, decodeArtifactBase64 } from "../../lib/artifact-open";
 import { reserveAuthorizationWindow } from "../../lib/authorization-window";
 import { chartViewport } from "../../lib/chart-viewport";
@@ -187,7 +187,7 @@ export function AppConnectCard({
           </span>
         </span>
         {status === "connected" ? (
-          <SuccessPop label={t`Connected`} />
+          <SuccessStatus label={t`Connected`} />
         ) : (
           <Button
             variant="secondary"
@@ -374,7 +374,7 @@ export function McpApprovalCard({
       ) : null}
       {state === "connected" ? (
         <div className="mt-3">
-          <SuccessPop label={t`Connected. Its tools are available from your next message.`} />
+          <SuccessStatus label={t`Connected. Its tools are available from your next message.`} />
         </div>
       ) : null}
       {state === "dismissed" ? (

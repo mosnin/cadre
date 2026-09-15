@@ -415,6 +415,15 @@ export default function Account() {
         <Pressable
           accessibilityRole="button"
           disabled={pending}
+          onPress={() => router.push("/library")}
+          style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.settingsTitle}>{t("Workspace library")}</Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          disabled={pending}
           onPress={() => router.push("/integrations")}
           style={({ pressed }) => [styles.settingsButton, pressed && styles.pressed]}
         >

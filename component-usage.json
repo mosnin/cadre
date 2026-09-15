@@ -1,0 +1,635 @@
+{
+  "version": 1,
+  "status": "in_progress_not_accepted",
+  "entrypoints": ["apps/web/src/main.tsx"],
+  "build_receipt": "apps/web/dist/component-build-receipt.json",
+  "inventory": [
+    {
+      "id": "sidebar-3",
+      "surface": "Workspace navigator",
+      "role": "navigation",
+      "selector": "[data-testid=bots-sidebar]",
+      "required_catalog_id": "app-sidebar-3",
+      "usage": "sidebar-3"
+    },
+    {
+      "id": "input",
+      "surface": "Setup and settings",
+      "role": "text input",
+      "selector": "[data-slot=input]",
+      "required_catalog_id": "app-input",
+      "usage": "input"
+    },
+    {
+      "id": "switch",
+      "surface": "Settings",
+      "role": "switch",
+      "selector": "[role=switch]",
+      "required_catalog_id": "app-switch",
+      "usage": "switch"
+    },
+    {
+      "id": "checkbox",
+      "surface": "Scratchpad",
+      "role": "checkbox",
+      "selector": "input[type=checkbox]",
+      "required_catalog_id": "app-checkbox",
+      "usage": "checkbox"
+    },
+    {
+      "id": "tabs",
+      "surface": "Workspace navigation and integrations",
+      "role": "tabs",
+      "selector": "[role=tablist]",
+      "required_catalog_id": "app-tabs",
+      "usage": "tabs"
+    },
+    {
+      "id": "popover",
+      "surface": "Workspace switcher",
+      "role": "popover",
+      "selector": "[data-slot=popover-content]",
+      "required_catalog_id": "app-popover",
+      "usage": "popover"
+    },
+    {
+      "id": "center-morph-modal",
+      "surface": "Company context and connection",
+      "role": "dialog",
+      "selector": "[role=dialog]",
+      "required_catalog_id": "app-center-morph-modal",
+      "usage": "center-morph-modal"
+    },
+    {
+      "id": "command-palette",
+      "surface": "Agent search",
+      "role": "command palette",
+      "selector": "[data-testid=command-palette]",
+      "required_catalog_id": "app-command-palette",
+      "usage": "command-palette"
+    },
+    {
+      "id": "select",
+      "surface": "Company connection",
+      "role": "select",
+      "selector": "[role=listbox]",
+      "required_catalog_id": "app-select",
+      "usage": "select"
+    },
+    {
+      "id": "message",
+      "surface": "Conversation",
+      "role": "message row",
+      "selector": "[data-slot=message]",
+      "required_catalog_id": "ai-message",
+      "usage": "message"
+    },
+    {
+      "id": "message-bubble",
+      "surface": "Conversation",
+      "role": "message body",
+      "selector": "[data-slot=message-bubble]",
+      "required_catalog_id": "ai-message-bubble",
+      "usage": "message-bubble"
+    },
+    {
+      "id": "shared-select",
+      "surface": "Shared settings selectors",
+      "role": "shared-select",
+      "selector": "[role=combobox]",
+      "required_catalog_id": "app-select",
+      "usage": "select"
+    },
+    {
+      "id": "shared-popovers",
+      "surface": "Creation and account menus",
+      "role": "shared-popovers",
+      "selector": "[data-slot=popover-content]",
+      "required_catalog_id": "app-popover",
+      "usage": "popover"
+    },
+    {
+      "id": "shared-dialogs",
+      "surface": "Settings overlays and confirmations",
+      "role": "shared-dialogs",
+      "selector": "[data-slot=dialog-content]",
+      "required_catalog_id": "app-center-morph-modal",
+      "usage": "center-morph-modal"
+    },
+    {
+      "id": "composer",
+      "surface": "Conversation composer",
+      "role": "composer",
+      "selector": "[data-testid=composer-bar]",
+      "required_catalog_id": "ai-prompt-input",
+      "usage": "prompt-input"
+    },
+    {
+      "id": "approvals",
+      "surface": "Tool authorization",
+      "role": "approvals",
+      "selector": "[data-testid=approval-actions]",
+      "required_catalog_id": "ai-tool-approval",
+      "usage": "tool-approval"
+    },
+    {
+      "id": "loading",
+      "surface": "Loading feedback",
+      "role": "loading",
+      "selector": "[role=status]",
+      "required_catalog_id": "global-loader",
+      "usage": "loader"
+    },
+    {
+      "id": "combobox",
+      "surface": "Model selection",
+      "role": "searchable select",
+      "selector": "[data-combobox-trigger]",
+      "required_catalog_id": "app-combobox",
+      "usage": "combobox"
+    },
+    {
+      "id": "tooltip",
+      "surface": "Attachment actions",
+      "role": "tooltip",
+      "selector": "[role=tooltip]",
+      "required_catalog_id": "app-tooltip",
+      "usage": "tooltip"
+    },
+    {
+      "id": "disclosures",
+      "surface": "Advanced settings",
+      "role": "disclosure",
+      "selector": "[data-state] [aria-expanded]",
+      "required_catalog_id": "app-bouncy-accordion",
+      "usage": "bouncy-accordion"
+    },
+    {
+      "id": "table",
+      "surface": "Administration",
+      "role": "data table",
+      "selector": "table",
+      "required_catalog_id": "app-table",
+      "usage": "table"
+    },
+    {
+      "id": "uploads",
+      "surface": "Composer attachments",
+      "role": "attachment upload",
+      "selector": "[data-slot=attachment-upload]",
+      "required_catalog_id": "app-attachment-upload",
+      "usage": "attachment-upload"
+    },
+    {
+      "id": "authentication",
+      "surface": "Sign up",
+      "role": "authentication form",
+      "selector": "[data-slot=signup-form]",
+      "required_catalog_id": "app-signup-form",
+      "usage": "signup-form"
+    },
+    {
+      "id": "login-3",
+      "surface": "Authentication",
+      "role": "authentication layout",
+      "selector": "[data-slot=login-surface]",
+      "required_catalog_id": "website-login-3",
+      "usage": "login-3"
+    },
+    {
+      "id": "transcript-scroll",
+      "surface": "Conversation",
+      "role": "message scrolling",
+      "selector": "[data-slot=message-scroller]",
+      "required_catalog_id": "ai-message-scroller",
+      "usage": "message-scroller"
+    },
+    {
+      "id": "code-block",
+      "surface": "Conversation",
+      "role": "code blocks",
+      "selector": "[data-slot=code-block]",
+      "required_catalog_id": "ai-code-block",
+      "usage": "code-block"
+    }
+  ],
+  "components": [
+    {
+      "id": "sidebar-3",
+      "catalog_id": "app-sidebar-3",
+      "upstream_registry": "node_modules/.cache/component-os/sidebar-3.json",
+      "consumer": "apps/web/src/pages/Shell.tsx",
+      "selector": "[data-testid=bots-sidebar]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/app-sidebar.tsx",
+          "upstream_path": "registry/blocks/sidebar/sidebar-3/source/components/app-sidebar.tsx",
+          "sha256": "5bb933e4ffa0230c439e5ad62e5785ba3f0f169f2239bc29c065279816acb4c8",
+          "adaptation_reason": "Preserve directory implementation; use product tokens and real data, native input contracts, accessible names and keyboard focus, touch targets and reduced motion. See design review record for component-specific changes."
+        }
+      ]
+    },
+    {
+      "id": "input",
+      "catalog_id": "app-input",
+      "upstream_registry": "node_modules/.cache/component-os/input.json",
+      "consumer": "packages/ui-web/src/components/ui/input.tsx",
+      "selector": "[data-slot=input]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/input.tsx",
+          "upstream_path": "components/motion/input.tsx",
+          "sha256": "46779942963e8c767e420701c81ad1795b36302754e52b26662e3f9f6f4e3c11",
+          "adaptation_reason": "Preserve directory implementation; use product tokens and real data, native input contracts, accessible names and keyboard focus, touch targets and reduced motion. See design review record for component-specific changes."
+        }
+      ]
+    },
+    {
+      "id": "switch",
+      "catalog_id": "app-switch",
+      "upstream_registry": "node_modules/.cache/component-os/switch.json",
+      "consumer": "packages/ui-web/src/components/ui/switch.tsx",
+      "selector": "[role=switch]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/switch.tsx",
+          "upstream_path": "components/motion/switch.tsx",
+          "sha256": "ec3b899ecf0342c418e7da3d202a3e6ed3ec2c28ed339ef772566a0c9ceb209f",
+          "adaptation_reason": "Preserve directory implementation; use product tokens and real data, native input contracts, accessible names and keyboard focus, touch targets and reduced motion. See design review record for component-specific changes."
+        }
+      ]
+    },
+    {
+      "id": "checkbox",
+      "catalog_id": "app-checkbox",
+      "upstream_registry": "node_modules/.cache/component-os/checkbox.json",
+      "consumer": "packages/ui-web/src/components/ui/checkbox.tsx",
+      "selector": "input[type=checkbox]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/checkbox.tsx",
+          "upstream_path": "components/motion/checkbox.tsx",
+          "sha256": "f843590a7d1ee36e6a4a5bc296172fc13f4619b63c95f9c3668f236d33e02ecd",
+          "adaptation_reason": "Preserve directory implementation; use product tokens and real data, native input contracts, accessible names and keyboard focus, touch targets and reduced motion. See design review record for component-specific changes."
+        }
+      ]
+    },
+    {
+      "id": "tabs",
+      "catalog_id": "app-tabs",
+      "upstream_registry": "node_modules/.cache/component-os/tabs.json",
+      "consumer": "apps/web/src/pages/Shell.tsx",
+      "selector": "[role=tablist]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/tabs.tsx",
+          "upstream_path": "components/motion/tabs.tsx",
+          "sha256": "0ebaa5dcd0a266a4d04df0115cb53984f61793d7498be02242e83e28e650e905",
+          "adaptation_reason": "Preserve directory implementation; use product tokens and real data, native input contracts, accessible names and keyboard focus, touch targets and reduced motion. See design review record for component-specific changes."
+        }
+      ]
+    },
+    {
+      "id": "popover",
+      "catalog_id": "app-popover",
+      "upstream_registry": "node_modules/.cache/component-os/popover.json",
+      "consumer": "apps/web/src/pages/CompanyWorkspaces.tsx",
+      "selector": "[data-slot=popover-content]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/popover.tsx",
+          "upstream_path": "components/motion/popover.tsx",
+          "sha256": "8f3c3c2514bcd09eba48645a8b7320f573e517330fb8d558d81186abd9caaeec",
+          "adaptation_reason": "Preserve directory implementation; use product tokens and real data, native input contracts, accessible names and keyboard focus, touch targets and reduced motion. See design review record for component-specific changes."
+        }
+      ]
+    },
+    {
+      "id": "center-morph-modal",
+      "catalog_id": "app-center-morph-modal",
+      "upstream_registry": "node_modules/.cache/component-os/center-morph-modal.json",
+      "consumer": "apps/web/src/pages/CompanyWorkspaces.tsx",
+      "selector": "[role=dialog]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/center-morph-modal.tsx",
+          "upstream_path": "components/motion/center-morph-modal.tsx",
+          "sha256": "77b1bea1267ad6732ba82af4eb4ce297e313b1abdbd485505c9af84f3a585a3d",
+          "adaptation_reason": "Preserve directory implementation; use product tokens and real data, native input contracts, accessible names and keyboard focus, touch targets and reduced motion. See design review record for component-specific changes."
+        }
+      ]
+    },
+    {
+      "id": "command-palette",
+      "catalog_id": "app-command-palette",
+      "upstream_registry": "node_modules/.cache/component-os/command-palette.json",
+      "consumer": "apps/web/src/pages/shell/command-palette.tsx",
+      "selector": "[data-testid=command-palette]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/command-palette.tsx",
+          "upstream_path": "components/motion/command-palette.tsx",
+          "sha256": "9a831e822c42210ba9fc1377e3ec81091861e9a44491aeb29514f79fda9e8534",
+          "adaptation_reason": "Preserve directory implementation; use product tokens and real data, native input contracts, accessible names and keyboard focus, touch targets and reduced motion. See design review record for component-specific changes."
+        }
+      ]
+    },
+    {
+      "id": "select",
+      "catalog_id": "app-select",
+      "upstream_registry": "node_modules/.cache/component-os/select.json",
+      "consumer": "apps/web/src/pages/CompanyWorkspaces.tsx",
+      "selector": "[role=listbox]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/select.tsx",
+          "upstream_path": "components/motion/select.tsx",
+          "sha256": "d94ba943c46d730fcee7a0c71684e26969ee6fb1f104148713fe7f023389780f",
+          "adaptation_reason": "Preserve directory implementation; use product tokens and real data, native input contracts, accessible names and keyboard focus, touch targets and reduced motion. See design review record for component-specific changes."
+        }
+      ]
+    },
+    {
+      "id": "message",
+      "catalog_id": "ai-message",
+      "upstream_registry": "node_modules/.cache/component-os/message.json",
+      "consumer": "apps/web/src/pages/Shell.tsx",
+      "selector": "[data-slot=message]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/message.tsx",
+          "upstream_path": "components/agents/message.tsx",
+          "sha256": "185d7de75533319824dfc53e9f1503ba76972a0d4632a411b07046809dc78084",
+          "adaptation_reason": "Preserve directory implementation; use product tokens and real data, native input contracts, accessible names and keyboard focus, touch targets and reduced motion. See design review record for component-specific changes."
+        }
+      ]
+    },
+    {
+      "id": "message-bubble",
+      "catalog_id": "ai-message-bubble",
+      "upstream_registry": "node_modules/.cache/component-os/message-bubble.json",
+      "consumer": "apps/web/src/pages/Shell.tsx",
+      "selector": "[data-slot=message-bubble]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/message-bubble.tsx",
+          "upstream_path": "components/agents/message-bubble.tsx",
+          "sha256": "df72a062137be24c469fbce9c1803ad0e3fb43705526b5f4e8f15f83620e57bc",
+          "adaptation_reason": "Preserve directory implementation; use product tokens and real data, native input contracts, accessible names and keyboard focus, touch targets and reduced motion. See design review record for component-specific changes."
+        }
+      ]
+    },
+    {
+      "id": "prompt-input",
+      "catalog_id": "ai-prompt-input",
+      "upstream_registry": "node_modules/.cache/component-os/prompt-input.json",
+      "consumer": "apps/web/src/pages/Shell.tsx",
+      "selector": "[data-testid=composer-bar]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/prompt-input.tsx",
+          "upstream_path": "components/agents/prompt-input.tsx",
+          "sha256": "47025d7ac46371c95be8dcaefee2a32770812d4a36450594086469398e5afbb3",
+          "adaptation_reason": "Preserve upstream implementation with product data and semantic tokens. Retain native composer capabilities through slots; approval actions map only to supplied domain actions; loading never invents completion percentage."
+        }
+      ]
+    },
+    {
+      "id": "tool-approval",
+      "catalog_id": "ai-tool-approval",
+      "upstream_registry": "node_modules/.cache/component-os/tool-approval.json",
+      "consumer": "apps/web/src/components/AskCard.tsx",
+      "selector": "[data-testid=approval-actions]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/tool-approval.tsx",
+          "upstream_path": "components/agents/tool-approval.tsx",
+          "sha256": "19fc61d78afaba5a123110333b281b0e55f1d171f7a43750584cb808e6548721",
+          "adaptation_reason": "Preserve upstream implementation with product data and semantic tokens. Retain native composer capabilities through slots; approval actions map only to supplied domain actions; loading never invents completion percentage."
+        }
+      ]
+    },
+    {
+      "id": "loader",
+      "catalog_id": "global-loader",
+      "upstream_registry": "node_modules/.cache/component-os/loader.json",
+      "consumer": "apps/web/src/components/ai/primitives.tsx",
+      "selector": "[role=status]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/loader.tsx",
+          "upstream_path": "components/motion/loader.tsx",
+          "sha256": "24c4166424f13b7decc39d47441be901042d652a666eda2738ace1879afd9dd1",
+          "adaptation_reason": "Preserve upstream implementation with product data and semantic tokens. Retain native composer capabilities through slots; approval actions map only to supplied domain actions; loading never invents completion percentage."
+        }
+      ]
+    },
+    {
+      "id": "combobox",
+      "catalog_id": "app-combobox",
+      "upstream_registry": "node_modules/.cache/component-os/combobox.json",
+      "consumer": "apps/web/src/pages/ModelSettingsOverlay.tsx",
+      "selector": "[data-combobox-trigger]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/combobox.tsx",
+          "upstream_path": "components/motion/combobox.tsx",
+          "sha256": "849497605383e6f8fd084be01f5274f419579586937e411322571a876b7c91cc",
+          "adaptation_reason": "Preserve the directory implementation and real product interactions. Apply shared tokens, round controls, meaningful motion only, accessible labels and keyboard behavior. Remove simulated progress and decorative marks. The transcript uses the existing pagination and scroll-follow controller; the source supplies viewport composition. See connected-workspace-design.md for scope and remaining review."
+        },
+        {
+          "path": "packages/ui-web/src/directory/combobox/content.tsx",
+          "upstream_path": "components/motion/combobox/content.tsx",
+          "sha256": "a278a1526b3017764bde512fb585ffbe79ff0154f979daa114310e9e95e87d21",
+          "adaptation_reason": "Retain actual combobox state, list navigation and trigger implementations; use semantic tokens and accessible model labels."
+        },
+        {
+          "path": "packages/ui-web/src/directory/combobox/context.tsx",
+          "upstream_path": "components/motion/combobox/context.tsx",
+          "sha256": "01f4bff9317f6a290c930e34783f89ade932cf1b988f7815f8583626fe932fe7",
+          "adaptation_reason": "Retain actual combobox state, list navigation and trigger implementations; use semantic tokens and accessible model labels."
+        },
+        {
+          "path": "packages/ui-web/src/directory/combobox/list.tsx",
+          "upstream_path": "components/motion/combobox/list.tsx",
+          "sha256": "744e0d7be3a170d6d27f6b4492516587279ca46f4c17d2cef68b921170dc5ef5",
+          "adaptation_reason": "Retain actual combobox state, list navigation and trigger implementations; use semantic tokens and accessible model labels."
+        },
+        {
+          "path": "packages/ui-web/src/directory/combobox/trigger.tsx",
+          "upstream_path": "components/motion/combobox/trigger.tsx",
+          "sha256": "a3be8f6c68c29d0d7d2dedd74aad00c4f26b4f580ec7f334c69ef700ee3a7019",
+          "adaptation_reason": "Retain actual combobox state, list navigation and trigger implementations; use semantic tokens and accessible model labels."
+        },
+        {
+          "path": "packages/ui-web/src/directory/combobox/use-active-option.ts",
+          "upstream_path": "components/motion/combobox/use-active-option.ts",
+          "sha256": "982fb3746b7301a4fc0f0660704bd2ae99d003ae7229a8975d4df0959c8aece4",
+          "adaptation_reason": "Retain actual combobox state, list navigation and trigger implementations; use semantic tokens and accessible model labels."
+        }
+      ]
+    },
+    {
+      "id": "tooltip",
+      "catalog_id": "app-tooltip",
+      "upstream_registry": "node_modules/.cache/component-os/tooltip.json",
+      "consumer": "packages/ui-web/src/directory/attachment-upload.tsx",
+      "selector": "[role=tooltip]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/tooltip.tsx",
+          "upstream_path": "components/motion/tooltip.tsx",
+          "sha256": "2c1161a2e33a786354b438bf74c7a30638aa80eb72ff0bbb94c944388742f0c6",
+          "adaptation_reason": "Preserve the directory implementation and real product interactions. Apply shared tokens, round controls, meaningful motion only, accessible labels and keyboard behavior. Remove simulated progress and decorative marks. The transcript uses the existing pagination and scroll-follow controller; the source supplies viewport composition. See connected-workspace-design.md for scope and remaining review."
+        }
+      ]
+    },
+    {
+      "id": "bouncy-accordion",
+      "catalog_id": "app-bouncy-accordion",
+      "upstream_registry": "node_modules/.cache/component-os/bouncy-accordion.json",
+      "consumer": "packages/ui-web/src/components/ui/disclosure.tsx",
+      "selector": "[data-state] [aria-expanded]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/bouncy-accordion.tsx",
+          "upstream_path": "components/motion/bouncy-accordion.tsx",
+          "sha256": "698f78c696de13820b7cc88de26112a9b96ee761d1da0167bd38890df9cad0fb",
+          "adaptation_reason": "Preserve the directory implementation and real product interactions. Apply shared tokens, round controls, meaningful motion only, accessible labels and keyboard behavior. Remove simulated progress and decorative marks. The transcript uses the existing pagination and scroll-follow controller; the source supplies viewport composition. See connected-workspace-design.md for scope and remaining review."
+        }
+      ]
+    },
+    {
+      "id": "table",
+      "catalog_id": "app-table",
+      "upstream_registry": "node_modules/.cache/component-os/table.json",
+      "consumer": "apps/web/src/pages/Admin.tsx",
+      "selector": "table",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/table/index.tsx",
+          "upstream_path": "components/motion/table/index.tsx",
+          "sha256": "c736da131344c14bf082344e01adf804ac9e27d2f48c151a45c3e248f507d27e",
+          "adaptation_reason": "Preserve the directory implementation and real product interactions. Apply shared tokens, round controls, meaningful motion only, accessible labels and keyboard behavior. Remove simulated progress and decorative marks. The transcript uses the existing pagination and scroll-follow controller; the source supplies viewport composition. See connected-workspace-design.md for scope and remaining review."
+        }
+      ]
+    },
+    {
+      "id": "attachment-upload",
+      "catalog_id": "app-attachment-upload",
+      "upstream_registry": "node_modules/.cache/component-os/attachment-upload.json",
+      "consumer": "apps/web/src/pages/Shell.tsx",
+      "selector": "[data-slot=attachment-upload]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/attachment-upload.tsx",
+          "upstream_path": "components/motion/attachment-upload.tsx",
+          "sha256": "9c38bfa6d54f6f5369dec6ed50715efa25958ce8e6f64dae24b4a7b18124b945",
+          "adaptation_reason": "Preserve the directory implementation and real product interactions. Apply shared tokens, round controls, meaningful motion only, accessible labels and keyboard behavior. Remove simulated progress and decorative marks. The transcript uses the existing pagination and scroll-follow controller; the source supplies viewport composition. See connected-workspace-design.md for scope and remaining review."
+        }
+      ]
+    },
+    {
+      "id": "signup-form",
+      "catalog_id": "app-signup-form",
+      "upstream_registry": "node_modules/.cache/component-os/signup-form.json",
+      "consumer": "apps/web/src/pages/Auth.tsx",
+      "selector": "[data-slot=signup-form]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/signup-form.tsx",
+          "upstream_path": "components/motion/signup-form.tsx",
+          "sha256": "155659dad396bdff8a0bff95e0eb7275b6b661ac9837d78527c5f4af5e8c5097",
+          "adaptation_reason": "Preserve the directory implementation and real product interactions. Apply shared tokens, round controls, meaningful motion only, accessible labels and keyboard behavior. Remove simulated progress and decorative marks. The transcript uses the existing pagination and scroll-follow controller; the source supplies viewport composition. See connected-workspace-design.md for scope and remaining review."
+        }
+      ]
+    },
+    {
+      "id": "login-3",
+      "catalog_id": "website-login-3",
+      "upstream_registry": "node_modules/.cache/component-os/login-3.json",
+      "consumer": "apps/web/src/pages/Auth.tsx",
+      "selector": "[data-slot=login-surface]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/login-surface.tsx",
+          "upstream_path": "registry/blocks/login/login-3/source/app/login/page.tsx",
+          "sha256": "1a43ea711308b4cdcb2d72f2f8b4be93aed94baf9be176582ed98676fe579f5b",
+          "adaptation_reason": "Preserve the directory implementation and real product interactions. Apply shared tokens, round controls, meaningful motion only, accessible labels and keyboard behavior. Remove simulated progress and decorative marks. The transcript uses the existing pagination and scroll-follow controller; the source supplies viewport composition. See connected-workspace-design.md for scope and remaining review."
+        }
+      ]
+    },
+    {
+      "id": "message-scroller",
+      "catalog_id": "ai-message-scroller",
+      "upstream_registry": "node_modules/.cache/component-os/message-scroller.json",
+      "consumer": "apps/web/src/pages/Shell.tsx",
+      "selector": "[data-slot=message-scroller]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/message-scroller.tsx",
+          "upstream_path": "components/agents/message-scroller.tsx",
+          "sha256": "e8834a1ee0c6a23542274958d2e36557b2e613c65f586c3ebb615359d9691270",
+          "adaptation_reason": "Preserve the directory implementation and real product interactions. Apply shared tokens, round controls, meaningful motion only, accessible labels and keyboard behavior. Remove simulated progress and decorative marks. The transcript uses the existing pagination and scroll-follow controller; the source supplies viewport composition. See connected-workspace-design.md for scope and remaining review."
+        }
+      ]
+    },
+    {
+      "id": "code-block",
+      "catalog_id": "ai-code-block",
+      "upstream_registry": "node_modules/.cache/component-os/code-block.json",
+      "consumer": "packages/chat-ui/src/markdown.web.tsx",
+      "selector": "[data-slot=code-block]",
+      "files": [
+        {
+          "path": "packages/ui-web/src/directory/code-block.tsx",
+          "upstream_path": "components/agents/code-block.tsx",
+          "sha256": "774a71e8f150a3235d6aea8b33fd610ed1332975466290b2f0d8f8f40578e05d",
+          "adaptation_reason": "Preserve the directory implementation and real product interactions. Apply shared tokens, round controls, meaningful motion only, accessible labels and keyboard behavior. Remove simulated progress and decorative marks. The transcript uses the existing pagination and scroll-follow controller; the source supplies viewport composition. See connected-workspace-design.md for scope and remaining review."
+        }
+      ]
+    }
+  ],
+  "unmatched_roles": [
+    {
+      "role": "plain button, field label, separator and keyboard key",
+      "reason": "No matching directory entry. Existing native semantics use the shared tokens and rounded control sizing."
+    },
+    {
+      "role": "multiline text editor",
+      "reason": "The directory input is a single-line input. Retain accessible textarea semantics and practical editing height."
+    },
+    {
+      "role": "nested context and dropdown menus",
+      "reason": "The directory bloom-menu is a radial action mechanism, not a nested context menu. Preserve Base UI keyboard navigation and real product actions."
+    },
+    {
+      "role": "native video and computer viewer",
+      "reason": "No matching directory viewer. Preserve the existing real computer transport and native media surface."
+    },
+    {
+      "role": "native mobile navigation, alerts, file chooser and controls",
+      "reason": "Web directory DOM sources do not implement native React Native controls. Native controls share contracts, validation and tokens, as required by the product."
+    },
+    {
+      "role": "three-choice appearance preference",
+      "reason": "Light, Dark and System require three states. Preserve the complete preference through source-backed selection; a two-state theme-toggle would lose System."
+    }
+  ],
+  "excluded_roles": [
+    {
+      "role": "Tool execution traces",
+      "evidence": "apps/web/e2e/tool-activity-disclosure.spec.ts verifies the existing product hides tool activity; do not introduce a new trace surface."
+    }
+  ],
+  "source_audit_notes": [
+    {
+      "component": "combobox",
+      "observation": "The exact upstream primary entry is a re-export barrel and Rollup emits zero runtime bytes for it. The graph reaches its imported context, content, list and trigger implementations, which emit real code and are browser exercised. The unmodified checker rejects the zero-byte barrel; retain this mechanical limitation rather than fabricating runtime work."
+    },
+    {
+      "component": "login-3",
+      "observation": "The imported two-column 4/6 login composition is preserved. The user explicitly requires no decorative design, so its sample Next.js sky image is replaced by product context and the real auth form. The tiny upstream page falls below the checker text similarity threshold after the required framework and no-art adaptation. No imitation illustration is installed."
+    }
+  ]
+}

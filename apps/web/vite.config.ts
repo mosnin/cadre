@@ -11,6 +11,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv, type PreviewServer, type ViteDevServer } from "vite";
 import { resolveScreenProxySecret } from "../../packages/core/src/secrets-guard.ts";
+import { componentBuildReceipt } from "./component-build-receipt";
 import {
   resolveNovncTarget,
   safeProxyHeaders,
@@ -179,6 +180,7 @@ export default defineConfig(({ mode }) => {
     process.env.RAKAZO_DESKTOP_STACK_TOKEN ?? rootEnv.RAKAZO_DESKTOP_STACK_TOKEN ?? "";
   const imageTag = process.env.RAKAZO_IMAGE_TAG ?? rootEnv.RAKAZO_IMAGE_TAG ?? "edge";
   return {
+    resolve: { dedupe: ["react", "react-dom"] },
     // Compile fixture entrypoints only for the browser harness. Hosted releases
     // retain the normal single app entrypoint.
     build:
@@ -195,6 +197,7 @@ export default defineConfig(({ mode }) => {
           }
         : undefined,
     plugins: [
+      componentBuildReceipt(),
       react({
         babel: {
           plugins: ["@lingui/babel-plugin-lingui-macro"],

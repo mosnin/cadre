@@ -70,7 +70,7 @@ export function PluginsOverlay({
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const customSection = useRef<HTMLDetailsElement>(null);
+
   const installingSource = useRef(false);
   const connectionAttempt = useRef<AbortController | null>(null);
 
@@ -197,6 +197,18 @@ export function PluginsOverlay({
       setPending(null);
     }
   }
+
+  useEffect(() => {
+    if (!customOpen) {
+      setSourceKind(null);
+      setSourceError(null);
+      setSourceName("");
+      setSourceUrl("");
+      setCredential("");
+      setAuthType("none");
+      setAuthName("x-api-key");
+    }
+  }, [customOpen]);
 
   function beginSource(kind: SourceKind) {
     setSourceKind(kind);
@@ -467,33 +479,7 @@ export function PluginsOverlay({
               </div>
             ) : null}
           </div>
-          <details
-            ref={customSection}
-            open={customOpen || undefined}
-            hidden={!customOpen}
-            data-testid="integrations-advanced"
-            className="group"
-            onToggle={(event) => {
-              if (!(event.currentTarget as HTMLDetailsElement).open) {
-                setSourceKind(null);
-                setSourceError(null);
-                setSourceName("");
-                setSourceUrl("");
-                setCredential("");
-                setAuthType("none");
-                setAuthName("x-api-key");
-              }
-            }}
-          >
-            <summary className="hidden cursor-pointer list-none items-center justify-between gap-3 text-[14px] text-muted-foreground">
-              <span className="text-muted-foreground">
-                <Trans>Custom plugins</Trans>
-              </span>
-              <span aria-hidden="true" className="transition-transform group-open:rotate-90">
-                ›
-              </span>
-            </summary>
-
+          <section hidden={!customOpen} data-testid="integrations-advanced">
             <div className="mt-4 space-y-4">
               {onOpenMcp ? (
                 <Button
@@ -681,7 +667,7 @@ export function PluginsOverlay({
                 ))}
               </div>
             </div>
-          </details>
+          </section>
         </div>
       </DialogContent>
     </Dialog>

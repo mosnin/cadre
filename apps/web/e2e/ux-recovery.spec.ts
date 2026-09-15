@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openUserMenu, rpc, signup } from "./helpers";
 
 async function signIn(page: import("@playwright/test").Page, email: string) {
   await page.getByLabel("Email").fill(email);
@@ -8,7 +8,7 @@ async function signIn(page: import("@playwright/test").Page, email: string) {
 }
 
 async function signOut(page: import("@playwright/test").Page) {
-  await page.getByTestId("user-menu-trigger").click();
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Log out" }).click();
   await expect(page.getByRole("heading", { name: "Sign in to Cadre" })).toBeVisible();
 }

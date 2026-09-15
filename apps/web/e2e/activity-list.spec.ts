@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openNavigation, signup } from "./helpers";
 
 /** Activity rows sit above `[data-sidebar-group]` bots; match their aria-label. */
 function activityRow(page: Page, botName: string) {
@@ -14,7 +14,7 @@ async function captureActivitySidebar(
   name: string,
 ) {
   const aside = page.locator("aside").first();
-  const toggle = page.getByRole("button", { name: "Activity", exact: true });
+  const toggle = page.getByRole("tab", { name: "Activity", exact: true });
   await toggle.scrollIntoViewIfNeeded();
   // Keep the header (bell + Create) in frame with the Now/Recent list.
   const box = await aside.boundingBox();
@@ -41,17 +41,18 @@ test("sidebar Now and Recent surface active and terminal runs", async ({ page },
   const stamp = Date.now();
   await signup(page, `activity-${stamp}@rakazo.test`, "password12", "Activity");
   await completeOnboarding(page);
+  await openNavigation(page);
 
   const aside = page.locator("aside").first();
-  const activityToggle = page.getByRole("button", { name: "Activity", exact: true });
-  await expect(activityToggle).toHaveAttribute("aria-pressed", "false");
-  await expect(activityToggle).toHaveAttribute("data-activity-mode", "off");
+  const activityToggle = page.getByRole("tab", { name: "Activity", exact: true });
+  await expect(activityToggle).toHaveAttribute("aria-selected", "false");
   await expect(aside.getByText("Now", { exact: true })).toHaveCount(0);
   await expect(aside.getByText("Recent", { exact: true })).toHaveCount(0);
   await expect(aside.getByText("Loading activity…")).toHaveCount(0);
   await expect(aside.locator("[data-sidebar-group]").getByText("Chief").first()).toBeVisible();
   await captureActivitySidebar(page, testInfo, "57-activity-mode-off");
 
+  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
   const composer = page.getByPlaceholder(/Message/);
   await composer.fill("keep working until I stop you");
   await page.keyboard.press("Enter");
@@ -59,29 +60,27 @@ test("sidebar Now and Recent surface active and terminal runs", async ({ page },
     timeout: 30_000,
   });
 
+  await openNavigation(page);
   await activityToggle.click();
-  await expect(activityToggle).toHaveAttribute("aria-pressed", "true");
-  await expect(activityToggle).toHaveAttribute("data-activity-mode", "on");
+  await expect(activityToggle).toHaveAttribute("aria-selected", "true");
 
   // Remount ActivityList so the first poll sees the in-flight run (15s interval otherwise).
   await page.reload();
-  await expect(activityToggle).toHaveAttribute("aria-pressed", "true");
-  await expect(activityToggle).toHaveAttribute("data-activity-mode", "on");
-  await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible({
-    timeout: 30_000,
-  });
+  await openNavigation(page);
+  await expect(activityToggle).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("Loading activity…")).toBeHidden({ timeout: 20_000 });
   await expect(aside.getByText("Now", { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(activityRow(page, "Chief")).toBeVisible();
   await expect(activityRow(page, "Chief")).toContainText(/keep working|Running|Queued|Starting/i);
   await captureActivitySidebar(page, testInfo, "58-activity-now");
 
+  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
   await page.getByRole("button", { name: "Stop", exact: true }).click();
   await expect(page.getByRole("button", { name: "Send" })).toBeVisible({ timeout: 30_000 });
 
   await page.reload();
-  await expect(activityToggle).toHaveAttribute("aria-pressed", "true");
-  await expect(activityToggle).toHaveAttribute("data-activity-mode", "on");
+  await openNavigation(page);
+  await expect(activityToggle).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("Loading activity…")).toBeHidden({ timeout: 20_000 });
   await expect(aside.getByText("Recent", { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(activityRow(page, "Chief")).toBeVisible();

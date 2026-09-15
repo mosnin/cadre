@@ -99,6 +99,8 @@ import {
   isOneShotRoutineCrons,
   isVisibleInternalPeerEvent,
   nextCronDateAcrossStrict,
+  PLUGIN_BUNDLE_MAX_BYTES,
+  validatePluginBundle,
 } from "@rakazo/core";
 import {
   appendEventInTransaction,
@@ -2477,7 +2479,10 @@ export function createRouter(deps: RouterDeps) {
             message: "Put credentials only in the encrypted credential field",
           });
         }
-        if (JSON.stringify(config).length > 2_000_000) {
+        if (
+          JSON.stringify(config).length >
+          (input.kind === "plugin" ? PLUGIN_BUNDLE_MAX_BYTES * 2 : 2_000_000)
+        ) {
           throw new ORPCError("BAD_REQUEST", { message: "Capability configuration is too large" });
         }
         if (credential && input.kind !== "mcp" && input.kind !== "api") {
@@ -2517,6 +2522,15 @@ export function createRouter(deps: RouterDeps) {
             message: credential ? message.split(credential).join("[redacted]") : message,
           });
         }
+        if (input.kind === "plugin") {
+          try {
+            config = validatePluginBundle(config);
+          } catch (error) {
+            throw new ORPCError("BAD_REQUEST", {
+              message: error instanceof Error ? error.message : "Invalid plugin bundle",
+            });
+          }
+        }
         const stored = credential
           ? await deps.secrets.put(credential, {
               operationId: "capabilities.install",
@@ -2530,6 +2544,23 @@ export function createRouter(deps: RouterDeps) {
           .update(JSON.stringify({ kind: input.kind, source, config }))
           .digest("hex")}`;
         const row = await deps.prisma.$transaction(async (tx) => {
+          if (input.kind === "plugin") {
+            // Serialize imports within one owner/workspace so names stay unambiguous to agents.
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${context.actor.spaceId}), hashtext(${context.actor.userId + ":plugin-import"}))`;
+            const duplicate = await tx.capabilityInstall.findFirst({
+              where: {
+                spaceId: context.actor.spaceId,
+                userId: context.actor.userId,
+                kind: "plugin",
+                name: { equals: input.name.trim(), mode: "insensitive" },
+              },
+            });
+            if (duplicate)
+              throw new ORPCError("CONFLICT", {
+                message:
+                  "A plugin with that name is already saved. Choose another name or remove the existing plugin first.",
+              });
+          }
           if (stored) {
             await tx.secret.create({
               data: {

@@ -19,7 +19,7 @@ function systemAppearance(scheme?: ColorSchemeName | null): ResolvedAppearance {
 }
 
 export function getCachedAppearancePreference(): AppearancePreference {
-  return memoryPreference ?? "system";
+  return memoryPreference ?? "dark";
 }
 
 export async function loadAppearancePreference(): Promise<AppearancePreference> {
@@ -27,7 +27,7 @@ export async function loadAppearancePreference(): Promise<AppearancePreference> 
     const stored = await SecureStore.getItemAsync(UI_APPEARANCE_STORAGE_KEY);
     memoryPreference = normalizeAppearancePreference(stored);
   } catch {
-    memoryPreference = memoryPreference ?? "system";
+    memoryPreference = memoryPreference ?? "dark";
   }
   notify();
   return memoryPreference;

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openUserMenu, signup } from "./helpers";
 
 test("Korean webhook routine keeps technical field labels in English", async ({
   page,
@@ -9,7 +9,7 @@ test("Korean webhook routine keeps technical field labels in English", async ({
   await signup(page, `routine-ko-${stamp}@rakazo.test`, "password12", userName);
   await completeOnboarding(page);
 
-  await page.getByRole("button", { name: new RegExp(userName) }).click();
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Account settings" }).click();
   const settings = page.getByTestId("user-settings");
   await settings.getByTestId("ui-locale-select").click();
@@ -47,7 +47,7 @@ test("routine test-run completes and survives reload", async ({ page }, testInfo
   await page.getByRole("button", { name: "Add trigger" }).click();
   await page.getByRole("menuitem", { name: "On a schedule" }).hover();
   await page.getByRole("menuitem", { name: "Weekdays", exact: true }).click();
-  await expect(page.getByLabel("How often")).toHaveValue("Weekdays");
+  await expect(page.getByRole("combobox", { name: "How often" })).toContainText("Weekdays");
   await captureScreenshot(page, testInfo, "32-routine-configured");
 
   const saved = page.waitForResponse(

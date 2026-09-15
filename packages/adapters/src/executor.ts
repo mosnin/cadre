@@ -2375,6 +2375,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
               {
                 name: args.name ? String(args.name) : undefined,
                 skillId: args.skillId ? String(args.skillId) : undefined,
+                resourcePath: args.resourcePath ? String(args.resourcePath) : undefined,
+                fromPath: args.fromPath ? String(args.fromPath) : undefined,
               },
             );
           }

@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import {
+  activeBotId,
+  captureScreenshot,
+  completeOnboarding,
+  openNavigation,
+  rpc,
+  signup,
+} from "./helpers";
 
 test("pinned bots and sidebar sections persist", async ({ page }, testInfo) => {
   const stamp = Date.now();
@@ -7,6 +14,7 @@ test("pinned bots and sidebar sections persist", async ({ page }, testInfo) => {
   await completeOnboarding(page);
   await page.goto("/app");
   await page.waitForURL(/\/app\/[^/]+$/);
+  await openNavigation(page);
 
   const sidebar = page.locator("aside").first();
   const bot = sidebar.getByRole("button", { name: /^Chief/ });
@@ -36,6 +44,7 @@ test("pinned bots and sidebar sections persist", async ({ page }, testInfo) => {
   await captureScreenshot(page, testInfo, "bot-sections");
 
   await page.reload();
+  await openNavigation(page);
   await expect(projects).toContainText("Projects");
   await expect(projects).toContainText("Chief");
 
@@ -54,6 +63,7 @@ test("bots can be reordered by drag or keyboard and keep that order", async ({ p
   await completeOnboarding(page);
   await page.goto("/app");
   await page.waitForURL(/\/app\/[^/]+$/);
+  await openNavigation(page);
 
   const chiefId = activeBotId(page);
   const alpha = await rpc<{ id: string }>(page, "bots/create", {
@@ -73,6 +83,7 @@ test("bots can be reordered by drag or keyboard and keep that order", async ({ p
     computerMode: "team",
   });
   await page.reload();
+  await openNavigation(page);
 
   const sidebar = page.locator("aside").first();
   const rows = sidebar.locator("[data-roster-bot-id]");
@@ -119,13 +130,19 @@ test("bots can be reordered by drag or keyboard and keep that order", async ({ p
   await staleListDelivered;
   await expect.poll(order).toEqual([beta.id, chiefId, alpha.id]);
   await page.reload();
+  await openNavigation(page);
   await expect.poll(order).toEqual([beta.id, chiefId, alpha.id]);
 
   const betaRow = sidebar.locator(`[data-roster-bot-id="${beta.id}"]`);
   await betaRow.focus();
+  const keyboardReorderSaved = page.waitForResponse(
+    (response) => response.url().includes("/rpc/bots/reorder") && response.ok(),
+  );
   await page.keyboard.press("Alt+ArrowDown");
+  await keyboardReorderSaved;
   await expect.poll(order).toEqual([chiefId, beta.id, alpha.id]);
   await page.reload();
+  await openNavigation(page);
   await expect.poll(order).toEqual([chiefId, beta.id, alpha.id]);
 
   let releaseRejectedReorder!: () => void;
@@ -160,16 +177,17 @@ test("bots can be reordered by drag or keyboard and keep that order", async ({ p
   await queuedReorderSaved;
   await expect.poll(order).toEqual([beta.id, alpha.id, chiefId]);
   await page.reload();
+  await openNavigation(page);
   await expect.poll(order).toEqual([beta.id, alpha.id, chiefId]);
 });
 
-test("chat composer controls are vertically centered", async ({ page }) => {
+test("chat composer actions are vertically centered", async ({ page }) => {
   const stamp = Date.now();
   await signup(page, `composer-layout-${stamp}@rakazo.test`, "password12", "Composer Layout");
   await completeOnboarding(page);
 
   const centers = await page.getByTestId("composer-bar").evaluate((composer) =>
-    ["Attach file", "Dictate", "Message Chief", "Send"].map((label) => {
+    ["Attach file", "Dictate", "Send"].map((label) => {
       const element = composer.querySelector<HTMLElement>(`[aria-label="${label}"]`);
       if (!element) throw new Error(`Missing composer control: ${label}`);
       const box = element.getBoundingClientRect();
@@ -186,6 +204,7 @@ test("group chats share every context-menu action", async ({ page }, testInfo) =
   await completeOnboarding(page);
   await page.goto("/app");
   await page.waitForURL(/\/app\/[^/]+$/);
+  await openNavigation(page);
 
   const chiefId = activeBotId(page);
   const partner = await rpc<{ id: string }>(page, "bots/create", {
@@ -201,6 +220,7 @@ test("group chats share every context-menu action", async ({ page }, testInfo) =
     botIds: [chiefId, partner.id],
   });
   await page.reload();
+  await openNavigation(page);
 
   const sidebar = page.locator("aside").first();
   const group = sidebar.getByRole("button", { name: /^Group menu/ });
@@ -252,6 +272,8 @@ test("group chats share every context-menu action", async ({ page }, testInfo) =
 
   await group.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Duplicate", exact: true }).click();
+  await expect(page.getByTestId("bot-settings-trigger")).toContainText("Group menu copy");
+  await openNavigation(page);
   const copy = sidebar.getByRole("button", { name: /^Group menu copy/ });
   await expect(copy).toBeVisible();
 
@@ -263,10 +285,12 @@ test("group chats share every context-menu action", async ({ page }, testInfo) =
   await copy.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Archive", exact: true }).click();
   await expect(sidebar.getByRole("button", { name: /^Group menu copy/ })).toHaveCount(0);
+  await expect(page.getByTestId("bot-settings-trigger")).not.toContainText("Group menu copy");
+  await openNavigation(page);
   await expect(sidebar.getByText("Archived", { exact: true })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Open navigation" }).click();
+  await openNavigation(page);
   await group.click({ button: "right" });
   await captureScreenshot(page, testInfo, "group-context-menu-mobile");
   await page.keyboard.press("Escape");

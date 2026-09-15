@@ -530,6 +530,16 @@ export const builtinAgentTools: ConnectorTool[] = [
       type: "object",
       properties: {
         name: { type: "string", description: "Exact skill name from the catalog." },
+        resourcePath: {
+          type: "string",
+          description:
+            "Optional plugin reference path relative to fromPath or the SKILL.md entrypoint.",
+        },
+        fromPath: {
+          type: "string",
+          description:
+            "Plugin file path returned by the prior read when following nested references.",
+        },
       },
       required: ["name"],
     },
@@ -537,7 +547,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "skill_create",
     description:
-      "Create a reusable Claude Agent Skill (generic how-to SKILL.md) shared across assistants. The Pi runtime already understands this format; we persist and inject them. Use when a multi-step task is worth repeating or the user asks to save a skill. Do not include account names, channels, or inboxes — those belong in a routine.",
+      "Save a reusable skill or sequential workflow in the current workspace library, available to this user’s agents in this workspace. Use when the user asks to save instructions or repeat a process. Use schedule tools separately when the user requests automatic execution.",
     inputSchema: {
       type: "object",
       properties: {

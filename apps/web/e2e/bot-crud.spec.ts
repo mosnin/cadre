@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   captureScreenshot,
   completeOnboarding,
-  createBotFromPicker,
+  openNavigation,
   openNewBot,
   signup,
 } from "./helpers";
@@ -14,7 +14,9 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
   await page.goto("/app");
   await page.waitForURL(/\/app\/[^/]+$/);
 
-  const botList = page.locator("aside").first();
+  const botList = page.getByTestId("bots-sidebar");
+  await openNavigation(page);
+  await openNavigation(page);
   await expect(botList.getByRole("button", { name: /^Chief/ })).toBeVisible();
 
   let createFailed = false;
@@ -28,10 +30,12 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
     resolveCreateAborted();
   });
   await openNewBot(page);
+  await page.getByLabel("Name", { exact: true }).fill("New Bot");
+  await page.getByRole("button", { name: "Create agent", exact: true }).click();
   await createAborted;
-  // Instant create stays in chat; failed create leaves the current bot open.
+  // Failed creation retains the form and the current conversation.
   await expect(page.getByPlaceholder("Message Chief")).toBeVisible();
-  await expect(page.getByTestId("side-panel")).toHaveAttribute("data-panel", "closed");
+  await expect(page.getByTestId("side-panel")).toHaveAttribute("data-panel", "create");
   expect(createFailed).toBe(true);
   await page.unroute("**/rpc/bots/create");
 
@@ -44,11 +48,13 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
     failedPostCreateRefresh = true;
     await route.abort("failed");
   });
-  await createBotFromPicker(page);
+  await expect(page.getByLabel("Name", { exact: true })).toHaveValue("New Bot");
+  await page.getByRole("button", { name: "Create agent", exact: true }).click();
   await expect(page.getByPlaceholder("Message New Bot")).toBeVisible();
   // The chat opens optimistically before the background refresh reaches the network.
   await expect.poll(() => failedPostCreateRefresh).toBe(true);
   await page.unroute("**/rpc/spaces/list");
+  await openNavigation(page);
   await expect(botList.getByRole("button", { name: /^New Bot/ })).toBeVisible();
   await page.waitForURL(/\/app\/[^/]+$/);
   const deletedBotPath = new URL(page.url()).pathname;
@@ -57,6 +63,7 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
   expect(new URL(page.url()).pathname).toBe(deletedBotPath);
   await captureScreenshot(page, testInfo, "27-created-bot");
 
+  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
   await page.locator("main").getByRole("button", { name: "New Bot", exact: true }).click();
   await expect(page.getByTestId("side-panel").getByText("Settings", { exact: true })).toBeVisible();
   const nameInput = page.locator("label:has-text('Name') input");
@@ -69,9 +76,11 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
   await titleInput.fill(longTitle);
   await descriptionInput.fill("Finds reliable sources and turns them into concise briefs.");
   await page.getByRole("button", { name: "Save", exact: true }).click();
+  await openNavigation(page);
   await expect(botList.getByRole("button", { name: /^Researcher/ })).toBeVisible();
   await expect(page.getByPlaceholder("Message Researcher")).toBeVisible();
 
+  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
   await page.locator("main").getByRole("button", { name: "Researcher", exact: true }).click();
   await expect(nameInput).toHaveValue("Researcher");
   await expect(titleInput).toHaveValue(normalizedLongTitle);
@@ -79,7 +88,7 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
     "Finds reliable sources and turns them into concise briefs.",
   );
   const settings = page.getByTestId("bot-settings");
-  const modelSelect = settings.locator("label:has-text('Model') select");
+  const modelSelect = settings.getByRole("combobox", { name: "Model", exact: true });
   const teamComputer = settings.getByRole("button", { name: "Team" });
   const openWork = settings.getByTestId("bot-scratchpad");
   await expect(teamComputer).toBeHidden();
@@ -119,19 +128,23 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
   await titleInput.fill("Research lead");
   await descriptionInput.fill("Builds durable, source-backed research briefs.");
   await page.getByRole("button", { name: "Save", exact: true }).click();
+  await openNavigation(page);
   await expect(botList.getByRole("button", { name: /^Atlas/ })).toBeVisible();
   await expect(page.getByPlaceholder("Message Atlas")).toBeVisible();
   await captureScreenshot(page, testInfo, "28-edited-bot-profile");
 
   await page.reload();
+  await openNavigation(page);
   await expect(botList.getByRole("button", { name: /^Atlas/ })).toBeVisible();
   await expect(page.getByPlaceholder("Message Atlas")).toBeVisible();
+  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
   await page.locator("main").getByRole("button", { name: "Atlas", exact: true }).click();
   await expect(nameInput).toHaveValue("Atlas");
   await expect(titleInput).toHaveValue("Research lead");
   await expect(descriptionInput).toHaveValue("Builds durable, source-backed research briefs.");
   await captureScreenshot(page, testInfo, "29-reloaded-bot-profile");
 
+  await openNavigation(page);
   const atlas = botList.getByRole("button", { name: /^Atlas/ });
   await atlas.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Delete" }).click();
@@ -140,12 +153,14 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
   await page.getByRole("button", { name: "Delete", exact: true }).click();
 
   await expect(botList.getByText("Atlas", { exact: true })).toHaveCount(0);
+  await openNavigation(page);
   await expect(botList.getByRole("button", { name: /^Chief/ })).toBeVisible();
   await page.waitForURL((url) => url.pathname !== deletedBotPath);
 
   await page.goto(deletedBotPath);
   await page.waitForURL((url) => url.pathname !== deletedBotPath);
   await expect(botList.getByText("Atlas", { exact: true })).toHaveCount(0);
+  await openNavigation(page);
   await expect(botList.getByRole("button", { name: /^Chief/ })).toBeVisible();
   await expect(page.getByPlaceholder("Message Chief")).toBeVisible();
   await captureScreenshot(page, testInfo, "31-deleted-bot-fallback");

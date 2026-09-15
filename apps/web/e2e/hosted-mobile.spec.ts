@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, openNewBot, signup } from "./helpers";
+import { captureScreenshot, createBotFromPicker, openUserMenu, signup } from "./helpers";
 
 for (const width of [320, 375, 768]) {
   test(`hosted worker creation and draft handoff at ${width}px`, async ({ page }, testInfo) => {
@@ -10,6 +10,7 @@ for (const width of [320, 375, 768]) {
       "password12345",
       "Mobile tester",
     );
+    await page.getByRole("button", { name: "Continue without a company" }).click();
     await expect(page.getByRole("heading", { name: "Connect a model" })).toBeVisible();
     // Exercise hosted entry with the real local data API and a configured model.
     // Only hosted availability is substituted; local account auth stays unchanged.
@@ -25,10 +26,10 @@ for (const width of [320, 375, 768]) {
       }),
     );
     await page.goto("/app?task=Prepare%20a%20research%20brief%20for%20review.");
-    await expect(page.getByRole("heading", { name: "Create your first bot" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Create your first agent" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Connect a model" })).toHaveCount(0);
     await page.locator("label:has-text('Name') input").fill("Researcher");
-    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await page.getByRole("button", { name: "Create agent", exact: true }).click();
     await expect(page.getByRole("combobox", { name: "Message Researcher" })).toHaveValue(
       "Prepare a research brief for review.",
     );
@@ -46,7 +47,7 @@ for (const width of [320, 375, 768]) {
       await page.getByRole("button", { name: "Open navigation", exact: true }).click();
       await expect(page.locator("aside").first()).not.toHaveAttribute("inert", "");
     }
-    await page.getByTestId("user-menu-trigger").click();
+    await openUserMenu(page);
     await expect(page.getByRole("button", { name: "Models", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Voice", exact: true }).click();
     await expect(page.getByTestId("voice-settings")).toBeVisible();
@@ -55,7 +56,7 @@ for (const width of [320, 375, 768]) {
     await captureScreenshot(page, testInfo, `hosted-voice-${width}`);
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("voice-settings")).toBeHidden();
-    await openNewBot(page);
+    await createBotFromPicker(page);
     await expect(page.getByPlaceholder("Message New Bot")).toBeVisible();
     await expect(page.getByPlaceholder("Message New Bot")).toHaveValue("");
     // Creating a worker closes the mobile drawer and leaves its composer usable.

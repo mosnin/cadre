@@ -61,11 +61,11 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
   await expect(chip).not.toContainText("peer-exchange-alpha");
   await expect(transcript.getByText("peer-exchange-alpha")).toHaveCount(1);
   const assertChipLeftAligned = async () => {
-    const transcriptBox = await transcript.boundingBox();
+    const transcriptBox = await transcript.locator("[aria-live=off]").boundingBox();
     const chipBox = await chip.boundingBox();
     expect(transcriptBox).not.toBeNull();
     expect(chipBox).not.toBeNull();
-    // Transcript padding is 16px mobile / 28px desktop; centering must fail this assertion.
+    // Receipts align to the readable conversation column at every viewport.
     expect(chipBox!.x - transcriptBox!.x).toBeLessThanOrEqual(32);
     expect(chipBox!.width).toBeLessThan(transcriptBox!.width / 2);
   };

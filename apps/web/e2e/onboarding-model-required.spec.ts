@@ -18,6 +18,7 @@ test("onboarding requires a model when the deployment has none", async ({ page }
     "password12",
     `Model required ${stamp}`,
   );
+  await page.getByRole("button", { name: "Continue without a company" }).click();
   await expect(page.getByRole("heading", { name: "Connect a model" })).toBeVisible({
     timeout: 20_000,
   });

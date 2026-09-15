@@ -21,16 +21,12 @@ test("command palette opens with keyboard, filters, and switches bots", async ({
   });
   await page.reload();
   await page.waitForURL(/\/app\/[^/]+$/);
-  await expect(
-    page
-      .locator("aside")
-      .first()
-      .getByRole("button", { name: /^Researcher/ }),
-  ).toBeVisible();
+  await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
 
+  await expect(page.getByTestId("shell-root")).toHaveAttribute("data-ready", "true");
   await page.keyboard.press("ControlOrMeta+K");
   const palette = page.getByTestId("command-palette");
-  const dialog = page.getByRole("dialog", { name: "Switch bot" });
+  const dialog = page.getByRole("dialog", { name: "Switch agent" });
   await expect(dialog).toBeVisible();
   await expect(palette).toBeVisible();
   await expect(page.getByRole("tab")).toHaveCount(0);
@@ -50,6 +46,7 @@ test("command palette opens with keyboard, filters, and switches bots", async ({
   expect(activeBotId(page)).toBe(researcher.id);
   await expect(page.getByRole("combobox", { name: "Message Researcher" })).toBeVisible();
 
+  await expect(page.getByTestId("shell-root")).toHaveAttribute("data-ready", "true");
   await page.keyboard.press("ControlOrMeta+K");
   await expect(dialog).toBeVisible();
   await page.getByTestId(`command-palette-bot-${chiefId}`).click();

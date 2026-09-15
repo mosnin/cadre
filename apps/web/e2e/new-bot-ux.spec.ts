@@ -3,61 +3,31 @@ import {
   captureScreenshot,
   completeOnboarding,
   createBotFromPicker,
-  openNewBot,
+  openNavigation,
   signup,
 } from "./helpers";
 
-test("create opens empty chat, picker lists bots, and sidebar collapses", async ({
+test("creating an agent returns to work and navigation restores keyboard focus", async ({
   page,
 }, testInfo) => {
-  const stamp = Date.now();
-  await signup(page, `new-bot-ux-${stamp}@rakazo.test`, "password12", "New Bot UX");
+  await signup(page, `new-bot-ux-${Date.now()}@rakazo.test`, "password12", "New Bot UX");
   await completeOnboarding(page);
-  await page.goto("/app");
-  await page.waitForURL(/\/app\/[^/]+$/);
-
-  await page.getByTestId("create-menu-trigger").click();
-  const picker = page.getByTestId("bot-create-picker");
-  await expect(picker).toBeVisible();
-  await expect(picker.getByTestId("create-new-bot")).toBeVisible();
-  await expect(picker.getByText("Chief", { exact: true })).toBeVisible();
-  await captureScreenshot(page, testInfo, "plus-picker-bots");
-  await page.keyboard.press("Escape");
-
   await createBotFromPicker(page);
   await expect(page.getByPlaceholder("Message New Bot")).toBeVisible();
-  await expect(page.getByTestId("side-panel")).toHaveAttribute("data-panel", "closed");
-  await expect(page.getByText("What do you want me on first?", { exact: true })).toHaveCount(0);
-  await captureScreenshot(page, testInfo, "create-chat-sidepanel-closed");
-
-  await page.getByTestId("minimize-bots-sidebar").click();
-  await expect(page.getByTestId("bots-sidebar")).toHaveAttribute("data-collapsed", "true");
-  const showBots = page.getByTestId("show-bots-sidebar");
-  await expect(showBots).toBeVisible();
-  await expect(showBots).toBeFocused();
-  await showBots.press("Enter");
-  await expect(page.getByTestId("bots-sidebar")).toHaveAttribute("data-collapsed", "false");
-  await expect(page.getByTestId("minimize-bots-sidebar")).toBeFocused();
-  await page.getByTestId("minimize-bots-sidebar").press("Space");
-  await expect(showBots).toBeVisible();
+  await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
+  await captureScreenshot(page, testInfo, "create-chat-focused");
+  await openNavigation(page);
+  await expect(page.getByRole("textbox", { name: "Search conversations" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  const show = page.getByRole("button", { name: "Open navigation", exact: true });
+  await expect(show).toBeFocused();
+  await show.press("Enter");
+  await expect(page.getByTestId("bots-sidebar")).toBeVisible();
+  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
   await page.reload();
-  await expect(showBots).toBeVisible();
-  const edge = page.getByTestId("bots-sidebar-edge");
-  await expect(edge).toBeVisible();
-  await captureScreenshot(page, testInfo, "bots-sidebar-collapsed");
-
-  const box = await edge.boundingBox();
-  expect(box).toBeTruthy();
-  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box!.x + 80, box!.y + box!.height / 2, { steps: 8 });
-  await page.mouse.up();
-  await expect(page.getByTestId("bots-sidebar")).toHaveAttribute("data-collapsed", "false");
-  await captureScreenshot(page, testInfo, "bots-sidebar-expanded");
-  await edge.press("Enter");
-  await expect(showBots).toBeVisible();
-  await showBots.click();
-  await expect(page.getByTestId("bots-sidebar")).toHaveAttribute("data-collapsed", "false");
+  await expect(show).toBeVisible();
+  await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
+  await captureScreenshot(page, testInfo, "navigation-recedes");
 });
 
 test("later bot waits before showing the focus card; sending cancels it", async ({ page }) => {
@@ -68,7 +38,7 @@ test("later bot waits before showing the focus card; sending cancels it", async 
   await expect(page.getByText("What do you want me on first?", { exact: true })).toBeVisible();
 
   await page.clock.install();
-  await openNewBot(page);
+  await createBotFromPicker(page);
   await page.waitForURL(/\/app\/[^/]+$/);
   await expect(page.getByPlaceholder("Message New Bot")).toBeVisible();
   await expect(page.getByText("What do you want me on first?", { exact: true })).toHaveCount(0);
@@ -78,7 +48,7 @@ test("later bot waits before showing the focus card; sending cancels it", async 
   await page.clock.fastForward(1_500);
   await expect(page.getByText("What do you want me on first?", { exact: true })).toBeVisible();
 
-  await openNewBot(page);
+  await createBotFromPicker(page);
   await page.waitForURL(/\/app\/[^/]+$/);
   await expect(page.getByText("What do you want me on first?", { exact: true })).toHaveCount(0);
   const composer = page.getByPlaceholder(/Message/);

@@ -3,8 +3,11 @@ import {
   findSkillByName,
   isSkillReadOnly,
   parseSkillMd,
+  pluginSkillRecords,
+  resolvePluginResource,
   type SkillRecord,
   type SkillSource,
+  validatePluginBundle,
 } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { BUILTIN_AGENT_SKILLS } from "./builtin-skills.js";
@@ -89,7 +92,10 @@ export async function listAgentSkillRecords(
     where: { spaceId: owner.spaceId, userId: owner.userId },
     orderBy: [{ name: "asc" }, { id: "asc" }],
   });
-  return [...builtinRecords(), ...rows.map(toRecord)];
+  const plugins = await prisma.capabilityInstall.findMany({
+    where: { spaceId: owner.spaceId, userId: owner.userId, kind: "plugin" },
+  });
+  return [...builtinRecords(), ...rows.map(toRecord), ...plugins.flatMap(pluginSkillRecords)];
 }
 
 async function findOwnedSkill(
@@ -108,10 +114,46 @@ async function findOwnedSkill(
 export async function skillReadFromTool(
   prisma: PrismaClient,
   owner: SkillOwner,
-  input: { name?: string; skillId?: string },
+  input: { name?: string; skillId?: string; resourcePath?: string; fromPath?: string },
 ): Promise<Record<string, unknown>> {
   const skill = await findOwnedSkill(prisma, owner, input);
   if (!skill) return { error: "Skill not found." };
+  const parsedSkill = parseSkillMd(skill.content);
+  const inherited = "error" in parsedSkill ? null : parsedSkill.frontmatter;
+  const importedCopy =
+    inherited &&
+    typeof inherited["cadre-plugin-id"] === "string" &&
+    typeof inherited["cadre-plugin-entry"] === "string";
+  if (skill.id.startsWith("plugin:") || importedCopy) {
+    const [, importedId, ...entryParts] = skill.id.split(":");
+    const pluginId = importedCopy ? String(inherited["cadre-plugin-id"]) : importedId;
+    const entryPath = importedCopy ? String(inherited["cadre-plugin-entry"]) : entryParts.join(":");
+    const plugin = await prisma.capabilityInstall.findFirst({
+      where: { id: pluginId, ...owner, kind: "plugin" },
+    });
+    if (!plugin) return { error: "Plugin not found in this workspace." };
+    try {
+      const bundle = validatePluginBundle(plugin.config);
+      const from = input.fromPath ?? entryPath;
+      if (!bundle.files.some((file) => file.path === from))
+        return { error: "Source file not found in this plugin." };
+      const path = input.resourcePath ? resolvePluginResource(from, input.resourcePath) : entryPath;
+      const file = bundle.files.find((item) => item.path === path);
+      if (!file) return { error: "Referenced file not found in this plugin.", path };
+      return {
+        name: skill.name,
+        plugin: plugin.name,
+        path,
+        content: !input.resourcePath && importedCopy ? skill.content : file.content,
+        readOnly: skill.readOnly,
+        files: input.resourcePath ? undefined : bundle.files.map((item) => item.path),
+        hint: "Read references with skill_read using this same name, resourcePath relative to the returned file, and fromPath set to that file path. Imported hooks and servers are not executed. Create a user skill to save your own adapted workflow.",
+      };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Invalid plugin reference." };
+    }
+  }
+  if (input.resourcePath) return { error: "This skill has no imported reference files." };
   return {
     name: skill.name,
     description: skill.description,

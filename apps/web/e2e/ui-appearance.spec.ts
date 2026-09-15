@@ -1,11 +1,18 @@
 import { expect, type Page, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import {
+  captureScreenshot,
+  completeOnboarding,
+  openNavigation,
+  openUserMenu,
+  signup,
+} from "./helpers";
 
 async function captureSidebarSearchSelected(
   page: Page,
   testInfo: Parameters<typeof captureScreenshot>[1],
   name: string,
 ) {
+  await openNavigation(page);
   const aside = page.locator("aside").first();
   const search = aside.getByTestId("sidebar-search");
   const selected = aside.getByRole("button", { name: /^Chief/ }).first();
@@ -49,7 +56,7 @@ test("account settings appearance control switches to light mode", async ({ page
   await signup(page, `ui-appearance-${stamp}@rakazo.test`, "password12", "Appearance QA");
   await completeOnboarding(page, testInfo);
 
-  await page.getByTestId("user-menu-trigger").click();
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Account settings", exact: true }).click();
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
@@ -69,6 +76,7 @@ test("account settings appearance control switches to light mode", async ({ page
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await captureScreenshot(page, testInfo, "ui-appearance-light-shell");
   await captureSidebarSearchSelected(page, testInfo, "sidebar-search-selected-light");
+  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
 
   const composer = page.getByRole("combobox", { name: /^Message/ });
   await composer.fill("Please review `shared/PROJECT_CHECKPOINT_WRAPUP.md`.");
@@ -81,10 +89,13 @@ test("account settings appearance control switches to light mode", async ({ page
     .locator("code")
     .filter({ hasText: "shared/PROJECT_CHECKPOINT_WRAPUP.md" });
   await expect(inlinePath).toBeVisible({ timeout: 30_000 });
-  await expect(inlinePath).toHaveCSS("color", "rgb(26, 26, 26)");
+  await expect(inlinePath).toHaveCSS(
+    "color",
+    await page.locator("body").evaluate((body) => getComputedStyle(body).color),
+  );
   await captureScreenshot(page, testInfo, "inline-code-light");
 
-  await page.getByTestId("user-menu-trigger").click();
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Account settings", exact: true }).click();
   await expect(settings).toBeVisible();
   await settings.getByTestId("ui-appearance-dark").click();
