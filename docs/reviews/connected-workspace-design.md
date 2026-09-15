@@ -1,6 +1,6 @@
 # Connected workspace
 
-Status: implementation in progress. Brief: cadre-connected-workspace, revision 1.
+Status: implemented; release checks pending. Brief: cadre-connected-workspace, revision 2.
 
 ## Person and tension
 
@@ -73,7 +73,7 @@ The live beUI registry had changed since the installed directory was pinned. Rec
 
 ## Current verification
 
-The complete browser regression and final charcoal rendering review are in progress. Deterministic browser checks have passed workspace setup and draft restoration, company connection controls, library create/edit/import/export, keyboard navigation, password recovery, model search, group conversations and computer takeover. Unit checks cover plugin validation, scoped reference reads, appearance preferences and native theme compatibility. A successful deterministic test does not establish real provider authorization or deployment.
+The full local browser run passed 93 of 95 checks. The two failed checks were test synchronization and hidden-navigation selector assumptions; both passed after correction. The final affected-surface run passed all 11 checks on the charcoal build, including the library recovery and accessibility assertions. CI remains the integration gate. Deterministic browser checks have passed workspace setup and draft restoration, company connection controls, library create/edit/import/export, keyboard navigation, password recovery, model search, group conversations and computer takeover. Unit checks cover plugin validation, scoped reference reads, appearance preferences and native theme compatibility. A successful deterministic test does not establish real provider authorization or deployment.
 
 Real Company OS consent and a live company context read still require a signed-in provider session. Native device rendering and binary publication remain unverified. No claim of measured usability, historical uniqueness, independent review, or whole-product acceptance is made.
 
@@ -90,3 +90,9 @@ The installed Design OS bundle was validated, temporarily stored in the isolated
 Cross-workspace and cross-owner reads are denied. Concurrent same-name plugin imports yield one installation and one conflict. Removal is idempotent and cannot delete another workspace's installation. Editable copies preserve their plugin origin so relative references remain available. Web and native mobile expose create/edit/import/export; native device rendering remains unverified. Workflow recipes use the skill storage and agent read/update tools; timed runs still use Schedules.
 
 Two source-checker findings require explicit interpretation, recorded in component-usage.json: the upstream combobox barrel is tree-shaken while its actual implementation modules emit and run; the login layout's decorative image is removed under the user's explicit instruction. The checker itself is unchanged and is not reported as passing. The imported source and compiled dependency graph remain inspectable.
+
+## Ordered rendered review
+
+The final primary PWA review is recorded in [the source-bound detail record](connected-workspace-detail-review.json). Design OS self-review passed for the eight explicitly listed surfaces, then Details self-review passed for the same surfaces and source hashes. Captures include 320px phone, 768px short breakpoint and 1440px desktop layouts, plus company identity, account connection and the populated library. The record validator passes; it does not certify visual quality. Whole-product manual inspection and native-device evidence are not claimed.
+
+Neutral charcoal replaces the earlier tinted dark palette. The dark background is shared by web, PWA metadata and native theme tokens. Functional controls retain focus indicators and quiet boundaries. Source-review exceptions remain documented; there is no aggregate Component OS acceptance claim.
