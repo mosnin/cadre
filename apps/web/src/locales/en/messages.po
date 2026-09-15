@@ -499,7 +499,7 @@ msgstr "Avatars"
 msgid "Back"
 msgstr "Back"
 
-#: src/App.tsx:256
+#: src/App.tsx:262
 msgid "Back to Cadre"
 msgstr "Back to Cadre"
 
@@ -561,7 +561,7 @@ msgstr "Bring your own key. The provider is swappable; your bots keep the same s
 msgid "Cadre verifies the source before saving it. Credentials are encrypted and are never returned to clients or exposed to the model."
 msgstr "Cadre verifies the source before saving it. Credentials are encrypted and are never returned to clients or exposed to the model."
 
-#: src/App.tsx:300
+#: src/App.tsx:306
 msgid "Can't reach the server."
 msgstr "Can't reach the server."
 
@@ -2012,6 +2012,7 @@ msgid "Loading voice providers…"
 msgstr "Loading voice providers…"
 
 #: src/App.tsx:69
+#: src/App.tsx:80
 #: src/pages/Auth.tsx:138
 #: src/pages/Onboarding.tsx:247
 #: src/pages/PeerMessagesOverlay.tsx:99
@@ -2485,7 +2486,7 @@ msgstr "Opened its thread."
 msgid "Opening Company OS…"
 msgstr "Opening Company OS…"
 
-#: src/App.tsx:343
+#: src/App.tsx:349
 msgid "Opening your Space…"
 msgstr "Opening your Space…"
 
@@ -2528,7 +2529,7 @@ msgstr "Organization API key"
 msgid "Other model…"
 msgstr "Other model…"
 
-#: src/App.tsx:253
+#: src/App.tsx:259
 msgid "Page not found"
 msgstr "Page not found"
 
@@ -2666,7 +2667,7 @@ msgstr "Reconnect Company OS"
 msgid "Reconnect OAuth"
 msgstr "Reconnect OAuth"
 
-#: src/App.tsx:298
+#: src/App.tsx:304
 msgid "Reconnecting"
 msgstr "Reconnecting"
 
@@ -2828,7 +2829,7 @@ msgstr "Resume"
 msgid "Resume audio"
 msgstr "Resume audio"
 
-#: src/App.tsx:312
+#: src/App.tsx:318
 msgid "Retry now"
 msgstr "Retry now"
 

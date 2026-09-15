@@ -2,7 +2,7 @@
   "name": "Cadre",
   "short_name": "Cadre",
   "description": "Your team of always-on agents.",
-  "start_url": "/login",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#050506",
   "theme_color": "#050506",

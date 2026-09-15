@@ -16,14 +16,25 @@ type PreloadRecoveryWindow = Pick<
  * exists. Reload once so the browser receives the current asset manifest.
  */
 export function installPreloadRecovery(target: PreloadRecoveryWindow = window): () => void {
-  const clearRecovery = target.setTimeout(
-    () => target.sessionStorage.removeItem(PRELOAD_RECOVERY_KEY),
-    PRELOAD_RECOVERY_COOLDOWN_MS,
-  );
+  let attempted = false;
+  const clearRecovery = target.setTimeout(() => {
+    try {
+      target.sessionStorage.removeItem(PRELOAD_RECOVERY_KEY);
+    } catch {
+      /* Storage can be unavailable in a PWA. */
+    }
+  }, PRELOAD_RECOVERY_COOLDOWN_MS);
   const onPreloadError = (event: Event) => {
-    if (target.sessionStorage.getItem(PRELOAD_RECOVERY_KEY)) return;
+    if (attempted) return;
+    try {
+      if (target.sessionStorage.getItem(PRELOAD_RECOVERY_KEY)) return;
+      target.sessionStorage.setItem(PRELOAD_RECOVERY_KEY, "1");
+    } catch {
+      // Without a persistent guard, do not risk reloading indefinitely.
+      return;
+    }
+    attempted = true;
     event.preventDefault();
-    target.sessionStorage.setItem(PRELOAD_RECOVERY_KEY, "1");
     target.location.reload();
   };
 

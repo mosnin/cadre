@@ -499,7 +499,7 @@ msgstr ""
 msgid "Back"
 msgstr ""
 
-#: src/App.tsx:256
+#: src/App.tsx:262
 msgid "Back to Cadre"
 msgstr "Cadre’ye dön"
 
@@ -561,7 +561,7 @@ msgstr "Kendi anahtarını getir. Sağlayıcı değiştirilebilir; botlarındaki
 msgid "Cadre verifies the source before saving it. Credentials are encrypted and are never returned to clients or exposed to the model."
 msgstr ""
 
-#: src/App.tsx:300
+#: src/App.tsx:306
 msgid "Can't reach the server."
 msgstr "Sunucuya ulaşılamıyor."
 
@@ -2012,6 +2012,7 @@ msgid "Loading voice providers…"
 msgstr "Ses sağlayıcıları yükleniyor…"
 
 #: src/App.tsx:69
+#: src/App.tsx:80
 #: src/pages/Auth.tsx:138
 #: src/pages/Onboarding.tsx:247
 #: src/pages/PeerMessagesOverlay.tsx:99
@@ -2485,7 +2486,7 @@ msgstr "Sohbeti açıldı."
 msgid "Opening Company OS…"
 msgstr ""
 
-#: src/App.tsx:343
+#: src/App.tsx:349
 msgid "Opening your Space…"
 msgstr "Çalışma alanın açılıyor…"
 
@@ -2528,7 +2529,7 @@ msgstr "Kuruluş API anahtarı"
 msgid "Other model…"
 msgstr "Başka model…"
 
-#: src/App.tsx:253
+#: src/App.tsx:259
 msgid "Page not found"
 msgstr "Sayfa bulunamadı"
 
@@ -2666,7 +2667,7 @@ msgstr ""
 msgid "Reconnect OAuth"
 msgstr "OAuth'u yeniden bağla"
 
-#: src/App.tsx:298
+#: src/App.tsx:304
 msgid "Reconnecting"
 msgstr "Yeniden bağlanıyor"
 
@@ -2828,7 +2829,7 @@ msgstr ""
 msgid "Resume audio"
 msgstr ""
 
-#: src/App.tsx:312
+#: src/App.tsx:318
 msgid "Retry now"
 msgstr "Şimdi tekrar dene"
 

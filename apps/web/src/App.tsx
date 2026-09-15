@@ -74,7 +74,13 @@ export function App() {
   const user = session.data?.user;
   return (
     <div className="h-full" data-rakazo-app-state="ready">
-      <Suspense fallback={<div className="h-full bg-background" />}>
+      <Suspense
+        fallback={
+          <div className="grid h-full place-items-center bg-background">
+            <Trans>Loading…</Trans>
+          </div>
+        }
+      >
         <Routes>
           <Route
             path="/app/oauth/codex"
