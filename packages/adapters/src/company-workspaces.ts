@@ -118,7 +118,11 @@ export class CompanyWorkspaces {
     };
   }
   async list(userId: string) {
-    const { rows } = await this.deps.pool.query<Grant>(
+    const { rows } = await this.deps.pool.query<
+      Pick<Grant, "id" | "spaceId" | "companyId" | "companyName" | "companySlug"> & {
+        connected: boolean;
+      }
+    >(
       `SELECT id, "spaceId", "companyId", "companyName", "companySlug", (ciphertext <> '') AS connected FROM company_workspace_grants WHERE "userId" = $1`,
       [userId],
     );

@@ -132,7 +132,7 @@ export function CompanyConnectionDialog({
         if (!value && !pending) onClose();
       }}
     >
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" aria-label={t`Connect a company`}>
         <DialogHeader>
           <DialogTitle>
             <Trans>Connect a company</Trans>
@@ -149,6 +149,7 @@ export function CompanyConnectionDialog({
               if (!target) {
                 const created = await rpc.spaces.create({ name: name.trim() });
                 target = created.id;
+                setSpaces((rows) => [...rows, created]);
                 setSpaceId(target);
               }
               const result = await request("/connect", "POST", target);
@@ -159,12 +160,15 @@ export function CompanyConnectionDialog({
             }
           }}
         >
-          <label className="grid gap-2 text-sm">
-            <Trans>Workspace</Trans>
+          <div className="grid gap-2 text-sm">
+            <label htmlFor="company-workspace-select">
+              <Trans>Workspace</Trans>
+            </label>
             <select
+              id="company-workspace-select"
               className="rounded-md border border-border bg-background p-2"
               value={spaceId}
-              disabled={pending}
+              disabled={!available || pending}
               onChange={(e) => setSpaceId(e.target.value)}
             >
               <option value="">{t`New workspace`}</option>
@@ -174,7 +178,7 @@ export function CompanyConnectionDialog({
                 </option>
               ))}
             </select>
-          </label>
+          </div>
           {!spaceId ? (
             <label htmlFor="company-workspace-name" className="grid gap-2 text-sm">
               <Trans>Workspace name</Trans>
