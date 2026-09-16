@@ -513,6 +513,10 @@ export function ShellPage() {
       const active = document.activeElement;
       if (active === document.body || (active && navigatorRef.current?.contains(active))) {
         requestAnimationFrame(() => {
+          const current = document.activeElement;
+          // A user can focus another surface before this frame runs.
+          if (current !== document.body && current && !navigatorRef.current?.contains(current))
+            return;
           if (previous?.isConnected && previous !== document.body) previous.focus();
           else if (desktopLayout) showBotsRef.current?.focus();
         });

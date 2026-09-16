@@ -1,11 +1,12 @@
 import type { AgentRuntimeEvent } from "@rakazo/adapter-kit";
+import { buildBotMessageWakePrompt } from "@rakazo/core";
 import { describe, expect, it } from "vitest";
 import { inferScript, ScriptedAgentRuntime } from "./scripted-runtime.js";
 
 describe("inferScript message_bot", () => {
   const messageBotScript = (confirmName: string, message: string) => [
     {
-      assistant: "messaging that bot now.",
+      assistant: `I’ll send that to ${confirmName}.`,
       toolCalls: [
         {
           name: "message_bot",
@@ -81,5 +82,24 @@ describe("ScriptedAgentRuntime executionIds", () => {
       )
       .map((event) => event.executionId);
     expect(toolIds).toEqual(["run-1:message_agent:0", "run-1:message_agent:1"]);
+  });
+});
+
+describe("scripted peer delivery copy", () => {
+  it.each(["request", "result"] as const)("keeps %s routing data out of replies", (intent) => {
+    const prompt = buildBotMessageWakePrompt({
+      from: { id: "private-routing-id", name: "Researcher" },
+      text: "Please confirm receipt of the launch brief.",
+      intent,
+    });
+    const script = inferScript(prompt);
+    const reply = script.map((turn) => turn.assistant ?? "").join("\n");
+    expect(reply).toBe(
+      intent === "result" ? "Researcher received your message." : "Message received.",
+    );
+    expect(reply).not.toMatch(
+      /private-routing-id|\[bot\]|bot_message|A message just arrived|done\. i handled|background/,
+    );
+    expect(script.flatMap((turn) => turn.toolCalls ?? [])).toEqual([]);
   });
 });

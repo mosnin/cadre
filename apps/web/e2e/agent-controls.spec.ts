@@ -31,7 +31,9 @@ for (const width of [1280, 390]) {
         computerRequests.push(request.url());
     });
     const schedules = page.getByRole("button", { name: "Schedules", exact: true });
+    await expect(page.locator("main")).not.toHaveAttribute("inert", "");
     await schedules.focus();
+    await expect(schedules).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page.getByRole("button", { name: "Create Routine" })).toBeVisible();
     if (width < 768) {
