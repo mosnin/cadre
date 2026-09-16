@@ -25,7 +25,8 @@ export function mountCodexMcp(
   const metadata = `${api}/.well-known/oauth-protected-resource/rpc/mcp`;
   app.get("/.well-known/oauth-protected-resource/rpc/mcp", (c) =>
     c.json({
-      resource: `${api}/rpc`,
+      // RFC 9728 requires this to equal the protected resource the client reached.
+      resource: `${api}/rpc/mcp`,
       authorization_servers: [`${api}/codex`],
       scopes_supported: ["cadre:read", "cadre:execute"],
       bearer_methods_supported: ["header"],
@@ -105,9 +106,26 @@ export function mountCodexMcp(
       signal: c.req.raw.signal,
     });
     if (response.status === 401) return failure(id, -32001, "Sign in to Cadre.", 401);
-    const payload = await response.json();
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      return result(id, {
+        content: [
+          { type: "text", text: `Cadre returned an unreadable response (${response.status}).` },
+        ],
+        isError: true,
+      });
+    }
     return result(id, {
-      content: [{ type: "text", text: JSON.stringify(payload.json ?? payload) }],
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            payload && typeof payload === "object" && "json" in payload ? payload.json : payload,
+          ),
+        },
+      ],
       ...(!response.ok ? { isError: true } : {}),
     });
   });
