@@ -1,119 +1,114 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@rakazo/ui-web";
 import { useEffect, useState } from "react";
 import { withSpaceHeaders } from "../lib/rpc";
 
-type Provider = "operate" | "stored";
+type Provider = { id: string; name: string; workspaceNoun: string };
 type Connection = {
-  provider: Provider;
+  provider: string;
   externalId: string;
   externalName: string;
   connected: boolean;
 };
-async function request(path = "", method = "GET") {
+type Listing = { available: boolean; providers: Provider[]; connections: Connection[] };
+
+async function request(path = "", method = "GET"): Promise<Listing & { url?: string }> {
   const response = await fetch(`/api/v1/workspace-integrations${path}`, {
     method,
     credentials: "include",
     headers: withSpaceHeaders(),
   });
   const value = await response.json();
-  if (!response.ok) throw new Error(value.error ?? "Could not load workspace connections");
+  if (!response.ok) throw new Error(value.error ?? "Could not load connections");
   return value;
 }
-export function WorkspaceIntegrationSettings() {
-  const [connections, setConnections] = useState<Connection[]>();
-  const [available, setAvailable] = useState(false);
-  const [busy, setBusy] = useState<Provider>();
+
+/** Outcome of an OAuth return, consumed once by Settings. */
+export type WorkspaceIntegrationNotice = { provider: string; error: boolean };
+
+export function WorkspaceIntegrationSettings({
+  notice,
+}: {
+  notice?: WorkspaceIntegrationNotice | null;
+}) {
+  const { t } = useLingui();
+  const [listing, setListing] = useState<Listing>();
+  const [busy, setBusy] = useState<string>();
   const [error, setError] = useState("");
-  const [returnError, setReturnError] = useState(false);
-  useEffect(() => {
-    // The OAuth callback returns to /app with the outcome; consume it once.
-    const params = new URLSearchParams(window.location.search);
-    if (!params.has("integration")) return;
-    if (params.has("connection-error")) setReturnError(true);
-    for (const key of ["integration", "connected", "connection-error"]) params.delete(key);
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}${params.size ? `?${params}` : ""}${window.location.hash}`,
-    );
-  }, []);
   useEffect(() => {
     let alive = true;
     request()
       .then((value) => {
-        if (alive) {
-          setConnections(value.connections);
-          setAvailable(value.available);
-        }
+        if (alive) setListing(value);
       })
       .catch(() => {
-        if (alive) setError("Could not load workspace connections. Reopen Settings to retry.");
+        if (alive) setError(t`Could not load connections`);
       });
     return () => {
       alive = false;
     };
   }, []);
-  async function change(provider: Provider, connected: boolean) {
+  async function change(provider: string, connected: boolean) {
     setBusy(provider);
     setError("");
     try {
       const result = await request(`/${provider}/${connected ? "disconnect" : "connect"}`, "POST");
-      if (!connected) {
+      if (!connected && result.url) {
         window.location.assign(result.url);
         return;
       }
-      const updated = await request();
-      setConnections(updated.connections);
+      setListing(await request());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Connection failed. Try again.");
+      setError(e instanceof Error ? e.message : t`Connection failed`);
     }
     setBusy(undefined);
   }
   return (
-    <section className="mt-8 space-y-6" aria-label="Workspace connections">
-      {(["operate", "stored"] as const).map((provider) => {
-        const name = provider === "operate" ? "Operate" : "Stored";
-        const connection = connections?.find((item) => item.provider === provider);
+    <section className="space-y-6" aria-label={t`Connections`}>
+      {listing === undefined && !error ? (
+        <p className="text-sm text-muted-foreground">
+          <Trans>Loading…</Trans>
+        </p>
+      ) : null}
+      {listing?.providers.map((provider) => {
+        const connection = listing.connections.find((item) => item.provider === provider.id);
+        const connected = connection?.connected ?? false;
         return (
-          <div key={provider} className="space-y-2">
-            <h3 className="text-[15px] font-medium">{name}</h3>
-            <p className="break-words text-sm text-muted-foreground">
-              {connections === undefined
-                ? "Loading connection…"
-                : connection
-                  ? `${connection.externalName}${connection.connected ? " · Connected" : " · Disconnected"}`
-                  : provider === "operate"
-                    ? "Connect a workspace for projects and recurring tasks."
-                    : "Connect an organization for shared and private agent memories."}
-            </p>
+          <div key={provider.id} className="space-y-2" data-testid={`connection-${provider.id}`}>
+            <h3 className="text-[15px] font-medium">{provider.name}</h3>
+            {connection ? (
+              <p className="break-words text-sm text-muted-foreground">
+                {connection.externalName} · {connected ? t`Connected` : t`Disconnected`}
+              </p>
+            ) : null}
+            {notice?.provider === provider.id ? (
+              <p role={notice.error ? "alert" : "status"} className="text-sm text-muted-foreground">
+                {notice.error ? t`Connection was not completed` : t`Connected`}
+              </p>
+            ) : null}
             <Button
               type="button"
-              disabled={!available || Boolean(busy)}
-              onClick={() => void change(provider, Boolean(connection?.connected))}
-              className="min-h-11 rounded-full bg-muted px-5 py-2 text-sm text-foreground hover:bg-muted/80 focus-visible:outline focus-visible:outline-2 disabled:opacity-50"
+              variant="outline"
+              className="rounded-full"
+              disabled={!listing.available || Boolean(busy)}
+              onClick={() => void change(provider.id, connected)}
             >
-              {busy === provider
-                ? connection?.connected
-                  ? "Disconnecting…"
-                  : "Connecting…"
-                : connection?.connected
-                  ? `Disconnect ${name}`
-                  : `Connect ${name}`}
+              {busy === provider.id
+                ? connected
+                  ? t`Disconnecting…`
+                  : t`Connecting…`
+                : connected
+                  ? t`Disconnect ${provider.name}`
+                  : t`Connect ${provider.name}`}
             </Button>
           </div>
         );
       })}
-      {error && (
+      {error ? (
         <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
-      )}
-      {returnError && (
-        <p role="alert" className="text-sm text-destructive">
-          The connection was not completed. Select the original account and organization, or use a
-          new Cadre workspace for a different organization.
-        </p>
-      )}
+      ) : null}
     </section>
   );
 }
