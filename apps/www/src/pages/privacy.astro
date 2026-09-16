@@ -1,11 +1,8 @@
 ---
 import Footer from "../components/Footer.astro";
 import Header from "../components/Header.astro";
-import { fetchGithubStars, formatStarCount } from "../github";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
-const stars = await fetchGithubStars();
-const starsLabel = stars === null ? "Star" : formatStarCount(stars);
 ---
 
 <BaseLayout
@@ -13,7 +10,7 @@ const starsLabel = stars === null ? "Star" : formatStarCount(stars);
   description="How Inbox Zero Inc. collects, uses, and protects information when you use Rakazo."
 >
   <div class="container">
-    <Header starsLabel={starsLabel} />
+    <Header />
     <main id="main" class="privacy-copy">
       <h1>Privacy</h1>
       <p><strong>Last updated: August 14, 2026</strong></p>

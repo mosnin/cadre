@@ -1,17 +1,13 @@
 ---
 import Footer from "../components/Footer.astro";
 import Header from "../components/Header.astro";
-import { fetchGithubStars, formatStarCount } from "../github";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { DOCS_URL, GITHUB_URL } from "../site";
 
-const stars = await fetchGithubStars();
-const starsLabel = stars === null ? "Star" : formatStarCount(stars);
 ---
 
 <BaseLayout title="Support · Rakazo" description="Get help with the Rakazo app and self-hosted Rakazo.">
   <div class="container">
-    <Header starsLabel={starsLabel} />
+    <Header />
     <main id="main" class="privacy-copy">
       <h1>Rakazo support</h1>
       <p>
@@ -22,8 +18,8 @@ const starsLabel = stars === null ? "Star" : formatStarCount(stars);
       </p>
       <h2>Self-hosted Rakazo</h2>
       <p>
-        Start with the <a href={DOCS_URL}>self-hosting guide</a>. For reproducible bugs or feature requests,
-        open an issue in the <a href={`${GITHUB_URL}/issues`}>Rakazo GitHub repository</a>.
+        For help running Rakazo on your own infrastructure, or to report a reproducible bug, email{" "}
+        <a href="mailto:hello@rakazo.com">hello@rakazo.com</a> with your deployment details.
       </p>
       <h2>Account deletion</h2>
       <p>

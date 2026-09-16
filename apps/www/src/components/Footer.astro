@@ -8,7 +8,7 @@ import {
   localeHomePath,
   type Locale,
 } from "../i18n/locales";
-import { CHANGELOG_URL, DOCS_URL, GITHUB_URL, INBOX_ZERO_URL } from "../site";
+import { INBOX_ZERO_URL } from "../site";
 import Logo from "./Logo.astro";
 
 type Props = {
@@ -69,9 +69,6 @@ const {
       }
     </nav>
     <nav class="site-footer__links" aria-label={navLabel}>
-      <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
-      <a href={DOCS_URL} target="_blank" rel="noreferrer">{linkLabels.docs}</a>
-      <a href={CHANGELOG_URL} target="_blank" rel="noreferrer">{linkLabels.changelog}</a>
       <a href="/about/">{linkLabels.about}</a>
       <a href="/support/">{linkLabels.support}</a>
       <a href="/privacy/">{linkLabels.privacy}</a>
