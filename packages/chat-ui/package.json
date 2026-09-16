@@ -15,7 +15,8 @@
     "@rakazo/ui-tokens": "workspace:*",
     "@ronradtke/react-native-markdown-display": "^9.0.3",
     "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "@rakazo/ui-web": "workspace:*"
   },
   "peerDependencies": {
     "react": "19.2.3",

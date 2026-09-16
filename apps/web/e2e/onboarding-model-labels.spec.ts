@@ -6,6 +6,7 @@ test("onboarding model list never labels an older model the latest one", async (
 }, testInfo) => {
   const stamp = Date.now();
   await signup(page, `model-labels-${stamp}@rakazo.test`, "password12", `Model labels ${stamp}`);
+  await page.getByRole("button", { name: "Continue without a company" }).click();
   await expect(page.getByRole("heading", { name: "Connect a model" })).toBeVisible({
     timeout: 20_000,
   });
@@ -33,7 +34,8 @@ test("onboarding model list never labels an older model the latest one", async (
   );
 
   const models = page.getByRole("combobox", { name: "Model", exact: true });
-  const labels = await models.getByRole("option").allTextContents();
+  await models.click();
+  const labels = await page.getByRole("option").allTextContents();
   // "latest" is an upstream alias marker, so it lands on families like Claude Opus 4.5 while
   // newer models carry no marker. Rendered as-is it tells the user the opposite of the truth.
   expect(labels.filter((label) => /\blatest\b/i.test(label))).toEqual([]);
@@ -41,15 +43,15 @@ test("onboarding model list never labels an older model the latest one", async (
   // Select a non-default model before filtering the active provider out of the results.
   const alias = labels.find((label) => label.includes("(auto-updates)"));
   expect(alias).toBeTruthy();
-  await models.selectOption({ label: alias! });
-  const selectedModelId = await models.inputValue();
+  await page.getByRole("option", { name: alias!, exact: true }).click();
+  const selectedLabel = await models.textContent();
 
   await page.getByPlaceholder("Search providers and models").fill("no-provider-or-model");
   const selectedProvider = page.getByRole("button", { name: /Anthropic.*Selected/ });
   await expect(selectedProvider).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("No providers found")).toBeVisible();
   await selectedProvider.click();
-  await expect(models).toHaveValue(selectedModelId);
+  await expect(models).toHaveText(selectedLabel!);
   await page.getByPlaceholder("Search providers and models").fill("anthropic");
 
   await captureScreenshot(page, testInfo, "onboarding-model-labels");

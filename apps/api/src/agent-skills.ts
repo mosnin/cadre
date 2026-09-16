@@ -1,7 +1,13 @@
 import { ORPCError } from "@orpc/server";
 import { BUILTIN_AGENT_SKILLS } from "@rakazo/adapters";
 import type { Actor, AgentSkill, AgentSkillSource } from "@rakazo/contracts";
-import { buildSkillMd, isSkillReadOnly, parseSkillMd, type SkillSource } from "@rakazo/core";
+import {
+  buildSkillMd,
+  isSkillReadOnly,
+  parseSkillMd,
+  pluginSkillRecords,
+  type SkillSource,
+} from "@rakazo/core";
 import { IsolationError, type PrismaClient } from "@rakazo/db";
 
 type AgentSkillRow = {
@@ -112,6 +118,18 @@ export function resolveSkillContent(input: {
 }
 
 export function createAgentSkillsService(prisma: PrismaClient) {
+  async function imported(actor: Actor): Promise<AgentSkill[]> {
+    const plugins = await prisma.capabilityInstall.findMany({
+      where: { spaceId: actor.spaceId, userId: actor.userId, kind: "plugin" },
+    });
+    return plugins.flatMap((plugin) =>
+      pluginSkillRecords(plugin).map((skill) => ({
+        ...skill,
+        createdAt: plugin.createdAt.toISOString(),
+        updatedAt: plugin.createdAt.toISOString(),
+      })),
+    );
+  }
   async function owned(actor: Actor, skillId: string) {
     const row = await prisma.agentSkill.findFirst({
       where: {
@@ -130,9 +148,11 @@ export function createAgentSkillsService(prisma: PrismaClient) {
         where: { spaceId: actor.spaceId, userId: actor.userId },
         orderBy: [{ name: "asc" }, { id: "asc" }],
       });
-      const catalog = [...builtinCatalog(), ...rows.map(mapAgentSkill)].map(
-        ({ content: _content, ...entry }) => entry,
-      );
+      const catalog = [
+        ...builtinCatalog(),
+        ...rows.map(mapAgentSkill),
+        ...(await imported(actor)),
+      ].map(({ content: _content, ...entry }) => entry);
       return catalog;
     },
 
@@ -141,10 +161,15 @@ export function createAgentSkillsService(prisma: PrismaClient) {
         where: { spaceId: actor.spaceId, userId: actor.userId },
         orderBy: [{ name: "asc" }, { id: "asc" }],
       });
-      return [...builtinCatalog(), ...rows.map(mapAgentSkill)];
+      return [...builtinCatalog(), ...rows.map(mapAgentSkill), ...(await imported(actor))];
     },
 
     async get(actor: Actor, input: { skillId?: string; name?: string }): Promise<AgentSkill> {
+      if (input.skillId?.startsWith("plugin:")) {
+        const skill = (await imported(actor)).find((entry) => entry.id === input.skillId);
+        if (!skill) throw new ORPCError("NOT_FOUND");
+        return skill;
+      }
       if (input.skillId?.startsWith("builtin:")) {
         const builtin = builtinCatalog().find((skill) => skill.id === input.skillId);
         if (!builtin) throw new IsolationError();
@@ -165,7 +190,13 @@ export function createAgentSkillsService(prisma: PrismaClient) {
           name: { equals: name, mode: "insensitive" },
         },
       });
-      if (!row) throw new IsolationError();
+      if (!row) {
+        const plugin = (await imported(actor)).find(
+          (entry) => entry.name.toLowerCase() === name.toLowerCase(),
+        );
+        if (plugin) return plugin;
+        throw new IsolationError();
+      }
       return mapAgentSkill(row);
     },
 

@@ -1,5 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Button, Input, Label } from "@rakazo/ui-web";
+import { LoginSurface } from "@rakazo/ui-web/directory/login-surface";
+import { SignUpForm } from "@rakazo/ui-web/directory/signup-form";
 import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -44,8 +46,9 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
     return () => clearTimeout(timer);
   }, []);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (pending) return;
     setPending(true);
     setError(null);
     try {
@@ -140,8 +143,51 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
       </AuthFrame>
     );
   return (
-    <AuthFrame onSubmit={submit} title={title}>
-      {sent ? (
+    <AuthFrame onSubmit={mode === "up" ? undefined : submit} title={title}>
+      {mode === "up" ? (
+        <SignUpForm
+          title={null}
+          description={null}
+          values={{ name, email, password, confirmPassword: "", terms: false }}
+          onValuesChange={(next) => {
+            setName(next.name);
+            setEmail(next.email);
+            setPassword(next.password);
+          }}
+          onSubmit={() => submit()}
+          status={pending ? "loading" : error ? "error" : "idle"}
+          errorMessage={error ?? undefined}
+          confirmPassword={false}
+          terms={false}
+          strengthMeter={false}
+          submitLabel={t`Create account`}
+          labels={{
+            name: t`Name`,
+            email: t`Email`,
+            password: t`Password`,
+            showPassword: t`Show password`,
+            hidePassword: t`Hide password`,
+            pending: t`Working…`,
+          }}
+          validate={(values) => {
+            const errors: { email?: string; password?: string } = {};
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email))
+              errors.email = t`Enter a valid email address`;
+            if (values.password.length < 8) errors.password = t`Use at least 8 characters`;
+            return errors;
+          }}
+          className="max-w-none rounded-none border-0 p-0"
+          classNames={{ fields: "gap-2", submit: "h-12 text-base", footer: "mt-3" }}
+          footer={
+            <>
+              <Trans>Already have an account?</Trans>{" "}
+              <Link to="/sign-in" className="font-medium text-foreground">
+                <Trans>Sign in</Trans>
+              </Link>
+            </>
+          }
+        />
+      ) : sent ? (
         <div className="w-full text-center">
           <Link to="/sign-in" className="font-medium text-foreground">
             <Trans>Back to sign in</Trans>
@@ -149,22 +195,6 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
         </div>
       ) : (
         <>
-          {mode === "up" ? (
-            <div className="mb-4 w-full">
-              <Label htmlFor="name" className="text-muted-foreground">
-                <Trans>Name</Trans>
-              </Label>
-              <Input
-                id="name"
-                name="name"
-                autoComplete="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t`Your name`}
-                className={fieldClass}
-              />
-            </div>
-          ) : null}
           <div className="w-full">
             <Label htmlFor="email" className="text-muted-foreground">
               <Trans>Email</Trans>
@@ -242,13 +272,6 @@ export function AuthPage({ mode }: { mode: AuthMode }) {
                 <Trans>Don’t have an account?</Trans>{" "}
                 <Link to="/sign-up" className="font-medium text-foreground">
                   <Trans>Sign up</Trans>
-                </Link>
-              </>
-            ) : mode === "up" ? (
-              <>
-                <Trans>Already have an account?</Trans>{" "}
-                <Link to="/sign-in" className="font-medium text-foreground">
-                  <Trans>Sign in</Trans>
                 </Link>
               </>
             ) : (
@@ -352,12 +375,24 @@ function AuthFrame({
   children,
 }: {
   title: React.ReactNode;
-  onSubmit: (event: React.FormEvent) => void;
+  onSubmit?: (event: React.FormEvent) => void;
   children: React.ReactNode;
 }) {
+  const Frame = onSubmit ? "form" : "div";
   return (
-    <div className="flex min-h-full items-center justify-center bg-background px-6 py-16 text-foreground">
-      <form onSubmit={onSubmit} className="flex w-[460px] flex-col items-center">
+    <LoginSurface
+      context={
+        <div className="max-w-md">
+          <p className="text-5xl font-medium leading-tight tracking-tight">
+            <Trans>Work, in context.</Trans>
+          </p>
+          <p className="mt-6 max-w-sm text-lg leading-relaxed text-muted-foreground">
+            <Trans>A workspace for your company, its agents, and the work you do together.</Trans>
+          </p>
+        </div>
+      }
+    >
+      <Frame onSubmit={onSubmit} className="flex w-full max-w-[460px] flex-col items-center">
         <img
           src="/brand/cadre-icon.svg"
           alt="Cadre"
@@ -365,12 +400,12 @@ function AuthFrame({
           height={74}
           className="cadre-mark"
         />
-        <h1 aria-live="polite" className="mb-9 mt-7 text-4xl font-medium tracking-tight">
+        <h1 aria-live="polite" className="mb-9 mt-7 text-3xl font-medium tracking-tight">
           {title}
         </h1>
         {children}
-      </form>
-    </div>
+      </Frame>
+    </LoginSurface>
   );
 }
 

@@ -4,7 +4,8 @@ import { ChatMarkdown } from "@rakazo/chat-ui/web";
 import type { ThreadMessage } from "@rakazo/contracts";
 import { isApprovalAskBlock, isSecretAskBlock, selectedAskActionLabel } from "@rakazo/core";
 import { Button, Input } from "@rakazo/ui-web";
-import { useState } from "react";
+import { ToolApproval } from "@rakazo/ui-web/directory/tool-approval";
+import { useRef, useState } from "react";
 
 export type AskBlock = Extract<ThreadMessage["blocks"][number], { kind: "ask" }>;
 
@@ -54,14 +55,16 @@ export function AskCard({
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const submitting = pendingAction !== null;
+  const submittingRef = useRef(false);
   const approvalActions = isApprovalAskBlock(block) ? block.actions : undefined;
   const askActions = block.actions;
   const secretInput = isSecretAskBlock(block);
 
   async function submitAnswer(value: string) {
-    if (submitting) return;
+    if (submittingRef.current) return;
     if (secretInput ? value.length === 0 : !value.trim()) return;
     const submitValue = secretInput ? value : value.trim();
+    submittingRef.current = true;
     setPendingAction(secretInput ? "submit" : submitValue);
     setError(null);
     try {
@@ -69,12 +72,87 @@ export function AskCard({
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not submit this answer`);
     } finally {
+      submittingRef.current = false;
       setPendingAction(null);
     }
   }
 
+  if (approvalActions) {
+    const labelFor = (id: string) => {
+      const action = approvalActions.find((item) => item.id === id);
+      return approvalActionLabel(id, action?.label ?? id, action?.outcome);
+    };
+    const answered = block.status === "answered";
+    return (
+      <div className="w-full max-w-lg">
+        <ToolApproval
+          tool={null}
+          title={<ChatMarkdown>{block.text}</ChatMarkdown>}
+          status={
+            answered
+              ? block.answer === "deny"
+                ? "denied"
+                : "approved"
+              : !canAnswer
+                ? "inactive"
+                : submitting
+                  ? "approving"
+                  : "pending"
+          }
+          statusLabel={
+            answered
+              ? formatAnsweredState(
+                  block.answer,
+                  true,
+                  false,
+                  approvalActions.find((action) => action.id === block.answer)?.outcome,
+                  askActions,
+                )
+              : !canAnswer
+                ? t`No longer active`
+                : submitting
+                  ? t`Sending…`
+                  : t`Approval required`
+          }
+          defaultOpen={Boolean(block.detail)}
+          parameters={
+            block.detail
+              ? [
+                  {
+                    id: "details",
+                    label: t`Details`,
+                    value: (
+                      <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words">
+                        {block.detail}
+                      </pre>
+                    ),
+                  },
+                ]
+              : []
+          }
+          approveLabel={labelFor("allow")}
+          alwaysLabel={labelFor("always")}
+          denyLabel={labelFor("deny")}
+          detailsLabel={t`View details`}
+          onApprove={() => void submitAnswer("allow")}
+          onAlwaysAllow={
+            approvalActions.some((action) => action.id === "always")
+              ? () => void submitAnswer("always")
+              : undefined
+          }
+          onDeny={() => void submitAnswer("deny")}
+        />
+        {error ? (
+          <p role="alert" className="mt-3 text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-[74%] rounded-2xl border border-border bg-card px-5 py-4">
+    <div className="max-w-[74%] rounded-2xl bg-card px-5 py-4">
       <div className="text-[15.5px] leading-[1.5] text-foreground">
         <ChatMarkdown>{block.text}</ChatMarkdown>
       </div>
@@ -85,13 +163,7 @@ export function AskCard({
       ) : null}
       {block.status === "answered" ? (
         <div className="mt-3.5 text-[13.5px] font-medium text-success">
-          {formatAnsweredState(
-            block.answer,
-            Boolean(approvalActions),
-            secretInput,
-            approvalActions?.find((action) => action.id === block.answer)?.outcome,
-            askActions,
-          )}
+          {formatAnsweredState(block.answer, false, secretInput, undefined, askActions)}
         </div>
       ) : !canAnswer ? (
         <div className="mt-3.5 text-[13.5px] font-medium text-muted-foreground">
@@ -102,18 +174,12 @@ export function AskCard({
           {askActions.map((action) => (
             <Button
               key={action.id}
-              variant={approvalActions && action.id === "allow" ? "default" : "outline"}
+              variant="outline"
               className="h-auto w-full justify-start whitespace-normal px-3.5 py-3 text-start font-normal"
               disabled={submitting}
               onClick={() => void submitAnswer(action.id)}
             >
-              {pendingAction === action.id ? (
-                <Trans>Sending…</Trans>
-              ) : approvalActions ? (
-                approvalActionLabel(action.id, action.label, action.outcome)
-              ) : (
-                action.label
-              )}
+              {pendingAction === action.id ? <Trans>Sending…</Trans> : action.label}
             </Button>
           ))}
         </div>

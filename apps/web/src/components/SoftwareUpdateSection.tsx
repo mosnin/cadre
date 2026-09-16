@@ -8,7 +8,7 @@ import {
   isLikelyUpdaterRecreateDisconnect,
   recreateWaitTimeoutError,
 } from "../lib/updater-recreate";
-import { SuccessPop } from "./ai/primitives";
+import { SuccessStatus } from "./ai/primitives";
 
 const RECREATE_POLL_MS = 2_000;
 const RECREATE_POLL_ATTEMPTS = 90;
@@ -88,7 +88,7 @@ export function SoftwareUpdatePanel({
           {error}
         </p>
       ) : null}
-      {done ? <SuccessPop label={done} /> : null}
+      {done ? <SuccessStatus label={done} /> : null}
     </div>
   );
 }

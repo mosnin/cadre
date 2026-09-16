@@ -8,6 +8,7 @@ test("admin controls are protected, audited, and usable on desktop and mobile", 
   test.skip(!process.env.DATABASE_URL, "Requires the isolated E2E database");
   const db = createDb(process.env.DATABASE_URL!);
   const email = `admin-browser-${Date.now()}@example.test`;
+  const reason = `Verify schedule controls ${Date.now()}`;
   try {
     await signup(page, email, "password12", "Platform operator");
     await completeOnboarding(page);
@@ -32,12 +33,12 @@ test("admin controls are protected, audited, and usable on desktop and mobile", 
     await page.getByRole("button", { name: "Pause all schedules", exact: true }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("button", { name: "Confirm", exact: true })).toBeDisabled();
-    await dialog.getByLabel("Reason").fill("Browser verification of schedule controls");
+    await dialog.getByLabel("Reason").fill(reason);
     await captureScreenshot(page, testInfo, "admin-audited-action");
     await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
     await expect(dialog).not.toBeVisible();
     await page.getByRole("button", { name: "Audit", exact: true }).click();
-    await expect(page.getByText("Browser verification of schedule controls")).toBeVisible();
+    await expect(page.getByText(reason)).toBeVisible();
     await captureScreenshot(page, testInfo, "admin-audit-desktop");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("button", { name: "Overview", exact: true }).click();

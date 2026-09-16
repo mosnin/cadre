@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openUserMenu, signup } from "./helpers";
 
 test("workforce connection, responsive states, and pause control", async ({ page }, testInfo) => {
   // This optional integration is visible only on deployments that configure it.
@@ -47,6 +47,7 @@ test("workforce connection, responsive states, and pause control", async ({ page
       connection.enabled = route.request().postDataJSON().enabled;
     await route.fulfill({ json: { connection } });
   });
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Workforce", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByLabel("Agent key", { exact: true }).fill("test-company-key");

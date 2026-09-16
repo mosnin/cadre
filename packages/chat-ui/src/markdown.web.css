@@ -126,32 +126,8 @@
   margin: 0;
 }
 
-.rk-chat-markdown-copy {
-  position: absolute;
-  top: 0.5em;
-  right: 0.5em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75em;
-  height: 1.75em;
-  border: 1px solid var(--border);
-  border-radius: 0.4em;
-  background: var(--muted);
-  color: var(--muted-foreground);
-  opacity: 0;
-  transition: opacity 0.12s;
-  cursor: pointer;
-}
-
-.rk-chat-markdown-pre-wrap:hover .rk-chat-markdown-copy,
-.rk-chat-markdown-copy:focus-visible {
-  opacity: 1;
-}
-
-.rk-chat-markdown-copy:hover {
-  background: var(--accent);
-  color: var(--foreground);
+.rk-chat-markdown [data-slot="code-block"] pre code {
+  font-size: inherit;
 }
 
 .rk-chat-markdown blockquote {

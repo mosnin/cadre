@@ -28,7 +28,7 @@ describe("ChatMarkdown", () => {
       <ChatMarkdown streaming>{"```ts\nconst live = true;"}</ChatMarkdown>,
     );
 
-    expect(html).toContain("<pre>");
+    expect(html).toContain("<pre ");
     expect(html).toContain("const live = true;");
     expect(html).toContain("rk-chat-markdown-cursor");
   });

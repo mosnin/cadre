@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openUserMenu, signup } from "./helpers";
 
 test("account settings language picker includes Simplified Chinese and applies it", async ({
   page,
@@ -8,7 +8,7 @@ test("account settings language picker includes Simplified Chinese and applies i
   await signup(page, `ui-locale-zh-cn-${stamp}@rakazo.test`, "password12", "Locale QA");
   await completeOnboarding(page, testInfo);
 
-  await page.getByTestId("user-menu-trigger").click();
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Account settings", exact: true }).click();
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
@@ -34,7 +34,7 @@ test("account settings language picker includes Korean and applies it", async ({
   await signup(page, `ui-locale-ko-${stamp}@rakazo.test`, "password12", "Locale QA");
   await completeOnboarding(page, testInfo);
 
-  await page.getByTestId("user-menu-trigger").click();
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Account settings", exact: true }).click();
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
@@ -60,7 +60,7 @@ test("account settings language picker includes Spanish and applies it", async (
   await signup(page, `ui-locale-es-${stamp}@rakazo.test`, "password12", "Locale QA");
   await completeOnboarding(page, testInfo);
 
-  await page.getByTestId("user-menu-trigger").click();
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Account settings", exact: true }).click();
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();

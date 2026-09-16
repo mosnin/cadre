@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openNavigation, signup } from "./helpers";
 
 test("titled sidebar section expands and collapses", async ({ page }, testInfo) => {
   const stamp = Date.now();
@@ -7,6 +7,7 @@ test("titled sidebar section expands and collapses", async ({ page }, testInfo) 
   await completeOnboarding(page);
   await page.goto("/app");
   await page.waitForURL(/\/app\/[^/]+$/);
+  await openNavigation(page);
 
   const sidebar = page.locator("aside").first();
   const bot = sidebar.getByRole("button", { name: /^Chief/ });
@@ -31,6 +32,7 @@ test("titled sidebar section expands and collapses", async ({ page }, testInfo) 
 
   // Hover header with Chief selected underneath — outer edges must match.
   await bot.click();
+  await openNavigation(page);
   await toggle.hover();
   const headerBox = await toggle.boundingBox();
   const botBox = await bot.boundingBox();

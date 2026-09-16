@@ -3,6 +3,7 @@ import {
   captureScreenshot,
   completeOnboarding,
   createNamedBot,
+  openNavigation,
   openNewGroup,
   rpc,
   signup,
@@ -87,6 +88,7 @@ test("create group from + and see two bots in one transcript", async ({ page }, 
     });
   });
   await page.reload();
+  await openNavigation(page);
   // Anchor ^ so Now/Recent activity rows ("Bot · Draft team, …") do not match.
   const groupAvatar = page
     .locator("aside")
@@ -108,8 +110,10 @@ test("create group from + and see two bots in one transcript", async ({ page }, 
   const groupName = desktopSettings.locator("label:has-text('Name') input");
   await groupName.fill("Unsaved Draft team name");
   const sidebar = page.locator("aside").first();
+  await openNavigation(page);
   await sidebar.getByRole("button", { name: /^Review team/ }).click();
   await expect(groupName).toHaveValue("Review team");
+  await openNavigation(page);
   await sidebar.getByRole("button", { name: /^Draft team/ }).click();
   await expect(groupName).toHaveValue("Draft team");
   await page.route("**/rpc/groups/update", async (route) => route.abort("failed"));
@@ -122,8 +126,10 @@ test("create group from + and see two bots in one transcript", async ({ page }, 
   await page
     .getByRole("combobox", { name: "Message Draft team" })
     .fill("@Researcher unfinished draft");
+  await openNavigation(page);
   await sidebar.getByRole("button", { name: /^Review team/ }).click();
   await expect(page.getByRole("combobox", { name: "Message Review team" })).toHaveValue("");
+  await openNavigation(page);
   await sidebar.getByRole("button", { name: /^Draft team/ }).click();
   await expect(page.getByRole("combobox", { name: "Message Draft team" })).toHaveValue("");
 
@@ -163,10 +169,19 @@ test("create group from + and see two bots in one transcript", async ({ page }, 
   ).toBeVisible();
   await composer.fill("ask me which city to use");
   await composer.press("Enter");
-  // threads/get / member status can observe waiting_input before realtime paints the ask card.
-  await expect(page.getByRole("button", { name: /Research Writer waiting_input/ })).toBeVisible({
-    timeout: 60_000,
-  });
+  await expect
+    .poll(
+      async () => {
+        const snapshot = await rpc<{ members?: Array<{ botId: string; status?: string }> }>(
+          page,
+          "threads/get",
+          { groupId: draftGroupId },
+        );
+        return snapshot.members?.find((member) => member.botId === writerId)?.status;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe("waiting_input");
   const cityAsk = page.locator("p").filter({ hasText: /^Which city should I use\?$/ });
   if ((await cityAsk.count()) === 0) {
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -205,6 +220,7 @@ test("create group from + and see two bots in one transcript", async ({ page }, 
     await reviewSnapshotReleased;
     await route.continue();
   });
+  await openNavigation(page);
   await sidebar.getByRole("button", { name: /^Review team/ }).click();
   await reviewSnapshotIntercepted;
   await expect(page).toHaveURL(new RegExp(`/app/g/${reviewGroup.id}$`));
@@ -212,6 +228,7 @@ test("create group from + and see two bots in one transcript", async ({ page }, 
   releaseReviewSnapshot();
   await expect(page.getByRole("combobox", { name: "Message Review team" })).toBeVisible();
   await page.unroute("**/rpc/threads/get");
+  await openNavigation(page);
   await sidebar.getByRole("button", { name: /^Draft team/ }).click();
   await expect(page.getByText("Answered: Paris", { exact: true })).toBeVisible();
 

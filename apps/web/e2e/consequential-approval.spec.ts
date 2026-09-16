@@ -1,5 +1,12 @@
 import { expect, type Page, test } from "@playwright/test";
-import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import {
+  activeBotId,
+  captureScreenshot,
+  completeOnboarding,
+  openUserMenu,
+  rpc,
+  signup,
+} from "./helpers";
 
 test("actions run by default while optional confirmations live in advanced user settings", async ({
   page,
@@ -59,10 +66,14 @@ test("actions run by default while optional confirmations live in advanced user 
   expect(alwaysBox!.y).toBeGreaterThan(allowBox!.y + allowBox!.height - 2);
   expect(denyBox!.y).toBeGreaterThan(alwaysBox!.y + alwaysBox!.height - 2);
   expect(Math.abs(allowBox!.x - alwaysBox!.x)).toBeLessThan(2);
-  const optionList = allowOnce.locator("xpath=ancestor::div[contains(@class,'space-y-1.5')][1]");
+  const optionList = page.getByTestId("approval-actions");
   const listBox = await optionList.boundingBox();
   expect(listBox).toBeTruthy();
-  expect(Math.abs(allowBox!.width - listBox!.width)).toBeLessThan(2);
+  const padding = await optionList.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight);
+  });
+  expect(Math.abs(allowBox!.width - (listBox!.width - padding))).toBeLessThan(2);
   await captureScreenshot(page, testInfo, "53-action-confirmation-pending");
 
   await page.getByRole("button", { name: "Deny", exact: true }).click();
@@ -92,7 +103,7 @@ test("actions run by default while optional confirmations live in advanced user 
 });
 
 async function openUserSettings(page: Page) {
-  await page.getByTestId("user-menu-trigger").click();
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Account settings", exact: true }).click();
   await expect(page.getByTestId("user-settings")).toBeVisible();
 }

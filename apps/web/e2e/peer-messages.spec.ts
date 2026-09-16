@@ -20,9 +20,11 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
   await expect(page.getByRole("combobox", { name: "Message Chief" })).toBeVisible();
 
   const composer = page.getByRole("combobox", { name: "Message Chief" });
-  await composer.fill("message the bot named Researcher saying peer-exchange-alpha");
+  await composer.fill(
+    "message the bot named Researcher saying Please confirm receipt of the launch brief.",
+  );
   await composer.press("Enter");
-  await expect(page.getByText("messaging that bot now.").first()).toBeVisible({
+  await expect(page.getByText("I’ll send that to Researcher.").first()).toBeVisible({
     timeout: 60_000,
   });
 
@@ -39,7 +41,9 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
             )
             .map((block) => block.text ?? ""),
         );
-        return peerTexts.some((text) => text.includes("peer-exchange-alpha"));
+        return peerTexts.some((text) =>
+          text.includes("Please confirm receipt of the launch brief."),
+        );
       },
       { timeout: 60_000 },
     )
@@ -48,6 +52,13 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
   await expect(page.getByRole("button", { name: "Send" })).toBeVisible({ timeout: 60_000 });
 
   const transcript = page.getByTestId("transcript");
+  await expect(
+    transcript.getByText("Researcher received your message.", { exact: true }),
+  ).toBeVisible();
+  await expect(transcript).not.toContainText("A message just arrived");
+  await expect(transcript).not.toContainText("[bot]");
+  await expect(transcript).not.toContainText("done. i handled:");
+
   const chip = transcript
     .getByTestId("peer-receipt-chip")
     .filter({ hasText: "Researcher" })
@@ -58,16 +69,19 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
   await expect(chip.locator(".rakazo-bot-avatar")).toBeVisible();
   await expect(chip).not.toContainText("{peer}");
   // User bubble still contains the phrase; peer body must not appear outside the chip.
-  await expect(chip).not.toContainText("peer-exchange-alpha");
-  await expect(transcript.getByText("peer-exchange-alpha")).toHaveCount(1);
+  await expect(chip).not.toContainText("Please confirm receipt of the launch brief.");
+  await expect(transcript.getByText("Please confirm receipt of the launch brief.")).toHaveCount(1);
   const assertChipLeftAligned = async () => {
-    const transcriptBox = await transcript.boundingBox();
+    const transcriptBox = await transcript.locator("[aria-live=off]").boundingBox();
     const chipBox = await chip.boundingBox();
     expect(transcriptBox).not.toBeNull();
     expect(chipBox).not.toBeNull();
-    // Transcript padding is 16px mobile / 28px desktop; centering must fail this assertion.
+    // Receipts align to the readable conversation column at every viewport.
     expect(chipBox!.x - transcriptBox!.x).toBeLessThanOrEqual(32);
-    expect(chipBox!.width).toBeLessThan(transcriptBox!.width / 2);
+    // The label has intrinsic width; phone typography can exceed half the column.
+    // It must stay compact, left aligned, and clear of the opposite gutter.
+    expect(chipBox!.x).toBeGreaterThanOrEqual(transcriptBox!.x);
+    expect(chipBox!.x + chipBox!.width).toBeLessThan(transcriptBox!.x + transcriptBox!.width - 32);
   };
 
   await assertChipLeftAligned();
@@ -88,7 +102,7 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
   await expect(view).toBeVisible();
   await expect(view.getByRole("heading", { name: /Chief · Researcher/ })).toBeVisible();
   await expect(view.getByText("This chat is view-only")).toBeVisible();
-  await expect(view.getByText("peer-exchange-alpha").first()).toBeVisible({
+  await expect(view.getByText("Please confirm receipt of the launch brief.").first()).toBeVisible({
     timeout: 30_000,
   });
   await expect(view.getByRole("textbox")).toHaveCount(0);

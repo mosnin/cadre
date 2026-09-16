@@ -1,22 +1,24 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { Space } from "@rakazo/contracts";
+import { Button, Input } from "@rakazo/ui-web";
 import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@rakazo/ui-web";
+  CenterMorphModal,
+  CenterMorphModalContent,
+} from "@rakazo/ui-web/directory/center-morph-modal";
+import { Popover, PopoverContent, PopoverTrigger } from "@rakazo/ui-web/directory/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@rakazo/ui-web/directory/select";
 import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { rpc, selectSpace, withSpaceHeaders } from "../lib/rpc";
 
 type Connection = { spaceId: string; companyName: string; companySlug: string; connected: boolean };
-async function request(path = "", method = "GET", spaceId?: string) {
+export async function companyWorkspaceRequest(path = "", method = "GET", spaceId?: string) {
   const response = await fetch(`/api/v1/company-workspaces${path}`, {
     method,
     credentials: "include",
@@ -36,7 +38,7 @@ export function CompanyWorkspaceSettings({ onConnect }: { onConnect: (spaceId: s
   const [current, setCurrent] = useState("");
   useEffect(() => {
     let alive = true;
-    void Promise.all([request(), rpc.me()])
+    void Promise.all([companyWorkspaceRequest(), rpc.me()])
       .then(([result, me]) => {
         if (!alive) return;
         setAvailable(result.available);
@@ -52,11 +54,17 @@ export function CompanyWorkspaceSettings({ onConnect }: { onConnect: (spaceId: s
   }, []);
   const connection = connections.find((row) => row.spaceId === current);
   return (
-    <section className="mt-5 rounded-xl border border-border px-4 py-4">
+    <section className="mt-8">
       <h3 className="text-[15px] font-medium">
         <Trans>Company OS</Trans>
       </h3>
-      <p className="mt-2 text-sm">{connection?.companyName ?? t`No company connected`}</p>
+      <p className="mt-2 text-sm">
+        {error
+          ? t`Connection unavailable`
+          : available === undefined
+            ? t`Loading company…`
+            : (connection?.companyName ?? t`No company connected`)}
+      </p>
       {connection ? (
         <p className="mt-1 text-sm text-muted-foreground">
           {connection.connected ? t`Connected` : t`Disconnected`}
@@ -81,7 +89,7 @@ export function CompanyWorkspaceSettings({ onConnect }: { onConnect: (spaceId: s
             variant="ghost"
             onClick={async () => {
               try {
-                await request("/disconnect", "POST");
+                await companyWorkspaceRequest("/disconnect", "POST");
                 setConnections((rows) =>
                   rows.map((row) => (row.spaceId === current ? { ...row, connected: false } : row)),
                 );
@@ -114,8 +122,15 @@ export function CompanyConnectionDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
+    const restored = (event: PageTransitionEvent) => {
+      if (event.persisted) setPending(false);
+    };
+    window.addEventListener("pageshow", restored);
+    return () => window.removeEventListener("pageshow", restored);
+  }, []);
+  useEffect(() => {
     let alive = true;
-    void Promise.all([rpc.spaces.list(), request()])
+    void Promise.all([rpc.spaces.list(), companyWorkspaceRequest()])
       .then(([result, status]) => {
         if (alive) {
           setSpaces(result.spaces);
@@ -132,21 +147,23 @@ export function CompanyConnectionDialog({
     };
   }, []);
   return (
-    <Dialog
+    <CenterMorphModal
       open
       onOpenChange={(value) => {
         if (!value && !pending) onClose();
       }}
     >
-      <DialogContent
-        className="max-w-md"
-        aria-label={createCompany ? t`Create a company` : t`Connect a company`}
+      <CenterMorphModalContent
+        className="max-w-lg p-6 sm:p-8"
+        dismissible={!pending}
+        closeButtonLabel={t`Close company connection`}
+        ariaLabel={createCompany ? t`Create a company` : t`Connect a company`}
       >
-        <DialogHeader>
-          <DialogTitle>{createCompany ? t`Create a company` : t`Connect a company`}</DialogTitle>
-        </DialogHeader>
+        <h2 className="pe-12 text-2xl font-medium tracking-tight">
+          {createCompany ? t`Create a company` : t`Connect a company`}
+        </h2>
         <form
-          className="space-y-4"
+          className="mt-8 space-y-6"
           onSubmit={async (event) => {
             event.preventDefault();
             setPending(true);
@@ -159,7 +176,7 @@ export function CompanyConnectionDialog({
                 setSpaces((rows) => [...rows, created]);
                 setSpaceId(target);
               }
-              const result = await request(
+              const result = await companyWorkspaceRequest(
                 createCompany ? "/connect?create=1" : "/connect",
                 "POST",
                 target,
@@ -172,23 +189,22 @@ export function CompanyConnectionDialog({
           }}
         >
           <div className="grid gap-2 text-sm">
-            <label htmlFor="company-workspace-select">
+            <span>
               <Trans>Workspace</Trans>
-            </label>
-            <select
-              id="company-workspace-select"
-              className="rounded-md border border-border bg-background p-2"
-              value={spaceId}
-              disabled={!available || pending}
-              onChange={(e) => setSpaceId(e.target.value)}
-            >
-              <option value="">{t`New workspace`}</option>
-              {spaces.map((space) => (
-                <option key={space.id} value={space.id}>
-                  {space.name}
-                </option>
-              ))}
-            </select>
+            </span>
+            <Select value={spaceId} disabled={!available || pending} onValueChange={setSpaceId}>
+              <SelectTrigger ariaLabel={t`Workspace`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">{t`New workspace`}</SelectItem>
+                {spaces.map((space) => (
+                  <SelectItem key={space.id} value={space.id}>
+                    {space.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {!spaceId ? (
             <label htmlFor="company-workspace-name" className="grid gap-2 text-sm">
@@ -218,8 +234,8 @@ export function CompanyConnectionDialog({
             {pending ? t`Connecting…` : t`Continue to Company OS`}
           </Button>
         </form>
-      </DialogContent>
-    </Dialog>
+      </CenterMorphModalContent>
+    </CenterMorphModal>
   );
 }
 export function WorkspaceSwitcher({
@@ -246,7 +262,7 @@ export function WorkspaceSwitcher({
     let alive = true;
     const refresh = () => {
       setConnectionState("loading");
-      void request()
+      void companyWorkspaceRequest()
         .then((result) => {
           if (alive) {
             setConnections(result.connections);
@@ -285,16 +301,29 @@ export function WorkspaceSwitcher({
   const current = spaces.find((space) => space.id === currentSpaceId);
   const company = connections.find((row) => row.spaceId === currentSpaceId);
   return (
-    <div className="mx-3 mb-3 app-no-drag">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          className="flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm hover:bg-muted"
-          aria-label={t`Switch workspace`}
-        >
-          <span className="truncate">{current?.name ?? t`Workspace`}</span>
-          <ChevronDown aria-hidden="true" />
+    <div className="app-no-drag w-full">
+      <Popover
+        open={open}
+        onOpenChange={setOpen}
+        align="start"
+        sideOffset={8}
+        gooStrength={0}
+        className="w-full"
+      >
+        <PopoverTrigger>
+          <button
+            type="button"
+            className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left text-xl font-medium tracking-tight hover:bg-muted"
+            aria-label={t`Switch workspace`}
+          >
+            <span className="truncate">{current?.name ?? t`Workspace`}</span>
+            <ChevronDown aria-hidden="true" />
+          </button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-72 max-w-[calc(100vw-2rem)] gap-1 p-2">
+        <PopoverContent
+          ariaLabel={t`Workspaces`}
+          className="w-72 max-w-[calc(100vw-2rem)] gap-1 p-2"
+        >
           <div className="max-h-64 overflow-y-auto">
             {spaces.map((space) => {
               const linked = connections.find((row) => row.spaceId === space.id);
@@ -349,37 +378,31 @@ export function WorkspaceSwitcher({
           </Button>
         </PopoverContent>
       </Popover>
-      <div className="mt-2 border-t border-border pt-3" data-testid="workspace-company-status">
-        <div className="px-2 text-xs text-muted-foreground">
-          <Trans>Company OS</Trans>
-        </div>
-        <div className="mt-1 px-2 text-sm truncate">
-          {connectionState === "loading"
-            ? t`Loading connection…`
-            : connectionState === "error"
-              ? t`Could not load company connection`
-              : (company?.companyName ?? t`No company connected`)}
-        </div>
-        {company && connectionState === "ready" ? (
-          <div className="mt-1 px-2 text-xs text-muted-foreground">
-            {company.connected ? t`Connected` : t`Disconnected`}
-          </div>
-        ) : null}
-        <Button
-          variant="ghost"
-          className="mt-1 w-full justify-start"
-          onClick={() => {
-            if (company?.connected) {
-              onManage();
-              return;
-            }
+      <button
+        type="button"
+        data-testid="workspace-company-status"
+        className="flex min-h-11 w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+        onClick={() => {
+          if (company?.connected) onManage();
+          else {
             setCreateCompany(false);
             setConnectOpen(true);
-          }}
-        >
-          {company?.connected ? t`Manage connection` : t`Connect Company OS`}
-        </Button>
-      </div>
+          }
+        }}
+      >
+        <span className="min-w-0 flex-1 truncate">
+          {connectionState === "loading"
+            ? t`Loading Company OS…`
+            : connectionState === "error"
+              ? t`Company OS unavailable`
+              : company
+                ? company.companyName
+                : t`Connect Company OS`}
+        </span>
+        {company ? (
+          <span className="text-xs">{company.connected ? t`Connected` : t`Disconnected`}</span>
+        ) : null}
+      </button>
       {message ? (
         <p role="status" className="mt-2 text-sm text-muted-foreground">
           {message}
@@ -393,5 +416,95 @@ export function WorkspaceSwitcher({
         />
       ) : null}
     </div>
+  );
+}
+
+/** Company context remains reachable while navigation is closed. */
+export function WorkspaceIdentity({
+  spaceId,
+  workspaceName,
+}: {
+  spaceId?: string;
+  workspaceName: string;
+}) {
+  const { t } = useLingui();
+  const [connection, setConnection] = useState<Connection | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [connectOpen, setConnectOpen] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const refresh = () => {
+      setLoaded(false);
+      setLoadFailed(false);
+      setConnection(null);
+      void companyWorkspaceRequest()
+        .then((result) => {
+          if (!alive) return;
+          setConnection(
+            result.connections.find((row: Connection) => row.spaceId === spaceId) ?? null,
+          );
+          setLoaded(true);
+        })
+        .catch(() => {
+          if (alive) {
+            setLoaded(true);
+            setLoadFailed(true);
+          }
+        });
+    };
+    refresh();
+    window.addEventListener("company-workspaces-changed", refresh);
+    return () => {
+      alive = false;
+      window.removeEventListener("company-workspaces-changed", refresh);
+    };
+  }, [spaceId]);
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={t`Company context`}
+        onClick={() => setOpen(true)}
+        className="app-no-drag flex min-h-11 min-w-0 w-full sm:w-40 flex-col justify-center rounded-xl px-2 text-left hover:bg-accent"
+      >
+        <span className="truncate text-sm font-medium w-full">{workspaceName}</span>
+        <span className="truncate text-xs text-muted-foreground w-full">
+          {!loaded
+            ? t`Loading company…`
+            : loadFailed
+              ? t`Connection unavailable`
+              : connection?.connected
+                ? connection.companyName
+                : t`Connect Company OS`}
+        </span>
+      </button>
+      {open ? (
+        <CenterMorphModal
+          open
+          onOpenChange={(next) => {
+            if (!next) setOpen(false);
+          }}
+        >
+          <CenterMorphModalContent
+            ariaLabel={t`Company context`}
+            closeButtonLabel={t`Close company context`}
+            className="max-w-lg p-6 sm:p-8"
+          >
+            <h2 className="pe-12 text-2xl font-medium tracking-tight">{workspaceName}</h2>
+            <CompanyWorkspaceSettings
+              onConnect={() => {
+                setOpen(false);
+                setConnectOpen(true);
+              }}
+            />
+          </CenterMorphModalContent>
+        </CenterMorphModal>
+      ) : null}
+      {connectOpen ? (
+        <CompanyConnectionDialog initialSpaceId={spaceId} onClose={() => setConnectOpen(false)} />
+      ) : null}
+    </>
   );
 }

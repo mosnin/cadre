@@ -24,8 +24,9 @@ import {
   Textarea,
   Toggle,
 } from "@rakazo/ui-web";
+import { Disclosure } from "@rakazo/ui-web/components/ui/disclosure";
 import { X } from "lucide-react";
-import { lazy, Suspense, useEffect, useId, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { rpc } from "../../lib/rpc";
 
 const ScratchpadSection = lazy(() =>
@@ -84,10 +85,12 @@ export function CreateBotForm({
   const [description, setDescription] = useState("");
   const [computerMode, setComputerMode] = useState<ComputerMode>("team");
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit() {
-    if (!name.trim() || submitting) return;
+    if (!name.trim() || submittingRef.current) return;
+    submittingRef.current = true;
     setError(null);
     setSubmitting(true);
     try {
@@ -100,6 +103,7 @@ export function CreateBotForm({
     } catch (err) {
       setError(err instanceof Error ? err.message : t`Could not create bot`);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -108,9 +112,15 @@ export function CreateBotForm({
     <div>
       <div className="mb-4 flex items-center justify-between">
         <span className="text-[13.5px] text-muted-foreground">
-          <Trans>New bot</Trans>
+          <Trans>New agent</Trans>
         </span>
-        <Button variant="ghost" size="icon-sm" aria-label={t`Cancel new bot`} onClick={onCancel}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t`Cancel new agent`}
+          disabled={submitting}
+          onClick={onCancel}
+        >
           <X size={16} strokeWidth={1.8} />
         </Button>
       </div>
@@ -130,40 +140,45 @@ export function CreateBotForm({
           value={name}
           maxLength={BOT_NAME_MAX_LENGTH}
           onChange={(e) => setName(e.target.value)}
-          placeholder={t`Name this bot`}
-          className="mt-2"
-        />
-      </label>
-      <label htmlFor={`${ids}-title`} className={fieldLabelClass}>
-        <Trans>Title</Trans>
-        <Input
-          id={`${ids}-title`}
-          value={title}
-          maxLength={BOT_TITLE_MAX_LENGTH}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={t`Describe what this bot does`}
+          placeholder={t`Name this agent`}
           className="mt-2"
         />
       </label>
       <label htmlFor={`${ids}-description`} className={fieldLabelClass}>
-        <Trans>Description</Trans>
+        <Trans>Purpose</Trans>
         <Textarea
           id={`${ids}-description`}
           value={description}
           maxLength={BOT_DESCRIPTION_MAX_LENGTH}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder={t`What this bot is for`}
+          placeholder={t`What should this agent help with?`}
           rows={4}
           className="mt-2"
         />
       </label>
-      <ComputerModePicker value={computerMode} onChange={setComputerMode} />
+      <Disclosure
+        className="mt-6 text-sm text-muted-foreground"
+        summary={<Trans>Advanced settings</Trans>}
+      >
+        <label htmlFor={`${ids}-title`} className={fieldLabelClass}>
+          <Trans>Title</Trans>
+          <Input
+            id={`${ids}-title`}
+            value={title}
+            maxLength={BOT_TITLE_MAX_LENGTH}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={t`Describe what this bot does`}
+            className="mt-2"
+          />
+        </label>
+        <ComputerModePicker value={computerMode} onChange={setComputerMode} />
+      </Disclosure>
       <Button
         className="mt-5"
         disabled={!name.trim() || submitting}
         onClick={() => void handleSubmit()}
       >
-        {submitting ? <Trans>Creating…</Trans> : <Trans>Create</Trans>}
+        {submitting ? <Trans>Creating…</Trans> : <Trans>Create agent</Trans>}
       </Button>
     </div>
   );
@@ -350,15 +365,15 @@ export function BotSettings({
           className="mt-2"
         />
       </label>
-      <details data-testid="bot-settings-advanced" className="group mt-5">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[14px] text-muted-foreground">
+      <Disclosure
+        data-testid="bot-settings-advanced"
+        className="group mt-5"
+        summary={
           <span className="text-muted-foreground">
             <Trans>Advanced</Trans>
           </span>
-          <span aria-hidden="true" className="transition-transform group-open:rotate-90">
-            ›
-          </span>
-        </summary>
+        }
+      >
         <ComputerModePicker value={computerMode} onChange={setComputerMode} />
         <Suspense fallback={null}>
           <ScratchpadSection botId={bot.id} />
@@ -466,7 +481,7 @@ export function BotSettings({
             </NativeSelect>
           </label>
         ) : null}
-      </details>
+      </Disclosure>
       {error ? <p className="mt-2 text-[13px] text-destructive">{error}</p> : null}
       <div className="mt-5 flex flex-col items-start gap-3">
         <Button

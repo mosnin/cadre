@@ -3,6 +3,8 @@ import {
   activeBotId,
   captureScreenshot,
   completeOnboarding,
+  openNavigation,
+  openUserMenu,
   realSandboxTimeout,
   rpc,
   signup,
@@ -25,24 +27,32 @@ test("two users are isolated and a bot completes durable work", async ({ browser
   const stamp = Date.now();
   await signup(pageA, `ada-${stamp}@rakazo.test`, "password12", "Ada", testInfo);
   await completeOnboarding(pageA, testInfo);
-  await expect(pageA.getByText("Chief").first()).toBeVisible();
+  await expect(pageA.getByTestId("bot-settings-trigger")).toBeVisible();
 
   await signup(pageB, `bob-${stamp}@rakazo.test`, "password12", "Bob");
   await completeOnboarding(pageB);
-  await expect(pageB.getByText("Chief").first()).toBeVisible();
+  await expect(pageB.getByTestId("bot-settings-trigger")).toBeVisible();
   await expect(pageB.getByText("Ada", { exact: true })).toHaveCount(0);
 
   const composer = pageA.getByPlaceholder(/Message/);
   await composer.fill("write a file in your home called notes/result.txt that says isolation-ok");
   await pageA.keyboard.press("Enter");
   await expect(
-    pageA.getByText(/writing that into my home|isolation-ok|handled/i).first(),
+    pageA
+      .getByTestId("transcript")
+      .getByText(/writing that into my home|isolation-ok|handled/i)
+      .first(),
   ).toBeVisible({
     timeout: 30_000,
   });
 
   await pageA.reload();
-  await expect(pageA.getByText(/isolation-ok|writing that into my home/i).first()).toBeVisible();
+  await expect(
+    pageA
+      .getByTestId("transcript")
+      .getByText(/isolation-ok|writing that into my home/i)
+      .first(),
+  ).toBeVisible();
   await captureScreenshot(pageA, testInfo, "07-durable-bot-work");
 
   await a.close();
@@ -58,7 +68,10 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await composer.fill("install the gsc cli and sign in");
   await page.keyboard.press("Enter");
   await expect(
-    page.getByText(/handing you the computer|sign in to continue|protected input/i).first(),
+    page
+      .getByTestId("transcript")
+      .getByText(/handing you the computer|sign in to continue|protected input/i)
+      .first(),
   ).toBeVisible({ timeout: realSandboxTimeout(90_000, 30_000) });
   await expect
     .poll(() => threadRunStatus(page), {
@@ -88,7 +101,12 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await captureScreenshot(page, testInfo, "09-computer-takeover-outcomes");
   await page.getByRole("menuitem", { name: "I’m done", exact: true }).click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeHidden();
-  await expect(page.getByText(/signed in|session stays/i).first()).toBeVisible({
+  await expect(
+    page
+      .getByTestId("transcript")
+      .getByText(/signed in|session stays/i)
+      .first(),
+  ).toBeVisible({
     timeout: realSandboxTimeout(90_000, 30_000),
   });
 
@@ -115,7 +133,12 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await page.getByTestId("computer-more-button").click();
   await page.getByRole("menuitem", { name: "Skip", exact: true }).click();
   await expect(page.getByRole("button", { name: "Close computer" })).toBeHidden();
-  await expect(page.getByText(/login was skipped/i).last()).toBeVisible({
+  await expect(
+    page
+      .getByTestId("transcript")
+      .getByText(/login was skipped/i)
+      .last(),
+  ).toBeVisible({
     timeout: realSandboxTimeout(90_000, 30_000),
   });
   await captureScreenshot(page, testInfo, "09a-computer-takeover-skipped");
@@ -138,7 +161,8 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await expect(page.getByText("Monday briefing")).toBeVisible();
   await captureScreenshot(page, testInfo, "10-routine-created");
 
-  await page.getByText("Integrations").click();
+  await openUserMenu(page);
+  await page.getByRole("button", { name: "Integrations", exact: true }).click();
   await expect(page.getByPlaceholder("Search apps")).toBeVisible();
   const featured = page.getByTestId("featured-connectors");
   await expect(featured).toContainText(
@@ -207,7 +231,8 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await page
     .getByPlaceholder("https://example.com/openapi.json")
     .fill("https://api.example.test/openapi.json");
-  await page.locator("select").selectOption("bearer");
+  await page.getByRole("combobox", { name: "Authentication", exact: true }).click();
+  await page.getByRole("option", { name: "Bearer token", exact: true }).click();
   await page.getByPlaceholder("Credential").fill("fake-openapi-browser-credential");
   await page.getByRole("button", { name: "Verify and add", exact: true }).click();
   await expect(
@@ -217,7 +242,8 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
 
   await page.getByRole("button", { name: "Close integrations" }).click();
 
-  await page.getByText("Chief").first().click();
+  await openNavigation(page);
+  await sidebarBotButton(page, /^Chief$/).click();
   const gear = page.getByRole("button", { name: "Show settings" });
   if (!(await gear.isVisible().catch(() => false))) {
     await page.getByTitle("Agent computer").click();
@@ -232,6 +258,7 @@ test("takeover, routine, plugins, and export are reachable", async ({ page }, te
   await expect(settings.getByRole("button", { name: "Delete bot" })).toHaveCount(0);
   await page.getByRole("button", { name: "Close panel" }).click();
 
+  await openNavigation(page);
   await page.locator("aside").first().getByRole("button", { name: /Chief/ }).first().click({
     button: "right",
   });
@@ -270,11 +297,14 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
   const composer = page.locator('textarea[name="chat-message"]');
   await composer.fill("spawn a bot named Scout to research venues");
   await page.keyboard.press("Enter");
+  await openNavigation(page);
   await expect(sidebarBotButton(page, /Scout/)).toBeVisible({
     timeout: 30_000,
   });
   await captureScreenshot(page, testInfo, "13-spawned-bot");
+  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
 
+  await openNavigation(page);
   await page
     .locator("[data-sidebar-group]")
     .getByRole("button", { name: /^Chief/ })
@@ -290,6 +320,10 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
   await expect(composer).toHaveAttribute("placeholder", "Message Chief");
   await expect(page.getByRole("button", { name: "Send", exact: true })).toBeVisible();
   await composer.fill("Use the newer report and keep the answer short.");
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Attach file", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Dictate", exact: true })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Send", exact: true })).toBeFocused();
   await page.keyboard.press("Enter");
@@ -335,6 +369,7 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
   await page.getByPlaceholder("Password").fill("password12");
   await page.getByRole("button", { name: "Continue with email" }).click();
   await page.waitForURL(/\/app/, { timeout: 20_000 });
+  await openNavigation(page);
   await expect(sidebarBotButton(page, /^Chief/)).toBeVisible();
   await expect(sidebarBotButton(page, /Scout/)).toBeVisible();
   await captureScreenshot(page, testInfo, "15-restored-session");
@@ -347,7 +382,8 @@ test("bot context menu pins, duplicates, edits, and confirms deletion", async ({
   await signup(page, `menu-${stamp}@rakazo.test`, "password12", "Menu");
   await completeOnboarding(page);
 
-  const chief = page.getByRole("button", { name: /Chief/ }).first();
+  await openNavigation(page);
+  const chief = page.locator(`[data-roster-bot-id="${activeBotId(page)}"]`);
   await chief.click({ button: "right" });
   await expect(page.getByRole("menu", { name: "Actions for Chief" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Edit Profile" })).toBeVisible();
@@ -368,6 +404,8 @@ test("bot context menu pins, duplicates, edits, and confirms deletion", async ({
   await chief.click({ button: "right" });
   await expect(page.getByRole("menuitem", { name: "Unpin", exact: true })).toBeVisible();
   await page.getByRole("menuitem", { name: "Duplicate" }).click();
+  await expect(page.getByTestId("bot-settings-trigger")).toContainText("Chief copy");
+  await openNavigation(page);
   await expect(page.getByText("Chief copy").first()).toBeVisible();
   await captureScreenshot(page, testInfo, "17-pinned-and-duplicated-bot");
 

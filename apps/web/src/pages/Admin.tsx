@@ -7,8 +7,17 @@ import {
   Input,
   Textarea,
 } from "@rakazo/ui-web";
+import { Table as DirectoryTable } from "@rakazo/ui-web/directory/table";
 import { ArrowLeft, ArrowUpRight, RefreshCw, ShieldCheck } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  Children,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { Link } from "react-router-dom";
 import { authClient } from "../lib/auth";
 import { rpc } from "../lib/rpc";
@@ -994,25 +1003,29 @@ function ConfirmAction({
   );
 }
 function Table({ headers, children }: { headers: string[]; children: ReactNode }) {
+  const rows = Children.toArray(children).filter(isValidElement) as ReactElement<{
+    children: ReactNode;
+  }>[];
+  const data = rows.map((row, index) => ({
+    id: String(row.key ?? index),
+    cells: Children.toArray(row.props.children).map((cell) =>
+      isValidElement<{ children: ReactNode }>(cell) ? cell.props.children : cell,
+    ),
+  }));
   return (
-    <div className="overflow-x-auto rounded-xl border">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-muted/40 text-xs text-muted-foreground">
-          <tr>
-            {headers.map((header, index) => (
-              <th
-                key={`${header}-${index}`}
-                scope="col"
-                className="whitespace-nowrap px-4 py-3 font-medium"
-              >
-                {header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y">{children}</tbody>
-      </table>
-    </div>
+    <DirectoryTable<(typeof data)[number]>
+      virtualize={false}
+      data={data}
+      getRowId={(row) => row.id}
+      columns={headers.map((header, index) => ({
+        key: String(index),
+        header,
+        cell: (row) => row.cells[index],
+        width: index === headers.length - 1 && !header ? "140px" : undefined,
+      }))}
+      minColumnWidth={140}
+      className="rounded-xl"
+    />
   );
 }
 function Cell({ children }: { children: ReactNode }) {

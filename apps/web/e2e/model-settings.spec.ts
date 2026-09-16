@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openUserMenu, signup } from "./helpers";
 
 const LOCAL_MODEL_ID = "rakazo-e2e-local";
 const LOCAL_MODEL_REPLY = "OpenAI-compatible endpoint verified end to end.";
@@ -64,7 +64,7 @@ test("connects, lists, and uses an OpenAI-compatible endpoint", async ({ page },
     await signup(page, `local-model-${stamp}@rakazo.test`, "password12", userName);
     await completeOnboarding(page);
 
-    await page.getByRole("button", { name: new RegExp(userName) }).click();
+    await openUserMenu(page);
     await page.getByRole("button", { name: "Models", exact: true }).click();
     const providerSearch = page.getByPlaceholder("Search providers");
     await providerSearch.fill("openai-compatible");
@@ -87,11 +87,12 @@ test("connects, lists, and uses an OpenAI-compatible endpoint", async ({ page },
     await expect(page.getByLabel("Model id")).toHaveValue("manual-model-not-listed");
     await page.getByRole("button", { name: "Use a found model" }).click();
     const discoveredModels = page.getByRole("combobox", { name: "Models from server" });
-    await expect(discoveredModels).toHaveValue(LOCAL_MODEL_ID);
-    await discoveredModels.selectOption("");
+    await expect(discoveredModels).toContainText(LOCAL_MODEL_ID);
+    await discoveredModels.click();
+    await page.getByRole("option", { name: "Other model…", exact: true }).click();
     await expect(page.getByLabel("Model id")).toBeVisible();
     await page.getByRole("button", { name: "Find models" }).click();
-    await expect(discoveredModels).toHaveValue(LOCAL_MODEL_ID);
+    await expect(discoveredModels).toContainText(LOCAL_MODEL_ID);
     await expect(page.getByText("Found 1 model.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Save" })).toBeEnabled();
     await captureScreenshot(page, testInfo, "openai-compatible-model-discovery");
@@ -128,17 +129,19 @@ test("model settings connect, replace, and cancel provider authentication", asyn
   const stamp = Date.now();
   const userName = `Models ${stamp}`;
   await signup(page, `models-${stamp}@rakazo.test`, "password12", userName);
+  await expect(page.getByRole("heading", { name: "Connect your company" })).toBeVisible();
+  await page.getByRole("button", { name: "Continue without a company" }).click();
   await expect(page.getByLabel("API key")).toHaveAttribute("autocomplete", "new-password");
   await completeOnboarding(page);
 
-  await page.getByRole("button", { name: new RegExp(userName) }).click();
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Models", exact: true }).click();
   await expect(page.getByRole("button", { name: "Close model settings" })).toBeVisible();
 
   const providerSearch = page.getByPlaceholder("Search providers");
   await providerSearch.fill("scripted");
   await page.getByRole("button", { name: /Scripted/ }).click();
-  await expect(page.getByRole("combobox", { name: "Model" })).toHaveText(/Scripted runtime/);
+  await expect(page.getByRole("combobox", { name: "Model" })).toHaveValue(/Scripted runtime/);
   const apiKeyInput = page.getByLabel("API key");
   await expect(apiKeyInput).toHaveAttribute("autocomplete", "new-password");
   await apiKeyInput.fill("fake-scripted-key-one");

@@ -4,7 +4,7 @@ import type {
   AgentRuntime,
   AgentRuntimeEvent,
 } from "@rakazo/adapter-kit";
-import { abortableDelay, inferHandoffTargetName } from "@rakazo/core";
+import { abortableDelay, BOT_MESSAGE_WAKE_CUE, inferHandoffTargetName } from "@rakazo/core";
 
 const running = new Map<string, AbortController>();
 
@@ -149,6 +149,20 @@ export function inferScript(
       },
     ];
   }
+  // This runtime is a deterministic delivery fixture, not a reasoning model.
+  // Never render a peer wake envelope through the generic prompt echo below.
+  if (prompt.startsWith(`${BOT_MESSAGE_WAKE_CUE} `)) {
+    const from = /<bot_message from="([A-Za-z0-9 _-]{1,80})">/.exec(prompt)?.[1];
+    const isResult = prompt.includes("This is a result for work you delegated.");
+    return [
+      {
+        assistant: isResult
+          ? `${from ?? "Your teammate"} received your message.`
+          : "Message received.",
+        complete: true,
+      },
+    ];
+  }
   // Before every content-based intent so payload text cannot steal the branch.
   if (lower.includes("message the bot named") || lower.includes("message bot named")) {
     const name = namedBot(prompt) ?? "Peer";
@@ -158,7 +172,7 @@ export function inferScript(
         ?.trim() ?? `Please help with: ${prompt}`;
     return [
       {
-        assistant: "messaging that bot now.",
+        assistant: `I’ll send that to ${name}.`,
         toolCalls: [
           {
             name: "message_bot",

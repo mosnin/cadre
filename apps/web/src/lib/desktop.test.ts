@@ -63,12 +63,10 @@ describe("window chrome", () => {
   it("keeps conversation header controls clickable", () => {
     const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "../pages");
     const shell = readFileSync(path.join(root, "Shell.tsx"), "utf8");
-    expect(shell).toContain(
-      'className="app-drag flex items-center justify-between border-b border-sidebar-border',
-    );
+    expect(shell).toContain('data-testid="conversation-header"');
     const header = shell.slice(
-      shell.indexOf("aria-hidden={mobileSidebarOpen"),
-      shell.indexOf("<Transcript"),
+      shell.indexOf('data-testid="conversation-header"'),
+      shell.indexOf("{!active && !inGroup ? ("),
     );
     const controls = header.match(/<button\b[\s\S]*?<\/button>/g) ?? [];
     expect(controls).toHaveLength(4);

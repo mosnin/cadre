@@ -537,3 +537,13 @@
     transition: none;
   }
 }
+
+/* Product control geometry: visible actions and single-line fields are pills.
+   Keep full-viewport dismissal hit areas rectangular. */
+:is(button, [role="button"]):not([tabindex="-1"][class*="fixed"]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+[data-slot="input-group"],
+[data-input-surface],
+[data-combobox-trigger] {
+  border-radius: 9999px !important;
+}

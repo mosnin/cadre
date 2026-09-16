@@ -1,77 +1,25 @@
-import { memo, useCallback, useRef, useState } from "react";
+import { CodeBlock as DirectoryCodeBlock } from "@rakazo/ui-web/directory/code-block";
+import { Children, isValidElement, memo, type ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "./markdown.web.css";
 import { type ChatMarkdownProps, closeUnterminatedFence, sanitizeMarkdownUrl } from "./markdown";
 
-function CopyIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect
-        x="9"
-        y="9"
-        width="12"
-        height="12"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4 12.5 9.5 18 20 6"
-        stroke="currentColor"
-        strokeWidth="2.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function CodeBlock(props: React.ComponentPropsWithoutRef<"pre">) {
-  const preRef = useRef<HTMLPreElement>(null);
-  const resetTimerRef = useRef<number | undefined>(undefined);
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(() => {
-    if (!navigator.clipboard) return;
-    const text = preRef.current?.textContent ?? "";
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setCopied(true);
-        window.clearTimeout(resetTimerRef.current);
-        resetTimerRef.current = window.setTimeout(() => setCopied(false), 1500);
-      })
-      .catch(() => {});
-  }, []);
-
+  const child = Children.toArray(props.children).find(isValidElement);
+  const code = isValidElement<{ children?: ReactNode; className?: string }>(child)
+    ? String(child.props.children ?? "")
+    : String(props.children ?? "");
+  const language = isValidElement<{ className?: string }>(child)
+    ? child.props.className?.replace(/^language-/, "")
+    : undefined;
   return (
-    <div className="rk-chat-markdown-pre-wrap">
-      <pre {...props} ref={preRef} />
-      <button
-        type="button"
-        className="rk-chat-markdown-copy"
-        onClick={handleCopy}
-        aria-label={copied ? "Copied" : "Copy code"}
-      >
-        {copied ? <CheckIcon /> : <CopyIcon />}
-      </button>
-    </div>
+    <DirectoryCodeBlock
+      code={code}
+      language={language ?? "text"}
+      showLineNumbers={false}
+      maxHeight={480}
+    />
   );
 }
 

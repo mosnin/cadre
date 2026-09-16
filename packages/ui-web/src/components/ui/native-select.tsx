@@ -1,54 +1,111 @@
-import { cn } from "@rakazo/ui-web/lib/utils";
-import { ChevronDownIcon } from "lucide-react";
-import type * as React from "react";
+"use client";
+import {
+  Children,
+  type ComponentProps,
+  isValidElement,
+  type ReactNode,
+  useRef,
+  useState,
+} from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "../../directory/select";
+import { cn } from "../../lib/utils";
 
-type NativeSelectProps = Omit<React.ComponentProps<"select">, "size"> & {
-  size?: "sm" | "default";
-};
-
-function NativeSelect({ className, size = "default", ...props }: NativeSelectProps) {
+type NativeSelectProps = Omit<ComponentProps<"select">, "size"> & { size?: "sm" | "default" };
+function optionNodes(
+  children: ReactNode,
+): { value: string; label: ReactNode; disabled?: boolean }[] {
+  return Children.toArray(children).flatMap((child) => {
+    if (!isValidElement<{ value?: string; children?: ReactNode; disabled?: boolean }>(child))
+      return [];
+    if (child.type === NativeSelectOptGroup || child.type === "optgroup")
+      return optionNodes(child.props.children).map((option) => ({
+        ...option,
+        disabled: child.props.disabled || option.disabled,
+      }));
+    return [
+      {
+        value: String(child.props.value ?? child.props.children ?? ""),
+        label: child.props.children,
+        disabled: child.props.disabled,
+      },
+    ];
+  });
+}
+/** Directory selection UI with a hidden native form control preserving change events and submission. */
+function NativeSelect({
+  className,
+  size,
+  children,
+  value,
+  defaultValue,
+  id,
+  disabled,
+  onChange,
+  ref,
+  ...props
+}: NativeSelectProps) {
+  const options = optionNodes(children);
+  const [internal, setInternal] = useState(String(defaultValue ?? options[0]?.value ?? ""));
+  const current = value === undefined ? internal : String(value);
+  const nativeRef = useRef<HTMLSelectElement>(null);
   return (
-    <div
-      className={cn(
-        "group/native-select relative w-fit has-[select:disabled]:opacity-50",
-        className,
-      )}
-      data-slot="native-select-wrapper"
-      data-size={size}
+    <Select
+      id={id}
+      value={current}
+      disabled={disabled}
+      className={cn("w-full min-w-0", className)}
+      onValueChange={(next) => {
+        if (value === undefined) setInternal(next);
+        const native = nativeRef.current;
+        if (native) {
+          native.value = next;
+          native.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }}
     >
       <select
-        data-slot="native-select"
-        data-size={size}
-        className="h-8 w-full min-w-0 appearance-none rounded-lg border border-input bg-transparent py-1 pr-8 pl-2.5 text-sm transition-colors outline-none select-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-[size=sm]:py-0.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40"
         {...props}
-      />
-      <ChevronDownIcon
-        className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground select-none"
+        ref={(node) => {
+          nativeRef.current = node;
+          if (typeof ref === "function") ref(node);
+          else if (ref) ref.current = node;
+        }}
+        hidden
         aria-hidden="true"
-        data-slot="native-select-icon"
-      />
-    </div>
+        aria-label={undefined}
+        aria-labelledby={undefined}
+        tabIndex={-1}
+        value={current}
+        disabled={disabled}
+        onChange={onChange}
+      >
+        {children}
+      </select>
+      <SelectTrigger
+        role="combobox"
+        ariaLabel={props["aria-label"]}
+        ariaDescribedBy={props["aria-describedby"]}
+        ariaInvalid={props["aria-invalid"] === "true" || props["aria-invalid"] === true}
+      >
+        <span className="truncate">
+          {options.find((option) => option.value === current)?.label ?? ""}
+        </span>
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
-
-function NativeSelectOption({ className, ...props }: React.ComponentProps<"option">) {
-  return (
-    <option
-      data-slot="native-select-option"
-      className={cn("bg-[Canvas] text-[CanvasText]", className)}
-      {...props}
-    />
-  );
+function NativeSelectOption(props: ComponentProps<"option">) {
+  return <option {...props} />;
 }
-
-function NativeSelectOptGroup({ className, ...props }: React.ComponentProps<"optgroup">) {
-  return (
-    <optgroup
-      data-slot="native-select-optgroup"
-      className={cn("bg-[Canvas] text-[CanvasText]", className)}
-      {...props}
-    />
-  );
+function NativeSelectOptGroup(props: ComponentProps<"optgroup">) {
+  return <optgroup {...props} />;
 }
 
 export { NativeSelect, NativeSelectOptGroup, NativeSelectOption };

@@ -53,7 +53,7 @@ test("peer result reaches the requesting conversation live and after reload", as
   const response = page.getByTestId("transcript").locator(`[data-message-id="${summaryId}"]`);
   // No reload before this assertion: the callback must arrive through live events.
   await expect(response).toBeVisible();
-  await expect(response).toContainText(summary.split("\n")[0]);
+  await expect(response).toContainText(summary.split("\n")[0]!);
   await captureScreenshot(page, testInfo, "peer-result-live-desktop");
   await page.reload();
   await expect(response).toBeVisible();

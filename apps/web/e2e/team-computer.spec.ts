@@ -4,6 +4,7 @@ import {
   captureScreenshot,
   completeOnboarding,
   createNamedBot,
+  openNavigation,
   realSandboxTimeout,
   rpc,
   signup,
@@ -22,7 +23,7 @@ test("Team Computer gives bots a home folder plus shared space while Private sta
   const chiefId = activeBotId(page);
 
   await openComputerPanel(page);
-  await expect(page.getByText("Team Computer", { exact: true }).last()).toBeVisible();
+  await expect(page.getByText("Chief's screen", { exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "41-team-computer");
 
   const writerId = await createBot(page, "Writer", "team");
@@ -230,9 +231,8 @@ async function setComputerMode(
   const settings = page.getByTestId("bot-settings");
   await expect(settings.locator("label:has-text('Name') input")).toHaveValue(botName);
   const advanced = settings.getByTestId("bot-settings-advanced");
-  await advanced.evaluate((element) => {
-    (element as HTMLDetailsElement).open = true;
-  });
+  const disclosure = advanced.getByRole("button", { name: "Advanced", exact: true });
+  if ((await disclosure.getAttribute("aria-expanded")) !== "true") await disclosure.click();
   await settings
     .getByRole("button", { name: mode === "team" ? "Team" : "Private", exact: true })
     .click();
@@ -246,6 +246,7 @@ async function setComputerMode(
 }
 
 async function openBot(page: Page, name: string) {
+  await openNavigation(page);
   await page
     .getByRole("complementary")
     .getByRole("button", { name: new RegExp(`^${name}`) })

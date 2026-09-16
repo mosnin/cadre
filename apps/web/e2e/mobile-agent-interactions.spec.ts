@@ -25,7 +25,6 @@ test("mobile inbox pins chats, creates groups and offers attachment sources", as
   await expect(sidebar.locator('[data-sidebar-group="pinned"]')).toBeVisible();
   expect((await sidebar.boundingBox())!.width).toBe(390);
   await captureScreenshot(page, testInfo, "mobile-pinned-inbox");
-  await page.getByRole("button", { name: "Search conversations", exact: true }).click();
   await page.getByRole("textbox", { name: "Search conversations", exact: true }).fill("Researcher");
   await expect(sidebar.getByText("Researcher", { exact: true })).toBeVisible();
   await page.getByRole("textbox", { name: "Search conversations", exact: true }).fill("");

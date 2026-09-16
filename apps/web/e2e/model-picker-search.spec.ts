@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+import { captureScreenshot, completeOnboarding, openUserMenu, signup } from "./helpers";
 
 test("model dropdown search and provider group headers", async ({ page }, testInfo) => {
   const stamp = Date.now();
@@ -7,7 +7,7 @@ test("model dropdown search and provider group headers", async ({ page }, testIn
   await signup(page, `model-picker-${stamp}@rakazo.test`, "password12", userName);
   await completeOnboarding(page);
 
-  await page.getByRole("button", { name: new RegExp(userName) }).click();
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Models", exact: true }).click();
   await expect(page.getByRole("button", { name: "Close model settings" })).toBeVisible();
 
@@ -19,10 +19,10 @@ test("model dropdown search and provider group headers", async ({ page }, testIn
   const modelCombobox = page.getByRole("combobox", { name: "Model", exact: true });
   await modelCombobox.click();
 
-  const modelSearch = page.getByRole("combobox", { name: "Search models" });
+  const modelSearch = modelCombobox;
   const modelOptions = page.getByRole("listbox", { name: "Model options" });
   await expect(modelSearch).toBeVisible();
-  await expect(modelSearch).toHaveAttribute("placeholder", "Search");
+  await expect(modelSearch).toHaveAttribute("placeholder", "Search models");
   await expect(modelOptions).toBeVisible();
   // Provider section header inside the model listbox (not the provider button).
   await expect(modelOptions.getByText("OpenRouter", { exact: true })).toBeVisible();
@@ -30,10 +30,11 @@ test("model dropdown search and provider group headers", async ({ page }, testIn
   await captureScreenshot(page, testInfo, "model-picker-dropdown-groups");
 
   await modelSearch.fill("claude");
+  await expect(modelOptions.getByRole("option").first()).toBeVisible();
   const optionTexts = await modelOptions.getByRole("option").allTextContents();
   expect(optionTexts.length).toBeGreaterThan(0);
   expect(optionTexts.every((text) => /claude/i.test(text))).toBe(true);
-  await expect(page.getByText("No matching models")).toBeHidden();
+  await expect(page.getByText("No models found")).toBeHidden();
 
   await captureScreenshot(page, testInfo, "model-picker-dropdown-filtered");
 
@@ -62,15 +63,15 @@ test("model dropdown search and provider group headers", async ({ page }, testIn
   expect(afterUp).not.toBe(afterEnd);
 
   const highlighted = page.locator(`[id="${afterUp}"]`);
-  const selectedLabel = ((await highlighted.locator("span").first().textContent()) ?? "").trim();
+  const selectedLabel = ((await highlighted.textContent()) ?? "").trim();
   expect(selectedLabel.length).toBeGreaterThan(0);
   await modelSearch.press("Enter");
-  await expect(modelSearch).toBeHidden();
-  await expect(modelCombobox).toHaveText(selectedLabel);
+  await expect(modelSearch).toHaveAttribute("aria-expanded", "false");
+  await expect(modelCombobox).toHaveValue(selectedLabel);
 
   await modelCombobox.click();
   await expect(modelSearch).toBeVisible();
   await modelSearch.fill("no-model-matches-this");
-  await expect(page.getByText("No matching models")).toBeVisible();
+  await expect(page.getByText("No models found")).toBeVisible();
   await expect(modelOptions.getByRole("option")).toHaveCount(0);
 });

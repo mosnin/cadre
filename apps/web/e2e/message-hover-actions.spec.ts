@@ -118,6 +118,7 @@ test("message hover shows Reply and Copy; reply links to parent", async ({ page 
   await expect(parentPreview).toHaveText("Message");
   expect(warnings.filter((message) => message.includes("Uncompiled message"))).toEqual([]);
   await captureScreenshot(page, testInfo, "tool-only-reply-label");
+  await page.unrouteAll({ behavior: "wait" });
 });
 
 test("reply preview jumps to parent outside the loaded page", async ({ page }) => {

@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
 import type { CapabilityInstall, Routine } from "@rakazo/contracts";
-import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from "./helpers";
+import {
+  activeBotId,
+  captureScreenshot,
+  completeOnboarding,
+  openNavigation,
+  openUserMenu,
+  rpc,
+  signup,
+} from "./helpers";
 
 for (const width of [1280, 390]) {
   test(`schedules and settings are directly reachable at ${width}px`, async ({
@@ -9,21 +17,23 @@ for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 844 });
     await signup(page, `controls-${width}-${Date.now()}@rakazo.test`, "password12", "Controls");
     await completeOnboarding(page);
-    if (width < 768) await page.getByRole("button", { name: "Open navigation" }).click();
+    await openNavigation(page);
     const logo = page.getByTestId("bots-sidebar").getByRole("img", { name: "Cadre", exact: true });
     await expect(logo).toBeVisible();
     await expect
       .poll(() => logo.evaluate((image) => (image as HTMLImageElement).naturalWidth))
       .toBeGreaterThan(0);
     await captureScreenshot(page, testInfo, `sidebar-brand-${width}`);
-    if (width < 768) await page.getByRole("button", { name: "Close navigation" }).click();
+    await page.getByRole("button", { name: "Close navigation" }).click();
     const computerRequests: string[] = [];
     page.on("request", (request) => {
       if (/\/rpc\/computer\/(boot|screenUrl)/.test(request.url()))
         computerRequests.push(request.url());
     });
     const schedules = page.getByRole("button", { name: "Schedules", exact: true });
+    await expect(page.locator("main")).not.toHaveAttribute("inert", "");
     await schedules.focus();
+    await expect(schedules).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page.getByRole("button", { name: "Create Routine" })).toBeVisible();
     if (width < 768) {
@@ -52,8 +62,9 @@ for (const width of [1280, 390]) {
     expect(rows[0]?.nextRunAt).toBeTruthy();
     expect(computerRequests).toEqual([]);
     await page.getByRole("button", { name: "Close panel", exact: true }).click();
-    if (width < 768) await page.getByRole("button", { name: "Open navigation" }).click();
-    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await openNavigation(page);
+    await openUserMenu(page);
+    await page.getByRole("button", { name: "Account settings", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
     await captureScreenshot(page, testInfo, `settings-direct-${width}`);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
@@ -100,6 +111,7 @@ test("custom plugins survive catalog failure and install once without a refresh"
       body: JSON.stringify({ json: installed[0] }),
     });
   });
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Integrations", exact: true }).click();
   await page.getByRole("button", { name: "Custom plugins", exact: true }).click();
   await page.getByRole("button", { name: "Add MCP server", exact: true }).click();
@@ -113,6 +125,7 @@ test("custom plugins survive catalog failure and install once without a refresh"
   await page.getByRole("button", { name: "Close integrations" }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Open navigation" }).click();
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Integrations", exact: true }).click();
   await page.getByRole("button", { name: "Custom plugins", exact: true }).click();
   await expect(page.getByText("My tools", { exact: true })).toBeVisible();

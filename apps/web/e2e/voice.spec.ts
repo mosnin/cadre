@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { completeOnboarding, rpc, signup } from "./helpers";
+import { completeOnboarding, openUserMenu, rpc, signup } from "./helpers";
 
 test("voice settings configure spoken replies without call mode", async ({ page }) => {
   const stamp = Date.now();
@@ -12,14 +12,14 @@ test("voice settings configure spoken replies without call mode", async ({ page 
   });
   expect(preparedOff.ready).toBe(false);
 
-  await page.getByRole("button", { name: new RegExp(userName) }).click();
+  await openUserMenu(page);
   await page.getByRole("button", { name: "Voice", exact: true }).click();
   await expect(page.getByTestId("voice-settings")).toBeVisible();
   await page.getByRole("button", { name: /Scripted/ }).click();
   const apiKeyInput = page.getByPlaceholder(/Paste your API key/);
   await expect(apiKeyInput).toHaveAttribute("autocomplete", "new-password");
   await apiKeyInput.fill("fake-scripted-voice-key");
-  await page.getByRole("button", { name: "Connect" }).click();
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
   await expect(page.getByText("Connected", { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/Connected · Scripted/)).toBeVisible();
 
