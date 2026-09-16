@@ -891,6 +891,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           configuredMemory,
           savedSkills,
           agentSkills,
+          userPreferences,
         ] = await Promise.all([
           deps.prisma.bot.findUniqueOrThrow({
             where: { id: run.botId },
@@ -929,7 +930,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
             spaceId: run.spaceId,
             userId: run.userId,
           }),
+          deps.prisma.user.findUnique({
+            where: { id: run.userId },
+            select: { uiLocale: true, region: true, timezone: true },
+          }),
         ]);
+        const localeLine = describeUserLocale(userPreferences);
         const hasModelOverride = Boolean(bot.modelProvider && bot.modelId);
         const overrideCredential =
           hasModelOverride && bot.modelProvider
@@ -3055,6 +3061,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 botDirectory,
                 "archive_bot safely archives a bot this bot created, and only that bot. Use it when the user asks to remove that bot or when it is finished and unused. The user can restore it or permanently delete it later. confirm_name must exactly match its name.",
                 pluginLine,
+                localeLine,
                 context.companyWorkspace
                   ? `Verified Company OS connection for this run: ${JSON.stringify(context.companyWorkspace)}. This workspace OAuth identity was checked now. For company context, call mcp__company-os-context__config_pull when available, or search mcp_search_tools for config_pull and use the returned exact tool ID. A catalog lookup failure is not evidence of missing authorization. Report the actual tool error; request reconnection only after an explicit expired or revoked credential error. Never tell the user to connect an already verified workspace merely because an app-account plugin list omits MCP.`
                   : "No Company OS workspace identity was verified for this run. Check available connector tools before making claims about access.",
@@ -4156,4 +4163,37 @@ export async function loadCurrentTurnImages(
   }
 
   return images.length ? images : undefined;
+}
+
+/** The user's locale, region and time zone shape dates, schedules and language in replies. */
+export function describeUserLocale(
+  user: { uiLocale: string | null; region: string | null; timezone: string | null } | null,
+): string | undefined {
+  if (!user) return undefined;
+  const parts: string[] = [];
+  const timezone = user.timezone;
+  if (timezone) {
+    let now: string | undefined;
+    try {
+      now = new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        dateStyle: "full",
+        timeStyle: "short",
+      }).format(new Date());
+    } catch {
+      now = undefined;
+    }
+    parts.push(
+      `The user's time zone is ${timezone}${now ? ` (now ${now})` : ""}. Use it for schedules, deadlines and any time you mention unless the user names another zone.`,
+    );
+  }
+  if (user.region)
+    parts.push(
+      `The user's region is ${user.region}; use its date, number and currency conventions.`,
+    );
+  if (user.uiLocale)
+    parts.push(
+      `The user's interface language is ${user.uiLocale}; reply in that language unless they write in another.`,
+    );
+  return parts.length ? parts.join(" ") : undefined;
 }

@@ -58,6 +58,7 @@ import {
   SpaceMemoryProviderResolver,
   StripeBillingProvider,
   WorkspaceIntegrations,
+  workspaceProviderOverridesFromEnv,
 } from "@rakazo/adapters";
 import {
   blockedAuthPaths,
@@ -218,7 +219,13 @@ export async function createApp(
         })
       : undefined;
   const workspaceIntegrations = created.pool
-    ? new WorkspaceIntegrations({ prisma, pool: created.pool, secrets, webOrigin: env.webOrigin })
+    ? new WorkspaceIntegrations({
+        prisma,
+        pool: created.pool,
+        secrets,
+        webOrigin: env.webOrigin,
+        providers: workspaceProviderOverridesFromEnv(process.env),
+      })
     : undefined;
   const memoryProviders = new ConnectedMemoryProviderResolver(
     localMemoryProviders,

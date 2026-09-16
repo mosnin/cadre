@@ -43,6 +43,7 @@ import {
   ScriptedAgentRuntime,
   SpaceMemoryProviderResolver,
   WorkspaceIntegrations,
+  workspaceProviderOverridesFromEnv,
 } from "@rakazo/adapters";
 import { companyOsOAuthFromEnv, createAuth, createCompanyOsCredential } from "@rakazo/auth";
 import { resolveAuthSecret, resolveEncryptionKey, resolveSupervisorToken } from "@rakazo/core";
@@ -105,6 +106,7 @@ async function main() {
         pool,
         secrets,
         webOrigin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
+        providers: workspaceProviderOverridesFromEnv(process.env),
       })
     : undefined;
   const mcp = new McpConnector(

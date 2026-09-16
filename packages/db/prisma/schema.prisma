@@ -28,6 +28,10 @@ model User {
   suspendedAt                 DateTime?
   billingCustomerId           String?                      @unique
   avatarStyle                 String                       @default("robot")
+  uiLocale                    String?
+  region                      String?
+  timezone                    String?
+  timezoneAutomatic           Boolean                      @default(true)
   sessions                    Session[]
   accounts                    Account[]
   members                     Member[]
