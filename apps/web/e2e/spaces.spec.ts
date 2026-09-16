@@ -3,6 +3,7 @@ import {
   captureScreenshot,
   completeOnboarding,
   openNavigation,
+  openNewSpace,
   openUserMenu,
   signup,
 } from "./helpers";
@@ -176,3 +177,44 @@ for (const phone of [false, true]) {
     }
   });
 }
+
+test("Company OS controls recover when a cached page is restored", async ({ page }) => {
+  await page.route("**/api/v1/company-workspaces", (route) =>
+    route.fulfill({ json: { available: true, connections: [] } }),
+  );
+  await signup(page, `company-back-${Date.now()}@rakazo.test`, "password12", "Company Owner");
+  await completeOnboarding(page);
+  await page.route("**/api/v1/company-workspaces/connect", (route) =>
+    route.fulfill({ json: { url: `${page.url().split("#")[0]}#provider` } }),
+  );
+  await openUserMenu(page);
+  await page.getByRole("button", { name: "Account settings", exact: true }).click();
+  await page
+    .getByTestId("user-settings")
+    .getByRole("button", { name: "Connect Company OS", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Connect a company", exact: true });
+  await dialog.getByRole("button", { name: "Continue to Company OS", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Connecting…", exact: true })).toBeDisabled();
+  await page.waitForURL("**#provider");
+  // Deterministically reproduce the browser's persisted-page lifecycle notification.
+  await page.evaluate(() =>
+    window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })),
+  );
+  await expect(
+    dialog.getByRole("button", { name: "Continue to Company OS", exact: true }),
+  ).toBeEnabled();
+  await dialog.getByRole("button", { name: "Close company connection", exact: true }).click();
+  await page.getByRole("button", { name: "Close user settings", exact: true }).click();
+  await openNewSpace(page);
+  await page.getByLabel("Workspace name", { exact: true }).fill("Restore test");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Connect Company OS", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Close setup", exact: true })).toBeDisabled();
+  await page.waitForURL("**#provider");
+  await page.evaluate(() =>
+    window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })),
+  );
+  await expect(page.getByRole("button", { name: "Connect Company OS", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Close setup", exact: true })).toBeEnabled();
+});

@@ -122,6 +122,13 @@ export function CompanyConnectionDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
+    const restored = (event: PageTransitionEvent) => {
+      if (event.persisted) setPending(false);
+    };
+    window.addEventListener("pageshow", restored);
+    return () => window.removeEventListener("pageshow", restored);
+  }, []);
+  useEffect(() => {
     let alive = true;
     void Promise.all([rpc.spaces.list(), companyWorkspaceRequest()])
       .then(([result, status]) => {

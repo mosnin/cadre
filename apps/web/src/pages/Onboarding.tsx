@@ -42,6 +42,16 @@ export function OnboardingPage() {
   const [companyAvailable, setCompanyAvailable] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  useEffect(() => {
+    const restored = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      savingRef.current = false;
+      setSaving(false);
+    };
+    window.addEventListener("pageshow", restored);
+    return () => window.removeEventListener("pageshow", restored);
+  }, []);
+
   const nextAfterCompany = useRef<"model" | "bot">("bot");
   const [catalog, setCatalog] = useState<ModelCatalogEntry[]>([]);
   const [query, setQuery] = useState("");
