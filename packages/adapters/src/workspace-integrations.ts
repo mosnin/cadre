@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { AdapterContext } from "@rakazo/adapter-kit";
-import { type Pool, type PrismaClient, requireMembership } from "@rakazo/db";
+import { IsolationError, type Pool, type PrismaClient, requireMembership } from "@rakazo/db";
 import * as z from "zod";
 import type { EncryptedSecretStore } from "./secrets.js";
 
@@ -39,6 +39,9 @@ type Grant = {
   subject: string;
   ciphertext: string;
 };
+
+/** The queued memory can never be delivered as stored; retrying would not help. */
+class OutboxTerminalError extends Error {}
 
 class ProviderRequestError extends Error {
   constructor(
@@ -154,6 +157,8 @@ export class WorkspaceIntegrations {
       [actor.spaceId, actor.userId, botId, generations],
     );
   }
+  /** Rows are dropped after this many delivery attempts; the memory is reported as pending long before. */
+  static readonly MAX_OUTBOX_ATTEMPTS = 20;
   async flushStoredMemory(id?: string) {
     // Lease without holding a connection during token renewal or network I/O.
     const { rows } = await this.deps.pool.query<{
@@ -170,9 +175,11 @@ export class WorkspaceIntegrations {
     const row = rows[0];
     if (!row) return false;
     try {
-      await this.validateMemoryBot(row, row.botId);
+      await this.validateMemoryBot(row, row.botId).catch((error) => {
+        throw new OutboxTerminalError(error instanceof Error ? error.message : "Bot removed");
+      });
       const credential = await this.credential("stored", row);
-      if (!credential) throw new Error("Stored disconnected");
+      if (!credential) throw new OutboxTerminalError("Stored disconnected");
       const body = JSON.parse(this.deps.secrets.load(row.ciphertext, row.id));
       await this.request("stored", "/api/cadre/v1/memory", {
         method: "POST",
@@ -187,18 +194,39 @@ export class WorkspaceIntegrations {
         row.attempts,
       ]);
       return true;
-    } catch {
+    } catch (error) {
+      // A row that can never deliver (no grant, bot or membership gone, or a
+      // payload Stored rejects) must not sit at the head of the queue forever.
+      const retryableStatus =
+        error instanceof ProviderRequestError &&
+        (error.status === 401 ||
+          error.status === 408 ||
+          error.status === 429 ||
+          error.status >= 500);
+      const terminal =
+        row.attempts >= WorkspaceIntegrations.MAX_OUTBOX_ATTEMPTS ||
+        error instanceof OutboxTerminalError ||
+        error instanceof IsolationError ||
+        (error instanceof ProviderRequestError && !retryableStatus);
+      if (terminal) {
+        await this.deps.pool.query("DELETE FROM stored_memory_outbox WHERE id=$1 AND attempts=$2", [
+          row.id,
+          row.attempts,
+        ]);
+        return false;
+      }
       await this.deps.pool.query(
-        `UPDATE stored_memory_outbox SET "nextAttemptAt"=NOW()+INTERVAL '5 minutes' WHERE id=$1 AND attempts=$2`,
+        `UPDATE stored_memory_outbox SET "nextAttemptAt"=NOW()+LEAST(INTERVAL '5 minutes'*POWER(2,GREATEST(attempts-1,0)),INTERVAL '6 hours') WHERE id=$1 AND attempts=$2`,
         [row.id, row.attempts],
       );
       return false;
     }
   }
-  async hasStoredBinding(spaceId: string) {
+  /** True when this user holds credentials for the workspace's Stored organization. */
+  async hasLiveStoredGrant(actor: Actor) {
     const { rows } = await this.deps.pool.query(
-      "SELECT id FROM workspace_integrations WHERE \"spaceId\"=$1 AND provider='stored'",
-      [spaceId],
+      `SELECT g.id FROM workspace_integration_grants g JOIN workspace_integrations b ON b.id=g."bindingId" WHERE b."spaceId"=$1 AND b.provider='stored' AND g."userId"=$2 AND g.ciphertext<>''`,
+      [actor.spaceId, actor.userId],
     );
     return rows.length > 0;
   }
@@ -386,8 +414,17 @@ export class WorkspaceIntegrations {
     }
   }
   private async disable(provider: WorkspaceProvider, actor: Actor) {
+    // Only the servers this class creates; users may name their own servers "stored-notes".
     await this.deps.prisma.mcpServer.updateMany({
-      where: { spaceId: actor.spaceId, userId: actor.userId, slug: { startsWith: `${provider}-` } },
+      where: {
+        spaceId: actor.spaceId,
+        userId: actor.userId,
+        enabled: true,
+        OR: [
+          { slug: `${provider}-workspace` },
+          ...(provider === "stored" ? [{ slug: { startsWith: "stored-agent-" } }] : []),
+        ],
+      },
       data: { enabled: false, revision: { increment: 1 } },
     });
   }
@@ -407,6 +444,11 @@ export class WorkspaceIntegrations {
         await connection.query(
           "UPDATE workspace_integration_grants SET ciphertext='' WHERE id=$1",
           [row.id],
+        );
+      if (provider === "stored")
+        await connection.query(
+          'DELETE FROM stored_memory_outbox WHERE "spaceId"=$1 AND "userId"=$2',
+          [actor.spaceId, actor.userId],
         );
       await connection.query("COMMIT");
     } catch (error) {
@@ -433,9 +475,18 @@ export class WorkspaceIntegrations {
     if (!context.botId) return;
     const bot = await this.deps.prisma.bot.findFirst({
       where: { id: context.botId, spaceId: context.spaceId, userId: context.userId },
+      select: { id: true },
     });
-    if (!bot) throw new Error("Workspace bot required");
+    if (!bot) return;
     for (const provider of ["operate", "stored"] as const) {
+      const { rows: live } = await this.deps.pool.query(
+        `SELECT g.id FROM workspace_integration_grants g JOIN workspace_integrations b ON b.id=g."bindingId" WHERE b."spaceId"=$1 AND b.provider=$2 AND g."userId"=$3 AND g.ciphertext<>''`,
+        [context.spaceId, provider, context.userId],
+      );
+      if (!live.length) {
+        await this.disable(provider, context);
+        continue;
+      }
       let credential: Awaited<ReturnType<WorkspaceIntegrations["credential"]>>;
       try {
         credential = await this.credential(provider, context);

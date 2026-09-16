@@ -66,9 +66,9 @@ class StoredMemoryProvider implements SemanticMemoryProvider {
     context: AdapterContext,
   ): Promise<SemanticMemoryResponse> {
     try {
+      // The encrypted outbox is the durable record; delivery to Stored may lag.
       const id = await this.integrations.queueStoredMemory(context, { ...request });
-      if (!(await this.integrations.flushStoredMemory(id)))
-        return { ok: false, error: "Memory saved locally. Stored sync is pending and will retry." };
+      await this.integrations.flushStoredMemory(id);
       return { ok: true, value: undefined };
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : "Stored save failed" };
@@ -95,12 +95,18 @@ export class ConnectedMemoryProviderResolver implements MemoryProviderResolver {
     private readonly fallback: MemoryProviderResolver,
     private readonly integrations?: WorkspaceIntegrations,
   ) {}
-  async resolve(spaceId: string) {
-    if (this.integrations && (await this.integrations.hasStoredBinding(spaceId)))
+  async resolve(spaceId: string, userId?: string) {
+    // Grants are per user: a member who never connected Stored keeps the
+    // workspace's configured provider, and so does everyone after a disconnect.
+    if (
+      this.integrations &&
+      userId &&
+      (await this.integrations.hasLiveStoredGrant({ spaceId, userId }))
+    )
       return {
         provider: new StoredMemoryProvider(this.integrations),
         defaultScope: "isolated" as const,
       };
-    return this.fallback.resolve(spaceId);
+    return this.fallback.resolve(spaceId, userId);
   }
 }

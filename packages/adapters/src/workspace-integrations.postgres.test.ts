@@ -20,6 +20,7 @@ suite("native workspace OAuth", () => {
   let refreshes = 0;
   let revoked = 0;
   let memoryFailure = true;
+  let memoryStatus = 503;
   const saved: Record<string, unknown>[] = [];
   const tokens = new Map<string, string>();
   beforeAll(async () => {
@@ -43,7 +44,7 @@ suite("native workspace OAuth", () => {
       fetcher: async (url, init) => {
         expect(init?.redirect).toBe("error");
         if (String(url).endsWith("/api/cadre/v1/memory")) {
-          if (memoryFailure) return new Response(null, { status: 503 });
+          if (memoryFailure) return new Response(null, { status: memoryStatus });
           saved.push(JSON.parse(String(init?.body)));
           return Response.json({ ok: true });
         }
@@ -169,11 +170,48 @@ suite("native workspace OAuth", () => {
     });
     await service.clearQueuedHistory(first, bot.id, [2]);
     expect(await service.flushStoredMemory(history)).toBe(false);
+    // A payload Stored rejects is dropped instead of retried forever.
+    const rejected = await service.queueStoredMemory(first, { ...body, content: "Rejected" });
+    memoryFailure = true;
+    memoryStatus = 422;
+    expect(await service.flushStoredMemory(rejected)).toBe(false);
+    expect(
+      (await db.pool!.query("SELECT id FROM stored_memory_outbox WHERE id=$1", [rejected])).rows,
+    ).toHaveLength(0);
+    memoryStatus = 503;
+    expect(await service.hasLiveStoredGrant(first)).toBe(true);
+    expect(await service.hasLiveStoredGrant({ spaceId: first.spaceId, userId: randomUUID() })).toBe(
+      false,
+    );
   });
   it("disconnects and revokes without losing the workspace identity", async () => {
+    const bot = await db.prisma.bot.findFirstOrThrow({ where: { spaceId: first.spaceId, userId } });
+    const queued = await service.queueStoredMemory(first, {
+      botId: bot.id,
+      content: "Queued before disconnect",
+      scope: "isolated",
+      source: { kind: "durable" },
+    });
+    const own = await db.prisma.mcpServer.create({
+      data: {
+        spaceId: first.spaceId,
+        userId,
+        slug: "stored-notes",
+        name: "My notes",
+        endpoint: "https://notes.example/mcp",
+        transport: "streamable_http",
+      },
+    });
     await service.disconnect("stored", first);
     expect(revoked).toBe(1);
     expect(await service.credential("stored", first)).toBeNull();
+    expect(await service.hasLiveStoredGrant(first)).toBe(false);
+    expect(
+      (await db.pool!.query("SELECT id FROM stored_memory_outbox WHERE id=$1", [queued])).rows,
+    ).toHaveLength(0);
+    expect((await db.prisma.mcpServer.findUniqueOrThrow({ where: { id: own.id } })).enabled).toBe(
+      true,
+    );
     expect((await service.list(first)).find((x) => x.provider === "stored")).toMatchObject({
       connected: false,
       externalId: "organization-one",

@@ -921,7 +921,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           }),
           findDefaultModelCredential(deps.prisma, run),
           deps.prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
-          deps.memoryProviders.resolve(run.spaceId),
+          deps.memoryProviders.resolve(run.spaceId, run.userId),
           deps.prisma.taughtSkill.findMany({
             where: { botId: run.botId, spaceId: run.spaceId, status: "saved" },
           }),
