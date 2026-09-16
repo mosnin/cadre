@@ -6,6 +6,7 @@ loadRootEnv();
 import {
   ChatSdkMessagingSurface,
   CompanyWorkspaces,
+  ConnectedMemoryProviderResolver,
   companyWorkspaceConfig,
   createBackgroundJobHandlers,
   createCompanyOsWorkforce,
@@ -41,6 +42,7 @@ import {
   resolveSandboxProvider,
   ScriptedAgentRuntime,
   SpaceMemoryProviderResolver,
+  WorkspaceIntegrations,
 } from "@rakazo/adapters";
 import { companyOsOAuthFromEnv, createAuth, createCompanyOsCredential } from "@rakazo/auth";
 import { resolveAuthSecret, resolveEncryptionKey, resolveSupervisorToken } from "@rakazo/core";
@@ -97,13 +99,22 @@ async function main() {
           webOrigin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
         })
       : undefined;
+  const workspaceIntegrations = pool
+    ? new WorkspaceIntegrations({
+        prisma,
+        pool,
+        secrets,
+        webOrigin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
+      })
+    : undefined;
   const mcp = new McpConnector(
     prisma,
     secrets,
     {
-      prepareCompanyWorkspace: companyWorkspaces
-        ? (context) => companyWorkspaces.prepare(context)
-        : undefined,
+      prepareCompanyWorkspace: async (context) => {
+        await companyWorkspaces?.prepare(context);
+        await workspaceIntegrations?.prepare(context);
+      },
       stdioEnabled: process.env.MCP_STDIO_ENABLED === "true",
       allowedCommands: (process.env.MCP_STDIO_ALLOWED_COMMANDS ?? "")
         .split(",")
@@ -136,7 +147,11 @@ async function main() {
   ]);
   const connector = stack.destination;
   await connector.start();
-  const memoryProviders = new SpaceMemoryProviderResolver(prisma, secrets);
+  const localMemoryProviders = new SpaceMemoryProviderResolver(prisma, secrets);
+  const memoryProviders = new ConnectedMemoryProviderResolver(
+    localMemoryProviders,
+    workspaceIntegrations,
+  );
   const { home, artifacts } = createDurableStorage(dataDir);
   const inMemoryJobs = process.env.WAKEUP_DRIVER === "memory" ? new InMemoryJobQueue() : undefined;
   const jobs: JobPublisher = inMemoryJobs ?? new GraphileJobPublisher(databaseUrl);
@@ -210,10 +225,24 @@ async function main() {
   });
   workforce.start();
 
+  let storedFlushing = false;
+  const storedSyncTimer = setInterval(() => {
+    if (storedFlushing || !workspaceIntegrations) return;
+    storedFlushing = true;
+    void (async () => {
+      for (let i = 0; i < 20; i++) if (!(await workspaceIntegrations.flushStoredMemory())) break;
+    })()
+      .catch(() => logger.warn("stored_memory.retry_failed"))
+      .finally(() => {
+        storedFlushing = false;
+      });
+  }, 60_000);
+  storedSyncTimer.unref();
   let stopping = false;
   const stop = async () => {
     if (stopping) return;
     stopping = true;
+    clearInterval(storedSyncTimer);
     try {
       await workforce.stop();
       await reconciler.stop();

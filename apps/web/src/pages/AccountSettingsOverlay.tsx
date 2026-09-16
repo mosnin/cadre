@@ -35,6 +35,7 @@ import {
 } from "../lib/ui-appearance";
 import { UI_LOCALE_LABELS, UI_LOCALES, type UiLocale } from "../lib/ui-locale";
 import { CompanyConnectionDialog, CompanyWorkspaceSettings } from "./CompanyWorkspaces";
+import { WorkspaceIntegrationSettings } from "./WorkspaceIntegrations";
 
 export function AccountSettingsOverlay({
   email,
@@ -152,6 +153,7 @@ export function AccountSettingsOverlay({
         </section>
 
         <CompanyWorkspaceSettings onConnect={setCompanySpaceId} />
+        <WorkspaceIntegrationSettings />
         <ChangePasswordSection />
 
         {messagingEnabled && onOpenMessaging ? (
