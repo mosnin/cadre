@@ -19,7 +19,6 @@ export type HomeCopy = {
     openSource: string;
     docs: string;
     viewOnGithub: string;
-    getStarted: string;
   };
   hero: {
     badge: string;
@@ -37,27 +36,6 @@ export type HomeCopy = {
     heading: string;
     copy: string;
     features: Array<{ title: string; body: string }>;
-  };
-  tools: {
-    eyebrow: string;
-    heading: string;
-    copy: string;
-  };
-  illustrations: {
-    models: { caption: string };
-    routines: {
-      rows: Array<{ title: string; range: string }>;
-      dayLabels: string[];
-      nowLabel: string;
-      caption: string;
-    };
-    approvals: {
-      items: Array<{ label: string; asks?: boolean }>;
-      doneLabel: string;
-      asksLabel: string;
-      caption: string;
-    };
-    tools: { caption: string };
   };
   roster: {
     eyebrow: string;
@@ -87,7 +65,7 @@ export type HomeCopy = {
     viewOnGithub: string;
     openSourceValue: string;
     selfHostValue: string;
-    stats: Array<{ value: "license" | "openSource" | "selfHost"; label: string }>;
+    stats: Array<{ value: "stars" | "license" | "openSource" | "selfHost"; label: string }>;
   };
   getStartedDialog: {
     closeLabel: string;
@@ -300,7 +278,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSource: "Open source",
       docs: "Docs",
       viewOnGithub: "View on GitHub",
-      getStarted: "Get started",
     },
     hero: {
       badge: "Apache-2.0",
@@ -332,41 +309,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         },
       ],
     },
-    tools: {
-      eyebrow: "Connected",
-      heading: "It works where your work already lives",
-      copy: "A bot signs in to the tools you already pay for and uses them the way you would.",
-    },
-    illustrations: {
-      models: {
-        caption: "Six model providers connected to one Rakazo instance that you run.",
-      },
-      routines: {
-        rows: [
-          { title: "Triage the inbox", range: "Every weekday \u00b7 07:00" },
-          { title: "Research new accounts", range: "Nightly \u00b7 02:00" },
-          { title: "Watch ad spend", range: "Daily \u00b7 09:00" },
-        ],
-        dayLabels: ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"],
-        nowLabel: "NOW",
-        caption: "Three saved routines running across a week, with a marker on the current time.",
-      },
-      approvals: {
-        items: [
-          { label: "Archived 214 newsletters" },
-          { label: "Replied to 6 routine threads" },
-          { label: "Booked Tuesday's standup" },
-          { label: "Refund $2,400 to Northwind", asks: true },
-          { label: "Send the signed contract", asks: true },
-        ],
-        doneLabel: "Done",
-        asksLabel: "Asks you",
-        caption: "Routine actions completed on their own; consequential ones held for approval.",
-      },
-      tools: {
-        caption: "A wall of apps a bot can sign in to and operate.",
-      },
-    },
     roster: {
       eyebrow: "Bot Templates",
       heading: "Give each bot a job",
@@ -384,7 +326,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         "Bring your own model keys",
         "Routines, memory, and audit log",
         "Unlimited bots, no seats, no limits",
-        "Community support by email",
+        "Community support on GitHub",
       ],
       starOnGithub: "Star on GitHub",
       readTheDocs: "Read the docs",
@@ -406,6 +348,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSourceValue: "Open source",
       selfHostValue: "Self-host",
       stats: [
+        { value: "stars", label: "GitHub stars" },
         { value: "license", label: "License" },
         { value: "openSource", label: "No seats, no gates" },
         { value: "selfHost", label: "Your machine" },
@@ -467,7 +410,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSource: "Open Source",
       docs: "Docs",
       viewOnGithub: "Auf GitHub ansehen",
-      getStarted: "Loslegen",
     },
     hero: {
       badge: "Apache-2.0",
@@ -499,41 +441,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         },
       ],
     },
-    tools: {
-      eyebrow: "Verbunden",
-      heading: "Er arbeitet dort, wo deine Arbeit schon liegt",
-      copy: "Ein Bot meldet sich in den Tools an, die du ohnehin bezahlst, und nutzt sie wie du.",
-    },
-    illustrations: {
-      models: {
-        caption: "Sechs Modellanbieter, verbunden mit einer Rakazo-Instanz, die du betreibst.",
-      },
-      routines: {
-        rows: [
-          { title: "Postfach triagieren", range: "Jeden Werktag \u00b7 07:00" },
-          { title: "Neue Accounts recherchieren", range: "N\u00e4chtlich \u00b7 02:00" },
-          { title: "Ad-Spend pr\u00fcfen", range: "T\u00e4glich \u00b7 09:00" },
-        ],
-        dayLabels: ["MO", "DI", "MI", "DO", "FR", "SA", "SO"],
-        nowLabel: "JETZT",
-        caption: "Drei gespeicherte Routinen \u00fcber eine Woche, mit Markierung auf der aktuellen Zeit.",
-      },
-      approvals: {
-        items: [
-          { label: "214 Newsletter archiviert" },
-          { label: "6 Routine-Threads beantwortet" },
-          { label: "Dienstags-Standup gebucht" },
-          { label: "2.400 $ an Northwind erstatten", asks: true },
-          { label: "Unterschriebenen Vertrag senden", asks: true },
-        ],
-        doneLabel: "Erledigt",
-        asksLabel: "Fragt dich",
-        caption: "Routineaktionen laufen allein; folgenreiche warten auf deine Freigabe.",
-      },
-      tools: {
-        caption: "Eine Wand aus Apps, in denen ein Bot sich anmelden und arbeiten kann.",
-      },
-    },
     roster: {
       eyebrow: "Bot-Vorlagen",
       heading: "Gib jedem Bot eine Aufgabe",
@@ -551,7 +458,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         "Eigene Model-Keys mitbringen",
         "Routinen, Memory und Audit-Log",
         "Unbegrenzte Bots, keine Seats, keine Limits",
-        "Community-Support per E-Mail",
+        "Community-Support auf GitHub",
       ],
       starOnGithub: "Auf GitHub mit Stern markieren",
       readTheDocs: "Docs lesen",
@@ -573,6 +480,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSourceValue: "Open Source",
       selfHostValue: "Self-host",
       stats: [
+        { value: "stars", label: "GitHub Stars" },
         { value: "license", label: "Lizenz" },
         { value: "openSource", label: "Keine Seats, keine Gates" },
         { value: "selfHost", label: "Deine Maschine" },
@@ -633,7 +541,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSource: "오픈소스",
       docs: "Docs",
       viewOnGithub: "GitHub에서 보기",
-      getStarted: "시작하기",
     },
     hero: {
       badge: "Apache-2.0",
@@ -665,41 +572,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         },
       ],
     },
-    tools: {
-      eyebrow: "\uc5f0\uacb0",
-      heading: "\uc77c\uc774 \uc774\ubbf8 \uc788\ub294 \uacf3\uc5d0\uc11c \uc77c\ud569\ub2c8\ub2e4",
-      copy: "\ubd07\uc740 \ub2f9\uc2e0\uc774 \uc774\ubbf8 \uc4f0\ub294 \ub3c4\uad6c\uc5d0 \ub85c\uadf8\uc778\ud574 \ub2f9\uc2e0\ucc98\ub7fc \uc0ac\uc6a9\ud569\ub2c8\ub2e4.",
-    },
-    illustrations: {
-      models: {
-        caption: "\uc9c1\uc811 \uc6b4\uc601\ud558\ub294 Rakazo \uc778\uc2a4\ud134\uc2a4 \ud558\ub098\uc5d0 \uc5f0\uacb0\ub41c \uc5ec\uc12f \uac1c\uc758 \ubaa8\ub378 \uacf5\uae09\uc0ac.",
-      },
-      routines: {
-        rows: [
-          { title: "\uc218\uc2e0\ud568 \uc815\ub9ac", range: "\ud3c9\uc77c\ub9c8\ub2e4 \u00b7 07:00" },
-          { title: "\uc2e0\uaddc \uacc4\uc815 \uc870\uc0ac", range: "\ub9e4\uc77c \ubc24 \u00b7 02:00" },
-          { title: "\uad11\uace0 \uc9c0\ucd9c \uc810\uac80", range: "\ub9e4\uc77c \u00b7 09:00" },
-        ],
-        dayLabels: ["\uc6d4", "\ud654", "\uc218", "\ubaa9", "\uae08", "\ud1a0", "\uc77c"],
-        nowLabel: "\uc9c0\uae08",
-        caption: "\ud55c \uc8fc \ub3d9\uc548 \uc2e4\ud589\ub418\ub294 \ub8e8\ud2f4 \uc138 \uac1c\uc640 \ud604\uc7ac \uc2dc\uac01 \ud45c\uc2dc.",
-      },
-      approvals: {
-        items: [
-          { label: "\ub274\uc2a4\ub808\ud130 214\uac1c \ubcf4\uad00" },
-          { label: "\ub8e8\ud2f4 \uc2a4\ub808\ub4dc 6\uac1c \ud68c\uc2e0" },
-          { label: "\ud654\uc694\uc77c \uc2a4\ud0e0\ub4dc\uc5c5 \uc608\uc57d" },
-          { label: "Northwind\uc5d0 $2,400 \ud658\ubd88", asks: true },
-          { label: "\uc11c\uba85\ub41c \uacc4\uc57d\uc11c \ubc1c\uc1a1", asks: true },
-        ],
-        doneLabel: "\uc644\ub8cc",
-        asksLabel: "\ud655\uc778 \uc694\uccad",
-        caption: "\ub8e8\ud2f4 \uc791\uc5c5\uc740 \uc2a4\uc2a4\ub85c \ub05d\ub0b4\uace0, \uc911\uc694\ud55c \uc791\uc5c5\uc740 \uc2b9\uc778\uc744 \uae30\ub2e4\ub9bd\ub2c8\ub2e4.",
-      },
-      tools: {
-        caption: "\ubd07\uc774 \ub85c\uadf8\uc778\ud574 \uc870\uc791\ud560 \uc218 \uc788\ub294 \uc571\ub4e4.",
-      },
-    },
     roster: {
       eyebrow: "봇 템플릿",
       heading: "봇마다 역할을 주세요",
@@ -717,7 +589,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         "모델 키는 직접 가져오기",
         "루틴, 메모리, 감사 로그",
         "봇 무제한, 시트·한도 없음",
-        "이메일 커뮤니티 지원",
+        "GitHub 커뮤니티 지원",
       ],
       starOnGithub: "GitHub에서 Star",
       readTheDocs: "문서 읽기",
@@ -739,6 +611,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSourceValue: "오픈소스",
       selfHostValue: "셀프 호스트",
       stats: [
+        { value: "stars", label: "GitHub 스타" },
         { value: "license", label: "라이선스" },
         { value: "openSource", label: "시트·게이트 없음" },
         { value: "selfHost", label: "당신 머신" },
@@ -799,7 +672,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSource: "开源",
       docs: "文档",
       viewOnGithub: "在 GitHub 上查看",
-      getStarted: "开始使用",
     },
     hero: {
       badge: "Apache-2.0",
@@ -831,41 +703,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         },
       ],
     },
-    tools: {
-      eyebrow: "\u5df2\u8fde\u63a5",
-      heading: "\u5b83\u5728\u4f60\u5de5\u4f5c\u7684\u5730\u65b9\u5e72\u6d3b",
-      copy: "Bot \u4f1a\u767b\u5f55\u4f60\u672c\u6765\u5c31\u5728\u4ed8\u8d39\u7684\u5de5\u5177\uff0c\u50cf\u4f60\u4e00\u6837\u53bb\u7528\u3002",
-    },
-    illustrations: {
-      models: {
-        caption: "\u516d\u5bb6\u6a21\u578b\u4f9b\u5e94\u5546\u8fde\u5230\u4f60\u81ea\u5df1\u8fd0\u884c\u7684\u4e00\u4e2a Rakazo \u5b9e\u4f8b\u3002",
-      },
-      routines: {
-        rows: [
-          { title: "\u6574\u7406\u6536\u4ef6\u7bb1", range: "\u6bcf\u4e2a\u5de5\u4f5c\u65e5 \u00b7 07:00" },
-          { title: "\u8c03\u7814\u65b0\u5ba2\u6237", range: "\u6bcf\u665a \u00b7 02:00" },
-          { title: "\u76ef\u4f4f\u6295\u653e\u82b1\u8d39", range: "\u6bcf\u5929 \u00b7 09:00" },
-        ],
-        dayLabels: ["\u4e00", "\u4e8c", "\u4e09", "\u56db", "\u4e94", "\u516d", "\u65e5"],
-        nowLabel: "\u73b0\u5728",
-        caption: "\u4e09\u4e2a\u4f8b\u884c\u4efb\u52a1\u8de8\u8d8a\u4e00\u5468\u8fd0\u884c\uff0c\u5e76\u6807\u51fa\u5f53\u524d\u65f6\u95f4\u3002",
-      },
-      approvals: {
-        items: [
-          { label: "\u5f52\u6863 214 \u5c01\u5468\u62a5" },
-          { label: "\u56de\u590d 6 \u4e2a\u4f8b\u884c\u4f1a\u8bdd" },
-          { label: "\u5b89\u6392\u5468\u4e8c\u7ad9\u4f1a" },
-          { label: "\u5411 Northwind \u9000\u6b3e $2,400", asks: true },
-          { label: "\u53d1\u9001\u5df2\u7b7e\u7f72\u7684\u5408\u540c", asks: true },
-        ],
-        doneLabel: "\u5df2\u5b8c\u6210",
-        asksLabel: "\u5f85\u4f60\u786e\u8ba4",
-        caption: "\u4f8b\u884c\u64cd\u4f5c\u81ea\u5df1\u5b8c\u6210\uff1b\u6709\u540e\u679c\u7684\u64cd\u4f5c\u7b49\u4f60\u6279\u51c6\u3002",
-      },
-      tools: {
-        caption: "\u4e00\u9762\u5e94\u7528\u5899\uff0cBot \u53ef\u4ee5\u767b\u5f55\u5e76\u64cd\u4f5c\u5b83\u4eec\u3002",
-      },
-    },
     roster: {
       eyebrow: "Bot 模板",
       heading: "给每个 Bot 分配一份工作",
@@ -883,7 +720,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         "自带模型密钥",
         "例行任务、记忆和审计日志",
         "Bot 数量不限，无席位、无额度限制",
-        "邮件社区支持",
+        "GitHub 社区支持",
       ],
       starOnGithub: "在 GitHub 上点星",
       readTheDocs: "阅读文档",
@@ -905,6 +742,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSourceValue: "开源",
       selfHostValue: "自托管",
       stats: [
+        { value: "stars", label: "GitHub 星标" },
         { value: "license", label: "许可证" },
         { value: "openSource", label: "无席位、无门槛" },
         { value: "selfHost", label: "你的机器" },
