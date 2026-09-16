@@ -141,16 +141,24 @@ already work → it's yours → it's free.
 | --- | --- | --- |
 | Hero | *none* | The demo directly below is the aha. Art here would compete with it. |
 | Below hero | existing `ProductDemo` | A real thread beats any illustration. Left alone. |
-| "Never locked to one model" | `model-mesh` | Six providers around a Rakazo instance you run. |
-| "Set it once, it runs every day" | `timeline` | Named routines on a weekly schedule with a live playhead. |
-| "It stops before it costs you" | `handoffmenu` → approvals list | Routine work done alone; consequential work held for you. |
+| "Any model, your key" | `model-mesh` | Six providers around a Rakazo instance you run. |
+| "Readable routines" | `timeline` | Named routines on a weekly schedule with a live playhead. |
+| "Approvals that hold" | `handoffmenu` → approvals list | Routine work done alone; consequential work held for you. |
 | "It works where your work already lives" | `integrationwall` | The tools a bot signs in to, monochrome. |
 | Bot templates | existing roster cards | Already strong. Left alone. |
 | Open source / final CTA | *none* | Ending on a button is stronger than ending on a picture. |
 
-Four illustrations on the homepage. The self-host features render as full-width alternating rows
-rather than a three-up card grid: each illustration is authored at a fixed 330–520px, and squeezing
-one into a ~310px card makes its absolutely positioned pieces collide and its labels truncate.
+Four illustrations on the homepage. The existing layout, sections, and copy are unchanged: the three
+self-host illustrations drop into the top of the existing `.feature-card`s in `card-grid-3`, and the
+tool wall gets one new section built from the site's own `.section` / `.section-intro` / `.eyebrow`
+primitives. The diff against the site's own files is additive — no existing rule, token, or string
+was edited.
+
+One collision is worth knowing about. The site's `.feature-card p` rule is unlayered, so it outranks
+Tailwind's layered utilities and resized the text inside the artwork, which made the timeline's bars
+grow until they overlapped. `.feature-card__art :is(p, h3)` hands `margin`, `font-size`, and
+`line-height` back to the utility layer with `revert-layer`, scoped to the art slot only. Expect the
+same clash with any other vendored Tailwind component dropped inside a themed container here.
 
 ### Deliberately not used
 
@@ -224,6 +232,8 @@ Every vendored file was then adapted rather than dropped in as-is:
 - `integrationwall` swapped Spotify, Twitch and Vimeo for tools a bot would actually be pointed at,
   rendered monochrome instead of in brand colours.
 - `timeline` and `handoffmenu` take their visible strings as props so all four locales are covered.
+- `timeline` rows were re-spaced and its bottom fade dropped so all three routines read in full at
+  card width.
 - `model-mesh` honours `prefers-reduced-motion` in JS, since CSS cannot stop Motion's animations.
 
 The alternative (option B, authoring natively in inline SVG and CSS) stays on the table if the

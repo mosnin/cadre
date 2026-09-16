@@ -74,10 +74,12 @@ const PLAYHEAD_X = 428;
 
 /* Geometry is fixed; the words come from the page so they can be localised.
    Colours match the bot roster further down the page. */
+/* Rows are ~56px tall, so keep the tops far enough apart that a bar never
+   covers the schedule line of the one above it. */
 const ROW_GEOMETRY = [
-  { left: 36, width: 262, top: 90, color: "#6A6BF5" },
-  { left: 150, width: 268, top: 150, color: "#F5A03C" },
-  { left: 84, width: 240, top: 210, color: "#3EC5A8" },
+  { left: 36, width: 262, top: 76, color: "#6A6BF5" },
+  { left: 150, width: 268, top: 144, color: "#F5A03C" },
+  { left: 84, width: 240, top: 212, color: "#3EC5A8" },
 ];
 
 export type RoutineRow = {
@@ -186,10 +188,6 @@ const Timeline = ({ rows, dayLabels, nowLabel }: TimelineProps) => {
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-y-0 right-0 z-50 w-8 bg-linear-to-l from-page to-transparent"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-50 h-10 bg-linear-to-t from-page to-transparent"
         />
       </div>
     </FitScale>

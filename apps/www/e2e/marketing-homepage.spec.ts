@@ -77,4 +77,41 @@ test.describe("marketing homepage", () => {
     );
     await captureScreenshot(page, testInfo, "04-marketing-zh-get-started");
   });
+
+  test("illustrations render inside the feature cards with accessible names", async ({ page }, testInfo) => {
+    await page.goto("/");
+    await page.waitForLoadState("load");
+
+    // The illustrations hydrate on client:visible, so scroll them into view first.
+    const selfHost = page.locator("#selfhost");
+    await expect(async () => {
+      await selfHost.scrollIntoViewIfNeeded();
+    }).toPass({ timeout: 15_000 });
+
+    await expect(selfHost.locator(".feature-card__art")).toHaveCount(3);
+    for (const name of [
+      /six model providers/i,
+      /routines running across a week/i,
+      /held for approval/i,
+    ]) {
+      await expect(selfHost.getByRole("img", { name })).toBeVisible();
+    }
+    await captureScreenshot(page, testInfo, "05-marketing-feature-illustrations");
+
+    const tools = page.locator("#tools");
+    await expect(async () => {
+      await tools.scrollIntoViewIfNeeded();
+    }).toPass({ timeout: 15_000 });
+    await expect(tools.getByRole("heading", { level: 2 })).toHaveText(
+      "It works where your work already lives",
+    );
+    await expect(tools.getByRole("img", { name: /a bot can sign in to/i })).toBeVisible();
+    await captureScreenshot(page, testInfo, "06-marketing-tool-wall");
+
+    // The page must not scroll sideways once the fixed-width art is in place.
+    const overflows = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    expect(overflows).toBe(false);
+  });
 });

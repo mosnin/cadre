@@ -304,7 +304,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       badge: "Apache-2.0",
       pill: "Self-hosted",
       heading: "AI teammates you actually own",
-      lead: "Hand a bot the work you keep putting off. It signs in to your tools, finishes the job while you sleep, and comes back only when a decision is yours to make. Rakazo is the open source Grok Bot alternative — your keys, your model, your machine.",
+      lead: "Rakazo is an open source Grok Bot alternative. Give a bot real work. It signs in to your tools, uses them the way you do, and comes back when it needs you.",
       getStarted: "Get started",
       viewOnGithub: "View on GitHub",
       setupWithAgent: "Set up with your agent",
@@ -317,23 +317,23 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       copy: "Run Rakazo on your machine. Your keys, your model, your data.",
       features: [
         {
-          title: "Never locked to one model",
-          body: "Point each bot at Claude, GPT, Grok, or a model on your own hardware. The cheap one triages, the smart one writes, and you pay the provider directly.",
+          title: "Any model, your key",
+          body: "Point a bot at Claude, GPT, Grok, or a local model. Swap per bot: the cheap one triages, the smart one writes.",
         },
         {
-          title: "Set it once, it runs every day",
-          body: "Show a bot a job once and it keeps the routine in plain Markdown \u2014 a file you can read, edit, and commit like any other.",
+          title: "Readable routines",
+          body: "Show a bot a workflow once and it saves a routine as plain Markdown you can read, edit, and commit.",
         },
         {
-          title: "It stops before it costs you",
-          body: "You decide what a bot does alone and what it has to ask about. Every action lands in an audit log on your own machine.",
+          title: "Approvals that hold",
+          body: "Set what a bot may do alone and what it must ask about. Every action lands in an audit log you own.",
         },
       ],
     },
     tools: {
       eyebrow: "Connected",
       heading: "It works where your work already lives",
-      copy: "A bot signs in to the tools you already pay for and uses them the way you would \u2014 a real session in a real browser, not a pile of brittle API glue.",
+      copy: "A bot signs in to the tools you already pay for and uses them the way you would.",
     },
     illustrations: {
       models: {
@@ -471,7 +471,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       badge: "Apache-2.0",
       pill: "Self-hosted",
       heading: "KI-Teamkollegen, die dir wirklich gehören",
-      lead: "Gib einem Bot die Arbeit, die du vor dir herschiebst. Er meldet sich in deinen Tools an, erledigt sie über Nacht und kommt nur zurück, wenn du entscheiden musst. Rakazo ist die Open-Source-Alternative zu Grok Bot — deine Keys, dein Modell, deine Maschine.",
+      lead: "Rakazo ist eine Open-Source-Alternative zu Grok Bot. Gib einem Bot echte Arbeit. Er meldet sich in deinen Tools an, nutzt sie wie du — und kommt zurück, wenn er dich braucht.",
       getStarted: "Loslegen",
       viewOnGithub: "Auf GitHub ansehen",
       setupWithAgent: "Mit deinem Agenten einrichten",
@@ -484,23 +484,23 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       copy: "Betreibe Rakazo auf deiner Maschine. Deine Keys, dein Modell, deine Daten.",
       features: [
         {
-          title: "Nie an ein Modell gebunden",
-          body: "Richte jeden Bot auf Claude, GPT, Grok oder ein Modell auf deiner eigenen Hardware. Das g\u00fcnstige triagiert, das starke schreibt \u2014 und du zahlst direkt beim Anbieter.",
+          title: "Beliebiges Modell, dein Key",
+          body: "Richte einen Bot auf Claude, GPT, Grok oder ein lokales Modell aus. Pro Bot wechselbar: der günstige triagiert, der smarte schreibt.",
         },
         {
-          title: "Einmal zeigen, t\u00e4glich erledigt",
-          body: "Zeig einem Bot eine Aufgabe einmal. Er beh\u00e4lt die Routine als schlichtes Markdown \u2014 eine Datei, die du lesen, \u00e4ndern und committen kannst.",
+          title: "Lesbare Routinen",
+          body: "Zeig einem Bot einmal einen Workflow. Er speichert eine Routine als Markdown, das du lesen, editieren und committen kannst.",
         },
         {
-          title: "Er stoppt, bevor es teuer wird",
-          body: "Du entscheidest, was ein Bot allein tut und wof\u00fcr er fragen muss. Jede Aktion landet in einem Audit-Log auf deiner Maschine.",
+          title: "Freigaben, die greifen",
+          body: "Lege fest, was ein Bot allein darf und worum er fragen muss. Jede Aktion landet in einem Audit-Log, das dir gehört.",
         },
       ],
     },
     tools: {
       eyebrow: "Verbunden",
       heading: "Er arbeitet dort, wo deine Arbeit schon liegt",
-      copy: "Ein Bot meldet sich in den Tools an, die du ohnehin bezahlst, und nutzt sie wie du \u2014 echte Sessions in einem echten Browser statt br\u00fcchigem API-Kleber.",
+      copy: "Ein Bot meldet sich in den Tools an, die du ohnehin bezahlst, und nutzt sie wie du.",
     },
     illustrations: {
       models: {
@@ -637,7 +637,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       badge: "Apache-2.0",
       pill: "셀프 호스트",
       heading: "진짜로 내 것인 AI 팀원",
-      lead: "계속 미뤄둔 일을 봇에게 넘기세요. 봇은 당신의 도구에 로그인해 밤사이에 일을 끝내고, 판단이 필요한 순간에만 돌아옵니다. Rakazo는 오픈소스 Grok Bot 대안입니다. 내 키, 내 모델, 내 장비로.",
+      lead: "Rakazo는 오픈소스 Grok Bot 대안입니다. 봇에게 실제 업무를 맡기세요. 봇이 도구에 로그인하고, 당신처럼 사용하며, 필요할 때 돌아와 묻습니다.",
       getStarted: "시작하기",
       viewOnGithub: "GitHub에서 보기",
       setupWithAgent: "에이전트로 설정하기",
@@ -650,23 +650,23 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       copy: "당신 머신에서 Rakazo를 실행하세요. 키, 모델, 데이터는 모두 당신 것.",
       features: [
         {
-          title: "\ud55c \ubaa8\ub378\uc5d0 \ubb36\uc774\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4",
-          body: "\ubd07\ub9c8\ub2e4 Claude, GPT, Grok, \ub610\ub294 \ub0b4 \uc7a5\ube44\uc758 \ubaa8\ub378\uc744 \uace8\ub77c \ubd99\uc774\uc138\uc694. \uc800\ub834\ud55c \ubaa8\ub378\uc774 \ubd84\ub958\ud558\uace0 \ub611\ub611\ud55c \ubaa8\ub378\uc774 \uc53c\ub2c8\ub2e4. \ube44\uc6a9\uc740 \uacf5\uae09\uc0ac\uc5d0 \uc9c1\uc811 \ub0c5\ub2c8\ub2e4.",
+          title: "어떤 모델이든, 키는 당신 것",
+          body: "봇을 Claude, GPT, Grok 또는 로컬 모델에 연결하세요. 봇마다 바꿀 수 있습니다. 저렴한 모델은 분류하고, 똑똑한 모델은 작성합니다.",
         },
         {
-          title: "\ud55c \ubc88 \ubcf4\uc5ec\uc8fc\uba74 \ub9e4\uc77c \ub3d5\ub2c8\ub2e4",
-          body: "\uc77c\uc744 \ud55c \ubc88\ub9cc \ubcf4\uc5ec\uc8fc\uc138\uc694. \ubd07\uc740 \uadf8 \ub8e8\ud2f4\uc744 \ud3c9\ubc94\ud55c Markdown\uc73c\ub85c \ub0a8\uae41\ub2c8\ub2e4. \uc77d\uace0 \uace0\uce58\uace0 \ucee4\ubc0b\ud560 \uc218 \uc788\ub294 \ud30c\uc77c\uc785\ub2c8\ub2e4.",
+          title: "읽을 수 있는 루틴",
+          body: "워크플로를 한 번 보여주면 봇이 읽고 수정하고 커밋할 수 있는 Markdown 루틴으로 저장합니다.",
         },
         {
-          title: "\ube44\uc2fc \uc2e4\uc218 \uc55e\uc5d0\uc11c \uba48\ucda5\ub2c8\ub2e4",
-          body: "\ubb34\uc5c7\uc744 \ud63c\uc790 \ud558\uace0 \ubb34\uc5c7\uc744 \ubb3c\uc744\uc9c0 \ub2f9\uc2e0\uc774 \uc815\ud569\ub2c8\ub2e4. \ubaa8\ub4e0 \ud589\ub3d9\uc740 \ub0b4 \uc7a5\ube44\uc758 \uac10\uc0ac \ub85c\uadf8\uc5d0 \ub0a8\uc2b5\ub2c8\ub2e4.",
+          title: "지키는 승인",
+          body: "봇이 혼자 해도 되는 일과 물어야 하는 일을 정하세요. 모든 액션은 당신이 소유한 감사 로그에 남습니다.",
         },
       ],
     },
     tools: {
       eyebrow: "\uc5f0\uacb0",
       heading: "\uc77c\uc774 \uc774\ubbf8 \uc788\ub294 \uacf3\uc5d0\uc11c \uc77c\ud569\ub2c8\ub2e4",
-      copy: "\ubd07\uc740 \ub2f9\uc2e0\uc774 \uc774\ubbf8 \uc4f0\ub294 \ub3c4\uad6c\uc5d0 \ub85c\uadf8\uc778\ud574 \ub2f9\uc2e0\ucc98\ub7fc \uc0ac\uc6a9\ud569\ub2c8\ub2e4. \uc9c4\uc9dc \ube0c\ub77c\uc6b0\uc800\uc758 \uc9c4\uc9dc \uc138\uc158\uc774\uc9c0, \ubd80\uc11c\uc9c0\uae30 \uc26c\uc6b4 API \uc811\ucc29\uc81c\uac00 \uc544\ub2d9\ub2c8\ub2e4.",
+      copy: "\ubd07\uc740 \ub2f9\uc2e0\uc774 \uc774\ubbf8 \uc4f0\ub294 \ub3c4\uad6c\uc5d0 \ub85c\uadf8\uc778\ud574 \ub2f9\uc2e0\ucc98\ub7fc \uc0ac\uc6a9\ud569\ub2c8\ub2e4.",
     },
     illustrations: {
       models: {
@@ -803,7 +803,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       badge: "Apache-2.0",
       pill: "自托管",
       heading: "真正属于你的 AI 队友",
-      lead: "把你一直拖着没做的事交给 Bot。它会登录你的工具，趁你睡觉时把活干完，只在需要你做决定时才回来。Rakazo 是开源的 Grok Bot 替代品——你的密钥，你的模型，你的机器。",
+      lead: "Rakazo 是一个开源 Grok Bot 替代品。把真正的工作交给 Bot：它会登录你的工具，像你一样使用它们，并在需要你时回来询问。",
       getStarted: "开始使用",
       viewOnGithub: "在 GitHub 上查看",
       setupWithAgent: "用你的智能体安装",
@@ -816,23 +816,23 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       copy: "在你自己的机器上运行 Rakazo。密钥、模型、数据，都归你所有。",
       features: [
         {
-          title: "\u4e0d\u88ab\u5355\u4e00\u6a21\u578b\u7ed1\u5b9a",
-          body: "\u6bcf\u4e2a Bot \u90fd\u53ef\u4ee5\u6307\u5411 Claude\u3001GPT\u3001Grok \u6216\u4f60\u81ea\u5df1\u673a\u5668\u4e0a\u7684\u6a21\u578b\u3002\u4fbf\u5b9c\u7684\u8d1f\u8d23\u5206\u6d41\uff0c\u806a\u660e\u7684\u8d1f\u8d23\u6267\u7b14\uff0c\u8d39\u7528\u76f4\u4ed8\u7ed9\u4f9b\u5e94\u5546\u3002",
+          title: "任意模型，密钥归你",
+          body: "让 Bot 使用 Claude、GPT、Grok 或本地模型。可按 Bot 切换：用便宜的模型做分流，用聪明的模型写作。",
         },
         {
-          title: "\u6559\u4e00\u6b21\uff0c\u5929\u5929\u81ea\u52a8\u8dd1",
-          body: "\u628a\u4e00\u4ef6\u4e8b\u6f14\u793a\u4e00\u904d\uff0cBot \u5c31\u628a\u5b83\u5b58\u6210\u666e\u901a\u7684 Markdown \u4f8b\u884c\u2014\u2014\u4e00\u4efd\u4f60\u80fd\u8bfb\u3001\u80fd\u6539\u3001\u80fd\u63d0\u4ea4\u7684\u6587\u4ef6\u3002",
+          title: "可读的例行任务",
+          body: "给 Bot 演示一次工作流程，它就会把例行任务保存为纯 Markdown，你可以阅读、编辑并提交到版本库。",
         },
         {
-          title: "\u5728\u95ef\u7978\u4e4b\u524d\u5148\u505c\u4e0b",
-          body: "\u54ea\u4e9b\u4e8b\u81ea\u5df1\u505a\u3001\u54ea\u4e9b\u4e8b\u5fc5\u987b\u5148\u95ee\uff0c\u7531\u4f60\u8bf4\u4e86\u7b97\u3002\u6bcf\u4e00\u6b65\u90fd\u8bb0\u5728\u4f60\u81ea\u5df1\u673a\u5668\u7684\u5ba1\u8ba1\u65e5\u5fd7\u91cc\u3002",
+          title: "可靠的审批",
+          body: "设定 Bot 可以独立做什么、什么必须先请示。每个操作都会写入归你所有的审计日志。",
         },
       ],
     },
     tools: {
       eyebrow: "\u5df2\u8fde\u63a5",
       heading: "\u5b83\u5728\u4f60\u5de5\u4f5c\u7684\u5730\u65b9\u5e72\u6d3b",
-      copy: "Bot \u4f1a\u767b\u5f55\u4f60\u672c\u6765\u5c31\u5728\u4ed8\u8d39\u7684\u5de5\u5177\uff0c\u50cf\u4f60\u4e00\u6837\u53bb\u7528\u2014\u2014\u771f\u5b9e\u6d4f\u89c8\u5668\u91cc\u7684\u771f\u5b9e\u4f1a\u8bdd\uff0c\u800c\u4e0d\u662f\u4e00\u5806\u6613\u788e\u7684 API \u80f6\u6c34\u3002",
+      copy: "Bot \u4f1a\u767b\u5f55\u4f60\u672c\u6765\u5c31\u5728\u4ed8\u8d39\u7684\u5de5\u5177\uff0c\u50cf\u4f60\u4e00\u6837\u53bb\u7528\u3002",
     },
     illustrations: {
       models: {

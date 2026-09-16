@@ -2374,89 +2374,38 @@ button {
   }
 }
 
-/* Illustration surfaces
-   ---------------------
-   Each illustration is authored at a fixed width (400-520px). Giving it half a
-   full-width row keeps it at native size instead of squeezing it into a card,
-   where the absolutely positioned pieces start to collide. */
-.feature-rows {
-  display: grid;
-  gap: 28px;
-  margin-top: 44px;
-}
-
-.feature-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
-  gap: 48px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-soft);
-  padding: 40px 48px;
-}
-
-.feature-row--reverse .feature-row__art {
-  order: 2;
-}
-
-.feature-row__art {
+/* Illustration slot
+   -----------------
+   An illustration sits at the top of an existing .feature-card. The art is
+   authored at a fixed width and scales itself down to whatever room it gets,
+   so this only has to reserve the space and keep it from touching the edges. */
+.feature-card__art {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 0;
+  margin: -6px 0 22px;
+  min-height: 170px;
 }
 
-.feature-row__copy h3 {
-  margin: 0;
-  color: var(--ink);
-  font-family: Aeonik, Geist, ui-sans-serif, system-ui, sans-serif;
-  font-size: 26px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-}
-
-.feature-row__copy p {
-  margin: 14px 0 0;
-  font-size: 16px;
-  line-height: 1.65;
-}
-
-.tool-band {
-  display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  align-items: center;
-  gap: 48px;
+/* The card's own typography rules are unlayered, so they outrank Tailwind's
+   layered utilities and would resize the text inside the artwork. Hand those
+   properties back to the utility layer for the illustration only. */
+.feature-card__art :is(p, h3) {
+  margin: revert-layer;
+  font-size: revert-layer;
+  line-height: revert-layer;
 }
 
 .tool-wall {
   display: flex;
   justify-content: center;
-  min-width: 0;
-}
-
-@media (max-width: 900px) {
-  .feature-row,
-  .tool-band {
-    grid-template-columns: 1fr;
-    gap: 28px;
-  }
-
-  .feature-row {
-    padding: 28px 24px;
-  }
-
-  .feature-row--reverse .feature-row__art {
-    order: 0;
-  }
+  margin-top: 44px;
 }
 
 /* The illustrations animate on entry. Honour a reduced-motion preference by
    freezing them on a first frame that still reads correctly. */
 @media (prefers-reduced-motion: reduce) {
-  .feature-row__art *,
+  .feature-card__art *,
   .tool-wall * {
     animation: none !important;
     transition: none !important;
