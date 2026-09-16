@@ -1,0 +1,75 @@
+{
+  "review": "Design OS followed by Details, self-review only",
+  "status": "targeted_repairs_verified_not_whole_product_certification",
+  "sources": {
+    "packages/ui-web/src/components/ui/dialog.tsx": "3e0ab366b73c861bbcd5f32de1ad123d3dec15cebf11f729a4c2de625b21230c",
+    "packages/ui-web/src/directory/app-sidebar.tsx": "eb8c02a33603d7fe079d784517c96aed44b9f815feb3f2588ad8c77f038033f1",
+    "apps/web/src/pages/Shell.tsx": "a15f18fb396d03bf25d6294a4255b72fab5482abde0e5b3df50d696bb7f60f13",
+    "apps/web/src/pages/PluginsOverlay.tsx": "2adb3c722a48a3d4af0024ef9597b2e3ebbda34bd3a937fa1e15d2cb7e58cdd7",
+    "apps/web/src/pages/ModelSettingsOverlay.tsx": "24f9c7c995536bdd4196dfae6a007a25e047255583ee9f3910ec5fbd730d166c",
+    "packages/adapters/src/pi-models.ts": "1c221d6a864149e50620363ea95e0c01acb7a8a9c253d1527bd9b96eeeea6008",
+    "packages/adapters/src/pi-oauth.ts": "e29f09bca9acfa2c18141829e122608d0f8c25b3359255e1185b25e02c040604"
+  },
+  "captures": [
+    {
+      "path": "docs/reviews/holistic-captures/Account-settings-1280.png",
+      "sha256": "c02f41fac87fedf781ab10ec3a018aea6062696ff2c0bb5d3a6581dfdbb66d16"
+    },
+    {
+      "path": "docs/reviews/holistic-captures/Account-settings-390.png",
+      "sha256": "627c93a8b643ffefb7f4cba7fb3f974f3623e64b385f70ffdbcdf6dee7fe5b89"
+    },
+    {
+      "path": "docs/reviews/holistic-captures/Integrations-1280.png",
+      "sha256": "d536751abee65fac71e0dbb5d1447f53f70cc68601271913efb17a397c289c61"
+    },
+    {
+      "path": "docs/reviews/holistic-captures/Integrations-390.png",
+      "sha256": "d6e43ae7cee4c1824e1d2d26b7c1280ba59ec9d416989ea452cb20b04b6c46d7"
+    },
+    {
+      "path": "docs/reviews/holistic-captures/Memory-1280.png",
+      "sha256": "71156bd7c9b8ee92a0fec9dd4ebddeded906566ff8ce1178ba166dbd6252b6b9"
+    },
+    {
+      "path": "docs/reviews/holistic-captures/Memory-390.png",
+      "sha256": "eddc2871ed9023c74600b0955ae5b4d17389989868ef6e1f41b14946a1de5c42"
+    },
+    {
+      "path": "docs/reviews/holistic-captures/Models-1280.png",
+      "sha256": "1c3dda9c32cf13bcd5d01cebc8b81f2a45313cb19a998953680c637e53b628c6"
+    },
+    {
+      "path": "docs/reviews/holistic-captures/Models-390.png",
+      "sha256": "7737e9d48635e8066941b2de24102a807551266f1eefae4bdeb4f09b1d901403"
+    },
+    {
+      "path": "docs/reviews/holistic-captures/Voice-1280.png",
+      "sha256": "1a84f720a23d9f6172efd7d94a2f5a23e062847b68dc6650fafef97118fdf954"
+    },
+    {
+      "path": "docs/reviews/holistic-captures/Voice-390.png",
+      "sha256": "72a51ecbfd969108359dc3b2fb590ff424cedbaee7ca07523ae9e0fe03311f4e"
+    },
+    {
+      "path": "docs/reviews/holistic-captures/navigator-1280.png",
+      "sha256": "e4a9201464dc88ba21bdeca2c5a72c6e13d1d8dc0291cea778a739555b7d31b5"
+    },
+    {
+      "path": "docs/reviews/holistic-captures/navigator-390.png",
+      "sha256": "44f56c9c3044ca5eadab97b5cb0f8421ec70dbecd750f22ba35d73efc49c03ce"
+    }
+  ],
+  "findings_fixed": [
+    "Narrow dialogs clipped off the left edge",
+    "Integration names squeezed out by phone two-column layout",
+    "Unlabeled creation control isolated in header",
+    "Legacy product name in model settings"
+  ],
+  "remaining_boundaries": [
+    "Native-device rendering not tested",
+    "Live consent and metadata sync require a newly completed user connection",
+    "Component OS checker retains the documented combobox barrel and login adaptation findings",
+    "Hosted CI currently blocked before job start by account billing"
+  ]
+}

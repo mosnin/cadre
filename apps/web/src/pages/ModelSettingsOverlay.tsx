@@ -329,7 +329,7 @@ export function ModelSettingsOverlay({ onClose }: { onClose: () => void }) {
               {loading ? (
                 <Trans>Loading model catalog…</Trans>
               ) : (
-                <Trans>Choose which connected model Rakazo uses.</Trans>
+                <Trans>Choose a model for your agents.</Trans>
               )}
             </DialogDescription>
           </div>
@@ -433,7 +433,7 @@ export function ModelSettingsOverlay({ onClose }: { onClose: () => void }) {
                         summary={<Trans>Setup help</Trans>}
                       >
                         <p className="mt-1">
-                          {t`Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed.`}
+                          {t`Paste the OpenAI-compatible address from your server. The /v1 path is added if needed.`}
                         </p>
                       </Disclosure>
                       <div className="mt-3 flex items-center gap-2">
@@ -703,8 +703,8 @@ export function ModelSettingsOverlay({ onClose }: { onClose: () => void }) {
                 {selected.auth === "oauth" && !subscriptionSignIn ? (
                   <p className="mt-5 text-sm leading-[1.5] text-muted-foreground">
                     <Trans>
-                      This subscription sign-in is not available in Rakazo yet. Use a deployment
-                      credential or choose another provider.
+                      This subscription sign-in is not available yet. Use a deployment credential or
+                      choose another provider.
                     </Trans>
                   </p>
                 ) : null}

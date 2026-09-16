@@ -251,6 +251,7 @@ import {
   extractNarrationText,
   finalBlocksAfterMidTurnProgress,
   isUserProgressClientNonce,
+  shouldPublishNarration,
   userProgressClientNonce,
 } from "./user-progress.js";
 import { createWebProvider } from "./web-provider-factory.js";
@@ -1382,16 +1383,26 @@ export function createRunExecutor(deps: ExecutorDeps) {
           pendingUserProgress = publication.catch(() => undefined);
           return publication;
         };
-        const publishMidTurnNarration = async () => {
+        let lastNarrationPublishedAt = Date.now();
+        let withheldNarration = "";
+        const publishMidTurnNarration = async (mode: "timed" | "always" | "discard" = "timed") => {
           const extracted = extractNarrationText(messageSegments, currentTextSegment);
           const narration = clampUserProgressMessage(redactSecrets(extracted.text, runSecrets));
           messageSegments = extracted.remaining;
           currentTextSegment = "";
+          if (mode === "discard") withheldNarration = "";
           if (!narration) return;
           assembled = "";
           hasStreamedText = false;
           pendingProgress = "";
-          await publishUserProgress(narration);
+          // Routine tool preambles remain ephemeral. Only sustained work earns another bubble.
+          if (shouldPublishNarration(mode, Date.now() - lastNarrationPublishedAt)) {
+            await publishUserProgress(narration);
+            lastNarrationPublishedAt = Date.now();
+            withheldNarration = "";
+          } else if (mode === "timed") {
+            withheldNarration = narration;
+          }
         };
         const formatObservation = (
           observation: Awaited<ReturnType<SandboxProvider["observe"]>>,
@@ -2794,7 +2805,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             );
             if (!text) return finish({ error: "message is required" });
             await flushProgress();
-            await publishMidTurnNarration();
+            await publishMidTurnNarration("discard");
             await publishUserProgress(text);
             return finish({ ok: true });
           }
@@ -3044,7 +3055,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 pluginLine,
                 agentSkillsLine,
                 "Before using Company OS, read the company-context skill. Before saving Company OS deliverables, also read company-deliverables. Use only this workspace's authorized connector and context; never combine private context across workspaces.",
-                "Write clear, direct sentences with normal capitalization. Lead with the useful result or the next necessary action. Never echo internal routing envelopes, bot IDs, wake prompts, or coordination instructions into user-facing replies. Refer to teammates by name when relevant. Do not say work is done without a verified result or promise background work unless it is actually running. Never use em dashes in your messages to the user. Use periods, commas, or parentheses instead. Avoid decorative symbols.",
+                "Write clear, direct sentences with normal capitalization. Lead with the useful result or the next necessary action. For a short request, give one useful reply. Perform routine checks silently; do not send an acknowledgment and then restate it as another message. Use message_user only for a meaningful update during sustained work, and do not repeat it in your final answer. Never echo internal routing envelopes, bot IDs, wake prompts, or coordination instructions into user-facing replies. Refer to teammates by name when relevant. Do not say work is done without a verified result or promise background work unless it is actually running. Never use em dashes in your messages to the user. Use periods, commas, or parentheses instead. Avoid decorative symbols.",
                 taughtSkillsLine,
                 'For charts and data visualization, use the render_plot tool: it renders bar, line, scatter, histogram, heatmap, faceted and many more chart types from a JSON spec and attaches the PNG to the chat. Call render_plot with {"help": true} before your first chart to read the full guide.',
                 "When the user asks you to add or connect an MCP server (and gives you its details), use add_mcp_server. If it uses browser sign-in, an approval card appears in the chat — tell the user to click Authorize on it.",
@@ -3232,7 +3243,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               const safeReason = redactSecrets(event.reason, runSecrets);
               // Publish pending narration as tagged mid-turn progress so reconciliation
               // does not treat pre-takeover text as the delegated final result.
-              await publishMidTurnNarration();
+              await publishMidTurnNarration("always");
               if (assembled.trim()) {
                 const narration = clampUserProgressMessage(redactSecrets(assembled, runSecrets));
                 if (narration) {
@@ -3405,6 +3416,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
           await workspaceCheckpoint.flush();
           terminalCheckpointComplete = true;
 
+          // A tool-only completion must retain its sole human-readable response.
+          if (!assembled && !publishedMidTurnUserMessage && withheldNarration) {
+            assembled = withheldNarration;
+            currentTextSegment = withheldNarration;
+          }
           flushPendingTools();
           if (!assembled) {
             // Mid-turn progress already posted durable chat messages; skip the empty

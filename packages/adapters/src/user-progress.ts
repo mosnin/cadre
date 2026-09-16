@@ -84,3 +84,11 @@ export function botMessageOutcomeFromMidTurn(
   if (midTurn.length === 0) return null;
   return { text: midTurn.join("\n\n"), intent: "status" };
 }
+
+/** Short tool checks stay in transient progress; explicit messages never duplicate a preamble. */
+export function shouldPublishNarration(
+  mode: "timed" | "always" | "discard",
+  elapsedMs: number,
+): boolean {
+  return mode === "always" || (mode === "timed" && elapsedMs >= 30_000);
+}

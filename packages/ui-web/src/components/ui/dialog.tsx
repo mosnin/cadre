@@ -99,7 +99,7 @@ function DialogContent({
       showCloseButton={showCloseButton}
       closeButtonLabel="Close"
       className={cn(
-        "grid max-w-lg gap-4 p-6 text-sm text-popover-foreground outline-none",
+        "grid max-w-[min(32rem,100%)] gap-4 p-6 text-sm text-popover-foreground outline-none",
         className,
       )}
     >

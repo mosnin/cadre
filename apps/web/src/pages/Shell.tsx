@@ -2705,12 +2705,13 @@ export function ShellPage() {
                 {" "}
                 <Popover open={createMenuOpen} onOpenChange={setCreateMenuOpen}>
                   <PopoverTrigger
-                    className="app-no-drag grid h-11 w-11 place-items-center rounded-full bg-muted text-foreground md:bg-transparent md:text-muted-foreground"
+                    className="app-no-drag inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium text-foreground hover:bg-muted"
                     title={t`Create`}
                     aria-label={t`Create`}
                     data-testid="create-menu-trigger"
                   >
-                    <Plus size={22} strokeWidth={1.8} />
+                    <Plus size={18} strokeWidth={1.8} />
+                    <Trans>Create</Trans>
                   </PopoverTrigger>
                   {/* Unmount with the state change so the panel it opens never coexists with the menu. */}
                   {createMenuOpen ? (
