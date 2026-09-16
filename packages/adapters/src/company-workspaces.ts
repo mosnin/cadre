@@ -358,6 +358,7 @@ export class CompanyWorkspaces {
     });
   }
   async prepare(context: AdapterContext) {
+    context.companyWorkspace = undefined;
     if (!context.botId) return;
     let credential: Awaited<ReturnType<CompanyWorkspaces["credential"]>>;
     try {
@@ -370,6 +371,7 @@ export class CompanyWorkspaces {
       await this.disable(context);
       return;
     }
+    context.companyWorkspace = credential.identity.company;
     await this.syncWorkspace(context, credential.token).catch(() =>
       getLogger().warn("company_workspace.sync_failed"),
     );

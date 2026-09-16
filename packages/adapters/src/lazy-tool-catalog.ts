@@ -226,7 +226,9 @@ export function loadCatalogEntry(
     assertSchemaSize(byShort[0]!);
     return byShort[0]!;
   }
-  throw new Error("Tool is unknown or not authorized for this bot");
+  throw new Error(
+    "Tool identifier not found in this bot’s current catalog. Search tools again and use the exact returned ID. This lookup failure does not establish connection or authorization status.",
+  );
 }
 
 function assertSchemaSize(entry: CatalogEntry): void {

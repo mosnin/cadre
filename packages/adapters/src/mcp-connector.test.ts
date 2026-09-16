@@ -79,6 +79,58 @@ function mcpFetch(
 }
 
 describe("MCP connector session cache", () => {
+  it("keeps the authorized Company OS context index directly callable in a large catalog", async () => {
+    const state = {
+      failNext: false,
+      initializations: 0,
+      calls: [] as string[],
+      tools: [
+        {
+          name: "config_pull",
+          annotations: { readOnlyHint: true },
+          inputSchema: { type: "object" },
+        },
+        ...Array.from({ length: 25 }, (_, i) => ({
+          name: `other_${i}`,
+          inputSchema: { type: "object" },
+        })),
+      ],
+    };
+    vi.stubGlobal("fetch", mcpFetch(state));
+    const assignment = { ...ASSIGNMENT, server: { ...SERVER, slug: "company-os-context" } };
+    const prisma = {
+      botMcpServer: {
+        findMany: vi.fn().mockResolvedValue([assignment]),
+        findFirst: vi.fn().mockResolvedValue(assignment),
+      },
+    };
+    const prepare = vi.fn().mockResolvedValue(undefined);
+    const connector = new McpConnector(prisma as never, {} as never, {
+      prepareCompanyWorkspace: prepare,
+      network: { resolveHostname: async () => [{ address: "203.0.113.10", family: 4 }] },
+    });
+    const context = {
+      spaceId: "w1",
+      userId: "u1",
+      botId: "bot-1",
+      signal: new AbortController().signal,
+    } as never;
+    const tools = await connector.discoverTools(context);
+    const index = tools.find((t) => t.route?.toolName === "config_pull")!;
+    expect(index).toMatchObject({ name: "mcp__company-os-context__config_pull", readOnly: true });
+    expect(tools).toHaveLength(4);
+    const events = [];
+    for await (const event of connector.execute(
+      { tool: index.name, args: {}, executionId: "read-company", route: index.route },
+      context,
+    ))
+      events.push(event);
+    expect(events).toMatchObject([{ type: "result" }]);
+    expect(state.calls).toEqual(["config_pull"]);
+    expect(prepare).toHaveBeenCalledTimes(2);
+    await connector.close();
+  });
+
   it("keeps large MCP schemas out of the initial runtime tool catalog", async () => {
     const state = {
       failNext: false,
@@ -310,7 +362,7 @@ describe("MCP connector session cache", () => {
         },
         context,
       ),
-    ).rejects.toThrow("unknown or not authorized");
+    ).rejects.toThrow("Tool identifier not found");
     await expect(
       connector.resolveCall(
         {

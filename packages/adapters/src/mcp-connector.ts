@@ -92,7 +92,12 @@ export class McpConnector implements ConnectorProvider {
   async discoverTools(context: AdapterContext): Promise<ConnectorTool[]> {
     const tools = await this.authorizedTools(context);
     if (tools.length <= DIRECT_TOOL_LIMIT) return tools;
-    return lazyCatalogTools("mcp", "mcp", "MCP", catalogEntries(tools));
+    // Keep the authorized company context entry point directly callable in large catalogs.
+    const companyIndex = tools.filter(
+      (tool) =>
+        tool.route?.catalogGroup === "company-os-context" && tool.route.toolName === "config_pull",
+    );
+    return [...companyIndex, ...lazyCatalogTools("mcp", "mcp", "MCP", catalogEntries(tools))];
   }
 
   async resolveCall(
@@ -137,6 +142,7 @@ export class McpConnector implements ConnectorProvider {
               name: `mcp__${assignment.server.slug}__${tool.name}`,
               description: tool.description ?? tool.name,
               inputSchema: tool.inputSchema as Record<string, unknown>,
+              readOnly: tool.annotations?.readOnlyHint === true,
               route: {
                 connectorId: "mcp",
                 resourceId: assignment.serverId,

@@ -7,6 +7,8 @@ export interface AdapterContext {
   userId: string;
   botId?: string;
   runId?: string;
+  /** Set only after this run validates its workspace OAuth grant. Never credentials. */
+  companyWorkspace?: { id: string; name: string; slug: string };
   /** Opaque fence for releasing a graphical screen without tearing down its replacement. */
   screenLeaseId?: string;
   /** When releasing a screen after cancel, also stop orphaned browser work on that screen. */
