@@ -5,6 +5,10 @@ import GetStartedDialog from "./GetStartedDialog.astro";
 import Header from "./Header.astro";
 import { ProductDemo } from "./ProductDemo";
 import RosterBotAvatar from "./RosterBotAvatar.astro";
+import ModelMesh from "./forgeui/model-mesh";
+import RoutineTimeline from "./forgeui/timeline";
+import ApprovalList from "./forgeui/handoffmenu";
+import IntegrationWall from "./forgeui/integrationwall";
 import { getHomeCopy } from "../i18n/home";
 import {
   DEFAULT_LOCALE,
@@ -178,15 +182,61 @@ const structuredData = {
           <Button href={GITHUB_URL} variant="secondary" external>{copy.hero.viewOnGithub}</Button>
           <Button href={DOCS_URL} variant="secondary" external>{copy.openSource.readTheDocs}</Button>
         </div>
-        <div class="card-grid-3">
-          {
-            copy.selfHost.features.map((feature) => (
-              <article class="feature-card">
-                <h3>{feature.title}</h3>
-                <p>{feature.body}</p>
-              </article>
-            ))
-          }
+        <div class="feature-rows">
+          <article class="feature-row">
+            <div class="feature-row__art" role="img" aria-label={copy.illustrations.models.caption}>
+              <ModelMesh client:visible />
+            </div>
+            <div class="feature-row__copy">
+              <h3>{copy.selfHost.features[0].title}</h3>
+              <p>{copy.selfHost.features[0].body}</p>
+            </div>
+          </article>
+
+          <article class="feature-row feature-row--reverse">
+            <div class="feature-row__art" role="img" aria-label={copy.illustrations.routines.caption}>
+              <RoutineTimeline
+                rows={copy.illustrations.routines.rows}
+                dayLabels={copy.illustrations.routines.dayLabels}
+                nowLabel={copy.illustrations.routines.nowLabel}
+                client:visible
+              />
+            </div>
+            <div class="feature-row__copy">
+              <h3>{copy.selfHost.features[1].title}</h3>
+              <p>{copy.selfHost.features[1].body}</p>
+            </div>
+          </article>
+
+          <article class="feature-row">
+            <div class="feature-row__art" role="img" aria-label={copy.illustrations.approvals.caption}>
+              <ApprovalList
+                approvals={copy.illustrations.approvals.items}
+                doneLabel={copy.illustrations.approvals.doneLabel}
+                asksLabel={copy.illustrations.approvals.asksLabel}
+                client:visible
+              />
+            </div>
+            <div class="feature-row__copy">
+              <h3>{copy.selfHost.features[2].title}</h3>
+              <p>{copy.selfHost.features[2].body}</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="tools" class="section">
+        <div class="tool-band">
+          <div class="section-intro">
+            <div class="eyebrow">{copy.tools.eyebrow}</div>
+            <h2 class="section-heading">{copy.tools.heading}</h2>
+            <p class="section-copy">
+              {copy.tools.copy}
+            </p>
+          </div>
+          <div class="tool-wall" role="img" aria-label={copy.illustrations.tools.caption}>
+            <IntegrationWall client:visible />
+          </div>
         </div>
       </section>
 
