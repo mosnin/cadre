@@ -410,6 +410,21 @@ export function WorkspaceIdentity({
   const [open, setOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
   const [returnError, setReturnError] = useState(false);
+  const [connectedTarget, setConnectedTarget] = useState<string>();
+  useEffect(() => {
+    // The OAuth callback lands on /app and bootstrap immediately replaces the
+    // route with /app/<bot>, so the outcome must be read on first mount.
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("company-connected")) setConnectedTarget(params.get("company-connected")!);
+    else if (params.has("company-error")) setReturnError(true);
+    else if (!params.has("company-ready")) return;
+    for (const key of ["company-connected", "company-ready", "company-error"]) params.delete(key);
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${params.size ? `?${params}` : ""}${window.location.hash}`,
+    );
+  }, []);
   useEffect(() => {
     let alive = true;
     const refresh = () => {
@@ -439,26 +454,13 @@ export function WorkspaceIdentity({
     };
   }, [spaceId]);
   useEffect(() => {
-    // The OAuth callback lands on /app; this header is mounted whether or not
-    // navigation is open, so the result is consumed here. Success needs no copy:
-    // the company name renders below once the connection loads.
-    if (spaceId === undefined) return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.has("company-connected")) {
-      const target = params.get("company-connected")!;
-      if (target !== spaceId && selectSpace(target)) {
-        window.location.replace("/app");
-        return;
-      }
-    } else if (params.has("company-error")) setReturnError(true);
-    else if (!params.has("company-ready")) return;
-    for (const key of ["company-connected", "company-ready", "company-error"]) params.delete(key);
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}${params.size ? `?${params}` : ""}${window.location.hash}`,
-    );
-  }, [spaceId]);
+    // A connection made for another workspace switches to it once the current
+    // space is known. Success needs no copy: the company name renders below.
+    if (spaceId === undefined || !connectedTarget) return;
+    if (connectedTarget !== spaceId && selectSpace(connectedTarget))
+      window.location.replace("/app");
+    else setConnectedTarget(undefined);
+  }, [spaceId, connectedTarget]);
   return (
     <>
       <button
