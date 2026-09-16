@@ -272,7 +272,7 @@ msgstr ""
 msgid "Advanced"
 msgstr "Erweitert"
 
-#: src/pages/Onboarding.tsx:880
+#: src/pages/Onboarding.tsx:890
 #: src/pages/shell/bot-panel.tsx:161
 msgid "Advanced settings"
 msgstr ""
@@ -281,7 +281,7 @@ msgstr ""
 msgid "Advanced..."
 msgstr ""
 
-#: src/pages/Onboarding.tsx:406
+#: src/pages/Onboarding.tsx:416
 msgid "Agent"
 msgstr ""
 
@@ -383,9 +383,9 @@ msgstr ""
 #: src/pages/ModelSettingsOverlay.tsx:644
 #: src/pages/ModelSettingsOverlay.tsx:647
 #: src/pages/ModelSettingsOverlay.tsx:666
-#: src/pages/Onboarding.tsx:790
-#: src/pages/Onboarding.tsx:793
-#: src/pages/Onboarding.tsx:807
+#: src/pages/Onboarding.tsx:800
+#: src/pages/Onboarding.tsx:803
+#: src/pages/Onboarding.tsx:817
 #: src/pages/VoiceSettingsOverlay.tsx:326
 msgid "API key"
 msgstr "API-Schlüssel"
@@ -508,7 +508,7 @@ msgid "Authentication"
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:577
-#: src/pages/Onboarding.tsx:739
+#: src/pages/Onboarding.tsx:749
 msgid "Authorization code or callback URL"
 msgstr "Autorisierungscode oder Callback-URL"
 
@@ -529,7 +529,7 @@ msgstr ""
 msgid "Avatars"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:905
+#: src/pages/Onboarding.tsx:915
 #: src/pages/RoutineEditor.tsx:231
 #: src/pages/WorkspaceLibrary.tsx:207
 #: src/pages/WorkspaceLibrary.tsx:272
@@ -757,11 +757,11 @@ msgstr "Schließen"
 msgid "Close chart"
 msgstr "Diagramm schließen"
 
-#: src/pages/CompanyWorkspaces.tsx:152
+#: src/pages/CompanyWorkspaces.tsx:159
 msgid "Close company connection"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:485
+#: src/pages/CompanyWorkspaces.tsx:492
 msgid "Close company context"
 msgstr ""
 
@@ -809,7 +809,7 @@ msgstr "Vorschau schließen"
 msgid "Close search"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:381
+#: src/pages/Onboarding.tsx:391
 msgid "Close setup"
 msgstr ""
 
@@ -847,21 +847,21 @@ msgstr ""
 msgid "Command"
 msgstr "Befehl"
 
-#: src/pages/Onboarding.tsx:400
+#: src/pages/Onboarding.tsx:410
 msgid "Company"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:278
-#: src/pages/CompanyWorkspaces.tsx:280
+#: src/pages/CompanyWorkspaces.tsx:285
+#: src/pages/CompanyWorkspaces.tsx:287
 msgid "Company connected. Agents can now read its authorized context."
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:282
+#: src/pages/CompanyWorkspaces.tsx:289
 msgid "Company connection was not completed. Try again from Settings."
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:461
-#: src/pages/CompanyWorkspaces.tsx:484
+#: src/pages/CompanyWorkspaces.tsx:468
+#: src/pages/CompanyWorkspaces.tsx:491
 msgid "Company context"
 msgstr ""
 
@@ -874,7 +874,7 @@ msgid "Company OS assignments"
 msgstr ""
 
 #: src/pages/CompanyWorkspaces.tsx:75
-#: src/pages/CompanyWorkspaces.tsx:132
+#: src/pages/CompanyWorkspaces.tsx:139
 msgid "Company OS connection is not configured on this deployment."
 msgstr ""
 
@@ -882,11 +882,11 @@ msgstr ""
 msgid "Company OS endpoint"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:475
+#: src/pages/Onboarding.tsx:485
 msgid "Company OS is not configured on this deployment. You can connect it later in Settings."
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:390
+#: src/pages/CompanyWorkspaces.tsx:397
 msgid "Company OS unavailable"
 msgstr ""
 
@@ -945,8 +945,8 @@ msgstr "Passwort bestätigen"
 msgid "Connect"
 msgstr "Verbinden"
 
-#: src/pages/CompanyWorkspaces.tsx:153
-#: src/pages/CompanyWorkspaces.tsx:156
+#: src/pages/CompanyWorkspaces.tsx:160
+#: src/pages/CompanyWorkspaces.tsx:163
 msgid "Connect a company"
 msgstr ""
 
@@ -954,7 +954,7 @@ msgstr ""
 msgid "Connect a Company OS agent key with context read and write access. Its department permissions apply to every worker."
 msgstr ""
 
-#: src/pages/Onboarding.tsx:521
+#: src/pages/Onboarding.tsx:531
 msgid "Connect a model"
 msgstr "Modell verbinden"
 
@@ -967,10 +967,10 @@ msgid "Connect Cadre to Codex"
 msgstr ""
 
 #: src/pages/CompanyWorkspaces.tsx:85
-#: src/pages/CompanyWorkspaces.tsx:359
-#: src/pages/CompanyWorkspaces.tsx:393
-#: src/pages/CompanyWorkspaces.tsx:473
-#: src/pages/Onboarding.tsx:463
+#: src/pages/CompanyWorkspaces.tsx:366
+#: src/pages/CompanyWorkspaces.tsx:400
+#: src/pages/CompanyWorkspaces.tsx:480
+#: src/pages/Onboarding.tsx:473
 msgid "Connect Company OS"
 msgstr ""
 
@@ -998,12 +998,12 @@ msgstr "Treg verbinden"
 msgid "Connect workforce"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:453
+#: src/pages/Onboarding.tsx:463
 msgid "Connect your company"
 msgstr ""
 
 #: src/pages/CompanyWorkspaces.tsx:70
-#: src/pages/CompanyWorkspaces.tsx:396
+#: src/pages/CompanyWorkspaces.tsx:403
 #: src/pages/McpOAuthCallback.tsx:54
 #: src/pages/MemorySettingsOverlay.tsx:184
 #: src/pages/ModelSettingsOverlay.tsx:397
@@ -1040,10 +1040,10 @@ msgid "Connecting to your screen…"
 msgstr ""
 
 #: src/pages/CodexConsent.tsx:96
-#: src/pages/CompanyWorkspaces.tsx:227
+#: src/pages/CompanyWorkspaces.tsx:234
 #: src/pages/McpServersOverlay.tsx:39
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:82
-#: src/pages/Onboarding.tsx:463
+#: src/pages/Onboarding.tsx:473
 #: src/pages/RealtimeCallView.tsx:136
 #: src/pages/shell/message-cards.tsx:363
 #: src/pages/VoiceSettingsOverlay.tsx:344
@@ -1057,12 +1057,12 @@ msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "Die Verbindung zu {0} steht noch aus. Du kannst dieses Fenster schließen und später erneut nachsehen."
 
 #: src/pages/CompanyWorkspaces.tsx:63
-#: src/pages/CompanyWorkspaces.tsx:470
+#: src/pages/CompanyWorkspaces.tsx:477
 msgid "Connection unavailable"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:446
-#: src/pages/Onboarding.tsx:834
+#: src/pages/Onboarding.tsx:456
+#: src/pages/Onboarding.tsx:844
 msgid "Continue"
 msgstr "Weiter"
 
@@ -1070,7 +1070,7 @@ msgstr "Weiter"
 msgid "Continue setup"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:227
+#: src/pages/CompanyWorkspaces.tsx:234
 msgid "Continue to Company OS"
 msgstr ""
 
@@ -1082,7 +1082,7 @@ msgstr ""
 msgid "Continue with email"
 msgstr "Mit E-Mail fortfahren"
 
-#: src/pages/Onboarding.tsx:500
+#: src/pages/Onboarding.tsx:510
 msgid "Continue without a company"
 msgstr ""
 
@@ -1147,11 +1147,11 @@ msgstr "Verbindung fehlgeschlagen"
 msgid "Could not connect {0}"
 msgstr "Verbindung mit {0} fehlgeschlagen"
 
-#: src/pages/CompanyWorkspaces.tsx:179
+#: src/pages/CompanyWorkspaces.tsx:186
 msgid "Could not connect Company OS"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:367
+#: src/pages/Onboarding.tsx:377
 msgid "Could not connect Company OS. Try again or continue without a company."
 msgstr ""
 
@@ -1187,11 +1187,11 @@ msgstr "Abschnitt konnte nicht erstellt werden"
 msgid "Could not create space"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:348
+#: src/pages/Onboarding.tsx:358
 msgid "Could not create workspace"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:314
+#: src/pages/Onboarding.tsx:324
 msgid "Could not create your bot"
 msgstr "Dein Bot konnte nicht erstellt werden"
 
@@ -1252,7 +1252,7 @@ msgstr "Bestätigungsregeln konnten nicht geladen werden"
 msgid "Could not load Company OS connection"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:483
+#: src/pages/Onboarding.tsx:493
 msgid "Could not load Company OS. Reload to try again, or connect later."
 msgstr ""
 
@@ -1276,7 +1276,7 @@ msgstr "MCP-Server konnten nicht geladen werden"
 msgid "Could not load model settings"
 msgstr "Modelleinstellungen konnten nicht geladen werden"
 
-#: src/pages/Onboarding.tsx:138
+#: src/pages/Onboarding.tsx:148
 msgid "Could not load setup. Reload to try again."
 msgstr ""
 
@@ -1305,7 +1305,7 @@ msgstr "Stimmeinstellungen konnten nicht geladen werden"
 msgid "Could not load workforce"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:136
+#: src/pages/CompanyWorkspaces.tsx:143
 msgid "Could not load workspaces"
 msgstr ""
 
@@ -1329,7 +1329,7 @@ msgid "Could not reach the server"
 msgstr "Server konnte nicht erreicht werden"
 
 #: src/pages/ModelSettingsOverlay.tsx:235
-#: src/pages/Onboarding.tsx:250
+#: src/pages/Onboarding.tsx:260
 msgid "Could not reach this model server"
 msgstr "Modellserver konnte nicht erreicht werden"
 
@@ -1381,7 +1381,7 @@ msgstr ""
 msgid "Could not save group"
 msgstr "Gruppe konnte nicht gespeichert werden"
 
-#: src/pages/Onboarding.tsx:277
+#: src/pages/Onboarding.tsx:287
 msgid "Could not save model"
 msgstr "Modell konnte nicht gespeichert werden"
 
@@ -1476,16 +1476,16 @@ msgstr ""
 msgid "Create"
 msgstr "Erstellen"
 
-#: src/pages/CompanyWorkspaces.tsx:153
-#: src/pages/CompanyWorkspaces.tsx:156
+#: src/pages/CompanyWorkspaces.tsx:160
+#: src/pages/CompanyWorkspaces.tsx:163
 msgid "Create a company"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:470
+#: src/pages/Onboarding.tsx:480
 msgid "Create a company in Company OS"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:216
+#: src/pages/CompanyWorkspaces.tsx:223
 msgid "Create a company or choose an existing business in Company OS, then approve access. Its context stays in this workspace."
 msgstr ""
 
@@ -1494,7 +1494,7 @@ msgstr ""
 msgid "Create a section and move {0} into it."
 msgstr "Erstelle einen Abschnitt und verschiebe {0} dorthin."
 
-#: src/pages/Onboarding.tsx:422
+#: src/pages/Onboarding.tsx:432
 msgid "Create a workspace"
 msgstr ""
 
@@ -1503,12 +1503,12 @@ msgstr ""
 msgid "Create account"
 msgstr "Konto erstellen"
 
-#: src/pages/Onboarding.tsx:908
+#: src/pages/Onboarding.tsx:918
 #: src/pages/shell/bot-panel.tsx:181
 msgid "Create agent"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:370
+#: src/pages/CompanyWorkspaces.tsx:377
 msgid "Create company"
 msgstr ""
 
@@ -1530,7 +1530,7 @@ msgstr ""
 msgid "Create your Cadre"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:854
+#: src/pages/Onboarding.tsx:864
 msgid "Create your first agent"
 msgstr ""
 
@@ -1539,8 +1539,8 @@ msgid "Created"
 msgstr ""
 
 #: src/pages/GroupPanel.tsx:144
-#: src/pages/Onboarding.tsx:446
-#: src/pages/Onboarding.tsx:908
+#: src/pages/Onboarding.tsx:456
+#: src/pages/Onboarding.tsx:918
 #: src/pages/shell/bot-panel.tsx:181
 #: src/pages/shell/dialogs.tsx:91
 #: src/pages/shell/dialogs.tsx:155
@@ -1679,7 +1679,7 @@ msgid "Disconnect"
 msgstr "Trennen"
 
 #: src/pages/CompanyWorkspaces.tsx:70
-#: src/pages/CompanyWorkspaces.tsx:396
+#: src/pages/CompanyWorkspaces.tsx:403
 msgid "Disconnected"
 msgstr ""
 
@@ -1784,7 +1784,7 @@ msgstr ""
 
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 #: src/pages/ModelSettingsOverlay.tsx:600
-#: src/pages/Onboarding.tsx:758
+#: src/pages/Onboarding.tsx:768
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Gib diesen Code unter <0>{0}</0> ein"
 
@@ -1878,18 +1878,18 @@ msgid "Failure handling"
 msgstr "Fehlerbehandlung"
 
 #: src/pages/ModelSettingsOverlay.tsx:447
-#: src/pages/Onboarding.tsx:647
+#: src/pages/Onboarding.tsx:657
 msgid "Find models"
 msgstr "Modelle suchen"
 
 #: src/pages/ModelSettingsOverlay.tsx:447
-#: src/pages/Onboarding.tsx:647
+#: src/pages/Onboarding.tsx:657
 msgid "Finding…"
 msgstr "Suche läuft…"
 
 #. placeholder {0}: new URL(oauth.verificationUri).hostname
 #: src/pages/ModelSettingsOverlay.tsx:560
-#: src/pages/Onboarding.tsx:722
+#: src/pages/Onboarding.tsx:732
 msgid "Finish signing in at <0>{0}</0>. The final page may not load; paste its URL or code here."
 msgstr "Schließe die Anmeldung unter <0>{0}</0> ab. Die letzte Seite wird möglicherweise nicht geladen; füge ihre URL oder den Code hier ein."
 
@@ -1902,7 +1902,7 @@ msgstr "Fertig."
 msgid "Finishing MCP connection…"
 msgstr "MCP-Verbindung wird abgeschlossen…"
 
-#: src/pages/Onboarding.tsx:409
+#: src/pages/Onboarding.tsx:419
 msgid "First task"
 msgstr ""
 
@@ -1930,7 +1930,7 @@ msgstr "Vollbild"
 msgid "Git event"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:456
+#: src/pages/Onboarding.tsx:466
 msgid "Give agents access to the business context you authorize in Company OS."
 msgstr ""
 
@@ -2104,7 +2104,7 @@ msgstr "Zur beantworteten Nachricht springen"
 msgid "just now"
 msgstr "gerade eben"
 
-#: src/pages/Onboarding.tsx:425
+#: src/pages/Onboarding.tsx:435
 msgid "Keep a business’s agents, conversations and context together."
 msgstr ""
 
@@ -2158,12 +2158,12 @@ msgstr "Frühere Nachrichten laden"
 msgid "Loading activity…"
 msgstr "Aktivität wird geladen…"
 
-#: src/pages/CompanyWorkspaces.tsx:388
+#: src/pages/CompanyWorkspaces.tsx:395
 msgid "Loading Company OS…"
 msgstr ""
 
 #: src/pages/CompanyWorkspaces.tsx:65
-#: src/pages/CompanyWorkspaces.tsx:468
+#: src/pages/CompanyWorkspaces.tsx:475
 msgid "Loading company…"
 msgstr ""
 
@@ -2199,7 +2199,7 @@ msgstr "Stimmanbieter werden geladen…"
 #: src/App.tsx:69
 #: src/App.tsx:80
 #: src/pages/Auth.tsx:141
-#: src/pages/Onboarding.tsx:514
+#: src/pages/Onboarding.tsx:524
 #: src/pages/PeerMessagesOverlay.tsx:99
 #: src/pages/Shell.tsx:4582
 #: src/pages/WorkforceOverlay.tsx:148
@@ -2332,15 +2332,15 @@ msgstr "Minuten"
 #: src/pages/ModelSettingsOverlay.tsx:452
 #: src/pages/ModelSettingsOverlay.tsx:506
 #: src/pages/ModelSettingsOverlay.tsx:772
-#: src/pages/Onboarding.tsx:652
-#: src/pages/Onboarding.tsx:694
-#: src/pages/Onboarding.tsx:702
+#: src/pages/Onboarding.tsx:662
+#: src/pages/Onboarding.tsx:704
+#: src/pages/Onboarding.tsx:712
 #: src/pages/shell/bot-panel.tsx:382
 msgid "Model"
 msgstr "Modell"
 
 #: src/pages/ModelSettingsOverlay.tsx:486
-#: src/pages/Onboarding.tsx:674
+#: src/pages/Onboarding.tsx:684
 msgid "Model id"
 msgstr "Modell-ID"
 
@@ -2348,7 +2348,7 @@ msgstr "Modell-ID"
 msgid "Model options"
 msgstr "Modelloptionen"
 
-#: src/pages/Onboarding.tsx:553
+#: src/pages/Onboarding.tsx:563
 msgid "Model providers"
 msgstr ""
 
@@ -2366,7 +2366,7 @@ msgid "Models"
 msgstr "Modelle"
 
 #: src/pages/ModelSettingsOverlay.tsx:465
-#: src/pages/Onboarding.tsx:658
+#: src/pages/Onboarding.tsx:668
 msgid "Models from server"
 msgstr "Modelle vom Server"
 
@@ -2403,7 +2403,7 @@ msgstr ""
 #: src/pages/Auth.tsx:165
 #: src/pages/GroupPanel.tsx:119
 #: src/pages/GroupPanel.tsx:212
-#: src/pages/Onboarding.tsx:857
+#: src/pages/Onboarding.tsx:867
 #: src/pages/RoutineEditor.tsx:281
 #: src/pages/shell/bot-panel.tsx:137
 #: src/pages/shell/bot-panel.tsx:338
@@ -2414,7 +2414,7 @@ msgstr ""
 msgid "Name"
 msgstr "Name"
 
-#: src/pages/Onboarding.tsx:862
+#: src/pages/Onboarding.tsx:872
 #: src/pages/shell/bot-panel.tsx:143
 msgid "Name this agent"
 msgstr ""
@@ -2475,8 +2475,8 @@ msgstr ""
 msgid "New space"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:193
-#: src/pages/CompanyWorkspaces.tsx:348
+#: src/pages/CompanyWorkspaces.tsx:200
+#: src/pages/CompanyWorkspaces.tsx:355
 #: src/pages/shell/bot-picker.tsx:37
 msgid "New workspace"
 msgstr ""
@@ -2551,7 +2551,7 @@ msgstr "Kein Modellkatalog verfügbar."
 msgid "No models found"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:614
+#: src/pages/Onboarding.tsx:624
 msgid "No providers found"
 msgstr ""
 
@@ -2656,7 +2656,7 @@ msgid "Open work"
 msgstr "Offene Arbeit"
 
 #: src/pages/ModelSettingsOverlay.tsx:425
-#: src/pages/Onboarding.tsx:627
+#: src/pages/Onboarding.tsx:637
 msgid "OpenAI-compatible server URL"
 msgstr "URL eines OpenAI-kompatiblen Servers"
 
@@ -2678,7 +2678,7 @@ msgid "OpenRouter model"
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:650
-#: src/pages/Onboarding.tsx:796
+#: src/pages/Onboarding.tsx:806
 msgid "Optional"
 msgstr "Optional"
 
@@ -2694,7 +2694,7 @@ msgstr "Optionaler Header-Wert"
 msgid "Or connect an API key"
 msgstr "Oder einen API-Schlüssel verbinden"
 
-#: src/pages/Onboarding.tsx:807
+#: src/pages/Onboarding.tsx:817
 msgid "Or paste an API key"
 msgstr "Oder einen API-Schlüssel einfügen"
 
@@ -2707,7 +2707,7 @@ msgid "Organization API key"
 msgstr "Organisations-API-Schlüssel"
 
 #: src/pages/ModelSettingsOverlay.tsx:473
-#: src/pages/Onboarding.tsx:667
+#: src/pages/Onboarding.tsx:677
 msgid "Other model…"
 msgstr "Anderes Modell…"
 
@@ -2750,7 +2750,7 @@ msgid "Paste a replacement key"
 msgstr "Ersatzschlüssel einfügen"
 
 #: src/pages/ModelSettingsOverlay.tsx:436
-#: src/pages/Onboarding.tsx:638
+#: src/pages/Onboarding.tsx:648
 msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
 msgstr "Füge die OpenAI-kompatible Adresse deines Servers ein. Rakazo ergänzt /v1 bei Bedarf."
 
@@ -2813,7 +2813,7 @@ msgid "Private"
 msgstr "Privat"
 
 #: src/pages/MemorySettingsOverlay.tsx:216
-#: src/pages/Onboarding.tsx:525
+#: src/pages/Onboarding.tsx:535
 msgid "Provider"
 msgstr "Anbieter"
 
@@ -2822,7 +2822,7 @@ msgstr "Anbieter"
 msgid "Providers"
 msgstr "Anbieter"
 
-#: src/pages/Onboarding.tsx:870
+#: src/pages/Onboarding.tsx:880
 #: src/pages/shell/bot-panel.tsx:148
 msgid "Purpose"
 msgstr ""
@@ -2911,7 +2911,7 @@ msgstr ""
 msgid "Release"
 msgstr "Freigeben"
 
-#: src/pages/Onboarding.tsx:509
+#: src/pages/Onboarding.tsx:519
 msgid "Reload"
 msgstr ""
 
@@ -3076,7 +3076,7 @@ msgstr ""
 msgid "Robot"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:890
+#: src/pages/Onboarding.tsx:900
 msgid "Role or specialty"
 msgstr ""
 
@@ -3199,8 +3199,8 @@ msgstr "Modelle suchen"
 msgid "Search providers"
 msgstr "Anbieter suchen"
 
-#: src/pages/Onboarding.tsx:547
-#: src/pages/Onboarding.tsx:548
+#: src/pages/Onboarding.tsx:557
+#: src/pages/Onboarding.tsx:558
 msgid "Search providers and models"
 msgstr "Anbieter und Modelle suchen"
 
@@ -3212,7 +3212,7 @@ msgstr "Suche…"
 msgid "Select a bot"
 msgstr "Bot auswählen"
 
-#: src/pages/Onboarding.tsx:595
+#: src/pages/Onboarding.tsx:605
 msgid "Selected"
 msgstr ""
 
@@ -3255,7 +3255,7 @@ msgstr "Servername"
 
 #: src/pages/McpServersOverlay.tsx:330
 #: src/pages/ModelSettingsOverlay.tsx:420
-#: src/pages/Onboarding.tsx:622
+#: src/pages/Onboarding.tsx:632
 msgid "Server URL"
 msgstr "Server-URL"
 
@@ -3274,11 +3274,11 @@ msgid "Settings: Usage"
 msgstr "Einstellungen: Nutzung"
 
 #: src/pages/ModelSettingsOverlay.tsx:433
-#: src/pages/Onboarding.tsx:635
+#: src/pages/Onboarding.tsx:645
 msgid "Setup help"
 msgstr "Einrichtungshilfe"
 
-#: src/pages/Onboarding.tsx:387
+#: src/pages/Onboarding.tsx:397
 msgid "Setup progress"
 msgstr ""
 
@@ -3287,7 +3287,7 @@ msgstr ""
 msgid "Shared"
 msgstr "Geteilt"
 
-#: src/pages/Onboarding.tsx:539
+#: src/pages/Onboarding.tsx:549
 msgid "Show all providers"
 msgstr ""
 
@@ -3304,7 +3304,7 @@ msgstr "Mehr anzeigen"
 msgid "Show password"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:537
+#: src/pages/Onboarding.tsx:547
 msgid "Show popular providers"
 msgstr ""
 
@@ -3316,7 +3316,7 @@ msgstr "Einstellungen anzeigen"
 #: src/pages/Auth.tsx:185
 #: src/pages/Auth.tsx:332
 #: src/pages/ModelSettingsOverlay.tsx:632
-#: src/pages/Onboarding.tsx:204
+#: src/pages/Onboarding.tsx:214
 msgid "Sign in"
 msgstr "Anmelden"
 
@@ -3354,7 +3354,7 @@ msgstr ""
 msgid "Skip"
 msgstr "Überspringen"
 
-#: src/pages/Onboarding.tsx:845
+#: src/pages/Onboarding.tsx:855
 msgid "Skip for now"
 msgstr "Vorerst überspringen"
 
@@ -3429,7 +3429,7 @@ msgstr "Computer wird gestartet…"
 
 #: src/components/teach/TeachComputerOverlay.tsx:277
 #: src/pages/ModelSettingsOverlay.tsx:630
-#: src/pages/Onboarding.tsx:781
+#: src/pages/Onboarding.tsx:791
 msgid "Starting…"
 msgstr "Wird gestartet…"
 
@@ -3478,7 +3478,7 @@ msgstr "Subagent"
 
 #: src/components/AskCard.tsx:207
 #: src/pages/ModelSettingsOverlay.tsx:590
-#: src/pages/Onboarding.tsx:748
+#: src/pages/Onboarding.tsx:758
 msgid "Submit"
 msgstr "Absenden"
 
@@ -3490,7 +3490,7 @@ msgstr ""
 msgid "Switch agent"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:310
+#: src/pages/CompanyWorkspaces.tsx:317
 msgid "Switch workspace"
 msgstr ""
 
@@ -3612,7 +3612,7 @@ msgstr "Dieser Mac führt Shell-Befehle mit deinem Konto aus und kann auf Dateie
 msgid "This permanently removes every message and stops current work. The chat remains available."
 msgstr ""
 
-#: src/pages/Onboarding.tsx:821
+#: src/pages/Onboarding.tsx:831
 msgid "This provider cannot paste a key here. Skip if this deployment already has credentials."
 msgstr "Bei diesem Anbieter kann hier kein Schlüssel eingefügt werden. Überspringe diesen Schritt, wenn die Bereitstellung bereits Zugangsdaten enthält."
 
@@ -3644,7 +3644,7 @@ msgstr "Diese Abonnementanmeldung ist in Rakazo noch nicht verfügbar. Verwende 
 msgid "Time of day"
 msgstr "Uhrzeit"
 
-#: src/pages/Onboarding.tsx:885
+#: src/pages/Onboarding.tsx:895
 #: src/pages/shell/bot-panel.tsx:164
 #: src/pages/shell/bot-panel.tsx:348
 msgid "Title"
@@ -3747,7 +3747,7 @@ msgid "Use {hostLabel}"
 msgstr "{hostLabel} verwenden"
 
 #: src/pages/ModelSettingsOverlay.tsx:498
-#: src/pages/Onboarding.tsx:686
+#: src/pages/Onboarding.tsx:696
 msgid "Use a found model"
 msgstr "Gefundenes Modell verwenden"
 
@@ -3794,8 +3794,8 @@ msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:594
 #: src/pages/ModelSettingsOverlay.tsx:616
-#: src/pages/Onboarding.tsx:752
-#: src/pages/Onboarding.tsx:774
+#: src/pages/Onboarding.tsx:762
+#: src/pages/Onboarding.tsx:784
 msgid "Waiting for sign-in…"
 msgstr "Warten auf Anmeldung…"
 
@@ -3825,7 +3825,7 @@ msgstr "Was soll mit seinen Erinnerungen geschehen?"
 msgid "What result will you demonstrate?"
 msgstr "Welches Ergebnis wirst du vorführen?"
 
-#: src/pages/Onboarding.tsx:875
+#: src/pages/Onboarding.tsx:885
 #: src/pages/shell/bot-panel.tsx:154
 msgid "What should this agent help with?"
 msgstr ""
@@ -3888,10 +3888,10 @@ msgstr ""
 msgid "Working…"
 msgstr "Wird verarbeitet…"
 
-#: src/pages/CompanyWorkspaces.tsx:186
-#: src/pages/CompanyWorkspaces.tsx:189
-#: src/pages/CompanyWorkspaces.tsx:312
-#: src/pages/Onboarding.tsx:394
+#: src/pages/CompanyWorkspaces.tsx:193
+#: src/pages/CompanyWorkspaces.tsx:196
+#: src/pages/CompanyWorkspaces.tsx:319
+#: src/pages/Onboarding.tsx:404
 #: src/pages/Shell.tsx:3375
 msgid "Workspace"
 msgstr ""
@@ -3901,8 +3901,8 @@ msgstr ""
 msgid "Workspace library"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:204
-#: src/pages/Onboarding.tsx:428
+#: src/pages/CompanyWorkspaces.tsx:211
+#: src/pages/Onboarding.tsx:438
 msgid "Workspace name"
 msgstr ""
 
@@ -3914,7 +3914,7 @@ msgstr ""
 msgid "Workspace views"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:317
+#: src/pages/CompanyWorkspaces.tsx:324
 msgid "Workspaces"
 msgstr ""
 
@@ -3931,7 +3931,7 @@ msgstr "Du kannst diesen Tab schließen, wenn du nicht automatisch weitergeleite
 msgid "You can close this window."
 msgstr "Du kannst dieses Fenster schließen."
 
-#: src/pages/Onboarding.tsx:343
+#: src/pages/Onboarding.tsx:353
 msgid "Your browser could not select this workspace. Enable site storage and reopen it from Workspaces."
 msgstr ""
 

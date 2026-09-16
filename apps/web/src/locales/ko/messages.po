@@ -272,7 +272,7 @@ msgstr ""
 msgid "Advanced"
 msgstr "고급 설정"
 
-#: src/pages/Onboarding.tsx:880
+#: src/pages/Onboarding.tsx:890
 #: src/pages/shell/bot-panel.tsx:161
 msgid "Advanced settings"
 msgstr ""
@@ -281,7 +281,7 @@ msgstr ""
 msgid "Advanced..."
 msgstr "고급..."
 
-#: src/pages/Onboarding.tsx:406
+#: src/pages/Onboarding.tsx:416
 msgid "Agent"
 msgstr ""
 
@@ -383,9 +383,9 @@ msgstr "API가 다시 작동하지만 업데이트가 완료되지 않았습니�
 #: src/pages/ModelSettingsOverlay.tsx:644
 #: src/pages/ModelSettingsOverlay.tsx:647
 #: src/pages/ModelSettingsOverlay.tsx:666
-#: src/pages/Onboarding.tsx:790
-#: src/pages/Onboarding.tsx:793
-#: src/pages/Onboarding.tsx:807
+#: src/pages/Onboarding.tsx:800
+#: src/pages/Onboarding.tsx:803
+#: src/pages/Onboarding.tsx:817
 #: src/pages/VoiceSettingsOverlay.tsx:326
 msgid "API key"
 msgstr "API 키"
@@ -508,7 +508,7 @@ msgid "Authentication"
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:577
-#: src/pages/Onboarding.tsx:739
+#: src/pages/Onboarding.tsx:749
 msgid "Authorization code or callback URL"
 msgstr "인증 코드 또는 돌아온 페이지 주소"
 
@@ -529,7 +529,7 @@ msgstr "루틴을 저장한 후 사용할 수 있습니다"
 msgid "Avatars"
 msgstr "아바타"
 
-#: src/pages/Onboarding.tsx:905
+#: src/pages/Onboarding.tsx:915
 #: src/pages/RoutineEditor.tsx:231
 #: src/pages/WorkspaceLibrary.tsx:207
 #: src/pages/WorkspaceLibrary.tsx:272
@@ -757,11 +757,11 @@ msgstr "닫기"
 msgid "Close chart"
 msgstr "차트 닫기"
 
-#: src/pages/CompanyWorkspaces.tsx:152
+#: src/pages/CompanyWorkspaces.tsx:159
 msgid "Close company connection"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:485
+#: src/pages/CompanyWorkspaces.tsx:492
 msgid "Close company context"
 msgstr ""
 
@@ -809,7 +809,7 @@ msgstr "미리보기 닫기"
 msgid "Close search"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:381
+#: src/pages/Onboarding.tsx:391
 msgid "Close setup"
 msgstr ""
 
@@ -847,21 +847,21 @@ msgstr "준비 중"
 msgid "Command"
 msgstr "실행 명령"
 
-#: src/pages/Onboarding.tsx:400
+#: src/pages/Onboarding.tsx:410
 msgid "Company"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:278
-#: src/pages/CompanyWorkspaces.tsx:280
+#: src/pages/CompanyWorkspaces.tsx:285
+#: src/pages/CompanyWorkspaces.tsx:287
 msgid "Company connected. Agents can now read its authorized context."
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:282
+#: src/pages/CompanyWorkspaces.tsx:289
 msgid "Company connection was not completed. Try again from Settings."
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:461
-#: src/pages/CompanyWorkspaces.tsx:484
+#: src/pages/CompanyWorkspaces.tsx:468
+#: src/pages/CompanyWorkspaces.tsx:491
 msgid "Company context"
 msgstr ""
 
@@ -874,7 +874,7 @@ msgid "Company OS assignments"
 msgstr ""
 
 #: src/pages/CompanyWorkspaces.tsx:75
-#: src/pages/CompanyWorkspaces.tsx:132
+#: src/pages/CompanyWorkspaces.tsx:139
 msgid "Company OS connection is not configured on this deployment."
 msgstr ""
 
@@ -882,11 +882,11 @@ msgstr ""
 msgid "Company OS endpoint"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:475
+#: src/pages/Onboarding.tsx:485
 msgid "Company OS is not configured on this deployment. You can connect it later in Settings."
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:390
+#: src/pages/CompanyWorkspaces.tsx:397
 msgid "Company OS unavailable"
 msgstr ""
 
@@ -945,8 +945,8 @@ msgstr "비밀번호 확인"
 msgid "Connect"
 msgstr "연결"
 
-#: src/pages/CompanyWorkspaces.tsx:153
-#: src/pages/CompanyWorkspaces.tsx:156
+#: src/pages/CompanyWorkspaces.tsx:160
+#: src/pages/CompanyWorkspaces.tsx:163
 msgid "Connect a company"
 msgstr ""
 
@@ -954,7 +954,7 @@ msgstr ""
 msgid "Connect a Company OS agent key with context read and write access. Its department permissions apply to every worker."
 msgstr ""
 
-#: src/pages/Onboarding.tsx:521
+#: src/pages/Onboarding.tsx:531
 msgid "Connect a model"
 msgstr "AI 모델 연결"
 
@@ -967,10 +967,10 @@ msgid "Connect Cadre to Codex"
 msgstr ""
 
 #: src/pages/CompanyWorkspaces.tsx:85
-#: src/pages/CompanyWorkspaces.tsx:359
-#: src/pages/CompanyWorkspaces.tsx:393
-#: src/pages/CompanyWorkspaces.tsx:473
-#: src/pages/Onboarding.tsx:463
+#: src/pages/CompanyWorkspaces.tsx:366
+#: src/pages/CompanyWorkspaces.tsx:400
+#: src/pages/CompanyWorkspaces.tsx:480
+#: src/pages/Onboarding.tsx:473
 msgid "Connect Company OS"
 msgstr ""
 
@@ -998,12 +998,12 @@ msgstr "Treg 연결"
 msgid "Connect workforce"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:453
+#: src/pages/Onboarding.tsx:463
 msgid "Connect your company"
 msgstr ""
 
 #: src/pages/CompanyWorkspaces.tsx:70
-#: src/pages/CompanyWorkspaces.tsx:396
+#: src/pages/CompanyWorkspaces.tsx:403
 #: src/pages/McpOAuthCallback.tsx:54
 #: src/pages/MemorySettingsOverlay.tsx:184
 #: src/pages/ModelSettingsOverlay.tsx:397
@@ -1040,10 +1040,10 @@ msgid "Connecting to your screen…"
 msgstr ""
 
 #: src/pages/CodexConsent.tsx:96
-#: src/pages/CompanyWorkspaces.tsx:227
+#: src/pages/CompanyWorkspaces.tsx:234
 #: src/pages/McpServersOverlay.tsx:39
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:82
-#: src/pages/Onboarding.tsx:463
+#: src/pages/Onboarding.tsx:473
 #: src/pages/RealtimeCallView.tsx:136
 #: src/pages/shell/message-cards.tsx:363
 #: src/pages/VoiceSettingsOverlay.tsx:344
@@ -1057,12 +1057,12 @@ msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "{0} 연결이 아직 진행 중입니다. 이 창을 닫고 나중에 다시 확인할 수 있습니다."
 
 #: src/pages/CompanyWorkspaces.tsx:63
-#: src/pages/CompanyWorkspaces.tsx:470
+#: src/pages/CompanyWorkspaces.tsx:477
 msgid "Connection unavailable"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:446
-#: src/pages/Onboarding.tsx:834
+#: src/pages/Onboarding.tsx:456
+#: src/pages/Onboarding.tsx:844
 msgid "Continue"
 msgstr "계속"
 
@@ -1070,7 +1070,7 @@ msgstr "계속"
 msgid "Continue setup"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:227
+#: src/pages/CompanyWorkspaces.tsx:234
 msgid "Continue to Company OS"
 msgstr ""
 
@@ -1082,7 +1082,7 @@ msgstr ""
 msgid "Continue with email"
 msgstr "이메일로 계속하기"
 
-#: src/pages/Onboarding.tsx:500
+#: src/pages/Onboarding.tsx:510
 msgid "Continue without a company"
 msgstr ""
 
@@ -1147,11 +1147,11 @@ msgstr "연결하지 못했습니다."
 msgid "Could not connect {0}"
 msgstr "{0}에 연결하지 못했습니다."
 
-#: src/pages/CompanyWorkspaces.tsx:179
+#: src/pages/CompanyWorkspaces.tsx:186
 msgid "Could not connect Company OS"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:367
+#: src/pages/Onboarding.tsx:377
 msgid "Could not connect Company OS. Try again or continue without a company."
 msgstr ""
 
@@ -1187,11 +1187,11 @@ msgstr "섹션을 만들지 못했습니다."
 msgid "Could not create space"
 msgstr "스페이스를 만들 수 없습니다"
 
-#: src/pages/Onboarding.tsx:348
+#: src/pages/Onboarding.tsx:358
 msgid "Could not create workspace"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:314
+#: src/pages/Onboarding.tsx:324
 msgid "Could not create your bot"
 msgstr "Bot을 만들지 못했습니다."
 
@@ -1252,7 +1252,7 @@ msgstr "확인 규칙을 불러오지 못했습니다."
 msgid "Could not load Company OS connection"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:483
+#: src/pages/Onboarding.tsx:493
 msgid "Could not load Company OS. Reload to try again, or connect later."
 msgstr ""
 
@@ -1276,7 +1276,7 @@ msgstr "MCP 서버 목록을 불러오지 못했습니다."
 msgid "Could not load model settings"
 msgstr "AI 모델 설정을 불러오지 못했습니다."
 
-#: src/pages/Onboarding.tsx:138
+#: src/pages/Onboarding.tsx:148
 msgid "Could not load setup. Reload to try again."
 msgstr ""
 
@@ -1305,7 +1305,7 @@ msgstr "음성 설정을 불러오지 못했습니다."
 msgid "Could not load workforce"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:136
+#: src/pages/CompanyWorkspaces.tsx:143
 msgid "Could not load workspaces"
 msgstr ""
 
@@ -1329,7 +1329,7 @@ msgid "Could not reach the server"
 msgstr "서버에 연결할 수 없습니다"
 
 #: src/pages/ModelSettingsOverlay.tsx:235
-#: src/pages/Onboarding.tsx:250
+#: src/pages/Onboarding.tsx:260
 msgid "Could not reach this model server"
 msgstr "모델 서버에 연결하지 못했습니다."
 
@@ -1381,7 +1381,7 @@ msgstr ""
 msgid "Could not save group"
 msgstr "그룹을 저장하지 못했습니다."
 
-#: src/pages/Onboarding.tsx:277
+#: src/pages/Onboarding.tsx:287
 msgid "Could not save model"
 msgstr "AI 모델을 저장하지 못했습니다."
 
@@ -1476,16 +1476,16 @@ msgstr "메시징 설정을 업데이트할 수 없습니다"
 msgid "Create"
 msgstr "만들기"
 
-#: src/pages/CompanyWorkspaces.tsx:153
-#: src/pages/CompanyWorkspaces.tsx:156
+#: src/pages/CompanyWorkspaces.tsx:160
+#: src/pages/CompanyWorkspaces.tsx:163
 msgid "Create a company"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:470
+#: src/pages/Onboarding.tsx:480
 msgid "Create a company in Company OS"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:216
+#: src/pages/CompanyWorkspaces.tsx:223
 msgid "Create a company or choose an existing business in Company OS, then approve access. Its context stays in this workspace."
 msgstr ""
 
@@ -1494,7 +1494,7 @@ msgstr ""
 msgid "Create a section and move {0} into it."
 msgstr "새 섹션을 만들고 {0}을 옮깁니다."
 
-#: src/pages/Onboarding.tsx:422
+#: src/pages/Onboarding.tsx:432
 msgid "Create a workspace"
 msgstr ""
 
@@ -1503,12 +1503,12 @@ msgstr ""
 msgid "Create account"
 msgstr "계정 만들기"
 
-#: src/pages/Onboarding.tsx:908
+#: src/pages/Onboarding.tsx:918
 #: src/pages/shell/bot-panel.tsx:181
 msgid "Create agent"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:370
+#: src/pages/CompanyWorkspaces.tsx:377
 msgid "Create company"
 msgstr ""
 
@@ -1530,7 +1530,7 @@ msgstr "스페이스 만들기"
 msgid "Create your Cadre"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:854
+#: src/pages/Onboarding.tsx:864
 msgid "Create your first agent"
 msgstr ""
 
@@ -1539,8 +1539,8 @@ msgid "Created"
 msgstr "생성됨"
 
 #: src/pages/GroupPanel.tsx:144
-#: src/pages/Onboarding.tsx:446
-#: src/pages/Onboarding.tsx:908
+#: src/pages/Onboarding.tsx:456
+#: src/pages/Onboarding.tsx:918
 #: src/pages/shell/bot-panel.tsx:181
 #: src/pages/shell/dialogs.tsx:91
 #: src/pages/shell/dialogs.tsx:155
@@ -1679,7 +1679,7 @@ msgid "Disconnect"
 msgstr "연결 해제"
 
 #: src/pages/CompanyWorkspaces.tsx:70
-#: src/pages/CompanyWorkspaces.tsx:396
+#: src/pages/CompanyWorkspaces.tsx:403
 msgid "Disconnected"
 msgstr ""
 
@@ -1784,7 +1784,7 @@ msgstr ""
 
 #. placeholder {0}: oauth.verificationUri.replace(/^https:\/\//, "")
 #: src/pages/ModelSettingsOverlay.tsx:600
-#: src/pages/Onboarding.tsx:758
+#: src/pages/Onboarding.tsx:768
 msgid "Enter this code at <0>{0}</0>"
 msgstr "<0>{0}</0>에서 이 코드를 입력하세요"
 
@@ -1878,18 +1878,18 @@ msgid "Failure handling"
 msgstr "실패했을 때 처리"
 
 #: src/pages/ModelSettingsOverlay.tsx:447
-#: src/pages/Onboarding.tsx:647
+#: src/pages/Onboarding.tsx:657
 msgid "Find models"
 msgstr "모델 찾기"
 
 #: src/pages/ModelSettingsOverlay.tsx:447
-#: src/pages/Onboarding.tsx:647
+#: src/pages/Onboarding.tsx:657
 msgid "Finding…"
 msgstr "찾는 중…"
 
 #. placeholder {0}: new URL(oauth.verificationUri).hostname
 #: src/pages/ModelSettingsOverlay.tsx:560
-#: src/pages/Onboarding.tsx:722
+#: src/pages/Onboarding.tsx:732
 msgid "Finish signing in at <0>{0}</0>. The final page may not load; paste its URL or code here."
 msgstr "<0>{0}</0>에서 로그인을 마치세요. 마지막 페이지가 열리지 않아도 괜찮습니다. 그 페이지의 URL이나 코드를 여기에 붙여넣으세요."
 
@@ -1902,7 +1902,7 @@ msgstr "완료되었습니다."
 msgid "Finishing MCP connection…"
 msgstr "MCP 연결을 마무리하는 중…"
 
-#: src/pages/Onboarding.tsx:409
+#: src/pages/Onboarding.tsx:419
 msgid "First task"
 msgstr ""
 
@@ -1930,7 +1930,7 @@ msgstr "전체 화면"
 msgid "Git event"
 msgstr "Git 이벤트"
 
-#: src/pages/Onboarding.tsx:456
+#: src/pages/Onboarding.tsx:466
 msgid "Give agents access to the business context you authorize in Company OS."
 msgstr ""
 
@@ -2104,7 +2104,7 @@ msgstr "답장한 메시지로 이동"
 msgid "just now"
 msgstr "방금"
 
-#: src/pages/Onboarding.tsx:425
+#: src/pages/Onboarding.tsx:435
 msgid "Keep a business’s agents, conversations and context together."
 msgstr ""
 
@@ -2158,12 +2158,12 @@ msgstr "이전 메시지 불러오기"
 msgid "Loading activity…"
 msgstr "활동을 불러오는 중…"
 
-#: src/pages/CompanyWorkspaces.tsx:388
+#: src/pages/CompanyWorkspaces.tsx:395
 msgid "Loading Company OS…"
 msgstr ""
 
 #: src/pages/CompanyWorkspaces.tsx:65
-#: src/pages/CompanyWorkspaces.tsx:468
+#: src/pages/CompanyWorkspaces.tsx:475
 msgid "Loading company…"
 msgstr ""
 
@@ -2199,7 +2199,7 @@ msgstr "음성 서비스를 불러오는 중…"
 #: src/App.tsx:69
 #: src/App.tsx:80
 #: src/pages/Auth.tsx:141
-#: src/pages/Onboarding.tsx:514
+#: src/pages/Onboarding.tsx:524
 #: src/pages/PeerMessagesOverlay.tsx:99
 #: src/pages/Shell.tsx:4582
 #: src/pages/WorkforceOverlay.tsx:148
@@ -2332,15 +2332,15 @@ msgstr "분"
 #: src/pages/ModelSettingsOverlay.tsx:452
 #: src/pages/ModelSettingsOverlay.tsx:506
 #: src/pages/ModelSettingsOverlay.tsx:772
-#: src/pages/Onboarding.tsx:652
-#: src/pages/Onboarding.tsx:694
-#: src/pages/Onboarding.tsx:702
+#: src/pages/Onboarding.tsx:662
+#: src/pages/Onboarding.tsx:704
+#: src/pages/Onboarding.tsx:712
 #: src/pages/shell/bot-panel.tsx:382
 msgid "Model"
 msgstr "모델"
 
 #: src/pages/ModelSettingsOverlay.tsx:486
-#: src/pages/Onboarding.tsx:674
+#: src/pages/Onboarding.tsx:684
 msgid "Model id"
 msgstr "모델 ID"
 
@@ -2348,7 +2348,7 @@ msgstr "모델 ID"
 msgid "Model options"
 msgstr "모델 선택지"
 
-#: src/pages/Onboarding.tsx:553
+#: src/pages/Onboarding.tsx:563
 msgid "Model providers"
 msgstr ""
 
@@ -2366,7 +2366,7 @@ msgid "Models"
 msgstr "AI 모델"
 
 #: src/pages/ModelSettingsOverlay.tsx:465
-#: src/pages/Onboarding.tsx:658
+#: src/pages/Onboarding.tsx:668
 msgid "Models from server"
 msgstr "서버에서 찾은 모델"
 
@@ -2403,7 +2403,7 @@ msgstr ""
 #: src/pages/Auth.tsx:165
 #: src/pages/GroupPanel.tsx:119
 #: src/pages/GroupPanel.tsx:212
-#: src/pages/Onboarding.tsx:857
+#: src/pages/Onboarding.tsx:867
 #: src/pages/RoutineEditor.tsx:281
 #: src/pages/shell/bot-panel.tsx:137
 #: src/pages/shell/bot-panel.tsx:338
@@ -2414,7 +2414,7 @@ msgstr ""
 msgid "Name"
 msgstr "이름"
 
-#: src/pages/Onboarding.tsx:862
+#: src/pages/Onboarding.tsx:872
 #: src/pages/shell/bot-panel.tsx:143
 msgid "Name this agent"
 msgstr ""
@@ -2475,8 +2475,8 @@ msgstr ""
 msgid "New space"
 msgstr "새 스페이스"
 
-#: src/pages/CompanyWorkspaces.tsx:193
-#: src/pages/CompanyWorkspaces.tsx:348
+#: src/pages/CompanyWorkspaces.tsx:200
+#: src/pages/CompanyWorkspaces.tsx:355
 #: src/pages/shell/bot-picker.tsx:37
 msgid "New workspace"
 msgstr ""
@@ -2551,7 +2551,7 @@ msgstr "사용 가능한 모델 목록이 없습니다."
 msgid "No models found"
 msgstr ""
 
-#: src/pages/Onboarding.tsx:614
+#: src/pages/Onboarding.tsx:624
 msgid "No providers found"
 msgstr ""
 
@@ -2656,7 +2656,7 @@ msgid "Open work"
 msgstr "진행 중인 작업"
 
 #: src/pages/ModelSettingsOverlay.tsx:425
-#: src/pages/Onboarding.tsx:627
+#: src/pages/Onboarding.tsx:637
 msgid "OpenAI-compatible server URL"
 msgstr "OpenAI 호환 서버 주소"
 
@@ -2678,7 +2678,7 @@ msgid "OpenRouter model"
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:650
-#: src/pages/Onboarding.tsx:796
+#: src/pages/Onboarding.tsx:806
 msgid "Optional"
 msgstr "선택 사항"
 
@@ -2694,7 +2694,7 @@ msgstr "선택 사항인 헤더 값"
 msgid "Or connect an API key"
 msgstr "또는 API 키 연결"
 
-#: src/pages/Onboarding.tsx:807
+#: src/pages/Onboarding.tsx:817
 msgid "Or paste an API key"
 msgstr "또는 API 키 붙여넣기"
 
@@ -2707,7 +2707,7 @@ msgid "Organization API key"
 msgstr "조직 API 키"
 
 #: src/pages/ModelSettingsOverlay.tsx:473
-#: src/pages/Onboarding.tsx:667
+#: src/pages/Onboarding.tsx:677
 msgid "Other model…"
 msgstr "다른 모델 직접 입력…"
 
@@ -2750,7 +2750,7 @@ msgid "Paste a replacement key"
 msgstr "새 API 키를 붙여넣으세요"
 
 #: src/pages/ModelSettingsOverlay.tsx:436
-#: src/pages/Onboarding.tsx:638
+#: src/pages/Onboarding.tsx:648
 msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
 msgstr "서버의 OpenAI 호환 주소를 붙여넣으세요. 필요하면 Rakazo가 /v1을 추가합니다."
 
@@ -2813,7 +2813,7 @@ msgid "Private"
 msgstr "Bot 전용"
 
 #: src/pages/MemorySettingsOverlay.tsx:216
-#: src/pages/Onboarding.tsx:525
+#: src/pages/Onboarding.tsx:535
 msgid "Provider"
 msgstr "서비스"
 
@@ -2822,7 +2822,7 @@ msgstr "서비스"
 msgid "Providers"
 msgstr "서비스"
 
-#: src/pages/Onboarding.tsx:870
+#: src/pages/Onboarding.tsx:880
 #: src/pages/shell/bot-panel.tsx:148
 msgid "Purpose"
 msgstr ""
@@ -2911,7 +2911,7 @@ msgstr "새로고침 중…"
 msgid "Release"
 msgstr "제어권 돌려주기"
 
-#: src/pages/Onboarding.tsx:509
+#: src/pages/Onboarding.tsx:519
 msgid "Reload"
 msgstr ""
 
@@ -3076,7 +3076,7 @@ msgstr ""
 msgid "Robot"
 msgstr "로봇"
 
-#: src/pages/Onboarding.tsx:890
+#: src/pages/Onboarding.tsx:900
 msgid "Role or specialty"
 msgstr ""
 
@@ -3199,8 +3199,8 @@ msgstr "모델 검색"
 msgid "Search providers"
 msgstr "AI 서비스 검색"
 
-#: src/pages/Onboarding.tsx:547
-#: src/pages/Onboarding.tsx:548
+#: src/pages/Onboarding.tsx:557
+#: src/pages/Onboarding.tsx:558
 msgid "Search providers and models"
 msgstr "AI 서비스 또는 모델 검색"
 
@@ -3212,7 +3212,7 @@ msgstr "검색 중…"
 msgid "Select a bot"
 msgstr "대화할 Bot을 선택하세요"
 
-#: src/pages/Onboarding.tsx:595
+#: src/pages/Onboarding.tsx:605
 msgid "Selected"
 msgstr ""
 
@@ -3255,7 +3255,7 @@ msgstr "서버 이름"
 
 #: src/pages/McpServersOverlay.tsx:330
 #: src/pages/ModelSettingsOverlay.tsx:420
-#: src/pages/Onboarding.tsx:622
+#: src/pages/Onboarding.tsx:632
 msgid "Server URL"
 msgstr "서버 URL"
 
@@ -3274,11 +3274,11 @@ msgid "Settings: Usage"
 msgstr "설정: 사용량"
 
 #: src/pages/ModelSettingsOverlay.tsx:433
-#: src/pages/Onboarding.tsx:635
+#: src/pages/Onboarding.tsx:645
 msgid "Setup help"
 msgstr "설정 도움말"
 
-#: src/pages/Onboarding.tsx:387
+#: src/pages/Onboarding.tsx:397
 msgid "Setup progress"
 msgstr ""
 
@@ -3287,7 +3287,7 @@ msgstr ""
 msgid "Shared"
 msgstr "함께 사용"
 
-#: src/pages/Onboarding.tsx:539
+#: src/pages/Onboarding.tsx:549
 msgid "Show all providers"
 msgstr ""
 
@@ -3304,7 +3304,7 @@ msgstr "더 보기"
 msgid "Show password"
 msgstr "비밀번호 표시"
 
-#: src/pages/Onboarding.tsx:537
+#: src/pages/Onboarding.tsx:547
 msgid "Show popular providers"
 msgstr ""
 
@@ -3316,7 +3316,7 @@ msgstr "설정 보기"
 #: src/pages/Auth.tsx:185
 #: src/pages/Auth.tsx:332
 #: src/pages/ModelSettingsOverlay.tsx:632
-#: src/pages/Onboarding.tsx:204
+#: src/pages/Onboarding.tsx:214
 msgid "Sign in"
 msgstr "로그인"
 
@@ -3354,7 +3354,7 @@ msgstr ""
 msgid "Skip"
 msgstr "건너뛰기"
 
-#: src/pages/Onboarding.tsx:845
+#: src/pages/Onboarding.tsx:855
 msgid "Skip for now"
 msgstr "지금은 건너뛰기"
 
@@ -3429,7 +3429,7 @@ msgstr "컴퓨터 시작 중…"
 
 #: src/components/teach/TeachComputerOverlay.tsx:277
 #: src/pages/ModelSettingsOverlay.tsx:630
-#: src/pages/Onboarding.tsx:781
+#: src/pages/Onboarding.tsx:791
 msgid "Starting…"
 msgstr "시작하는 중…"
 
@@ -3478,7 +3478,7 @@ msgstr "보조 에이전트"
 
 #: src/components/AskCard.tsx:207
 #: src/pages/ModelSettingsOverlay.tsx:590
-#: src/pages/Onboarding.tsx:748
+#: src/pages/Onboarding.tsx:758
 msgid "Submit"
 msgstr "확인"
 
@@ -3490,7 +3490,7 @@ msgstr "제출됨"
 msgid "Switch agent"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:310
+#: src/pages/CompanyWorkspaces.tsx:317
 msgid "Switch workspace"
 msgstr ""
 
@@ -3612,7 +3612,7 @@ msgstr "이 Mac에서는 홈 폴더의 파일을 포함해 내 계정 권한으�
 msgid "This permanently removes every message and stops current work. The chat remains available."
 msgstr "모든 메시지를 영구적으로 삭제하고 진행 중인 작업을 중지합니다. 채팅은 계속 사용할 수 있습니다."
 
-#: src/pages/Onboarding.tsx:821
+#: src/pages/Onboarding.tsx:831
 msgid "This provider cannot paste a key here. Skip if this deployment already has credentials."
 msgstr "이 서비스는 여기에서 API 키를 입력할 수 없습니다. 서버에 이미 인증 정보가 있다면 건너뛰세요."
 
@@ -3644,7 +3644,7 @@ msgstr "이 구독 로그인 방식은 아직 Rakazo에서 지원되지 않습�
 msgid "Time of day"
 msgstr "실행 시각"
 
-#: src/pages/Onboarding.tsx:885
+#: src/pages/Onboarding.tsx:895
 #: src/pages/shell/bot-panel.tsx:164
 #: src/pages/shell/bot-panel.tsx:348
 msgid "Title"
@@ -3747,7 +3747,7 @@ msgid "Use {hostLabel}"
 msgstr "{hostLabel} 사용"
 
 #: src/pages/ModelSettingsOverlay.tsx:498
-#: src/pages/Onboarding.tsx:686
+#: src/pages/Onboarding.tsx:696
 msgid "Use a found model"
 msgstr "찾은 모델 중에서 선택"
 
@@ -3794,8 +3794,8 @@ msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx:594
 #: src/pages/ModelSettingsOverlay.tsx:616
-#: src/pages/Onboarding.tsx:752
-#: src/pages/Onboarding.tsx:774
+#: src/pages/Onboarding.tsx:762
+#: src/pages/Onboarding.tsx:784
 msgid "Waiting for sign-in…"
 msgstr "로그인 완료를 기다리는 중…"
 
@@ -3825,7 +3825,7 @@ msgstr "이 Bot의 기억은 어떻게 할까요?"
 msgid "What result will you demonstrate?"
 msgstr "어떤 작업을 직접 보여줄까요?"
 
-#: src/pages/Onboarding.tsx:875
+#: src/pages/Onboarding.tsx:885
 #: src/pages/shell/bot-panel.tsx:154
 msgid "What should this agent help with?"
 msgstr ""
@@ -3888,10 +3888,10 @@ msgstr ""
 msgid "Working…"
 msgstr "처리 중…"
 
-#: src/pages/CompanyWorkspaces.tsx:186
-#: src/pages/CompanyWorkspaces.tsx:189
-#: src/pages/CompanyWorkspaces.tsx:312
-#: src/pages/Onboarding.tsx:394
+#: src/pages/CompanyWorkspaces.tsx:193
+#: src/pages/CompanyWorkspaces.tsx:196
+#: src/pages/CompanyWorkspaces.tsx:319
+#: src/pages/Onboarding.tsx:404
 #: src/pages/Shell.tsx:3375
 msgid "Workspace"
 msgstr ""
@@ -3901,8 +3901,8 @@ msgstr ""
 msgid "Workspace library"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:204
-#: src/pages/Onboarding.tsx:428
+#: src/pages/CompanyWorkspaces.tsx:211
+#: src/pages/Onboarding.tsx:438
 msgid "Workspace name"
 msgstr ""
 
@@ -3914,7 +3914,7 @@ msgstr ""
 msgid "Workspace views"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:317
+#: src/pages/CompanyWorkspaces.tsx:324
 msgid "Workspaces"
 msgstr ""
 
@@ -3931,7 +3931,7 @@ msgstr "자동으로 이동하지 않으면 이 탭을 닫아도 됩니다."
 msgid "You can close this window."
 msgstr "이 창을 닫아도 됩니다."
 
-#: src/pages/Onboarding.tsx:343
+#: src/pages/Onboarding.tsx:353
 msgid "Your browser could not select this workspace. Enable site storage and reopen it from Workspaces."
 msgstr ""
 
