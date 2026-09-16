@@ -21,8 +21,7 @@ test.describe("marketing homepage", () => {
     await expect(selfHost).toBeVisible();
     await expect(selfHost.getByRole("heading", { level: 2 })).toBeVisible();
     await expect(selfHost.getByRole("button", { name: /Get started/i })).toBeVisible();
-    await expect(selfHost.getByRole("link", { name: /View on GitHub/i })).toBeVisible();
-    await expect(selfHost.getByRole("link", { name: /Read the docs/i })).toBeVisible();
+    await expect(page.locator('a[href*="github.com"]')).toHaveCount(0);
 
     await expect(selfHost.locator("pre")).toHaveCount(0);
     await expect(selfHost).not.toContainText(
@@ -54,8 +53,7 @@ test.describe("marketing homepage", () => {
     await expect(selfHost).toBeVisible();
     await expect(selfHost.getByRole("heading", { level: 2 })).toHaveText("电脑归你所有");
     await expect(selfHost.getByRole("button", { name: "开始使用" })).toBeVisible();
-    await expect(selfHost.getByRole("link", { name: "在 GitHub 上查看" })).toBeVisible();
-    await expect(selfHost.getByRole("link", { name: "阅读文档" })).toBeVisible();
+    await expect(page.locator('a[href*="github.com"]')).toHaveCount(0);
 
     await expect(selfHost.locator("pre")).toHaveCount(0);
     await expect(selfHost).not.toContainText(

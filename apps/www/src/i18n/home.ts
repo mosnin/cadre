@@ -19,6 +19,7 @@ export type HomeCopy = {
     openSource: string;
     docs: string;
     viewOnGithub: string;
+    getStarted: string;
   };
   hero: {
     badge: string;
@@ -86,7 +87,7 @@ export type HomeCopy = {
     viewOnGithub: string;
     openSourceValue: string;
     selfHostValue: string;
-    stats: Array<{ value: "stars" | "license" | "openSource" | "selfHost"; label: string }>;
+    stats: Array<{ value: "license" | "openSource" | "selfHost"; label: string }>;
   };
   getStartedDialog: {
     closeLabel: string;
@@ -299,6 +300,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSource: "Open source",
       docs: "Docs",
       viewOnGithub: "View on GitHub",
+      getStarted: "Get started",
     },
     hero: {
       badge: "Apache-2.0",
@@ -382,7 +384,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         "Bring your own model keys",
         "Routines, memory, and audit log",
         "Unlimited bots, no seats, no limits",
-        "Community support on GitHub",
+        "Community support by email",
       ],
       starOnGithub: "Star on GitHub",
       readTheDocs: "Read the docs",
@@ -404,7 +406,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSourceValue: "Open source",
       selfHostValue: "Self-host",
       stats: [
-        { value: "stars", label: "GitHub stars" },
         { value: "license", label: "License" },
         { value: "openSource", label: "No seats, no gates" },
         { value: "selfHost", label: "Your machine" },
@@ -466,6 +467,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSource: "Open Source",
       docs: "Docs",
       viewOnGithub: "Auf GitHub ansehen",
+      getStarted: "Loslegen",
     },
     hero: {
       badge: "Apache-2.0",
@@ -549,7 +551,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         "Eigene Model-Keys mitbringen",
         "Routinen, Memory und Audit-Log",
         "Unbegrenzte Bots, keine Seats, keine Limits",
-        "Community-Support auf GitHub",
+        "Community-Support per E-Mail",
       ],
       starOnGithub: "Auf GitHub mit Stern markieren",
       readTheDocs: "Docs lesen",
@@ -571,7 +573,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSourceValue: "Open Source",
       selfHostValue: "Self-host",
       stats: [
-        { value: "stars", label: "GitHub Stars" },
         { value: "license", label: "Lizenz" },
         { value: "openSource", label: "Keine Seats, keine Gates" },
         { value: "selfHost", label: "Deine Maschine" },
@@ -632,6 +633,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSource: "오픈소스",
       docs: "Docs",
       viewOnGithub: "GitHub에서 보기",
+      getStarted: "시작하기",
     },
     hero: {
       badge: "Apache-2.0",
@@ -715,7 +717,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         "모델 키는 직접 가져오기",
         "루틴, 메모리, 감사 로그",
         "봇 무제한, 시트·한도 없음",
-        "GitHub 커뮤니티 지원",
+        "이메일 커뮤니티 지원",
       ],
       starOnGithub: "GitHub에서 Star",
       readTheDocs: "문서 읽기",
@@ -737,7 +739,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSourceValue: "오픈소스",
       selfHostValue: "셀프 호스트",
       stats: [
-        { value: "stars", label: "GitHub 스타" },
         { value: "license", label: "라이선스" },
         { value: "openSource", label: "시트·게이트 없음" },
         { value: "selfHost", label: "당신 머신" },
@@ -798,6 +799,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSource: "开源",
       docs: "文档",
       viewOnGithub: "在 GitHub 上查看",
+      getStarted: "开始使用",
     },
     hero: {
       badge: "Apache-2.0",
@@ -881,7 +883,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         "自带模型密钥",
         "例行任务、记忆和审计日志",
         "Bot 数量不限，无席位、无额度限制",
-        "GitHub 社区支持",
+        "邮件社区支持",
       ],
       starOnGithub: "在 GitHub 上点星",
       readTheDocs: "阅读文档",
@@ -903,7 +905,6 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSourceValue: "开源",
       selfHostValue: "自托管",
       stats: [
-        { value: "stars", label: "GitHub 星标" },
         { value: "license", label: "许可证" },
         { value: "openSource", label: "无席位、无门槛" },
         { value: "selfHost", label: "你的机器" },
