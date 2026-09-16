@@ -30,7 +30,7 @@ export function mountWorkspaceIntegrationRoutes(
     app.post(`${path}/connect`, async (c) => {
       const auth = await authenticate(c);
       if (!auth) return c.json({ error: "Unauthorized" }, 401);
-      if (c.req.header("origin") !== new URL(webOrigin).origin)
+      if (!trustedClientOrigin(c.req.header("origin"), webOrigin))
         return c.json({ error: "Invalid origin" }, 403);
       if (!service) return c.json({ error: "Connection unavailable" }, 503);
       try {
@@ -42,7 +42,7 @@ export function mountWorkspaceIntegrationRoutes(
     app.post(`${path}/disconnect`, async (c) => {
       const auth = await authenticate(c);
       if (!auth) return c.json({ error: "Unauthorized" }, 401);
-      if (c.req.header("origin") !== new URL(webOrigin).origin)
+      if (!trustedClientOrigin(c.req.header("origin"), webOrigin))
         return c.json({ error: "Invalid origin" }, 403);
       if (!service) return c.json({ error: "Connection unavailable" }, 503);
       await service.disconnect(provider, auth.actor);
@@ -72,4 +72,11 @@ export function mountWorkspaceIntegrationRoutes(
       }
     });
   }
+}
+
+/** Browser sessions must come from the web app; the native apps identify themselves by scheme. */
+function trustedClientOrigin(origin: string | undefined, webOrigin: string): boolean {
+  if (!origin) return false;
+  if (origin === new URL(webOrigin).origin) return true;
+  return origin.startsWith("rakazo://") || origin.startsWith("exp://");
 }

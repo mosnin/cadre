@@ -20,7 +20,7 @@ export function mountCompanyWorkspaceRoutes(
   app.post("/api/v1/company-workspaces/connect", async (c) => {
     const auth = await authenticate(c);
     if (!auth) return c.json({ error: "Unauthorized" }, 401);
-    if (c.req.header("origin") !== new URL(webOrigin).origin)
+    if (!trustedClientOrigin(c.req.header("origin"), webOrigin))
       return c.json({ error: "Invalid origin" }, 403);
     if (!service) return c.json({ error: "Company OS connection is not configured" }, 503);
     try {
@@ -34,7 +34,7 @@ export function mountCompanyWorkspaceRoutes(
   app.post("/api/v1/company-workspaces/disconnect", async (c) => {
     const auth = await authenticate(c);
     if (!auth) return c.json({ error: "Unauthorized" }, 401);
-    if (c.req.header("origin") !== new URL(webOrigin).origin)
+    if (!trustedClientOrigin(c.req.header("origin"), webOrigin))
       return c.json({ error: "Invalid origin" }, 403);
     if (!service) return c.json({ error: "Company OS connection is not configured" }, 503);
     await service.disconnect(auth.actor);
@@ -57,4 +57,11 @@ export function mountCompanyWorkspaceRoutes(
       return c.redirect(new URL("/app?company-error=1", webOrigin).href);
     }
   });
+}
+
+/** Browser sessions must come from the web app; the native apps identify themselves by scheme. */
+function trustedClientOrigin(origin: string | undefined, webOrigin: string): boolean {
+  if (!origin) return false;
+  if (origin === new URL(webOrigin).origin) return true;
+  return origin.startsWith("rakazo://") || origin.startsWith("exp://");
 }

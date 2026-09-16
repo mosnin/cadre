@@ -72,30 +72,67 @@ async function applyDirection(locale: UiLocale): Promise<void> {
   }
 }
 
+async function readDeviceLocaleTag(): Promise<string | null> {
+  try {
+    const localization = await import("expo-localization");
+    const tag = localization.getLocales()[0]?.languageTag;
+    if (typeof tag === "string" && tag) return tag;
+  } catch {
+    // Keep Intl fallback.
+  }
+  return readDeviceLanguage();
+}
+
+function envDefaultUiLocale(): string | null {
+  return typeof process !== "undefined" &&
+    typeof process.env.EXPO_PUBLIC_DEFAULT_UI_LOCALE === "string"
+    ? process.env.EXPO_PUBLIC_DEFAULT_UI_LOCALE
+    : null;
+}
+
 export async function bootstrapI18n(): Promise<UiLocale> {
   let stored: string | null = null;
-  let deviceLanguage: string | null = readDeviceLanguage();
   try {
     const SecureStore = await import("expo-secure-store");
     stored = await SecureStore.getItemAsync(UI_LOCALE_STORAGE_KEY);
   } catch {
     stored = null;
   }
-  try {
-    const localization = await import("expo-localization");
-    const tag = localization.getLocales()[0]?.languageTag;
-    if (typeof tag === "string" && tag) deviceLanguage = tag;
-  } catch {
-    // Keep Intl fallback.
-  }
-  const envDefault =
-    typeof process !== "undefined" && typeof process.env.EXPO_PUBLIC_DEFAULT_UI_LOCALE === "string"
-      ? process.env.EXPO_PUBLIC_DEFAULT_UI_LOCALE
-      : null;
-  const locale = resolveUiLocale({ stored, envDefault, deviceLanguage });
+  const locale = resolveUiLocale({
+    stored,
+    envDefault: envDefaultUiLocale(),
+    deviceLanguage: await readDeviceLocaleTag(),
+  });
   activateUiLocale(locale);
   await applyDirection(locale);
   return locale;
+}
+
+/** Serialize SecureStore writes so rapid picker taps apply in order (last wins). */
+let uiLocaleWriteChain: Promise<void> = Promise.resolve();
+
+/** Forget the saved choice and follow the device language again. */
+export async function followDeviceUiLocale(): Promise<UiLocale> {
+  const write = uiLocaleWriteChain.then(async () => {
+    try {
+      const SecureStore = await import("expo-secure-store");
+      await SecureStore.deleteItemAsync(UI_LOCALE_STORAGE_KEY);
+    } catch {
+      // Ignore SecureStore failures; the in-memory locale still applies.
+    }
+    const locale = resolveUiLocale({
+      envDefault: envDefaultUiLocale(),
+      deviceLanguage: await readDeviceLocaleTag(),
+    });
+    activateUiLocale(locale);
+    await applyDirection(locale);
+    return locale;
+  });
+  uiLocaleWriteChain = write.then(
+    () => undefined,
+    () => undefined,
+  );
+  return write;
 }
 
 export async function persistUiLocale(locale: UiLocale): Promise<void> {
@@ -106,9 +143,6 @@ export async function persistUiLocale(locale: UiLocale): Promise<void> {
     // Ignore SecureStore failures; in-memory locale still applies.
   }
 }
-
-/** Serialize SecureStore writes so rapid picker taps apply in order (last wins). */
-let uiLocaleWriteChain: Promise<void> = Promise.resolve();
 
 export async function setUiLocale(locale: UiLocale): Promise<UiLocale> {
   const write = uiLocaleWriteChain.then(async () => {

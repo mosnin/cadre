@@ -64,9 +64,15 @@ tags:
 
 - openLink: "rakazo:///account"
 - extendedWaitUntil:
+    visible: "Usage"
+    timeout: 10000
+- takeScreenshot: "10-settings"
+
+- openLink: "rakazo:///account-details"
+- extendedWaitUntil:
     visible: "Change password"
     timeout: 10000
-- takeScreenshot: "10-account"
+- takeScreenshot: "10a-account"
 - tapOn: "Change password"
 - assertVisible: "Current password"
 - takeScreenshot: "10b-change-password"
