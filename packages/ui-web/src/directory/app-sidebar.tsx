@@ -52,20 +52,22 @@ function SidebarHeaderContent({
 
   if (isMobile) {
     return (
-      <div className="flex min-h-11 items-center justify-between gap-2">
+      <div className="flex min-h-11 items-center gap-2">
         <AppBrand className="ml-1 size-7" />
 
-        {actions}
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground"
-          onClick={() => setOpenMobile(false)}
-          aria-label={closeLabel}
-        >
-          <X className="size-4" />
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          {actions}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground"
+            onClick={() => setOpenMobile(false)}
+            aria-label={closeLabel}
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
       </div>
     );
   }

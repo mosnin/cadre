@@ -139,15 +139,15 @@ function catalogBilling(
     return "Runs on infrastructure configured by the deployment owner. No model charges from Rakazo.";
   }
   if (providerId === OPENAI_COMPATIBLE_PROVIDER_ID) {
-    return "Runs on a URL you control. Rakazo does not pay for model usage.";
+    return "Runs on a URL you control.";
   }
   if (opts.oauth && !opts.apiKey) {
     return `${name} subscription login is not in the Rakazo UI yet. Skip if this deployment already has credentials.`;
   }
   if (opts.apiKey) {
-    return `Uses your ${name} API key. Rakazo does not pay for model usage.`;
+    return `Uses your ${name} API key.`;
   }
-  return `Uses your ${name} key. Rakazo does not pay for model usage.`;
+  return `Uses your ${name} key.`;
 }
 
 export const scriptedCatalogEntry: PiCatalogEntry = {

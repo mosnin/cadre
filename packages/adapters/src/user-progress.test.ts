@@ -8,6 +8,7 @@ import {
   extractNarrationText,
   finalBlocksAfterMidTurnProgress,
   isUserProgressClientNonce,
+  shouldPublishNarration,
   USER_PROGRESS_MESSAGE_MAX_LENGTH,
   userProgressClientNonce,
 } from "./user-progress.js";
@@ -117,5 +118,17 @@ describe("userProgressClientNonce", () => {
     expect(userProgressClientNonce("run-1", 0)).not.toBe(nonce);
     expect(isUserProgressClientNonce(null)).toBe(false);
     expect(isUserProgressClientNonce("other")).toBe(false);
+  });
+});
+
+describe("tool narration cadence", () => {
+  it("keeps fast setup acknowledgments transient while allowing sustained work updates", () => {
+    expect(shouldPublishNarration("timed", 500)).toBe(false);
+    expect(shouldPublishNarration("timed", 31_000)).toBe(true);
+    expect(shouldPublishNarration("timed", 500)).toBe(false);
+  });
+  it("never prepends narration to an explicit message, but preserves takeover context", () => {
+    expect(shouldPublishNarration("discard", 60_000)).toBe(false);
+    expect(shouldPublishNarration("always", 500)).toBe(true);
   });
 });

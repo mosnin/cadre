@@ -56,6 +56,13 @@ suite("Company workspace OAuth isolation", () => {
   const grants = new Map<string, { company: string; subject: string }>();
   const fetcher = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     expect(init?.redirect).toBe("error");
+    if (String(url).endsWith("/cadre-sync")) {
+      const body = JSON.parse(String(init?.body));
+      expect([first.spaceId, second.spaceId]).toContain(body.workspaceId);
+      expect(body).not.toHaveProperty("companyId");
+      expect(body.agents).toBeInstanceOf(Array);
+      return Response.json({ syncedAt: Date.now() });
+    }
     if (String(url).endsWith("/token")) {
       const params = new URLSearchParams(String(init?.body));
       expect(params.get("client_id")).toBe(config.clientId);

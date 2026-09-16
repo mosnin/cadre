@@ -321,7 +321,7 @@ export function PluginsOverlay({
           />
         </div>
 
-        <div id="integration-list" className="rk-scroll flex-1 overflow-y-auto px-8 py-6">
+        <div id="integration-list" className="rk-scroll flex-1 overflow-y-auto px-5 py-6 sm:px-8">
           <div hidden={customOpen}>
             {catalogError ? <p className="mb-4 text-sm text-destructive">{catalogError}</p> : null}
             {loading ? (
@@ -337,7 +337,7 @@ export function PluginsOverlay({
                     {EMPTY_PLUGIN_CATALOG_MESSAGE}
                   </p>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {featuredTiles.map((tile) => {
                       const item = tile.item;
                       const key = item ? itemKey(item) : tile.id;
@@ -414,7 +414,7 @@ export function PluginsOverlay({
               </p>
             ) : null}
             {visible.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {rendered.map((item) => {
                   const key = itemKey(item);
                   return (

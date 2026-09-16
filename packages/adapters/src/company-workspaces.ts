@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { AdapterContext } from "@rakazo/adapter-kit";
 import { type Pool, type PrismaClient, requireMembership } from "@rakazo/db";
+import { getLogger } from "@rakazo/logging";
 import * as z from "zod";
 import type { EncryptedSecretStore } from "./secrets.js";
 
@@ -250,7 +251,23 @@ export class CompanyWorkspaces {
     } finally {
       lock.release();
     }
+    await this.syncWorkspace(actor, material.accessToken).catch(() =>
+      getLogger().warn("company_workspace.sync_failed"),
+    );
     return actor.spaceId;
+  }
+  private async syncWorkspace(actor: { spaceId: string; userId: string }, token: string) {
+    const space = await this.deps.prisma.space.findUniqueOrThrow({ where: { id: actor.spaceId } });
+    const agents = await this.deps.prisma.bot.findMany({
+      where: { spaceId: actor.spaceId, userId: actor.userId, archivedAt: null },
+      select: { id: true, name: true },
+      take: 500,
+    });
+    await this.request("/api/oauth/cadre-sync", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ workspaceId: actor.spaceId, name: space.name, agents }),
+    });
   }
   async credential(actor: { spaceId: string; userId: string }) {
     await requireMembership(this.deps.prisma, actor.userId, actor.spaceId);
@@ -353,6 +370,9 @@ export class CompanyWorkspaces {
       await this.disable(context);
       return;
     }
+    await this.syncWorkspace(context, credential.token).catch(() =>
+      getLogger().warn("company_workspace.sync_failed"),
+    );
     const bot = await this.deps.prisma.bot.findFirst({
       where: { id: context.botId, spaceId: context.spaceId, userId: context.userId },
     });
