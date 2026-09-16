@@ -4032,10 +4032,10 @@ async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     canChooseHostComputer: actor.isDeploymentOwner && deps.env.sandboxProvider === "docker",
     sandboxProvider: deps.env.sandboxProvider,
     avatarStyle: user.avatarStyle === "organic" ? "organic" : "robot",
-    locale: user.uiLocale,
-    region: user.region,
-    timezone: user.timezone,
-    timezoneAutomatic: user.timezoneAutomatic,
+    locale: user.uiLocale ?? null,
+    region: user.region ?? null,
+    timezone: user.timezone ?? null,
+    timezoneAutomatic: user.timezoneAutomatic ?? true,
   };
 }
 

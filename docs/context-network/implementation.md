@@ -22,7 +22,7 @@ A Cadre workspace binds to one Company OS company, one Operate workspace, and on
 - [x] Locate current repos and inspect existing OAuth/membership/schedule foundations.
 - [ ] Operate occurrence ledger, human/agent history API, calendar and daily workflow tests.
 - [ ] Stored organization creation/switching/team journey and additive agent-private memory boundary.
-- [ ] Cadre native Operate/Stored OAuth bindings, runtime context/tools and memory adapter.
+- [x] Cadre native Operate/Stored/Scalar OAuth bindings, runtime context/tools and memory adapter (see providers.md for what each provider still needs).
 - [ ] Company OS to Stored initial snapshot and durable incremental change sync.
 - [ ] Cross-tenant, revocation, duplicate delivery, replay/deletion and migration tests.
 - [ ] Design OS + Component OS + Details UI implementation and rendered review.
