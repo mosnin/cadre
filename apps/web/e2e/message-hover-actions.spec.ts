@@ -1,5 +1,28 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Locator, test } from "@playwright/test";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
+
+/**
+ * Replies land moments after a message and scroll the transcript. Wait until the
+ * row count has held still so hovers and jumps are not fighting that scroll.
+ */
+async function settleTranscript(transcript: Locator) {
+  const rows = transcript.locator("[data-message-id]");
+  let lastCount = -1;
+  let stableSince = Date.now();
+  await expect
+    .poll(
+      async () => {
+        const count = await rows.count();
+        if (count !== lastCount) {
+          lastCount = count;
+          stableSince = Date.now();
+        }
+        return Date.now() - stableSince > 1500;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(true);
+}
 
 test("message hover shows Reply and Copy; reply links to parent", async ({ page }, testInfo) => {
   const warnings: string[] = [];
@@ -99,6 +122,8 @@ test("message hover shows Reply and Copy; reply links to parent", async ({ page 
   await expect(parentPreview).toContainText(parentText);
   await captureScreenshot(page, testInfo, "message-reply-thread");
 
+  await settleTranscript(transcript);
+  await parentPreview.scrollIntoViewIfNeeded();
   await parentPreview.click();
   await expect(parentRow).toBeInViewport();
 
@@ -139,24 +164,7 @@ test("reply preview jumps to parent outside the loaded page", async ({ page }) =
   const parentId = await parentRow.getAttribute("data-message-id");
   expect(parentId).toBeTruthy();
 
-  // The reply to the parent lands moments later and scrolls the transcript; hover
-  // only once the row count has held still so the neighboring row cannot take the click.
-  const rows = transcript.locator("[data-message-id]");
-  let lastCount = -1;
-  let stableSince = Date.now();
-  await expect
-    .poll(
-      async () => {
-        const count = await rows.count();
-        if (count !== lastCount) {
-          lastCount = count;
-          stableSince = Date.now();
-        }
-        return Date.now() - stableSince > 1500;
-      },
-      { timeout: 30_000 },
-    )
-    .toBe(true);
+  await settleTranscript(transcript);
   await parentRow.scrollIntoViewIfNeeded();
   await parentRow.hover();
   await expect(parentRow.getByTestId("message-hover-actions")).toBeVisible();
