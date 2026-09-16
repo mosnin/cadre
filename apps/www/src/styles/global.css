@@ -42,23 +42,6 @@
   --radius-frame: 26px;
 }
 
-/* Bridge the site palette into Tailwind's token namespace so vendored
-   components style themselves with semantic names instead of raw neutrals. */
-@theme inline {
-  --color-page: var(--page);
-  --color-surface: var(--surface);
-  --color-surface-soft: var(--surface-soft);
-  --color-ink: var(--ink);
-  --color-body: var(--body);
-  --color-muted: var(--muted);
-  --color-line: var(--line);
-  --color-line-2: var(--line-2);
-  --color-brand: var(--blue);
-  --color-brand-soft: var(--blue-soft);
-  --color-brand-line: var(--blue-line);
-  --color-success: var(--success);
-}
-
 html {
   scroll-behavior: smooth;
 }
@@ -2371,43 +2354,5 @@ button {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-}
-
-/* Illustration slot
-   -----------------
-   An illustration sits at the top of an existing .feature-card. The art is
-   authored at a fixed width and scales itself down to whatever room it gets,
-   so this only has to reserve the space and keep it from touching the edges. */
-.feature-card__art {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: -6px 0 22px;
-  min-height: 170px;
-}
-
-/* The card's own typography rules are unlayered, so they outrank Tailwind's
-   layered utilities and would resize the text inside the artwork. Hand those
-   properties back to the utility layer for the illustration only. */
-.feature-card__art :is(p, h3) {
-  margin: revert-layer;
-  font-size: revert-layer;
-  line-height: revert-layer;
-}
-
-.tool-wall {
-  display: flex;
-  justify-content: center;
-  margin-top: 44px;
-}
-
-/* The illustrations animate on entry. Honour a reduced-motion preference by
-   freezing them on a first frame that still reads correctly. */
-@media (prefers-reduced-motion: reduce) {
-  .feature-card__art *,
-  .tool-wall * {
-    animation: none !important;
-    transition: none !important;
   }
 }

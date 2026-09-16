@@ -1,5 +1,7 @@
 ---
 import type { HomeCopy } from "../i18n/home";
+import { GITHUB_URL } from "../site";
+import Button from "./Button.astro";
 import WaitlistForm from "./WaitlistForm.astro";
 
 type Props = {
@@ -70,6 +72,7 @@ const { copy, waitlist } = Astro.props;
       </p>
       <div class="get-started-dialog__actions">
         <a class="button button--primary" href="#selfhost" data-get-started-close>{copy.selfHostNow}</a>
+        <Button href={GITHUB_URL} variant="secondary" external>{copy.viewOnGithub}</Button>
         <button class="button button--secondary" type="button" data-get-started-close>{copy.done}</button>
       </div>
     </div>
