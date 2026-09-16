@@ -1384,11 +1384,13 @@ export function createRunExecutor(deps: ExecutorDeps) {
           return publication;
         };
         let lastNarrationPublishedAt = Date.now();
+        let withheldNarration = "";
         const publishMidTurnNarration = async (mode: "timed" | "always" | "discard" = "timed") => {
           const extracted = extractNarrationText(messageSegments, currentTextSegment);
           const narration = clampUserProgressMessage(redactSecrets(extracted.text, runSecrets));
           messageSegments = extracted.remaining;
           currentTextSegment = "";
+          if (mode === "discard") withheldNarration = "";
           if (!narration) return;
           assembled = "";
           hasStreamedText = false;
@@ -1397,6 +1399,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (shouldPublishNarration(mode, Date.now() - lastNarrationPublishedAt)) {
             await publishUserProgress(narration);
             lastNarrationPublishedAt = Date.now();
+            withheldNarration = "";
+          } else if (mode === "timed") {
+            withheldNarration = narration;
           }
         };
         const formatObservation = (
@@ -3411,6 +3416,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
           await workspaceCheckpoint.flush();
           terminalCheckpointComplete = true;
 
+          // A tool-only completion must retain its sole human-readable response.
+          if (!assembled && !publishedMidTurnUserMessage && withheldNarration) {
+            assembled = withheldNarration;
+            currentTextSegment = withheldNarration;
+          }
           flushPendingTools();
           if (!assembled) {
             // Mid-turn progress already posted durable chat messages; skip the empty
