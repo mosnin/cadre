@@ -240,6 +240,11 @@ suite("Company workspace OAuth isolation", () => {
       },
     });
     expect(server.enabled).toBe(true);
+    expect(context).toHaveProperty("companyWorkspace", {
+      id: "one",
+      name: "Company one",
+      slug: "one",
+    });
     expect(
       await db.prisma.botMcpServer.count({
         where: { botId: bot.id, serverId: server.id, spaceId: first.spaceId },
@@ -250,6 +255,7 @@ suite("Company workspace OAuth isolation", () => {
     );
     revoked = true;
     await expect(service.prepare(context)).rejects.toThrow("Reconnect");
+    expect(context).toHaveProperty("companyWorkspace", undefined);
     expect(
       (await db.prisma.mcpServer.findUniqueOrThrow({ where: { id: server.id } })).enabled,
     ).toBe(false);

@@ -965,6 +965,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               activeKeys.has(`${connection.connectorId}:${connection.provider}`)),
         );
         const context = {
+          companyWorkspace: undefined as AdapterContext["companyWorkspace"],
           operationId: runId,
           traceId: runId,
           spaceId: run.spaceId,
@@ -2945,7 +2946,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
         const pluginLine =
           connectedPlugins.length > 0
             ? `Connected plugins: ${connectedPlugins.map((row) => `${row.displayName} (${row.connectorId}:${row.provider})`).join(", ")}. Prefer those plugin tools over the computer browser or web search when reading app data (repos, releases, mail, calendar, and similar).`
-            : "No plugins are connected yet.";
+            : "No app-account plugins are connected. MCP connections are separate; use the available MCP tools to check them.";
         const taughtSkillIndex = savedSkills.slice(0, 20);
         const taughtSkillsLine =
           taughtSkillIndex.length > 0
@@ -3053,6 +3054,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 botDirectory,
                 "archive_bot safely archives a bot this bot created, and only that bot. Use it when the user asks to remove that bot or when it is finished and unused. The user can restore it or permanently delete it later. confirm_name must exactly match its name.",
                 pluginLine,
+                context.companyWorkspace
+                  ? `Verified Company OS connection for this run: ${JSON.stringify(context.companyWorkspace)}. This workspace OAuth identity was checked now. For company context, call mcp__company-os-context__config_pull when available, or search mcp_search_tools for config_pull and use the returned exact tool ID. A catalog lookup failure is not evidence of missing authorization. Report the actual tool error; request reconnection only after an explicit expired or revoked credential error. Never tell the user to connect an already verified workspace merely because an app-account plugin list omits MCP.`
+                  : "No Company OS workspace identity was verified for this run. Check available connector tools before making claims about access.",
                 agentSkillsLine,
                 "Before using Company OS, read the company-context skill. Before saving Company OS deliverables, also read company-deliverables. Use only this workspace's authorized connector and context; never combine private context across workspaces.",
                 "Write clear, direct sentences with normal capitalization. Lead with the useful result or the next necessary action. For a short request, give one useful reply. Perform routine checks silently; do not send an acknowledgment and then restate it as another message. Use message_user only for a meaningful update during sustained work, and do not repeat it in your final answer. Never echo internal routing envelopes, bot IDs, wake prompts, or coordination instructions into user-facing replies. Refer to teammates by name when relevant. Do not say work is done without a verified result or promise background work unless it is actually running. Never use em dashes in your messages to the user. Use periods, commas, or parentheses instead. Avoid decorative symbols.",

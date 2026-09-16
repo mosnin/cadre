@@ -311,7 +311,7 @@ describe("lazy tool catalog", () => {
     );
     expect(loadCatalogEntry(entries, { id: "srv-gmail:send" }).tool.name).toBe("mcp__gmail__send");
     expect(loadCatalogEntry(entries, { id: "send" }).tool.name).toBe("mcp__gmail__send");
-    expect(() => loadCatalogEntry(entries, { id: "missing" })).toThrow(/unknown/i);
+    expect(() => loadCatalogEntry(entries, { id: "missing" })).toThrow(/identifier not found/i);
   });
 
   it("does not execute args when JSON Schema is unsupported", async () => {
@@ -363,7 +363,7 @@ describe("lazy tool catalog", () => {
         },
         entries,
       ),
-    ).toThrow("unknown or not authorized");
+    ).toThrow("Tool identifier not found");
     expect(() =>
       resolveCatalogCall(
         {
