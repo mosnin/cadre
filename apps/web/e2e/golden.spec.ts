@@ -383,7 +383,7 @@ test("bot context menu pins, duplicates, edits, and confirms deletion", async ({
   await completeOnboarding(page);
 
   await openNavigation(page);
-  const chief = sidebarBotButton(page, /^Chief$/);
+  const chief = page.locator(`[data-roster-bot-id="${activeBotId(page)}"]`);
   await chief.click({ button: "right" });
   await expect(page.getByRole("menu", { name: "Actions for Chief" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Edit Profile" })).toBeVisible();

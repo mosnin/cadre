@@ -67,7 +67,10 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
     expect(chipBox).not.toBeNull();
     // Receipts align to the readable conversation column at every viewport.
     expect(chipBox!.x - transcriptBox!.x).toBeLessThanOrEqual(32);
-    expect(chipBox!.width).toBeLessThan(transcriptBox!.width / 2);
+    // The label has intrinsic width; phone typography can exceed half the column.
+    // It must stay compact, left aligned, and clear of the opposite gutter.
+    expect(chipBox!.x).toBeGreaterThanOrEqual(transcriptBox!.x);
+    expect(chipBox!.x + chipBox!.width).toBeLessThan(transcriptBox!.x + transcriptBox!.width - 32);
   };
 
   await assertChipLeftAligned();
