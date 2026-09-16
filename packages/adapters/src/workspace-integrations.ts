@@ -15,8 +15,10 @@ export type WorkspaceProviderConfig = {
   name: string;
   /** Product origin; overridable per deployment for staging or self-hosted providers. */
   origin: string;
-  /** RFC 8707 resource indicator path: the MCP endpoint the token is minted for. */
+  /** RFC 8707 resource indicator path the token is minted for. */
   resource: string;
+  /** Path of the workspace MCP endpoint once the tenant is known. */
+  mcp: (identity: { org_id: string }) => string;
   scope: string;
   /** OAuth 2.1 dynamic registration (RFC 7591) or a client id seeded by the provider. */
   registration: { kind: "dynamic"; path: string } | { kind: "static"; clientId: string };
@@ -30,6 +32,7 @@ export const workspaceProviderDefaults: Record<WorkspaceProvider, WorkspaceProvi
     name: "Operate",
     origin: "https://operate.to",
     resource: "/api/mcp",
+    mcp: () => "/api/mcp",
     scope: "openid email operate:read operate:write",
     registration: { kind: "dynamic", path: "/oauth/register" },
     workspaceNoun: "workspace",
@@ -38,6 +41,7 @@ export const workspaceProviderDefaults: Record<WorkspaceProvider, WorkspaceProvi
     name: "Stored",
     origin: "https://www.stored.to",
     resource: "/api",
+    mcp: (identity) => `/mcp/${encodeURIComponent(identity.org_id)}`,
     scope: "openid profile org:read memory:read memory:write",
     registration: { kind: "static", clientId: "stored-cadre" },
     workspaceNoun: "organization",
@@ -46,6 +50,7 @@ export const workspaceProviderDefaults: Record<WorkspaceProvider, WorkspaceProvi
     name: "Scalar",
     origin: "https://www.tryscalar.xyz",
     resource: "/api/mcp/mcp",
+    mcp: () => "/api/mcp/mcp",
     scope: "openid profile crm:read crm:write mcp",
     registration: { kind: "dynamic", path: "/oauth/register" },
     workspaceNoun: "workspace",
@@ -315,6 +320,49 @@ export class WorkspaceIntegrations {
     );
     return rows;
   }
+  /**
+   * Dynamic registration (RFC 7591) issues a client per deployment, not per
+   * connection: the id is kept by provider, origin and callback and reused
+   * until the callback changes.
+   */
+  private async registeredClient(
+    provider: WorkspaceProvider,
+    config: WorkspaceProviderConfig,
+    registrationPath: string,
+  ): Promise<string> {
+    const callback = this.callback(provider);
+    const existing = await this.deps.prisma.workspaceIntegrationClient.findUnique({
+      where: { provider_origin: { provider, origin: config.origin } },
+    });
+    if (existing && existing.redirectUri === callback) return existing.clientId;
+    const registration = z.object({ client_id: z.string().min(1) }).parse(
+      await (
+        await this.request(provider, registrationPath, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            client_name: "Cadre",
+            client_uri: this.deps.webOrigin,
+            redirect_uris: [callback],
+            token_endpoint_auth_method: "none",
+            grant_types: ["authorization_code", "refresh_token"],
+            response_types: ["code"],
+          }),
+        })
+      ).json(),
+    );
+    await this.deps.prisma.workspaceIntegrationClient.upsert({
+      where: { provider_origin: { provider, origin: config.origin } },
+      create: {
+        provider,
+        origin: config.origin,
+        clientId: registration.client_id,
+        redirectUri: callback,
+      },
+      update: { clientId: registration.client_id, redirectUri: callback },
+    });
+    return registration.client_id;
+  }
   async start(provider: WorkspaceProvider, actor: Actor, sessionId: string) {
     await requireMembership(this.deps.prisma, actor.userId, actor.spaceId);
     const state = randomBytes(32).toString("base64url");
@@ -322,23 +370,7 @@ export class WorkspaceIntegrations {
     const config = this.provider(provider);
     let clientId: string;
     if (config.registration.kind === "dynamic") {
-      const registration = z.object({ client_id: z.string().min(1) }).parse(
-        await (
-          await this.request(provider, config.registration.path, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              client_name: "Cadre",
-              client_uri: this.deps.webOrigin,
-              redirect_uris: [this.callback(provider)],
-              token_endpoint_auth_method: "none",
-              grant_types: ["authorization_code", "refresh_token"],
-              response_types: ["code"],
-            }),
-          })
-        ).json(),
-      );
-      clientId = registration.client_id;
+      clientId = await this.registeredClient(provider, config, config.registration.path);
     } else clientId = config.registration.clientId;
     const secret = await this.deps.secrets.put(
       JSON.stringify({ verifier, clientId }),
@@ -587,7 +619,7 @@ export class WorkspaceIntegrations {
         {
           slug: `${provider}-workspace`,
           name: this.provider(provider).name,
-          endpoint: `${this.provider(provider).origin}${this.provider(provider).resource}`,
+          endpoint: `${this.provider(provider).origin}${this.provider(provider).mcp(credential.identity)}`,
         },
       ];
       if (provider === "stored")

@@ -1285,6 +1285,18 @@ model WorkspaceIntegrationGrant {
   @@unique([bindingId, userId])
   @@map("workspace_integration_grants")
 }
+/** OAuth client ids issued to this deployment by providers with dynamic registration. */
+model WorkspaceIntegrationClient {
+  provider String
+  origin String
+  clientId String
+  redirectUri String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@id([provider, origin], name: "provider_origin")
+  @@map("workspace_integration_clients")
+}
+
 model WorkspaceIntegrationState {
   state String @id
   spaceId String
