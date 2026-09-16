@@ -571,6 +571,8 @@ export function ShellPage() {
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [initialBotsLoaded, setInitialBotsLoaded] = useState(false);
   const [bootstrapMe, setBootstrapMe] = useState<Me | null>();
+  // The active space survives a failed bootstrap: navigation refreshes report it too.
+  const [currentSpaceId, setCurrentSpaceId] = useState<string>();
   const [routineDraft, setRoutineDraft] = useState<RoutineDraftState>(emptyRoutineDraft());
   const [routineWebhookSecret, setRoutineWebhookSecret] = useState<string | null>(null);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
@@ -818,6 +820,7 @@ export function ShellPage() {
         setBotSections(sections);
         setGroups(groupList);
         setSpaces(navigation.spaces);
+        setCurrentSpaceId(navigation.current.id);
         setInitialBotsLoaded(true);
         botsRefreshApplied.current = request;
         if (
@@ -1035,6 +1038,7 @@ export function ShellPage() {
         if (cancelled) return;
         const groupList = bootstrap.groups;
         setBootstrapMe(bootstrap.me);
+        setCurrentSpaceId(bootstrap.me.spaceId);
         // Skip list/route writes only if a later refreshBots() successfully
         // committed (failed refreshes bump epoch but not botsRefreshApplied).
         const applyBotLists = appliedAtStart === botsRefreshApplied.current;
@@ -1500,14 +1504,14 @@ export function ShellPage() {
     const sidebarSpaces =
       spaces.length > 0
         ? spaces
-            .filter((space) => space.id === bootstrapMe?.spaceId)
+            .filter((space) => space.id === currentSpaceId)
             .map((space) =>
-              space.id === bootstrapMe?.spaceId ? { ...space, bots, groups, botSections } : space,
+              space.id === currentSpaceId ? { ...space, bots, groups, botSections } : space,
             )
-        : bootstrapMe
+        : currentSpaceId
           ? [
               {
-                id: bootstrapMe.spaceId,
+                id: currentSpaceId,
                 name: "Personal",
                 isDefault: true,
                 bots,
@@ -1555,7 +1559,7 @@ export function ShellPage() {
         },
       ];
     });
-  }, [bootstrapMe, botSections, bots, groups, spaces, query]);
+  }, [currentSpaceId, botSections, bots, groups, spaces, query]);
 
   const openSpaceChat = useCallback(
     (spaceId: string, path: string) => {
@@ -1565,7 +1569,7 @@ export function ShellPage() {
       // Persist the active space (including primary) so voice/RPC headers match the chat.
       const selectionStored = selectSpace(spaceId);
       if (!selectionStored) return;
-      const previousEffective = previousSpaceId ?? bootstrapMe?.spaceId;
+      const previousEffective = previousSpaceId ?? currentSpaceId;
       const boundaryChanged = previousEffective !== spaceId;
       // Soft-navigate within the same space; reload only when the auth boundary changes
       // so bootstrapped bots/groups match the request header.
@@ -1575,7 +1579,7 @@ export function ShellPage() {
       }
       navigate(path);
     },
-    [bootstrapMe?.spaceId, navigate],
+    [currentSpaceId, navigate],
   );
   const flushBotOrder = useCallback(async () => {
     if (savingBotOrderRef.current) return;
@@ -2674,6 +2678,9 @@ export function ShellPage() {
         ref={navigatorRef}
         aria-label={t`Workspace navigation`}
         onKeyDown={(event) => {
+          // Portalled overlays (workspace dialogs, popovers) bubble through React but
+          // live outside this node; they own Escape and must not close the navigator.
+          if (!event.currentTarget.contains(event.target as Node)) return;
           if (event.key === "Escape" && !event.defaultPrevented && !createMenuOpen && !menuOpen) {
             event.preventDefault();
             setMobileSidebarOpen(false);
@@ -2746,7 +2753,7 @@ export function ShellPage() {
               <>
                 <WorkspaceSwitcher
                   spaces={spaces}
-                  currentSpaceId={bootstrapMe?.spaceId}
+                  currentSpaceId={currentSpaceId}
                   onSwitch={openSpaceChat}
                   onCreate={() => navigate("/onboarding?new=1")}
                   onManage={() => setAccountSettingsOpen(true)}
@@ -3053,7 +3060,7 @@ export function ShellPage() {
                                 cancelRosterHold();
                                 if (
                                   event.pointerType === "mouse" ||
-                                  item.chat.spaceId !== bootstrapMe?.spaceId
+                                  item.chat.spaceId !== currentSpaceId
                                 )
                                   return;
                                 const anchor = event.currentTarget,
@@ -3102,7 +3109,7 @@ export function ShellPage() {
                                 );
                               }}
                               onContextMenu={(event) => {
-                                if (item.chat.spaceId !== bootstrapMe?.spaceId) return;
+                                if (item.chat.spaceId !== currentSpaceId) return;
                                 event.preventDefault();
                                 botMenuAnchor.current = event.currentTarget;
                                 setBotMenu({
@@ -3375,9 +3382,9 @@ export function ShellPage() {
               <PanelLeftOpen size={20} aria-hidden="true" />
             </button>
             <WorkspaceIdentity
-              spaceId={bootstrapMe?.spaceId}
+              spaceId={currentSpaceId}
               workspaceName={
-                spaces.find((space) => space.id === bootstrapMe?.spaceId)?.name ?? t`Workspace`
+                spaces.find((space) => space.id === currentSpaceId)?.name ?? t`Workspace`
               }
             />
             <button

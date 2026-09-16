@@ -3,6 +3,7 @@ import {
   type ActionApprovalRule,
   applyJudgeDecision,
   connectorKindFromToolName,
+  connectorToolNamesMutation,
   connectorToolRequiresApproval,
   isApprovalAskBlock,
   isSecretAskBlock,
@@ -59,6 +60,15 @@ describe("connectorToolRequiresApproval", () => {
   it("matches read-only connector tool names", () => {
     expect(connectorToolRequiresApproval("list_items")).toBe(false);
     expect(connectorToolRequiresApproval("send_message")).toBe(true);
+  });
+});
+
+describe("connectorToolNamesMutation", () => {
+  it("flags names that announce a mutation so provider hints cannot clear them", () => {
+    expect(connectorToolNamesMutation("delete_records")).toBe(true);
+    expect(connectorToolNamesMutation("fetch_and_send")).toBe(true);
+    expect(connectorToolNamesMutation("config_pull")).toBe(false);
+    expect(connectorToolNamesMutation("list_items")).toBe(false);
   });
 });
 

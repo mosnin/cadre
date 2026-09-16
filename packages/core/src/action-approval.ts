@@ -46,9 +46,19 @@ export function connectorKindFromToolName(toolName: string, connectorKinds: stri
   return (segment ?? toolName).toLowerCase();
 }
 
+/**
+ * A tool whose name announces a mutation. A server-supplied read-only hint is
+ * never trusted for these: the hint comes from the tool provider, and honoring
+ * it would let any user-added MCP server bypass approval and the effect ledger.
+ */
+export function connectorToolNamesMutation(toolName: string): boolean {
+  return (
+    MUTATING_CONNECTOR_PATTERN.test(toolName) || COMPOUND_CONNECTOR_ACTION_PATTERN.test(toolName)
+  );
+}
+
 export function connectorToolRequiresApproval(toolName: string): boolean {
-  if (MUTATING_CONNECTOR_PATTERN.test(toolName)) return true;
-  if (COMPOUND_CONNECTOR_ACTION_PATTERN.test(toolName)) return true;
+  if (connectorToolNamesMutation(toolName)) return true;
   return !READ_ONLY_CONNECTOR_PATTERN.test(toolName);
 }
 

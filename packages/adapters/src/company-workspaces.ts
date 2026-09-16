@@ -213,7 +213,7 @@ export class CompanyWorkspaces {
       );
       if (workforce.rowCount) throw new Error("Use a separate workspace for a different company");
       const other = await lock.query(
-        'SELECT id FROM company_workspace_grants WHERE ("spaceId"=$1 AND "companyId"<>$2) OR ("userId"=$3 AND subject<>$4)',
+        `SELECT id FROM company_workspace_grants WHERE ("spaceId"=$1 AND "companyId"<>$2) OR ("userId"=$3 AND subject<>$4 AND ciphertext<>'')`,
         [actor.spaceId, identity.company.id, userId, identity.sub],
       );
       if (other.rowCount) throw new Error("Use a separate workspace for a different company");
@@ -232,7 +232,7 @@ export class CompanyWorkspaces {
         id,
       );
       await lock.query(
-        'INSERT INTO company_workspace_grants (id,"spaceId","userId","companyId","companyName","companySlug",subject,ciphertext) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT ("spaceId","userId") DO UPDATE SET ciphertext=EXCLUDED.ciphertext,"companyName"=EXCLUDED."companyName","companySlug"=EXCLUDED."companySlug"',
+        'INSERT INTO company_workspace_grants (id,"spaceId","userId","companyId","companyName","companySlug",subject,ciphertext) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT ("spaceId","userId") DO UPDATE SET ciphertext=EXCLUDED.ciphertext,"companyId"=EXCLUDED."companyId","companyName"=EXCLUDED."companyName","companySlug"=EXCLUDED."companySlug",subject=EXCLUDED.subject',
         [
           id,
           actor.spaceId,
@@ -360,6 +360,16 @@ export class CompanyWorkspaces {
   async prepare(context: AdapterContext) {
     context.companyWorkspace = undefined;
     if (!context.botId) return;
+    // Most runs have no Company OS grant; skip the locked refresh and provider
+    // round trips entirely and just make sure no stale server stays enabled.
+    const live = await this.deps.prisma.companyWorkspaceGrant.findFirst({
+      where: { spaceId: context.spaceId, userId: context.userId, ciphertext: { not: "" } },
+      select: { id: true },
+    });
+    if (!live) {
+      await this.disable(context);
+      return;
+    }
     let credential: Awaited<ReturnType<CompanyWorkspaces["credential"]>>;
     try {
       credential = await this.credential(context);
@@ -405,7 +415,7 @@ export class CompanyWorkspaces {
             userId: context.userId,
           },
         });
-        return tx.mcpServer.upsert({
+        const upserted = await tx.mcpServer.upsert({
           where,
           create: {
             spaceId: context.spaceId,
@@ -425,6 +435,13 @@ export class CompanyWorkspaces {
           },
           include: { secret: true },
         });
+        // The rotated token replaces the previous secret; nothing else references it.
+        if (existing?.secretId && existing.secretId !== secret.id) {
+          await tx.secret.deleteMany({
+            where: { id: existing.secretId, spaceId: context.spaceId, userId: context.userId },
+          });
+        }
+        return upserted;
       });
     }
     await this.deps.prisma.botMcpServer.upsert({
