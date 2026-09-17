@@ -136,6 +136,11 @@ suite("native workspace OAuth", () => {
     ]);
     await Promise.all([service.credential("operate", first), service.credential("operate", first)]);
     expect(refreshes).toBe(1);
+    // A second connection reuses the client this deployment already registered.
+    await start("operate");
+    expect(
+      await db.prisma.workspaceIntegrationClient.count({ where: { provider: "operate" } }),
+    ).toBe(1);
   });
   it("encrypts, deduplicates and retries memory without crossing workspaces", async () => {
     const bot = await db.prisma.bot.create({

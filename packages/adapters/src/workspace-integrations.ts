@@ -4,26 +4,91 @@ import { IsolationError, type Pool, type PrismaClient, requireMembership } from 
 import * as z from "zod";
 import type { EncryptedSecretStore } from "./secrets.js";
 
-export type WorkspaceProvider = "operate" | "stored";
-const providers = {
+export type WorkspaceProvider = "operate" | "stored" | "scalar";
+export const WORKSPACE_PROVIDERS = [
+  "operate",
+  "stored",
+  "scalar",
+] as const satisfies readonly WorkspaceProvider[];
+
+export type WorkspaceProviderConfig = {
+  name: string;
+  /** Product origin; overridable per deployment for staging or self-hosted providers. */
+  origin: string;
+  /** RFC 8707 resource indicator path the token is minted for. */
+  resource: string;
+  /** Path of the workspace MCP endpoint once the tenant is known. */
+  mcp: (identity: { org_id: string }) => string;
+  scope: string;
+  /** OAuth 2.1 dynamic registration (RFC 7591) or a client id seeded by the provider. */
+  registration: { kind: "dynamic"; path: string } | { kind: "static"; clientId: string };
+  /** What the connected workspace is called on the provider. */
+  workspaceNoun: string;
+};
+
+/** Defaults for every supported provider; composition roots may override origin and client id. */
+export const workspaceProviderDefaults: Record<WorkspaceProvider, WorkspaceProviderConfig> = {
   operate: {
     name: "Operate",
     origin: "https://operate.to",
     resource: "/api/mcp",
+    mcp: () => "/api/mcp",
     scope: "openid email operate:read operate:write",
+    registration: { kind: "dynamic", path: "/oauth/register" },
+    workspaceNoun: "workspace",
   },
   stored: {
     name: "Stored",
     origin: "https://www.stored.to",
-    resource: "/mcp",
+    resource: "/api",
+    mcp: (identity) => `/mcp/${encodeURIComponent(identity.org_id)}`,
     scope: "openid profile org:read memory:read memory:write",
+    registration: { kind: "static", clientId: "stored-cadre" },
+    workspaceNoun: "organization",
   },
-} as const;
-const Identity = z.object({
+  scalar: {
+    name: "Scalar",
+    origin: "https://www.tryscalar.xyz",
+    resource: "/api/mcp/mcp",
+    mcp: () => "/api/mcp/mcp",
+    scope: "openid profile crm:read crm:write mcp",
+    registration: { kind: "dynamic", path: "/oauth/register" },
+    workspaceNoun: "workspace",
+  },
+};
+
+/** Deployment overrides: OPERATE_ORIGIN, STORED_ORIGIN, SCALAR_ORIGIN and STORED_OAUTH_CLIENT_ID. */
+export function workspaceProviderOverridesFromEnv(
+  env: Record<string, string | undefined>,
+): WorkspaceProviderOverrides {
+  const overrides: WorkspaceProviderOverrides = {};
+  for (const provider of WORKSPACE_PROVIDERS) {
+    const origin = env[`${provider.toUpperCase()}_ORIGIN`]?.trim();
+    const clientId = env[`${provider.toUpperCase()}_OAUTH_CLIENT_ID`]?.trim();
+    if (origin || clientId)
+      overrides[provider] = { ...(origin ? { origin } : {}), ...(clientId ? { clientId } : {}) };
+  }
+  return overrides;
+}
+
+export type WorkspaceProviderOverrides = Partial<
+  Record<WorkspaceProvider, Partial<Pick<WorkspaceProviderConfig, "origin"> & { clientId: string }>>
+>;
+
+/** Providers return the connected workspace under different keys; normalize to one shape. */
+const RawIdentity = z.object({
   sub: z.string().min(1),
-  org_id: z.string().min(1),
-  org_name: z.string().min(1),
+  org_id: z.string().min(1).optional(),
+  org_name: z.string().min(1).optional(),
+  workspace: z.object({ id: z.string().min(1), name: z.string().min(1).optional() }).optional(),
 });
+type Identity = { sub: string; org_id: string; org_name: string };
+export function normalizeWorkspaceIdentity(raw: unknown, noun: string): Identity {
+  const parsed = RawIdentity.parse(raw);
+  const id = parsed.org_id ?? parsed.workspace?.id;
+  if (!id) throw new Error(`Choose a ${noun} during sign-in, not a personal account`);
+  return { sub: parsed.sub, org_id: id, org_name: parsed.org_name ?? parsed.workspace?.name ?? id };
+}
 const Tokens = z.object({
   access_token: z.string().min(1),
   refresh_token: z.string().min(1),
@@ -61,8 +126,21 @@ export class WorkspaceIntegrations {
       secrets: EncryptedSecretStore;
       webOrigin: string;
       fetcher?: typeof fetch;
+      providers?: WorkspaceProviderOverrides;
     },
   ) {}
+  provider(provider: WorkspaceProvider): WorkspaceProviderConfig {
+    const base = workspaceProviderDefaults[provider];
+    const override = this.deps.providers?.[provider];
+    return {
+      ...base,
+      origin: (override?.origin ?? base.origin).replace(/\/$/, ""),
+      registration:
+        override?.clientId && base.registration.kind === "static"
+          ? { kind: "static", clientId: override.clientId }
+          : base.registration,
+    };
+  }
   private context(actor: Actor): AdapterContext {
     return {
       ...actor,
@@ -75,22 +153,26 @@ export class WorkspaceIntegrations {
     return new URL(`/api/v1/workspace-integrations/${provider}/callback`, this.deps.webOrigin).href;
   }
   private async request(provider: WorkspaceProvider, path: string, init: RequestInit) {
-    const response = await (this.deps.fetcher ?? fetch)(`${providers[provider].origin}${path}`, {
-      ...init,
-      redirect: "error",
-      cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!response.ok) throw new ProviderRequestError(response.status, providers[provider].name);
+    const response = await (this.deps.fetcher ?? fetch)(
+      `${this.provider(provider).origin}${path}`,
+      {
+        ...init,
+        redirect: "error",
+        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+    if (!response.ok) throw new ProviderRequestError(response.status, this.provider(provider).name);
     return response;
   }
-  private async identity(provider: WorkspaceProvider, token: string) {
-    return Identity.parse(
+  private async identity(provider: WorkspaceProvider, token: string): Promise<Identity> {
+    return normalizeWorkspaceIdentity(
       await (
         await this.request(provider, "/oauth/userinfo", {
           headers: { authorization: `Bearer ${token}` },
         })
       ).json(),
+      this.provider(provider).workspaceNoun,
     );
   }
   private async exchange(
@@ -106,7 +188,7 @@ export class WorkspaceIntegrations {
           body: new URLSearchParams({
             ...params,
             client_id: clientId,
-            resource: `${providers[provider].origin}${providers[provider].resource}`,
+            resource: `${this.provider(provider).origin}${this.provider(provider).resource}`,
           }),
         })
       ).json(),
@@ -238,27 +320,58 @@ export class WorkspaceIntegrations {
     );
     return rows;
   }
+  /**
+   * Dynamic registration (RFC 7591) issues a client per deployment, not per
+   * connection: the id is kept by provider, origin and callback and reused
+   * until the callback changes.
+   */
+  private async registeredClient(
+    provider: WorkspaceProvider,
+    config: WorkspaceProviderConfig,
+    registrationPath: string,
+  ): Promise<string> {
+    const callback = this.callback(provider);
+    const existing = await this.deps.prisma.workspaceIntegrationClient.findUnique({
+      where: { provider_origin: { provider, origin: config.origin } },
+    });
+    if (existing && existing.redirectUri === callback) return existing.clientId;
+    const registration = z.object({ client_id: z.string().min(1) }).parse(
+      await (
+        await this.request(provider, registrationPath, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            client_name: "Cadre",
+            client_uri: this.deps.webOrigin,
+            redirect_uris: [callback],
+            token_endpoint_auth_method: "none",
+            grant_types: ["authorization_code", "refresh_token"],
+            response_types: ["code"],
+          }),
+        })
+      ).json(),
+    );
+    await this.deps.prisma.workspaceIntegrationClient.upsert({
+      where: { provider_origin: { provider, origin: config.origin } },
+      create: {
+        provider,
+        origin: config.origin,
+        clientId: registration.client_id,
+        redirectUri: callback,
+      },
+      update: { clientId: registration.client_id, redirectUri: callback },
+    });
+    return registration.client_id;
+  }
   async start(provider: WorkspaceProvider, actor: Actor, sessionId: string) {
     await requireMembership(this.deps.prisma, actor.userId, actor.spaceId);
     const state = randomBytes(32).toString("base64url");
     const verifier = randomBytes(32).toString("base64url");
-    let clientId = "stored-cadre";
-    if (provider === "operate") {
-      const registration = z.object({ client_id: z.string().min(1) }).parse(
-        await (
-          await this.request(provider, "/oauth/register", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              client_name: "Cadre",
-              redirect_uris: [this.callback(provider)],
-              token_endpoint_auth_method: "none",
-            }),
-          })
-        ).json(),
-      );
-      clientId = registration.client_id;
-    }
+    const config = this.provider(provider);
+    let clientId: string;
+    if (config.registration.kind === "dynamic") {
+      clientId = await this.registeredClient(provider, config, config.registration.path);
+    } else clientId = config.registration.clientId;
     const secret = await this.deps.secrets.put(
       JSON.stringify({ verifier, clientId }),
       this.context(actor),
@@ -272,7 +385,7 @@ export class WorkspaceIntegrations {
       `INSERT INTO workspace_integration_states (state,"spaceId","userId","sessionId",provider,ciphertext,"expiresAt") VALUES ($1,$2,$3,$4,$5,$6,NOW()+INTERVAL '10 minutes')`,
       [state, actor.spaceId, actor.userId, sessionId, provider, secret.ciphertext],
     );
-    const url = new URL("/oauth/authorize", providers[provider].origin);
+    const url = new URL("/oauth/authorize", this.provider(provider).origin);
     url.search = new URLSearchParams({
       client_id: clientId,
       redirect_uri: this.callback(provider),
@@ -280,8 +393,8 @@ export class WorkspaceIntegrations {
       state,
       code_challenge: createHash("sha256").update(verifier).digest("base64url"),
       code_challenge_method: "S256",
-      scope: providers[provider].scope,
-      resource: `${providers[provider].origin}${providers[provider].resource}`,
+      scope: this.provider(provider).scope,
+      resource: `${this.provider(provider).origin}${this.provider(provider).resource}`,
     }).toString();
     return url.href;
   }
@@ -291,7 +404,7 @@ export class WorkspaceIntegrations {
     sessionId: string,
     params: URLSearchParams,
   ) {
-    if (params.get("iss") !== providers[provider].origin || !params.get("code"))
+    if (params.get("iss") !== this.provider(provider).origin || !params.get("code"))
       throw new Error("Invalid OAuth callback");
     const { rows } = await this.deps.pool.query<{ spaceId: string; ciphertext: string }>(
       'DELETE FROM workspace_integration_states WHERE state=$1 AND "userId"=$2 AND "sessionId"=$3 AND provider=$4 AND "expiresAt">NOW() RETURNING "spaceId",ciphertext',
@@ -478,7 +591,7 @@ export class WorkspaceIntegrations {
       select: { id: true },
     });
     if (!bot) return;
-    for (const provider of ["operate", "stored"] as const) {
+    for (const provider of WORKSPACE_PROVIDERS) {
       const { rows: live } = await this.deps.pool.query(
         `SELECT g.id FROM workspace_integration_grants g JOIN workspace_integrations b ON b.id=g."bindingId" WHERE b."spaceId"=$1 AND b.provider=$2 AND g."userId"=$3 AND g.ciphertext<>''`,
         [context.spaceId, provider, context.userId],
@@ -505,15 +618,15 @@ export class WorkspaceIntegrations {
       const targets: Array<{ slug: string; name: string; endpoint: string }> = [
         {
           slug: `${provider}-workspace`,
-          name: providers[provider].name,
-          endpoint: `${providers[provider].origin}${providers[provider].resource}`,
+          name: this.provider(provider).name,
+          endpoint: `${this.provider(provider).origin}${this.provider(provider).mcp(credential.identity)}`,
         },
       ];
       if (provider === "stored")
         targets.push({
           slug: `stored-agent-${context.botId}`,
           name: "Stored private agent memory",
-          endpoint: `${providers.stored.origin}/mcp/cadre/${encodeURIComponent(context.spaceId)}/${encodeURIComponent(context.botId)}`,
+          endpoint: `${this.provider("stored").origin}/mcp/cadre/${encodeURIComponent(context.spaceId)}/${encodeURIComponent(context.botId)}`,
         });
       for (const target of targets) {
         const where = {

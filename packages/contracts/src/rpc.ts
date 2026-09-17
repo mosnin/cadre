@@ -42,6 +42,7 @@ import {
   ModelConnectInputSchema,
   ModelCredentialSchema,
   ModelOAuthBeginSchema,
+  RegionCodeSchema,
   ReorderBotsInput,
   RoutineSchema,
   ScratchpadItemSchema,
@@ -58,6 +59,8 @@ import {
   TeachRecordingEventSchema,
   ThreadMessagePageSchema,
   ThreadSnapshotSchema,
+  TimeZoneSchema,
+  UiLocaleTagSchema,
   UpdateAgentSkillInput,
   UpdateBotInput,
   UpdateGroupInput,
@@ -128,7 +131,17 @@ export const appContract = {
   health: oc.output(z.object({ ok: z.literal(true), version: z.string() })),
   me: oc.output(MeSchema),
   preferences: {
-    update: oc.input(z.object({ avatarStyle: AvatarStyleSchema })).output(MeSchema),
+    update: oc
+      .input(
+        z.object({
+          avatarStyle: AvatarStyleSchema.optional(),
+          locale: UiLocaleTagSchema.nullable().optional(),
+          region: RegionCodeSchema.nullable().optional(),
+          timezone: TimeZoneSchema.nullable().optional(),
+          timezoneAutomatic: z.boolean().optional(),
+        }),
+      )
+      .output(MeSchema),
   },
   spaces: {
     list: oc.output(SpaceNavigationSchema),

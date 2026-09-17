@@ -60,6 +60,7 @@ test("account settings appearance control switches to light mode", async ({ page
   await page.getByRole("button", { name: "Account settings", exact: true }).click();
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
+  await settings.getByTestId("settings-section-appearance").click();
   await expect(settings.getByRole("heading", { name: "Appearance", exact: true })).toBeVisible();
 
   const picker = settings.getByTestId("ui-appearance-select");
@@ -98,6 +99,7 @@ test("account settings appearance control switches to light mode", async ({ page
   await openUserMenu(page);
   await page.getByRole("button", { name: "Account settings", exact: true }).click();
   await expect(settings).toBeVisible();
+  await settings.getByTestId("settings-section-appearance").click();
   await settings.getByTestId("ui-appearance-dark").click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await settings.getByRole("button", { name: "Close user settings" }).click();

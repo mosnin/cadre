@@ -12,6 +12,7 @@ test("Korean webhook routine keeps technical field labels in English", async ({
   await openUserMenu(page);
   await page.getByRole("button", { name: "Account settings" }).click();
   const settings = page.getByTestId("user-settings");
+  await settings.getByTestId("settings-section-language").click();
   await settings.getByTestId("ui-locale-select").click();
   await settings.getByRole("option", { name: "한국어", exact: true }).click();
   await page.getByRole("button", { name: "계정 설정 닫기" }).click();

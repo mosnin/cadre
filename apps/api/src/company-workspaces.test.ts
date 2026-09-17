@@ -47,6 +47,15 @@ describe("Company workspace HTTP boundary", () => {
     expect(service.start).not.toHaveBeenCalled();
     expect(service.disconnect).not.toHaveBeenCalled();
   });
+  it("accepts the native apps by scheme while still refusing other web origins", async () => {
+    const { app, service } = fixture();
+    const response = await app.request("/api/v1/company-workspaces/connect", {
+      method: "POST",
+      headers: { origin: "rakazo://" },
+    });
+    expect(response.status).toBe(200);
+    expect(service.start).toHaveBeenCalledTimes(1);
+  });
   it("starts with the authenticated workspace and session, never request-supplied identity", async () => {
     const { app, service } = fixture();
     const response = await app.request("/api/v1/company-workspaces/connect", {

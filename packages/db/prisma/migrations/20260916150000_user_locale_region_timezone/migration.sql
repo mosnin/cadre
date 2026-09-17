@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "uiLocale" TEXT, ADD COLUMN region TEXT, ADD COLUMN timezone TEXT, ADD COLUMN "timezoneAutomatic" BOOLEAN NOT NULL DEFAULT true;

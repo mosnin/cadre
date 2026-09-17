@@ -16,6 +16,10 @@ for (const width of [375, 1440]) {
       route.fulfill({
         json: {
           available: true,
+          providers: [
+            { id: "operate", name: "Operate", workspaceNoun: "workspace" },
+            { id: "stored", name: "Stored", workspaceNoun: "organization" },
+          ],
           connections: [
             {
               provider: "operate",
@@ -35,7 +39,9 @@ for (const width of [375, 1440]) {
     );
     await openUserMenu(page);
     await page.getByRole("button", { name: "Account settings", exact: true }).click();
-    const connections = page.getByRole("region", { name: "Workspace connections" });
+    const settings = page.getByTestId("user-settings");
+    await settings.getByTestId("settings-section-connections").click();
+    const connections = settings.getByRole("region", { name: "Connections" });
     await connections.scrollIntoViewIfNeeded();
     await expect(connections).toContainText("Studio operations · Connected");
     await expect(connections).toContainText("Studio memory · Connected");
