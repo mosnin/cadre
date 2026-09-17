@@ -41,7 +41,11 @@ if [ -d "$ACTUAL_PROFILE" ] && [ ! -e "$ACTUAL_PROFILE/SingletonLock" ] && [ ! -
     done || true
 fi
 
-FLAGS="--test-type --no-sandbox --disable-dev-shm-usage --disable-gpu --disable-software-rasterizer --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --password-store=basic --start-maximized"
+# WebGL and canvas stay available through SwiftShader: there is no GPU in the container, and
+# with both hardware and software rendering disabled the browser reports no WebGL at all,
+# which sites treat as a broken or automated client (Cloudflare's challenge never passes).
+# --test-type is left out for the same reason; it marks the build as a test browser.
+FLAGS="--no-sandbox --disable-dev-shm-usage --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --no-first-run --no-default-browser-check --disable-session-crashed-bubble --hide-crash-restore-bubble --password-store=basic --start-maximized"
 # Only the hosted composition enables the session broker. The randomized CDP
 # port binds to loopback and is never exposed by the authenticated screen proxy.
 if [ "${CADRE_SHARED_BROWSER_SESSIONS:-}" = "1" ] && [ "$USER_DATA_DIR_SET" -eq 0 ]; then

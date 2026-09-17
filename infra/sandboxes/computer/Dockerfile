@@ -44,6 +44,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     fonts-liberation \
     fonts-dejavu-core \
+    fonts-noto-core \
+    fonts-noto-color-emoji \
+    fonts-freefont-ttf \
     dbus-x11 \
     xdg-utils \
   && rm -rf /var/lib/apt/lists/* \
