@@ -123,6 +123,17 @@ for (const phone of [false, true]) {
     await expect(page.getByLabel("Workspace name")).toBeVisible();
     await captureScreenshot(page, testInfo, "create-company-onboarding");
     await page.keyboard.press("Escape");
+    // Escape belongs to the dialog, not the navigator behind it.
+    await expect(page.getByRole("dialog", { name: "Create a company", exact: true })).toBeHidden();
+    await expect(status).toBeVisible();
+    // A failed authorization returns to /app; the header identity reports it even
+    // while navigation is closed.
+    await page.goto("/app?company-error=1");
+    await expect(page.getByTestId("shell-root")).toHaveAttribute("data-ready", "true");
+    await expect(page.getByRole("button", { name: "Company context", exact: true })).toContainText(
+      "Connection not completed",
+    );
+    await expect(page).not.toHaveURL(/company-error/);
     const me = await page.request.post("/rpc/me", { data: { json: {} } });
     const { json: actor } = await me.json();
     await page.route("**/api/v1/company-workspaces", (route) =>

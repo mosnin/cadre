@@ -256,7 +256,6 @@ export function WorkspaceSwitcher({
   const [connectOpen, setConnectOpen] = useState(false);
   const [createCompany, setCreateCompany] = useState(false);
   const [connections, setConnections] = useState<Connection[]>([]);
-  const [message, setMessage] = useState("");
   const [connectionState, setConnectionState] = useState<"loading" | "ready" | "error">("loading");
   useEffect(() => {
     let alive = true;
@@ -275,24 +274,6 @@ export function WorkspaceSwitcher({
     };
     refresh();
     window.addEventListener("company-workspaces-changed", refresh);
-    const params = new URLSearchParams(window.location.search);
-    if (params.has("company-connected")) {
-      const target = params.get("company-connected")!;
-      if (target !== currentSpaceId && selectSpace(target)) {
-        window.location.replace("/app?company-ready=1");
-        return;
-      }
-      setMessage(t`Company connected. Agents can now read its authorized context.`);
-    } else if (params.has("company-ready"))
-      setMessage(t`Company connected. Agents can now read its authorized context.`);
-    else if (params.has("company-error"))
-      setMessage(t`Company connection was not completed. Try again from Settings.`);
-    for (const key of ["company-connected", "company-ready", "company-error"]) params.delete(key);
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}${params.size ? `?${params}` : ""}${window.location.hash}`,
-    );
     return () => {
       alive = false;
       window.removeEventListener("company-workspaces-changed", refresh);
@@ -403,11 +384,6 @@ export function WorkspaceSwitcher({
           <span className="text-xs">{company.connected ? t`Connected` : t`Disconnected`}</span>
         ) : null}
       </button>
-      {message ? (
-        <p role="status" className="mt-2 text-sm text-muted-foreground">
-          {message}
-        </p>
-      ) : null}
       {connectOpen ? (
         <CompanyConnectionDialog
           createCompany={createCompany}
@@ -433,6 +409,22 @@ export function WorkspaceIdentity({
   const [loadFailed, setLoadFailed] = useState(false);
   const [open, setOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
+  const [returnError, setReturnError] = useState(false);
+  const [connectedTarget, setConnectedTarget] = useState<string>();
+  useEffect(() => {
+    // The OAuth callback lands on /app and bootstrap immediately replaces the
+    // route with /app/<bot>, so the outcome must be read on first mount.
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("company-connected")) setConnectedTarget(params.get("company-connected")!);
+    else if (params.has("company-error")) setReturnError(true);
+    else if (!params.has("company-ready")) return;
+    for (const key of ["company-connected", "company-ready", "company-error"]) params.delete(key);
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${params.size ? `?${params}` : ""}${window.location.hash}`,
+    );
+  }, []);
   useEffect(() => {
     let alive = true;
     const refresh = () => {
@@ -461,6 +453,14 @@ export function WorkspaceIdentity({
       window.removeEventListener("company-workspaces-changed", refresh);
     };
   }, [spaceId]);
+  useEffect(() => {
+    // A connection made for another workspace switches to it once the current
+    // space is known. Success needs no copy: the company name renders below.
+    if (spaceId === undefined || !connectedTarget) return;
+    if (connectedTarget !== spaceId && selectSpace(connectedTarget))
+      window.location.replace("/app");
+    else setConnectedTarget(undefined);
+  }, [spaceId, connectedTarget]);
   return (
     <>
       <button
@@ -470,14 +470,23 @@ export function WorkspaceIdentity({
         className="app-no-drag flex min-h-11 min-w-0 w-full sm:w-40 flex-col justify-center rounded-xl px-2 text-left hover:bg-accent"
       >
         <span className="truncate text-sm font-medium w-full">{workspaceName}</span>
-        <span className="truncate text-xs text-muted-foreground w-full">
+        <span
+          role={returnError && loaded && !connection?.connected ? "status" : undefined}
+          className={`truncate text-xs w-full ${
+            returnError && loaded && !connection?.connected
+              ? "text-destructive"
+              : "text-muted-foreground"
+          }`}
+        >
           {!loaded
             ? t`Loading company…`
             : loadFailed
               ? t`Connection unavailable`
               : connection?.connected
                 ? connection.companyName
-                : t`Connect Company OS`}
+                : returnError
+                  ? t`Connection not completed. Try again.`
+                  : t`Connect Company OS`}
         </span>
       </button>
       {open ? (

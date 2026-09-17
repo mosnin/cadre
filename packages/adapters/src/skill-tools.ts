@@ -4,10 +4,10 @@ import {
   isSkillReadOnly,
   parseSkillMd,
   pluginSkillRecords,
+  readPluginBundle,
   resolvePluginResource,
   type SkillRecord,
   type SkillSource,
-  validatePluginBundle,
 } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { BUILTIN_AGENT_SKILLS } from "./builtin-skills.js";
@@ -94,6 +94,7 @@ export async function listAgentSkillRecords(
   });
   const plugins = await prisma.capabilityInstall.findMany({
     where: { spaceId: owner.spaceId, userId: owner.userId, kind: "plugin" },
+    select: { id: true, name: true, config: true },
   });
   return [...builtinRecords(), ...rows.map(toRecord), ...plugins.flatMap(pluginSkillRecords)];
 }
@@ -133,7 +134,7 @@ export async function skillReadFromTool(
     });
     if (!plugin) return { error: "Plugin not found in this workspace." };
     try {
-      const bundle = validatePluginBundle(plugin.config);
+      const bundle = readPluginBundle(plugin.config);
       const from = input.fromPath ?? entryPath;
       if (!bundle.files.some((file) => file.path === from))
         return { error: "Source file not found in this plugin." };

@@ -132,11 +132,11 @@ export default function WorkspaceLibrary() {
       },
     ]);
   }
-  function action(label: string, onPress: () => void, primary = false) {
+  function action(label: string, onPress: () => void, primary = false, disabled = false) {
     return (
       <Pressable
         accessibilityRole="button"
-        disabled={busy}
+        disabled={busy || disabled}
         onPress={onPress}
         style={({ pressed }) => ({
           minHeight: 44,
@@ -288,6 +288,7 @@ export default function WorkspaceLibrary() {
                 await refreshSaved();
               }),
             true,
+            !pendingPlugin.name.trim(),
           )}
           {action(t("Back"), () => setPendingPlugin(null))}
         </>
@@ -321,16 +322,14 @@ export default function WorkspaceLibrary() {
                     if (!(await Sharing.isAvailableAsync()))
                       throw new Error(t("File sharing is unavailable on this device"));
                     const bundle = validatePluginBundle(plugin.config);
+                    // The share sheet resolves before the target app reads the file on
+                    // Android; the next export overwrites it, so leave it in the cache.
                     const file = new File(Paths.cache, `cadre-plugin-${plugin.id}.json`);
                     file.write(JSON.stringify({ ...bundle, name: plugin.name }));
-                    try {
-                      await Sharing.shareAsync(file.uri, {
-                        mimeType: "application/json",
-                        UTI: "public.json",
-                      });
-                    } finally {
-                      file.delete();
-                    }
+                    await Sharing.shareAsync(file.uri, {
+                      mimeType: "application/json",
+                      UTI: "public.json",
+                    });
                   }),
               )}
               {action(t("Remove"), () => remove(plugin))}

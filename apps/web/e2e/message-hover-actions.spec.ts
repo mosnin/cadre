@@ -139,7 +139,27 @@ test("reply preview jumps to parent outside the loaded page", async ({ page }) =
   const parentId = await parentRow.getAttribute("data-message-id");
   expect(parentId).toBeTruthy();
 
+  // The reply to the parent lands moments later and scrolls the transcript; hover
+  // only once the row count has held still so the neighboring row cannot take the click.
+  const rows = transcript.locator("[data-message-id]");
+  let lastCount = -1;
+  let stableSince = Date.now();
+  await expect
+    .poll(
+      async () => {
+        const count = await rows.count();
+        if (count !== lastCount) {
+          lastCount = count;
+          stableSince = Date.now();
+        }
+        return Date.now() - stableSince > 1500;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(true);
+  await parentRow.scrollIntoViewIfNeeded();
   await parentRow.hover();
+  await expect(parentRow.getByTestId("message-hover-actions")).toBeVisible();
   await parentRow.getByRole("button", { name: "Reply" }).click();
   await composer.fill(replyText);
   await composer.press("Enter");
