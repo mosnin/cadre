@@ -19,6 +19,16 @@ describe("Pi runtime transport", () => {
     const model = { provider: "openrouter", api: "openai-completions" } as Model<Api>;
     const options = { transport: "auto" as const, maxRetries: 2 };
 
-    expect(reliableStreamOptions(model, options)).toBe(options);
+    expect(reliableStreamOptions(model, options)).toEqual(options);
+  });
+
+  it("enables bounded provider retries when the caller sets none", () => {
+    const model = { provider: "openrouter", api: "openai-completions" } as Model<Api>;
+
+    expect(reliableStreamOptions(model, { transport: "auto" })).toEqual({
+      transport: "auto",
+      maxRetries: 4,
+    });
+    expect(reliableStreamOptions(model, undefined)?.maxRetries).toBe(4);
   });
 });

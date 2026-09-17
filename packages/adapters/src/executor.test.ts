@@ -383,6 +383,7 @@ describe("createRunExecutor", () => {
           threadId: "group-thread-1",
         })),
       },
+      run: { findFirst: vi.fn(async () => null) },
       bot: {
         findUnique: vi.fn(async () => ({
           id: "bot-1",
@@ -456,6 +457,7 @@ describe("createRunExecutor", () => {
           threadId: "group-thread-1",
         })),
       },
+      run: { findFirst: vi.fn(async () => null) },
       bot: {
         findUnique: vi.fn(async () => ({
           id: "bot-1",
@@ -522,6 +524,7 @@ describe("createRunExecutor", () => {
           threadId: "dm-thread-1",
         })),
       },
+      run: { findFirst: vi.fn(async () => null) },
       bot: {
         findUnique: vi.fn(async () => ({
           id: "bot-1",
@@ -596,6 +599,7 @@ description: Prepare standup notes
           nextRunAt: scheduledAt,
         })),
       },
+      run: { findFirst: vi.fn(async () => null) },
       bot: {
         findUnique: vi.fn(async () => ({
           id: "bot-1",
@@ -658,6 +662,7 @@ description: Prepare standup notes
           lastRunAt: null,
         })),
       },
+      run: { findFirst: vi.fn(async () => null) },
       bot: {
         findUnique: vi.fn(async () => ({
           id: "bot-1",
@@ -715,6 +720,7 @@ description: Prepare standup notes
           lastRunAt: previousLastRunAt,
         })),
       },
+      run: { findFirst: vi.fn(async () => null) },
       bot: {
         findUnique: vi.fn(async () => ({
           id: "bot-1",
@@ -876,6 +882,7 @@ description: Prepare standup notes
         findUniqueOrThrow: vi.fn(async () => ({ scope: "private", state: "running" })),
       },
       attempt: {
+        count: vi.fn(async () => 0),
         create: vi.fn(async () => ({ id: "attempt-1" })),
         updateMany: vi.fn(async () => ({ count: 1 })),
       },

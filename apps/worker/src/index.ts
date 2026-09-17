@@ -217,6 +217,8 @@ async function main() {
     try {
       await workforce.stop();
       await reconciler.stop();
+      // Active runs checkpoint and requeue instead of being killed mid-task by the deploy.
+      await executor.stopAll();
       await jobHost.stop();
       await jobs.close();
       await realtime.close();

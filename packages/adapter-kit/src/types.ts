@@ -373,6 +373,12 @@ export interface AgentRunRequest {
     };
   };
   resumeFromCheckpoint?: string;
+  /**
+   * Budget segments: when set and `continueOnLimit` is true, a time, tool or token limit
+   * ends the segment with a `segment` event carrying a progress note instead of failing
+   * the run, so the executor can requeue it with a fresh budget.
+   */
+  budget?: { continueOnLimit: boolean; segment: number; maxSegments: number };
   script?: ScriptedTurn[];
   /**
    * Bot-message wakes may finish with no text and no tools (FYI silence).
@@ -403,6 +409,8 @@ export interface ScriptedTurn {
 
 export type AgentRuntimeEvent =
   | { type: "guardrail"; reason: string }
+  /** A budget segment ended; the run may continue with a fresh budget from `note`. */
+  | { type: "segment"; reason: string; note: string }
   | { type: "text"; text: string }
   | {
       type: "progress";
