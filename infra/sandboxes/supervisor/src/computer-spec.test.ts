@@ -18,6 +18,7 @@ import {
   containerCreateOptions,
   containerNameFor,
   hostComputerUser,
+  isMemoryLimitUnsupportedError,
   legacyNetworkOwnedSolelyBy,
   resolveComputerControlEndpoint,
   resolveScreenNetworkMode,
@@ -481,5 +482,31 @@ describe("graphical computer spec", () => {
       "click",
       "1",
     ]);
+  });
+});
+
+describe("computer memory cap", () => {
+  it("applies the cap by default and omits it when the host cannot enforce one", () => {
+    const base = {
+      name: "rakazo-bot",
+      image: "img",
+      botId: "bot",
+      spaceId: "space",
+      homePath: "/tmp/home",
+    };
+    const capped = containerCreateOptions(base).HostConfig as { Memory?: number };
+    expect(capped.Memory).toBe(4 * 1024 * 1024 * 1024);
+    const uncapped = containerCreateOptions({ ...base, memoryLimit: false }).HostConfig as {
+      Memory?: number;
+      MemorySwap?: number;
+    };
+    expect(uncapped.Memory).toBeUndefined();
+    expect(uncapped.MemorySwap).toBeUndefined();
+    expect(
+      isMemoryLimitUnsupportedError(
+        new Error("cannot set memory limit: container could not join or create cgroup"),
+      ),
+    ).toBe(true);
+    expect(isMemoryLimitUnsupportedError(new Error("no such image"))).toBe(false);
   });
 });

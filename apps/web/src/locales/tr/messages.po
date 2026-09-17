@@ -1263,7 +1263,7 @@ msgstr "Entegrasyonlar yüklenemedi"
 msgid "Could not load library"
 msgstr ""
 
-#: src/components/SiteLoginsSettings.tsx:24
+#: src/components/SiteLoginsSettings.tsx:25
 msgid "Could not load logins"
 msgstr ""
 
@@ -1344,7 +1344,7 @@ msgstr "Bağlayıcı kaldırılamadı"
 msgid "Could not remove group"
 msgstr "Grup kaldırılamadı"
 
-#: src/components/SiteLoginsSettings.tsx:56
+#: src/components/SiteLoginsSettings.tsx:57
 msgid "Could not remove login"
 msgstr ""
 
@@ -1384,7 +1384,7 @@ msgstr ""
 msgid "Could not save group"
 msgstr "Grup kaydedilemedi"
 
-#: src/components/SiteLoginsSettings.tsx:44
+#: src/components/SiteLoginsSettings.tsx:45
 msgid "Could not save login"
 msgstr ""
 
@@ -2234,7 +2234,7 @@ msgstr "Yerel"
 msgid "Log out"
 msgstr "Çıkış yap"
 
-#: src/components/SiteLoginsSettings.tsx:63
+#: src/components/SiteLoginsSettings.tsx:68
 msgid "Logins"
 msgstr ""
 
@@ -2760,7 +2760,7 @@ msgstr ""
 msgid "Park"
 msgstr "Beklet"
 
-#: src/components/SiteLoginsSettings.tsx:113
+#: src/components/SiteLoginsSettings.tsx:127
 #: src/pages/AccountSettingsOverlay.tsx:331
 #: src/pages/Auth.tsx:167
 #: src/pages/Auth.tsx:217
@@ -2960,7 +2960,7 @@ msgid "Reload library"
 msgstr ""
 
 #: src/components/ApprovalRulesSettings.tsx:179
-#: src/components/SiteLoginsSettings.tsx:79
+#: src/components/SiteLoginsSettings.tsx:93
 #: src/pages/PluginsOverlay.tsx:392
 #: src/pages/PluginsOverlay.tsx:458
 #: src/pages/PluginsOverlay.tsx:664
@@ -3177,7 +3177,7 @@ msgstr "Kaydet"
 msgid "Save instructions here, or ask an agent to create a reusable skill or workflow."
 msgstr ""
 
-#: src/components/SiteLoginsSettings.tsx:136
+#: src/components/SiteLoginsSettings.tsx:150
 msgid "Save login"
 msgstr ""
 
@@ -3198,7 +3198,7 @@ msgstr "Kaydedildi."
 msgid "Saved. Rotate to reveal."
 msgstr ""
 
-#: src/components/SiteLoginsSettings.tsx:136
+#: src/components/SiteLoginsSettings.tsx:150
 #: src/components/teach/SkillDraftCard.tsx:142
 #: src/pages/GroupPanel.tsx:236
 #: src/pages/ModelSettingsOverlay.tsx:691
@@ -3383,7 +3383,7 @@ msgstr "Kaydol"
 msgid "Sign-in was not completed. Check your verified Company OS account and try again."
 msgstr ""
 
-#: src/components/SiteLoginsSettings.tsx:88
+#: src/components/SiteLoginsSettings.tsx:102
 msgid "Site"
 msgstr ""
 
@@ -3825,7 +3825,7 @@ msgstr ""
 msgid "Use this model"
 msgstr "Bu modeli kullan"
 
-#: src/components/SiteLoginsSettings.tsx:101
+#: src/components/SiteLoginsSettings.tsx:115
 msgid "Username"
 msgstr ""
 
