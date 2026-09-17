@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { boundedSandboxCommandTimeoutMs, resolveSupervisorToken } from "@rakazo/core";
 import { loadRootEnv } from "@rakazo/core/node/load-root-env";
-import { SERVICE_NAMES } from "@rakazo/logging";
+import { getLogger, SERVICE_NAMES } from "@rakazo/logging";
 import { createRootLogger } from "@rakazo/logging/axiom";
 import { requestLogging } from "@rakazo/logging/hono";
 import Docker from "dockerode";
@@ -193,7 +193,7 @@ app.post("/computers", async (c) => {
         if (!isMemoryLimitUnsupportedError(error)) throw error;
         // The daemon cannot enforce a memory cap here (no memory cgroup, rootless
         // without delegation). Boot without it rather than not at all.
-        console.warn("computer memory cap unsupported on this host; starting without it");
+        getLogger().warn("computer.memory_cap_unsupported");
         await docker
           .getContainer(name)
           .remove({ force: true })
