@@ -60,6 +60,8 @@ export interface ComputerCreateInput {
   user?: string;
   controlToken?: string;
   networkMode?: string;
+  /** Apply the container memory cap. Off when the daemon cannot enforce memory limits. */
+  memoryLimit?: boolean;
 }
 
 interface PointerInput {
@@ -101,8 +103,9 @@ export function containerCreateOptions(input: ComputerCreateInput) {
       PortBindings: ports.PortBindings,
       ShmSize: 256 * 1024 * 1024,
       // A browser with many tabs must not take the host down with it.
-      Memory: computerMemoryBytes(),
-      MemorySwap: computerMemoryBytes(),
+      ...(input.memoryLimit === false
+        ? {}
+        : { Memory: computerMemoryBytes(), MemorySwap: computerMemoryBytes() }),
       CapDrop: ["ALL"],
       SecurityOpt: ["no-new-privileges:true"],
       PidsLimit: 2048,
@@ -242,4 +245,10 @@ export function computerMemoryBytes(env: NodeJS.ProcessEnv = process.env): numbe
   const mb = Number(env.RAKAZO_COMPUTER_MEMORY_MB);
   if (Number.isFinite(mb) && mb >= 512) return Math.floor(mb) * 1024 * 1024;
   return DEFAULT_COMPUTER_MEMORY_BYTES;
+}
+
+/** Docker rejects memory limits on hosts without the memory cgroup controller. */
+export function isMemoryLimitUnsupportedError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /memory (limit|cgroup)|cgroup.*memory|swap limit|MemorySwap/i.test(message);
 }

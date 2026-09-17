@@ -153,9 +153,11 @@ test("bot creation, editing, and deletion persist", async ({ page }, testInfo) =
   await page.getByRole("button", { name: "Delete", exact: true }).click();
 
   await expect(botList.getByText("Atlas", { exact: true })).toHaveCount(0);
+  // Deleting the open bot navigates to another one; the sidebar re-renders with that
+  // navigation, so open it only once the URL has settled.
+  await page.waitForURL((url) => url.pathname !== deletedBotPath);
   await openNavigation(page);
   await expect(botList.getByRole("button", { name: /^Chief/ })).toBeVisible();
-  await page.waitForURL((url) => url.pathname !== deletedBotPath);
 
   await page.goto(deletedBotPath);
   await page.waitForURL((url) => url.pathname !== deletedBotPath);

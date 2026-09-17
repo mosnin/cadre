@@ -23,6 +23,7 @@ import {
   containerCreateOptions,
   containerNameFor,
   hostComputerUser,
+  isMemoryLimitUnsupportedError,
   legacyNetworkOwnedSolelyBy,
   resolveComputerControlEndpoint,
   resolveScreenNetworkMode,
@@ -174,19 +175,34 @@ app.post("/computers", async (c) => {
         await existing.remove({ force: true }).catch(() => undefined);
       }
       const name = containerNameFor(body.botId);
-      const container = await docker.createContainer(
-        containerCreateOptions({
-          name,
-          image: COMPUTER_IMAGE,
-          botId: body.botId,
-          spaceId: body.spaceId,
-          homePath,
-          user: computerUser,
-          networkMode,
-          controlToken: randomUUID(),
-        }),
-      );
-      await container.start();
+      const createInput = {
+        name,
+        image: COMPUTER_IMAGE,
+        botId: body.botId,
+        spaceId: body.spaceId,
+        homePath,
+        user: computerUser,
+        networkMode,
+        controlToken: randomUUID(),
+      };
+      let container: Awaited<ReturnType<typeof docker.createContainer>>;
+      try {
+        container = await docker.createContainer(containerCreateOptions(createInput));
+        await container.start();
+      } catch (error) {
+        if (!isMemoryLimitUnsupportedError(error)) throw error;
+        // The daemon cannot enforce a memory cap here (no memory cgroup, rootless
+        // without delegation). Boot without it rather than not at all.
+        console.warn("computer memory cap unsupported on this host; starting without it");
+        await docker
+          .getContainer(name)
+          .remove({ force: true })
+          .catch(() => undefined);
+        container = await docker.createContainer(
+          containerCreateOptions({ ...createInput, memoryLimit: false }),
+        );
+        await container.start();
+      }
       const screenUrl = await publishedScreenUrl(container);
       return c.json({
         id: container.id,

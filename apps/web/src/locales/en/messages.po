@@ -1263,7 +1263,7 @@ msgstr "Could not load integrations"
 msgid "Could not load library"
 msgstr "Could not load library"
 
-#: src/components/SiteLoginsSettings.tsx:24
+#: src/components/SiteLoginsSettings.tsx:25
 msgid "Could not load logins"
 msgstr "Could not load logins"
 
@@ -1344,7 +1344,7 @@ msgstr "Could not remove connector"
 msgid "Could not remove group"
 msgstr "Could not remove group"
 
-#: src/components/SiteLoginsSettings.tsx:56
+#: src/components/SiteLoginsSettings.tsx:57
 msgid "Could not remove login"
 msgstr "Could not remove login"
 
@@ -1384,7 +1384,7 @@ msgstr "Could not save changes"
 msgid "Could not save group"
 msgstr "Could not save group"
 
-#: src/components/SiteLoginsSettings.tsx:44
+#: src/components/SiteLoginsSettings.tsx:45
 msgid "Could not save login"
 msgstr "Could not save login"
 
@@ -2234,7 +2234,7 @@ msgstr "Local"
 msgid "Log out"
 msgstr "Log out"
 
-#: src/components/SiteLoginsSettings.tsx:63
+#: src/components/SiteLoginsSettings.tsx:68
 msgid "Logins"
 msgstr "Logins"
 
@@ -2760,7 +2760,7 @@ msgstr "PagerDuty incident"
 msgid "Park"
 msgstr "Park"
 
-#: src/components/SiteLoginsSettings.tsx:113
+#: src/components/SiteLoginsSettings.tsx:127
 #: src/pages/AccountSettingsOverlay.tsx:331
 #: src/pages/Auth.tsx:167
 #: src/pages/Auth.tsx:217
@@ -2960,7 +2960,7 @@ msgid "Reload library"
 msgstr "Reload library"
 
 #: src/components/ApprovalRulesSettings.tsx:179
-#: src/components/SiteLoginsSettings.tsx:79
+#: src/components/SiteLoginsSettings.tsx:93
 #: src/pages/PluginsOverlay.tsx:392
 #: src/pages/PluginsOverlay.tsx:458
 #: src/pages/PluginsOverlay.tsx:664
@@ -3177,7 +3177,7 @@ msgstr "Save"
 msgid "Save instructions here, or ask an agent to create a reusable skill or workflow."
 msgstr "Save instructions here, or ask an agent to create a reusable skill or workflow."
 
-#: src/components/SiteLoginsSettings.tsx:136
+#: src/components/SiteLoginsSettings.tsx:150
 msgid "Save login"
 msgstr "Save login"
 
@@ -3198,7 +3198,7 @@ msgstr "Saved."
 msgid "Saved. Rotate to reveal."
 msgstr "Saved. Rotate to reveal."
 
-#: src/components/SiteLoginsSettings.tsx:136
+#: src/components/SiteLoginsSettings.tsx:150
 #: src/components/teach/SkillDraftCard.tsx:142
 #: src/pages/GroupPanel.tsx:236
 #: src/pages/ModelSettingsOverlay.tsx:691
@@ -3383,7 +3383,7 @@ msgstr "Sign up"
 msgid "Sign-in was not completed. Check your verified Company OS account and try again."
 msgstr "Sign-in was not completed. Check your verified Company OS account and try again."
 
-#: src/components/SiteLoginsSettings.tsx:88
+#: src/components/SiteLoginsSettings.tsx:102
 msgid "Site"
 msgstr "Site"
 
@@ -3825,7 +3825,7 @@ msgstr "Use at least 8 characters"
 msgid "Use this model"
 msgstr "Use this model"
 
-#: src/components/SiteLoginsSettings.tsx:101
+#: src/components/SiteLoginsSettings.tsx:115
 msgid "Username"
 msgstr "Username"
 
