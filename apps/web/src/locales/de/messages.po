@@ -33,7 +33,7 @@ msgid "{0} (over 10 MiB)"
 msgstr "{0} (über 10 MiB)"
 
 #. placeholder {0}: preset.n
-#: src/pages/RoutineSchedule.tsx:81
+#: src/pages/RoutineSchedule.tsx:96
 msgid "{0} {unitLabel}"
 msgstr "{0} {unitLabel}"
 
@@ -267,7 +267,7 @@ msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx:270
 #: src/pages/McpServersOverlay.tsx:344
-#: src/pages/RoutineSchedule.tsx:43
+#: src/pages/RoutineSchedule.tsx:58
 #: src/pages/shell/bot-panel.tsx:373
 msgid "Advanced"
 msgstr "Erweitert"
@@ -473,15 +473,15 @@ msgid "Ask before sending external email"
 msgstr "Vor dem Senden externer E-Mails nachfragen"
 
 #. placeholder {0}: preset.time
-#: src/pages/RoutineSchedule.tsx:91
-#: src/pages/RoutineSchedule.tsx:94
-#: src/pages/RoutineSchedule.tsx:99
+#: src/pages/RoutineSchedule.tsx:106
+#: src/pages/RoutineSchedule.tsx:110
+#: src/pages/RoutineSchedule.tsx:116
 msgid "at {0}"
 msgstr "um {0}"
 
-#: src/pages/RoutineSchedule.tsx:197
-msgid "at {timeSelect}"
-msgstr "um {timeSelect}"
+#: src/pages/RoutineSchedule.tsx:244
+msgid "at {timeInput}"
+msgstr ""
 
 #: src/components/AttachmentMenu.tsx:52
 msgid "Attach file"
@@ -1570,11 +1570,11 @@ msgstr "Zugangsdaten"
 msgid "credential saved"
 msgstr "Zugangsdaten gespeichert"
 
-#: src/pages/RoutineSchedule.tsx:88
+#: src/pages/RoutineSchedule.tsx:103
 msgid "Cron"
 msgstr "Cron"
 
-#: src/pages/RoutineSchedule.tsx:202
+#: src/pages/RoutineSchedule.tsx:249
 msgid "Cron expression"
 msgstr "Cron-Ausdruck"
 
@@ -1594,11 +1594,19 @@ msgstr ""
 msgid "Dark"
 msgstr "Dunkel"
 
-#: src/pages/RoutineSchedule.tsx:69
+#: src/pages/RoutineSchedule.tsx:84
 msgid "day"
 msgstr "Tag"
 
-#: src/pages/RoutineSchedule.tsx:56
+#: src/pages/RoutineSchedule.tsx:197
+msgid "Day of month"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:182
+msgid "Day of week"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:71
 msgid "days"
 msgstr "Tage"
 
@@ -1801,37 +1809,37 @@ msgstr ""
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Gib diesen Code unter <0>{0}</0> ein"
 
-#: src/pages/RoutineSchedule.tsx:80
+#: src/pages/RoutineSchedule.tsx:95
 msgid "Every"
 msgstr "Alle"
 
-#: src/pages/RoutineSchedule.tsx:193
+#: src/pages/RoutineSchedule.tsx:110
+msgid "Every {day}"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:238
 msgid "every {intervalAmountSelect} {intervalUnitSelect}"
 msgstr "alle {intervalAmountSelect} {intervalUnitSelect}"
 
 #: src/pages/RoutineEditor.tsx:516
-#: src/pages/RoutineSchedule.tsx:33
-#: src/pages/RoutineSchedule.tsx:99
+#: src/pages/RoutineSchedule.tsx:48
+#: src/pages/RoutineSchedule.tsx:116
 msgid "Every day"
 msgstr "Jeden Tag"
 
 #: src/pages/RoutineEditor.tsx:514
-#: src/pages/RoutineSchedule.tsx:31
-#: src/pages/RoutineSchedule.tsx:85
+#: src/pages/RoutineSchedule.tsx:46
+#: src/pages/RoutineSchedule.tsx:100
 msgid "Every hour"
 msgstr "Jede Stunde"
 
-#: src/pages/RoutineSchedule.tsx:94
-msgid "Every Monday"
-msgstr "Jeden Montag"
-
 #: src/pages/RoutineEditor.tsx:522
-#: src/pages/RoutineSchedule.tsx:39
+#: src/pages/RoutineSchedule.tsx:54
 msgid "Every month"
 msgstr "Jeden Monat"
 
 #: src/pages/RoutineEditor.tsx:520
-#: src/pages/RoutineSchedule.tsx:37
+#: src/pages/RoutineSchedule.tsx:52
 msgid "Every week"
 msgstr "Jede Woche"
 
@@ -1935,6 +1943,10 @@ msgstr "Passwort vergessen?"
 msgid "Free"
 msgstr "Kostenlos"
 
+#: src/pages/RoutineSchedule.tsx:35
+msgid "Friday"
+msgstr ""
+
 #: src/pages/WindowChrome.tsx:31
 msgid "Fullscreen"
 msgstr "Vollbild"
@@ -2012,15 +2024,15 @@ msgstr "Zum Sprechen gedrückt halten"
 msgid "Hold to talk (on-device dictation)"
 msgstr "Zum Sprechen gedrückt halten (Diktat auf dem Gerät)"
 
-#: src/pages/RoutineSchedule.tsx:67
+#: src/pages/RoutineSchedule.tsx:82
 msgid "hour"
 msgstr "Stunde"
 
-#: src/pages/RoutineSchedule.tsx:54
+#: src/pages/RoutineSchedule.tsx:69
 msgid "hours"
 msgstr "Stunden"
 
-#: src/pages/RoutineSchedule.tsx:176
+#: src/pages/RoutineSchedule.tsx:221
 msgid "How often"
 msgstr "Wie oft"
 
@@ -2084,15 +2096,15 @@ msgid "Interrupt"
 msgstr "Unterbrechen"
 
 #: src/pages/RoutineEditor.tsx:524
-#: src/pages/RoutineSchedule.tsx:41
+#: src/pages/RoutineSchedule.tsx:56
 msgid "Interval"
 msgstr "Intervall"
 
-#: src/pages/RoutineSchedule.tsx:122
+#: src/pages/RoutineSchedule.tsx:138
 msgid "Interval amount"
 msgstr "Intervallwert"
 
-#: src/pages/RoutineSchedule.tsx:137
+#: src/pages/RoutineSchedule.tsx:153
 msgid "Interval unit"
 msgstr "Intervalleinheit"
 
@@ -2338,11 +2350,11 @@ msgstr "Minimal"
 msgid "Minimize"
 msgstr "Minimieren"
 
-#: src/pages/RoutineSchedule.tsx:65
+#: src/pages/RoutineSchedule.tsx:80
 msgid "minute"
 msgstr "Minute"
 
-#: src/pages/RoutineSchedule.tsx:52
+#: src/pages/RoutineSchedule.tsx:67
 msgid "minutes"
 msgstr "Minuten"
 
@@ -2387,7 +2399,11 @@ msgstr "Modelle"
 msgid "Models from server"
 msgstr "Modelle vom Server"
 
-#: src/pages/RoutineSchedule.tsx:97
+#: src/pages/RoutineSchedule.tsx:27
+msgid "Monday"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:114
 msgid "Monthly"
 msgstr "Monatlich"
 
@@ -2634,14 +2650,22 @@ msgstr "OAuth-Verbindung fehlgeschlagen"
 msgid "OAuth expired"
 msgstr ""
 
+#: src/pages/RoutineSchedule.tsx:242
+msgid "on {weekdaySelect}"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:375
 msgid "On a schedule"
 msgstr ""
 
 #. placeholder {0}: preset.time
-#: src/pages/RoutineSchedule.tsx:97
-msgid "on the 1st at {0}"
-msgstr "am 1. um {0}"
+#: src/pages/RoutineSchedule.tsx:114
+msgid "on the {day} at {0}"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:243
+msgid "on the {monthDaySelect}"
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx:159
 #: src/pages/Shell.tsx:3664
@@ -3141,6 +3165,10 @@ msgstr "Wird ausgeführt · Stoppen"
 msgid "Running…"
 msgstr "Wird ausgeführt…"
 
+#: src/pages/RoutineSchedule.tsx:37
+msgid "Saturday"
+msgstr ""
+
 #: src/components/teach/SkillDraftCard.tsx:142
 #: src/pages/GroupPanel.tsx:236
 #: src/pages/ModelSettingsOverlay.tsx:693
@@ -3517,6 +3545,10 @@ msgstr "Absenden"
 msgid "Submitted"
 msgstr ""
 
+#: src/pages/RoutineSchedule.tsx:25
+msgid "Sunday"
+msgstr ""
+
 #: src/pages/shell/command-palette.tsx:50
 msgid "Switch agent"
 msgstr ""
@@ -3671,7 +3703,11 @@ msgstr "Dieser Server verwendet die Browseranmeldung. Autorisiere ihn, damit dei
 msgid "This subscription sign-in is not available yet. Use a deployment credential or choose another provider."
 msgstr ""
 
-#: src/pages/RoutineSchedule.tsx:152
+#: src/pages/RoutineSchedule.tsx:33
+msgid "Thursday"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:169
 msgid "Time of day"
 msgstr "Uhrzeit"
 
@@ -3694,6 +3730,10 @@ msgstr ""
 #: src/pages/PluginsOverlay.tsx:593
 msgid "Treg token"
 msgstr "Treg-Token"
+
+#: src/pages/RoutineSchedule.tsx:29
+msgid "Tuesday"
+msgstr ""
 
 #: src/components/ComputerNavigationControls.tsx:184
 msgid "Turn on Trackpad mode in the menu. Slide one finger to move the pointer and tap to click. Tap twice and hold the second touch to drag. Recenter pointer brings it back to the middle."
@@ -3846,9 +3886,13 @@ msgstr "Warten…"
 msgid "Webhook"
 msgstr ""
 
+#: src/pages/RoutineSchedule.tsx:31
+msgid "Wednesday"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:518
-#: src/pages/RoutineSchedule.tsx:35
-#: src/pages/RoutineSchedule.tsx:91
+#: src/pages/RoutineSchedule.tsx:50
+#: src/pages/RoutineSchedule.tsx:106
 msgid "Weekdays"
 msgstr "Wochentage"
 
