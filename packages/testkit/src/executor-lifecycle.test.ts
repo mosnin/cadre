@@ -169,10 +169,11 @@ describeIntegration("run executor lifecycle", () => {
     ).rejects.toThrow("no longer owns");
   });
 
-  it.each(["runtime", "repeated-tool"])(
-    "pauses the schedule at a %s safety limit",
+  it.each(["runtime", "repeated-tool", "automation"])(
+    "keeps the schedule active at a %s safety limit and pauses it only for automation abuse",
     async (mode) => {
       const seeded = await seedRun(`routine-guard-${mode}`, "Check progress");
+      const nextRunAt = new Date(Date.now() + 60_000);
       const routine = await handles.prisma.routine.create({
         data: {
           spaceId: seeded.me.spaceId,
@@ -183,7 +184,7 @@ describeIntegration("run executor lifecycle", () => {
           prompt: "Check progress",
           crons: ["* * * * *"],
           active: true,
-          nextRunAt: new Date(Date.now() + 60_000),
+          nextRunAt,
         },
       });
       await handles.prisma.run.update({
@@ -195,6 +196,16 @@ describeIntegration("run executor lifecycle", () => {
         .mockImplementation(async function* () {
           if (mode === "runtime") {
             yield { type: "guardrail", reason: "Run safety limit reached." };
+            return;
+          }
+          if (mode === "automation") {
+            yield {
+              type: "tool",
+              name: "spawn_bot",
+              args: { name: "Helper", title: "Helper", instructions: "help", prompt: "go" },
+              executionId: "spawn-1",
+            };
+            yield { type: "done", text: "This must not finish successfully." };
             return;
           }
           for (let i = 0; i < 6; i++) {
@@ -216,8 +227,10 @@ describeIntegration("run executor lifecycle", () => {
           status: "failed",
           error:
             mode === "runtime"
-              ? "Run safety limit reached."
-              : expect.stringContaining("repeated tool-call loop"),
+              ? expect.stringContaining("Run safety limit reached.")
+              : mode === "automation"
+                ? expect.stringContaining("direct user request")
+                : expect.stringContaining("repeated tool-call loop"),
         });
         if (mode === "repeated-tool") {
           expect(
@@ -225,9 +238,24 @@ describeIntegration("run executor lifecycle", () => {
               .guardrailState,
           ).toMatchObject({ count: 5 });
         }
-        expect(
-          await handles.prisma.routine.findUniqueOrThrow({ where: { id: routine.id } }),
-        ).toMatchObject({ active: false, nextRunAt: null });
+        const after = await handles.prisma.routine.findUniqueOrThrow({ where: { id: routine.id } });
+        if (mode === "automation") {
+          // Automation creating more automation is the one case that pauses a schedule.
+          expect(after).toMatchObject({ active: false, nextRunAt: null });
+          expect(
+            await handles.prisma.event.findFirst({
+              where: { runId: seeded.run.id, type: "routine.paused" },
+            }),
+          ).not.toBeNull();
+        } else {
+          // A budget or loop stop ends the run but the next occurrence still fires.
+          expect(after).toMatchObject({ active: true, nextRunAt });
+          expect(
+            await handles.prisma.event.findFirst({
+              where: { runId: seeded.run.id, type: "routine.paused" },
+            }),
+          ).toBeNull();
+        }
       } finally {
         runtime.mockRestore();
       }
