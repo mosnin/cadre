@@ -1,7 +1,7 @@
 import {
   type JobPublisher,
-  type NotificationProvider,
   messagingDeliverJob,
+  type NotificationProvider,
   routineWakeupJob,
   runContinueJob,
 } from "@rakazo/adapter-kit";
@@ -10,13 +10,13 @@ import type { Pool, PrismaClient, ThreadEvents } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import type { PoolClient } from "pg";
 import { returnBotMessageOutcome } from "./bot-messages.js";
-import { runNotificationsEnabled } from "./executor.js";
-import { isUnattendedTrigger, unattendedWaitMs } from "./run-guardrails.js";
 import { scheduleComputerControlExpiry } from "./computer-control.js";
 import {
   COMPUTER_STARTUP_MAX_ATTEMPTS,
   expiredComputerStartupWhere,
 } from "./computer-lifecycle.js";
+import { runNotificationsEnabled } from "./executor.js";
+import { isUnattendedTrigger, unattendedWaitMs } from "./run-guardrails.js";
 import { isUserProgressClientNonce } from "./user-progress.js";
 
 const DEFAULT_INTERVAL_MS = 30_000;

@@ -10,10 +10,12 @@ import {
   catalogApprovalDetails,
   catalogApprovalRequest,
   claimApprovedEffect,
+  claimFailedEffect,
   claimIntendedEffect,
   completeExternalEffect,
   createApprovedEffectReplayQueue,
   isApprovalPausedResult,
+  isFailedEffectResult,
   isToolPauseResult,
   replaceCompletedExternalEffectResult,
   resolveDuplicateEffectGate,
@@ -503,5 +505,45 @@ describe("approvalPausedToolResult", () => {
       details: { approval: "paused" },
     });
     expect(isApprovalPausedResult({ ok: true })).toBe(false);
+  });
+});
+
+describe("failed effect results", () => {
+  it("stores an error result as failed so the same call can run again", async () => {
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    await completeExternalEffect({ externalEffect: { updateMany } }, "effect-1", "executing", {
+      error: "connection reset",
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: "effect-1", status: "executing" },
+      data: { status: "failed", result: { error: "connection reset" } },
+    });
+    expect(resolveDuplicateEffectGate({ status: "failed" }, "create_record")).toEqual({
+      action: "retry",
+    });
+    const claim = vi.fn(async () => ({ count: 1 }));
+    await expect(
+      claimFailedEffect({ externalEffect: { updateMany: claim } }, "effect-1"),
+    ).resolves.toBe(true);
+    expect(claim).toHaveBeenCalledWith({
+      where: { id: "effect-1", status: "failed" },
+      data: { status: "executing" },
+    });
+  });
+
+  it("keeps successes and uncertain outcomes as completed", async () => {
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    await completeExternalEffect({ externalEffect: { updateMany } }, "effect-1", "executing", {
+      ok: true,
+    });
+    await completeExternalEffect({ externalEffect: { updateMany } }, "effect-2", "executing", {
+      error: "unknown",
+      uncertain: true,
+    });
+    for (const call of updateMany.mock.calls) {
+      expect((call[0] as { data: { status: string } }).data.status).toBe("completed");
+    }
+    expect(isFailedEffectResult({ error: "x" })).toBe(true);
+    expect(isFailedEffectResult("done")).toBe(false);
   });
 });

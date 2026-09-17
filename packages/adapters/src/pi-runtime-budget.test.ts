@@ -86,9 +86,7 @@ describe("in-run context pruning", () => {
 
   it("derives the budget from the model window with a reply reserve", () => {
     expect(contextCharBudget({ contextWindow: 200_000 })).toBe(Math.floor(200_000 * 3.5 * 0.65));
-    expect(contextCharBudget({ contextWindow: Number.NaN })).toBe(
-      Math.floor(128_000 * 3.5 * 0.65),
-    );
+    expect(contextCharBudget({ contextWindow: Number.NaN })).toBe(Math.floor(128_000 * 3.5 * 0.65));
   });
 });
 
@@ -97,7 +95,11 @@ describe("tool result truncation", () => {
     const snapshot = {
       url: "https://example.test/listings",
       snapshotId: "snap-1",
-      elements: Array.from({ length: 300 }, (_, i) => ({ ref: `e${i}`, role: "link", name: `Item ${i}` })),
+      elements: Array.from({ length: 300 }, (_, i) => ({
+        ref: `e${i}`,
+        role: "link",
+        name: `Item ${i}`,
+      })),
       text: "page text ".repeat(2_000),
     };
     const trimmed = truncateToolResult(snapshot, 12_000) as Record<string, unknown>;

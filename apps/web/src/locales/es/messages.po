@@ -59,7 +59,7 @@ msgstr "{0} MB"
 
 #. placeholder {0}: usage.runs
 #. placeholder {1}: usage.inputTokens + usage.outputTokens
-#: src/pages/AccountSettingsOverlay.tsx:233
+#: src/pages/AccountSettingsOverlay.tsx:235
 #: src/pages/Shell.tsx:2896
 msgid "{0} runs · {1} tokens"
 msgstr "{0} ejecuciones · {1} tokens"
@@ -143,7 +143,7 @@ msgstr ""
 msgid "Access token (optional)"
 msgstr "Token de acceso (opcional)"
 
-#: src/pages/AccountSettingsOverlay.tsx:148
+#: src/pages/AccountSettingsOverlay.tsx:149
 msgid "Account"
 msgstr "Cuenta"
 
@@ -261,11 +261,11 @@ msgstr ""
 msgid "Adding…"
 msgstr "Agregando…"
 
-#: src/pages/AccountSettingsOverlay.tsx:248
+#: src/pages/AccountSettingsOverlay.tsx:250
 msgid "Administration"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:268
+#: src/pages/AccountSettingsOverlay.tsx:270
 #: src/pages/McpServersOverlay.tsx:344
 #: src/pages/RoutineSchedule.tsx:43
 #: src/pages/shell/bot-panel.tsx:373
@@ -394,8 +394,8 @@ msgstr "Clave de API"
 msgid "API key header"
 msgstr "Encabezado de clave de API"
 
-#: src/pages/AccountSettingsOverlay.tsx:173
-#: src/pages/AccountSettingsOverlay.tsx:413
+#: src/pages/AccountSettingsOverlay.tsx:175
+#: src/pages/AccountSettingsOverlay.tsx:415
 msgid "Appearance"
 msgstr "Apariencia"
 
@@ -525,7 +525,7 @@ msgstr "Autorizar"
 msgid "Available after the routine is saved"
 msgstr "Disponible después de guardar la rutina"
 
-#: src/pages/AccountSettingsOverlay.tsx:193
+#: src/pages/AccountSettingsOverlay.tsx:195
 msgid "Avatars"
 msgstr "Avatares"
 
@@ -634,7 +634,7 @@ msgstr "Cancelar respuesta"
 msgid "Cancelled"
 msgstr "Cancelado"
 
-#: src/pages/AccountSettingsOverlay.tsx:362
+#: src/pages/AccountSettingsOverlay.tsx:364
 msgid "Change password"
 msgstr "Cambiar contraseña"
 
@@ -642,7 +642,7 @@ msgstr "Cambiar contraseña"
 msgid "Changes saved. Reload the library to see them."
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:362
+#: src/pages/AccountSettingsOverlay.tsx:364
 msgid "Changing…"
 msgstr "Cambiando…"
 
@@ -658,7 +658,7 @@ msgstr "No se pudo renderizar el gráfico: {error}"
 msgid "Chat apps"
 msgstr "Apps de chat"
 
-#: src/pages/AccountSettingsOverlay.tsx:163
+#: src/pages/AccountSettingsOverlay.tsx:165
 msgid "Chat apps, group channels, and agent connections."
 msgstr "Apps de chat, canales de grupo y conexiones de agentes."
 
@@ -813,7 +813,7 @@ msgstr ""
 msgid "Close setup"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:139
+#: src/pages/AccountSettingsOverlay.tsx:140
 msgid "Close user settings"
 msgstr "Cerrar configuración de usuario"
 
@@ -915,7 +915,7 @@ msgstr "La computadora está en reposo. Ábrela para despertarla."
 msgid "Computer is stopped"
 msgstr "La computadora está detenida"
 
-#: src/pages/AccountSettingsOverlay.tsx:256
+#: src/pages/AccountSettingsOverlay.tsx:258
 msgid "Computers"
 msgstr "Computadoras"
 
@@ -935,7 +935,7 @@ msgstr "Servidores configurados"
 msgid "Confirm delete"
 msgstr "Confirmar eliminación"
 
-#: src/pages/AccountSettingsOverlay.tsx:345
+#: src/pages/AccountSettingsOverlay.tsx:347
 #: src/pages/Auth.tsx:345
 msgid "Confirm password"
 msgstr "Confirmar contraseña"
@@ -1118,7 +1118,7 @@ msgstr "No se pudo aprobar este servidor"
 msgid "Could not authorize this app"
 msgstr "No se pudo autorizar esta app"
 
-#: src/pages/AccountSettingsOverlay.tsx:311
+#: src/pages/AccountSettingsOverlay.tsx:313
 msgid "Could not change password"
 msgstr "No se pudo cambiar la contraseña"
 
@@ -1268,6 +1268,10 @@ msgstr "No se pudieron cargar las integraciones"
 msgid "Could not load library"
 msgstr ""
 
+#: src/components/SiteLoginsSettings.tsx:24
+msgid "Could not load logins"
+msgstr ""
+
 #: src/pages/McpServersOverlay.tsx:83
 msgid "Could not load MCP servers"
 msgstr "No se pudieron cargar los servidores MCP"
@@ -1322,7 +1326,7 @@ msgstr "No se pudo reproducir un clip de prueba"
 msgid "Could not reach sign-in. Reconnecting…"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:319
+#: src/pages/AccountSettingsOverlay.tsx:321
 #: src/pages/Auth.tsx:88
 #: src/pages/Auth.tsx:318
 msgid "Could not reach the server"
@@ -1344,6 +1348,10 @@ msgstr "No se pudo quitar el conector"
 #: src/pages/GroupPanel.tsx:180
 msgid "Could not remove group"
 msgstr "No se pudo quitar el grupo"
+
+#: src/components/SiteLoginsSettings.tsx:56
+msgid "Could not remove login"
+msgstr ""
 
 #: src/components/ApprovalRulesSettings.tsx:92
 msgid "Could not remove rule"
@@ -1380,6 +1388,10 @@ msgstr ""
 #: src/pages/GroupPanel.tsx:179
 msgid "Could not save group"
 msgstr "No se pudo guardar el grupo"
+
+#: src/components/SiteLoginsSettings.tsx:44
+msgid "Could not save login"
+msgstr ""
 
 #: src/pages/Onboarding.tsx:287
 msgid "Could not save model"
@@ -1462,7 +1474,7 @@ msgstr ""
 msgid "Couldn't load messaging settings"
 msgstr "No se pudo cargar la configuración de mensajería"
 
-#: src/pages/AccountSettingsOverlay.tsx:106
+#: src/pages/AccountSettingsOverlay.tsx:107
 msgid "Couldn't update avatars"
 msgstr "No se pudieron actualizar los avatares"
 
@@ -1566,7 +1578,7 @@ msgstr "Cron"
 msgid "Cron expression"
 msgstr "Expresión cron"
 
-#: src/pages/AccountSettingsOverlay.tsx:333
+#: src/pages/AccountSettingsOverlay.tsx:335
 msgid "Current password"
 msgstr "Contraseña actual"
 
@@ -1578,7 +1590,7 @@ msgstr ""
 msgid "Customer support"
 msgstr "Atención al cliente"
 
-#: src/pages/AccountSettingsOverlay.tsx:408
+#: src/pages/AccountSettingsOverlay.tsx:410
 msgid "Dark"
 msgstr "Oscuro"
 
@@ -2121,8 +2133,8 @@ msgstr "Clave"
 msgid "Keys stay on the server. The app only learns whether a provider is configured."
 msgstr "Las claves permanecen en el servidor. La app solo sabe si un proveedor está configurado."
 
-#: src/pages/AccountSettingsOverlay.tsx:186
-#: src/pages/AccountSettingsOverlay.tsx:448
+#: src/pages/AccountSettingsOverlay.tsx:188
+#: src/pages/AccountSettingsOverlay.tsx:450
 msgid "Language"
 msgstr "Idioma"
 
@@ -2134,7 +2146,7 @@ msgstr "Salir"
 msgid "Leave blank to keep saved key"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:407
+#: src/pages/AccountSettingsOverlay.tsx:409
 msgid "Light"
 msgstr "Claro"
 
@@ -2215,6 +2227,10 @@ msgstr "Local"
 msgid "Log out"
 msgstr "Cerrar sesión"
 
+#: src/components/SiteLoginsSettings.tsx:63
+msgid "Logins"
+msgstr ""
+
 #: src/pages/shell/bot-panel.tsx:573
 msgid "Low"
 msgstr "Bajo"
@@ -2227,7 +2243,7 @@ msgstr "MacOS no pedirá permisos extra si dejas que los bots se ejecuten en est
 msgid "Make a copy"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:166
+#: src/pages/AccountSettingsOverlay.tsx:168
 msgid "Manage messaging settings"
 msgstr "Administrar configuración de mensajería"
 
@@ -2305,7 +2321,7 @@ msgstr "Mensaje…"
 msgid "Messaged {peer}"
 msgstr "Mensaje enviado a {peer}"
 
-#: src/pages/AccountSettingsOverlay.tsx:160
+#: src/pages/AccountSettingsOverlay.tsx:162
 #: src/pages/MessagingSettingsOverlay.tsx:92
 msgid "Messaging"
 msgstr "Mensajería"
@@ -2353,7 +2369,7 @@ msgstr "Opciones del modelo"
 msgid "Model providers"
 msgstr "Proveedores de modelos"
 
-#: src/pages/AccountSettingsOverlay.tsx:239
+#: src/pages/AccountSettingsOverlay.tsx:241
 msgid "Model spend uses your provider keys."
 msgstr "El gasto del modelo usa tus claves de proveedor."
 
@@ -2457,7 +2473,7 @@ msgstr ""
 msgid "New open-work item"
 msgstr "Nuevo elemento de trabajo abierto"
 
-#: src/pages/AccountSettingsOverlay.tsx:339
+#: src/pages/AccountSettingsOverlay.tsx:341
 #: src/pages/Auth.tsx:339
 msgid "New password"
 msgstr "Nueva contraseña"
@@ -2683,7 +2699,7 @@ msgstr ""
 msgid "Optional"
 msgstr "Opcional"
 
-#: src/pages/AccountSettingsOverlay.tsx:271
+#: src/pages/AccountSettingsOverlay.tsx:273
 msgid "Optional controls most people never need"
 msgstr "Controles opcionales que la mayoría nunca necesita"
 
@@ -2699,7 +2715,7 @@ msgstr "O conecta una clave de API"
 msgid "Or paste an API key"
 msgstr "O pega una clave de API"
 
-#: src/pages/AccountSettingsOverlay.tsx:211
+#: src/pages/AccountSettingsOverlay.tsx:213
 msgid "Organic"
 msgstr "Orgánico"
 
@@ -2725,7 +2741,8 @@ msgstr "Incidente de PagerDuty"
 msgid "Park"
 msgstr "Aparcar"
 
-#: src/pages/AccountSettingsOverlay.tsx:329
+#: src/components/SiteLoginsSettings.tsx:113
+#: src/pages/AccountSettingsOverlay.tsx:331
 #: src/pages/Auth.tsx:167
 #: src/pages/Auth.tsx:217
 #: src/pages/Auth.tsx:226
@@ -2736,12 +2753,12 @@ msgstr "Contraseña"
 msgid "Password recovery is not configured for this server"
 msgstr "La recuperación de contraseña no está configurada para este servidor"
 
-#: src/pages/AccountSettingsOverlay.tsx:364
+#: src/pages/AccountSettingsOverlay.tsx:366
 #: src/pages/Auth.tsx:329
 msgid "Password updated"
 msgstr "Contraseña actualizada"
 
-#: src/pages/AccountSettingsOverlay.tsx:298
+#: src/pages/AccountSettingsOverlay.tsx:300
 #: src/pages/Auth.tsx:305
 msgid "Passwords do not match"
 msgstr "Las contraseñas no coinciden"
@@ -2924,6 +2941,7 @@ msgid "Reload library"
 msgstr ""
 
 #: src/components/ApprovalRulesSettings.tsx:179
+#: src/components/SiteLoginsSettings.tsx:79
 #: src/pages/PluginsOverlay.tsx:392
 #: src/pages/PluginsOverlay.tsx:458
 #: src/pages/PluginsOverlay.tsx:664
@@ -3076,7 +3094,7 @@ msgstr "Revocar"
 msgid "Right-click"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:211
+#: src/pages/AccountSettingsOverlay.tsx:213
 msgid "Robot"
 msgstr "Robot"
 
@@ -3136,6 +3154,10 @@ msgstr "Guardar"
 msgid "Save instructions here, or ask an agent to create a reusable skill or workflow."
 msgstr ""
 
+#: src/components/SiteLoginsSettings.tsx:136
+msgid "Save login"
+msgstr ""
+
 #: src/components/teach/SkillDraftCard.tsx:142
 msgid "Saved"
 msgstr "Guardado"
@@ -3153,6 +3175,7 @@ msgstr "Guardado."
 msgid "Saved. Rotate to reveal."
 msgstr "Guardado. Rota para revelar."
 
+#: src/components/SiteLoginsSettings.tsx:136
 #: src/components/teach/SkillDraftCard.tsx:142
 #: src/pages/GroupPanel.tsx:236
 #: src/pages/ModelSettingsOverlay.tsx:691
@@ -3263,7 +3286,7 @@ msgstr "Nombre del servidor"
 msgid "Server URL"
 msgstr "URL del servidor"
 
-#: src/pages/AccountSettingsOverlay.tsx:136
+#: src/pages/AccountSettingsOverlay.tsx:137
 #: src/pages/Shell.tsx:2826
 #: src/pages/Shell.tsx:3574
 msgid "Settings"
@@ -3335,6 +3358,10 @@ msgstr "Registrarse"
 
 #: src/pages/Auth.tsx:131
 msgid "Sign-in was not completed. Check your verified Company OS account and try again."
+msgstr ""
+
+#: src/components/SiteLoginsSettings.tsx:88
+msgid "Site"
 msgstr ""
 
 #. placeholder {0}: skill.name
@@ -3506,7 +3533,7 @@ msgstr "Cambiando…"
 msgid "Synced"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:406
+#: src/pages/AccountSettingsOverlay.tsx:408
 msgid "System"
 msgstr "Sistema"
 
@@ -3741,7 +3768,7 @@ msgstr "Actualizado"
 msgid "Updating…"
 msgstr "Actualizando…"
 
-#: src/pages/AccountSettingsOverlay.tsx:229
+#: src/pages/AccountSettingsOverlay.tsx:231
 #: src/pages/Shell.tsx:2892
 msgid "Usage"
 msgstr "Uso"
@@ -3762,6 +3789,10 @@ msgstr ""
 #: src/pages/ModelSettingsOverlay.tsx:725
 msgid "Use this model"
 msgstr "Usar este modelo"
+
+#: src/components/SiteLoginsSettings.tsx:101
+msgid "Username"
+msgstr ""
 
 #: src/components/ComputerNavigationControls.tsx:87
 #: src/components/ComputerNavigationControls.tsx:128

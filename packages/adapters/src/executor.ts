@@ -6,6 +6,7 @@ import type {
   AgentRunRequest,
   AgentRuntime,
   ArtifactStore,
+  BrowserRequest,
   ComputerRef,
   ConnectorCall,
   ConnectorProvider,
@@ -155,6 +156,7 @@ import { observationToolResult, parseComputerActions } from "./computer-tools.js
 import { checkpointAfterComputerWork } from "./computer-workspace.js";
 import { sanitizeConnectorError } from "./connector-safety.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
+import { isSandboxGoneError } from "./e2b-sandbox.js";
 import { handoffToGroupBot, loadGroupContext } from "./group-handoff.js";
 import {
   COMPACTION_BATCH_SIZE,
@@ -203,14 +205,13 @@ import {
   renderPlotSpecToSvg,
   searchChartCatalog,
 } from "./plot-tool.js";
-import { isSandboxGoneError } from "./e2b-sandbox.js";
 import {
   isUnattendedTrigger,
   maxRunSegments,
-  resetRunToolBudget,
-  routinePausesOnGuardrail,
   RunGuardrailError,
   reserveRunTool,
+  resetRunToolBudget,
+  routinePausesOnGuardrail,
 } from "./run-guardrails.js";
 import {
   commitConsumedRunSecret,
@@ -587,7 +588,14 @@ const TAKEOVER_UNATTENDED =
 /** Fail a run that is parked on takeover or input without a worker lease. */
 async function failWaitingRun(
   deps: ExecutorDeps,
-  run: { id: string; spaceId: string; threadId: string; botId: string; userId: string; taskId: string },
+  run: {
+    id: string;
+    spaceId: string;
+    threadId: string;
+    botId: string;
+    userId: string;
+    taskId: string;
+  },
   error: string,
 ) {
   const failed = await deps.events.failWaitingRun?.({
@@ -988,7 +996,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
           where: { runId, id: { not: attempt.id }, status: { in: ["running", "interrupted"] } },
         });
         const priorEffects =
-          interruptedAttempts > 0 ? await deps.prisma.externalEffect.count({ where: { runId } }) : 0;
+          interruptedAttempts > 0
+            ? await deps.prisma.externalEffect.count({ where: { runId } })
+            : 0;
         if (interruptedAttempts >= MAX_INTERRUPTED_ATTEMPTS_AFTER_EFFECTS && priorEffects > 0) {
           await deps.events.finalizeRun({
             spaceId: run.spaceId,
@@ -2137,15 +2147,45 @@ export function createRunExecutor(deps: ExecutorDeps) {
             if (!deps.sandbox.browser)
               return { error: "Structured browser control is unavailable. Use desktop tools." };
             if (name === "browser_act") workspaceCheckpoint.markDirty();
+            let browserRequest: BrowserRequest =
+              name === "browser_observe"
+                ? { action: "snapshot" }
+                : (args as unknown as BrowserRequest);
+            if (name === "browser_act" && args.action === "fill_login") {
+              // A saved login is typed into the field by the browser; the model never sees it.
+              const host = String(args.login ?? "")
+                .trim()
+                .toLowerCase();
+              const login = host
+                ? await deps.prisma.siteLogin.findFirst({
+                    where: { spaceId: run.spaceId, host },
+                    include: { secret: true },
+                  })
+                : null;
+              if (!login) {
+                return {
+                  error: host
+                    ? `No saved login for ${host}. Add one in Settings under Logins.`
+                    : "fill_login needs the host of a saved login.",
+                };
+              }
+              const field = args.field === "username" ? "username" : "password";
+              let value = login.username;
+              if (field === "password") {
+                value = deps.secretStore.load(login.secret.ciphertext, login.secret.id);
+                runSecrets.push(value);
+                pendingProgress += progressRedactor.finish();
+                progressRedactor = createStreamingRedactor(runSecrets);
+              }
+              browserRequest = {
+                action: "fill_protected",
+                snapshotId: args.snapshotId ? String(args.snapshotId) : undefined,
+                ref: args.ref ? String(args.ref) : undefined,
+                secretText: value,
+              };
+            }
             return computerScreenToolResult(
-              () =>
-                deps.sandbox.browser!(
-                  computer,
-                  name === "browser_observe"
-                    ? { action: "snapshot" }
-                    : (args as unknown as Parameters<NonNullable<SandboxProvider["browser"]>>[1]),
-                  context,
-                ),
+              () => deps.sandbox.browser!(computer, browserRequest, context),
               name === "browser_act" ? finish : undefined,
             );
           }
@@ -3221,6 +3261,19 @@ export function createRunExecutor(deps: ExecutorDeps) {
               })),
             );
 
+        const savedLogins = await deps.prisma.siteLogin.findMany({
+          where: { spaceId: run.spaceId },
+          select: { host: true, username: true },
+          orderBy: { host: "asc" },
+          take: 50,
+        });
+        const savedLoginsInstruction = savedLogins.length
+          ? `Saved logins you can sign in with using browser_act fill_login (field username, then field password): ${savedLogins
+              .map((login) => `${login.host} (${login.username})`)
+              .join(
+                ", ",
+              )}. Never ask the user for these passwords and never request takeover for a site that has a saved login.`
+          : undefined;
         const guardedApplyTool = async (
           name: string,
           args: Record<string, unknown>,
@@ -3258,6 +3311,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   : undefined,
                 `${computerInstruction} Use web_search and web_fetch to look something up or read a page without a computer. Use remember for durable facts. Use scratchpad_add / scratchpad_update / scratchpad_complete for open work that should outlive this turn (not reminders — those are schedule_*). Use request_takeover when the user must provide protected input or human judgment. Use destination_write only for connected destination records.`,
                 workspaceInstruction,
+                savedLoginsInstruction,
                 "A bot and a subagent are different. Never use both for the same request.",
                 "create_space proposes a new privacy boundary inside the current organization. Use it when the user asks to create a space or separate data between teams or projects. It always pauses for explicit user approval; never claim the space exists before the tool succeeds.",
                 "spawn_bot creates a lasting regular bot (own chat, computer, memory) that appears in the user's bot list. If the user asked to create a bot, call spawn_bot once and stop. Do not run_subagent to demo it.",
@@ -3754,7 +3808,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if ((computerLost || shutdownRequested) && leaseValid) {
             const continued = await continueInNewSegment(
               computerLost ? "The computer was lost." : "The worker shut down.",
-              assembled ? `Narration from the interrupted segment:\n${assembled.slice(-4_000)}` : "",
+              assembled
+                ? `Narration from the interrupted segment:\n${assembled.slice(-4_000)}`
+                : "",
             ).catch(() => false);
             if (continued) return;
           }
@@ -3776,7 +3832,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
           }
           const rawMessage = error instanceof Error ? error.message : String(error);
           const message = redactSecrets(
-            isUnattendedTrigger(run.trigger) && error instanceof RunGuardrailError && error.kind === "budget"
+            isUnattendedTrigger(run.trigger) &&
+              error instanceof RunGuardrailError &&
+              error.kind === "budget"
               ? `Stopped after ${run.segment ?? 1} budget segment${(run.segment ?? 1) === 1 ? "" : "s"} without finishing. ${rawMessage}`
               : rawMessage,
             runSecrets,

@@ -1182,7 +1182,9 @@ export function truncateToolResult(value: unknown, budget: number): unknown {
   }
   if (value && typeof value === "object") {
     const entries = Object.entries(value as Record<string, unknown>);
-    const sizes = entries.map(([key, item]) => [key, item, jsonLength(item) + key.length + 4] as const);
+    const sizes = entries.map(
+      ([key, item]) => [key, item, jsonLength(item) + key.length + 4] as const,
+    );
     const total = sizes.reduce((sum, [, , size]) => sum + size, 0);
     if (total <= budget) return value;
     // Small fields stay whole; the remaining budget is shared among the large ones.
@@ -1299,7 +1301,8 @@ export function consumeTokens(
   const positive = (value: number | undefined) =>
     typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
   const output = positive(usage.output);
-  const requestContext = positive(usage.input) + positive(usage.cacheRead) + positive(usage.cacheWrite);
+  const requestContext =
+    positive(usage.input) + positive(usage.cacheRead) + positive(usage.cacheWrite);
   host.tokenBudget.output = (host.tokenBudget.output ?? 0) + output;
   host.tokenBudget.peak = Math.max(host.tokenBudget.peak ?? 0, requestContext);
   host.tokenBudget.count = host.tokenBudget.output + host.tokenBudget.peak;
@@ -1325,7 +1328,11 @@ export function budgetStopReason(
   signal: AbortSignal,
   host: Pick<ToolHost, "tokenBudget" | "toolCallBudget" | "contextOverflow">,
 ): string | null {
-  if (signal.aborted && signal.reason instanceof RunGuardrailError && signal.reason.kind === "budget")
+  if (
+    signal.aborted &&
+    signal.reason instanceof RunGuardrailError &&
+    signal.reason.kind === "budget"
+  )
     return signal.reason.message;
   if (host.tokenBudget.exceeded) return "Run token limit reached.";
   if (host.contextOverflow) return "The model's context window is full.";
@@ -1350,7 +1357,7 @@ function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
 function lastFailedAssistant(agent: Agent): AssistantMessage | null {
   if (!agent.state.errorMessage) return null;
   const last = agent.state.messages.at(-1);
-  if (!last || last.role !== "assistant") return null;
+  if (last?.role !== "assistant") return null;
   const assistant = last as AssistantMessage;
   return assistant.stopReason === "error" ? assistant : null;
 }

@@ -173,7 +173,16 @@ export interface SnapshotRef {
 }
 
 export interface BrowserRequest {
-  action: "snapshot" | "navigate" | "click" | "fill" | "press" | "scroll" | "tabs" | "select_tab";
+  action:
+    | "snapshot"
+    | "navigate"
+    | "click"
+    | "fill"
+    | "fill_protected"
+    | "press"
+    | "scroll"
+    | "tabs"
+    | "select_tab";
   snapshotId?: string;
   ref?: string;
   url?: string;
@@ -181,6 +190,11 @@ export interface BrowserRequest {
   key?: string;
   direction?: string;
   tabId?: string;
+  /**
+   * Value for `fill_protected`. Providers pass it to the browser out of band (never on a
+   * command line) and no result echoes it.
+   */
+  secretText?: string;
 }
 
 export interface SandboxCapabilities {

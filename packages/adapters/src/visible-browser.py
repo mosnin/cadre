@@ -17,13 +17,16 @@ ROLES = {'button', 'link', 'textbox', 'searchbox', 'combobox', 'checkbox', 'radi
 def bounded_request(req):
     if not isinstance(req, dict): raise ValueError('Browser request must be an object')
     action = req.get('action', 'snapshot')
-    if action not in ('snapshot', 'navigate', 'click', 'fill', 'press', 'scroll', 'tabs', 'select_tab'):
+    if action not in ('snapshot', 'navigate', 'click', 'fill', 'fill_protected', 'press', 'scroll', 'tabs', 'select_tab'):
         raise ValueError('Unknown browser action')
+    if action == 'fill_protected':
+        if not isinstance(os.environ.get('RAKAZO_PROTECTED_TEXT'), str) or not os.environ.get('RAKAZO_PROTECTED_TEXT'):
+            raise ValueError('Protected text is missing')
     if action == 'navigate':
         url = req.get('url', '')
         if not isinstance(url, str) or len(url) > 4096 or urlsplit(url).scheme not in ('http', 'https') or not urlsplit(url).hostname:
             raise ValueError('Use a complete http or https URL')
-    if action in ('click', 'fill', 'press'):
+    if action in ('click', 'fill', 'fill_protected', 'press'):
         if not isinstance(req.get('snapshotId'), str) or not isinstance(req.get('ref'), str):
             raise ValueError('Use snapshotId and ref from a fresh browser snapshot')
     if action == 'fill' and (not isinstance(req.get('text'), str) or len(req['text']) > 16000):
@@ -145,7 +148,7 @@ class VisibleBrowser:
         if action == 'select_tab':
             validate_human_input(starting_epoch)
             self.call('Page.bringToFront')
-        if action in ('click', 'fill', 'press'):
+        if action in ('click', 'fill', 'fill_protected', 'press'):
             validate_human_input(self.state.get('humanInputEpoch', '0'))
             ref = validate_reference(self.state, req, self.page['targetId'], self.loader())
             # A rerender can replace a control without navigating. Refuse replaced nodes.
@@ -155,7 +158,7 @@ class VisibleBrowser:
                 raise ValueError('The control changed. Take a fresh browser snapshot.')
             description = self.call('DOM.describeNode', {'backendNodeId': ref['backend']})['node']
             attributes = dict(zip(description.get('attributes', [])[::2], description.get('attributes', [])[1::2]))
-            if action == 'fill' and ref['role'] not in ('textbox', 'searchbox', 'combobox', 'spinbutton'):
+            if action in ('fill', 'fill_protected') and ref['role'] not in ('textbox', 'searchbox', 'combobox', 'spinbutton'):
                 raise ValueError('This control is not a text field. Take a fresh snapshot.')
             if action == 'fill' and (attributes.get('type', '').lower() == 'password' or attributes.get('autocomplete', '').lower() in ('one-time-code', 'current-password', 'new-password')):
                 raise ValueError('Use protected secret entry or request user takeover for this field.')
@@ -169,10 +172,12 @@ class VisibleBrowser:
                     self.call('Input.dispatchMouseEvent', {'type': kind, 'x': x, 'y': y, 'button': 'left' if kind != 'mouseMoved' else 'none', 'clickCount': 1})
             else:
                 self.call('DOM.focus', {'backendNodeId': ref['backend']})
-                if action == 'fill':
+                if action in ('fill', 'fill_protected'):
                     self.call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'a', 'code': 'KeyA', 'modifiers': 2, 'windowsVirtualKeyCode': 65})
                     self.call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'a', 'code': 'KeyA', 'modifiers': 2, 'windowsVirtualKeyCode': 65})
-                    self.call('Input.insertText', {'text': req['text']})
+                    # A protected value is typed from the environment and never appears in the
+                    # request, the snapshot, or this process's arguments.
+                    self.call('Input.insertText', {'text': os.environ['RAKAZO_PROTECTED_TEXT'] if action == 'fill_protected' else req['text']})
                 else:
                     codes = {'Enter': 13, 'Tab': 9, 'Escape': 27, 'ArrowDown': 40, 'ArrowUp': 38, 'Space': 32}
                     for kind in ('keyDown', 'keyUp'):

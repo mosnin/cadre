@@ -31,6 +31,7 @@ model User {
   modelCredentials            UserModelCredential[]
   voiceCredentials            UserVoiceCredential[]
   secrets                     Secret[]
+  siteLogins                  SiteLogin[]
   mcpServers                  McpServer[]
   botSections                 BotSection[]
   actionApprovalRules         ActionApprovalRule[]
@@ -196,6 +197,7 @@ model Space {
   actionAutoReviewPreferences ActionAutoReviewPreference[]
   memoryConfig                SpaceMemoryConfig?
   secrets                     Secret[]
+  siteLogins                  SiteLogin[]
   chatGroups                  ChatGroup[]
 
   @@unique([id, organizationId])
@@ -986,9 +988,29 @@ model Secret {
   createdAt         DateTime           @default(now())
   mcpServers        McpServer[]
   spaceMemoryConfig SpaceMemoryConfig?
+  siteLogin         SiteLogin?
 
   @@index([userId, spaceId])
   @@map("secrets")
+}
+
+/// A saved website login the bots in a space may type into a password field without seeing it.
+model SiteLogin {
+  id        String   @id @default(cuid())
+  spaceId   String
+  space     Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  host      String
+  username  String
+  secretId  String   @unique
+  secret    Secret   @relation(fields: [secretId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([spaceId, host, username])
+  @@index([spaceId])
+  @@map("site_logins")
 }
 
 model McpServer {

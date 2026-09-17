@@ -135,7 +135,9 @@ export function advanceRunGuardrail(
     return { count: state.count + 1, recent: state.recent, automation };
   }
   // Persist only a digest, never tool arguments or secrets. Text between calls cannot reset it.
-  const key = createHash("sha256").update(JSON.stringify([name, canonicalArgs])).digest("hex");
+  const key = createHash("sha256")
+    .update(JSON.stringify([name, canonicalArgs]))
+    .digest("hex");
   if (state.recent.filter((prior) => prior === key).length >= 5) {
     throw new RunGuardrailError(
       "Stopped a repeated tool-call loop. Review the task before continuing.",

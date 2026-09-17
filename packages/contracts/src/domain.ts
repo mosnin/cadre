@@ -479,6 +479,29 @@ export const ConnectionCatalogItemSchema = z.object({
 });
 export type ConnectionCatalogItem = z.infer<typeof ConnectionCatalogItemSchema>;
 
+/** Hostname a saved login belongs to, lower-case, no scheme or path. */
+export const SiteLoginHost = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(1)
+  .max(253)
+  .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/, "Enter a hostname");
+
+export const SiteLoginSchema = z.object({
+  id: Id,
+  host: z.string(),
+  username: z.string(),
+  createdAt: z.string(),
+});
+export type SiteLogin = z.infer<typeof SiteLoginSchema>;
+
+export const SaveSiteLoginInput = z.object({
+  host: SiteLoginHost,
+  username: z.string().trim().min(1).max(200),
+  password: z.string().min(1).max(4_000),
+});
+
 export const ActionApprovalRuleSchema = z.object({
   id: Id,
   effect: z.enum(["always_allow", "require_approval"]),

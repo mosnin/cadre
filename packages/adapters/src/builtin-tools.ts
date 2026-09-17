@@ -42,14 +42,25 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "browser_act",
     description:
-      "Navigate or interact with the same browser shown in the live computer view. Each action returns a fresh compact snapshot. Use only refs and snapshotId from the latest snapshot; never invent them. Fill ordinary fields, click controls, press keys, scroll, list or select tabs. Use protected input for secrets. Use desktop tools for canvas, browser chrome, or unsupported controls.",
+      "Navigate or interact with the same browser shown in the live computer view. Each action returns a fresh compact snapshot. Use only refs and snapshotId from the latest snapshot; never invent them. Fill ordinary fields, click controls, press keys, scroll, list or select tabs. To sign in with a saved login, use fill_login with the site host and field (username or password); the value is typed for you and never shown. Use desktop tools for canvas, browser chrome, or unsupported controls.",
     inputSchema: {
       type: "object",
       properties: {
         action: {
           type: "string",
-          enum: ["navigate", "click", "fill", "press", "scroll", "tabs", "select_tab"],
+          enum: [
+            "navigate",
+            "click",
+            "fill",
+            "fill_login",
+            "press",
+            "scroll",
+            "tabs",
+            "select_tab",
+          ],
         },
+        login: { type: "string", description: "Host of the saved login, for fill_login." },
+        field: { type: "string", enum: ["username", "password"] },
         snapshotId: { type: "string" },
         ref: { type: "string" },
         url: { type: "string" },

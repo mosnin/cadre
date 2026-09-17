@@ -1114,3 +1114,65 @@ description: Prepare standup notes
     });
   });
 });
+
+describe("routine occurrences while a run is active", () => {
+  it("skips the occurrence, advances the schedule and does not stack a second run", async () => {
+    const scheduledAt = new Date(Date.now() - 1_000);
+    const taskCreate = vi.fn(async () => ({ id: "task-1" }));
+    const runCreate = vi.fn(async () => ({ id: "run-1" }));
+    const append = vi.fn(async () => undefined);
+    const enqueue = vi.fn(async () => undefined);
+    const routineUpdateMany = vi.fn(async () => ({ count: 1 }));
+    const prisma = {
+      routine: {
+        findUnique: vi.fn(async () => ({
+          id: "routine-1",
+          spaceId: "ws-1",
+          botId: "bot-1",
+          userId: "user-1",
+          prompt: "submit proposals",
+          crons: ["0 9 * * *"],
+          timezone: "UTC",
+          active: true,
+          nextRunAt: scheduledAt,
+          threadId: null,
+        })),
+        updateMany: routineUpdateMany,
+      },
+      run: { findFirst: vi.fn(async () => ({ id: "run-0" })) },
+      bot: { findUnique: vi.fn(async () => ({ id: "bot-1", thread: { id: "thread-1" } })) },
+      thread: { findFirst: vi.fn(async () => null) },
+      capabilityInstall: { findMany: vi.fn(async () => []) },
+      agentSkill: { findMany: vi.fn(async () => []) },
+      $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
+        callback({
+          routine: { updateMany: vi.fn(async () => ({ count: 1 })) },
+          task: { create: taskCreate },
+          run: { create: runCreate },
+        }),
+      ),
+    } as unknown as PrismaClient;
+    const executor = createRunExecutor({
+      prisma,
+      jobs: { enqueue, cancel: vi.fn(async () => undefined), close: vi.fn(async () => undefined) },
+      events: { append },
+    } as unknown as Parameters<typeof createRunExecutor>[0]);
+
+    await executor.wakeRoutine("routine-1", scheduledAt.toISOString());
+
+    expect(taskCreate).not.toHaveBeenCalled();
+    expect(runCreate).not.toHaveBeenCalled();
+    expect(routineUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "routine-1", active: true, nextRunAt: scheduledAt },
+        data: expect.objectContaining({ nextRunAt: expect.any(Date) }),
+      }),
+    );
+    expect(append).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "routine.skipped", runId: "run-0" }),
+    );
+    expect(enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ payload: expect.objectContaining({ routineId: "routine-1" }) }),
+    );
+  });
+});
