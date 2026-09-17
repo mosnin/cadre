@@ -17,5 +17,5 @@ CREATE UNIQUE INDEX "site_logins_spaceId_host_username_key" ON "site_logins"("sp
 CREATE INDEX "site_logins_spaceId_idx" ON "site_logins"("spaceId");
 
 ALTER TABLE "site_logins" ADD CONSTRAINT "site_logins_spaceId_fkey" FOREIGN KEY ("spaceId") REFERENCES "spaces"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "site_logins" ADD CONSTRAINT "site_logins_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "site_logins" ADD CONSTRAINT "site_logins_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "site_logins" ADD CONSTRAINT "site_logins_secretId_fkey" FOREIGN KEY ("secretId") REFERENCES "secrets"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -540,8 +540,8 @@ describe("failed effect results", () => {
       error: "unknown",
       uncertain: true,
     });
-    for (const call of updateMany.mock.calls) {
-      expect((call[0] as { data: { status: string } }).data.status).toBe("completed");
+    for (const call of updateMany.mock.calls as unknown as Array<[{ data: { status: string } }]>) {
+      expect(call[0].data.status).toBe("completed");
     }
     expect(isFailedEffectResult({ error: "x" })).toBe(true);
     expect(isFailedEffectResult("done")).toBe(false);

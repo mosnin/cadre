@@ -684,7 +684,9 @@ describe("unattended waits", () => {
         olderThan: expect.any(Date),
       }),
     );
-    const call = expireWaitingRuns.mock.calls[0]![0] as { olderThan: Date; triggers: string[] };
+    const [call] = (
+      expireWaitingRuns.mock.calls as unknown as Array<[{ olderThan: Date; triggers: string[] }]>
+    )[0]!;
     expect(call.triggers).not.toContain("user");
     expect(Date.now() - call.olderThan.getTime()).toBeGreaterThanOrEqual(30 * 60_000 - 1_000);
     expect(send).toHaveBeenCalledWith(
