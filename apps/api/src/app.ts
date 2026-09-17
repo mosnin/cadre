@@ -228,10 +228,13 @@ export async function createApp(
     prisma,
     secrets,
     {
-      prepareCompanyWorkspace: async (context) => {
-        await companyWorkspaces?.prepare(context);
-        await workspaceIntegrations?.prepare(context);
-      },
+      // Company OS servers stay refused while Company OS is not configured.
+      prepareCompanyWorkspace: companyWorkspaces
+        ? (context) => companyWorkspaces.prepare(context)
+        : undefined,
+      prepareWorkspaceIntegrations: workspaceIntegrations
+        ? (context) => workspaceIntegrations.prepare(context)
+        : undefined,
       stdioEnabled: env.mcpStdioEnabled,
       allowedCommands: env.mcpStdioAllowedCommands,
       network: remoteConnectors,

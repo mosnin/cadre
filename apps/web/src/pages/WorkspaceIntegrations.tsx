@@ -24,6 +24,19 @@ export function WorkspaceIntegrationSettings() {
   const [available, setAvailable] = useState(false);
   const [busy, setBusy] = useState<Provider>();
   const [error, setError] = useState("");
+  const [returnError, setReturnError] = useState(false);
+  useEffect(() => {
+    // The OAuth callback returns to /app with the outcome; consume it once.
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("integration")) return;
+    if (params.has("connection-error")) setReturnError(true);
+    for (const key of ["integration", "connected", "connection-error"]) params.delete(key);
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${params.size ? `?${params}` : ""}${window.location.hash}`,
+    );
+  }, []);
   useEffect(() => {
     let alive = true;
     request()
@@ -95,7 +108,7 @@ export function WorkspaceIntegrationSettings() {
           {error}
         </p>
       )}
-      {new URLSearchParams(window.location.search).has("connection-error") && (
+      {returnError && (
         <p role="alert" className="text-sm text-destructive">
           The connection was not completed. Select the original account and organization, or use a
           new Cadre workspace for a different organization.

@@ -439,6 +439,10 @@ export function ShellPage() {
   const [workforceOpen, setWorkforceOpen] = useState(false);
   const [mcpOpen, setMcpOpen] = useState(false);
   const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
+  // Workspace connection callbacks return to /app; their outcome lives in Account settings.
+  useEffect(() => {
+    if (searchParamsRef.current.has("integration")) setAccountSettingsOpen(true);
+  }, []);
   const [messagingSettingsOpen, setMessagingSettingsOpen] = useState(false);
   const [messagingSurfaceEnabled, setMessagingSurfaceEnabled] = useState(false);
   const [accountSettingsFocusUsage, setAccountSettingsFocusUsage] = useState(false);
