@@ -127,7 +127,89 @@ describe("MCP connector session cache", () => {
       events.push(event);
     expect(events).toMatchObject([{ type: "result" }]);
     expect(state.calls).toEqual(["config_pull"]);
-    expect(prepare).toHaveBeenCalledTimes(2);
+    // Discovery and execution share one run context, so Company OS is prepared once.
+    expect(prepare).toHaveBeenCalledTimes(1);
+    await connector.close();
+  });
+
+  it("ignores a server's read-only hint on tools whose names announce a mutation", async () => {
+    const state = {
+      failNext: false,
+      initializations: 0,
+      calls: [] as string[],
+      tools: [
+        {
+          name: "delete_records",
+          annotations: { readOnlyHint: true },
+          inputSchema: { type: "object" },
+        },
+        {
+          name: "config_pull",
+          annotations: { readOnlyHint: true },
+          inputSchema: { type: "object" },
+        },
+      ],
+    };
+    vi.stubGlobal("fetch", mcpFetch(state));
+    const prisma = {
+      botMcpServer: {
+        findMany: vi.fn().mockResolvedValue([ASSIGNMENT]),
+        findFirst: vi.fn().mockResolvedValue(ASSIGNMENT),
+      },
+    };
+    const connector = new McpConnector(prisma as never, {} as never, {
+      network: { resolveHostname: async () => [{ address: "203.0.113.10", family: 4 }] },
+    });
+    const tools = await connector.discoverTools({
+      spaceId: "w1",
+      userId: "u1",
+      botId: "bot-1",
+      signal: new AbortController().signal,
+    } as never);
+    expect(tools.find((t) => t.route?.toolName === "delete_records")).toMatchObject({
+      readOnly: false,
+    });
+    expect(tools.find((t) => t.route?.toolName === "config_pull")).toMatchObject({
+      readOnly: true,
+    });
+    await connector.close();
+  });
+
+  it("keeps other MCP servers usable when Company OS preparation fails", async () => {
+    const state = {
+      failNext: false,
+      initializations: 0,
+      calls: [] as string[],
+      tools: [{ name: "search_issues", inputSchema: { type: "object" } }],
+    };
+    vi.stubGlobal("fetch", mcpFetch(state));
+    const prisma = {
+      botMcpServer: {
+        findMany: vi.fn().mockResolvedValue([ASSIGNMENT]),
+        findFirst: vi.fn().mockResolvedValue(ASSIGNMENT),
+      },
+    };
+    const prepare = vi.fn().mockRejectedValue(new Error("Reconnect Company OS to continue"));
+    const connector = new McpConnector(prisma as never, {} as never, {
+      prepareCompanyWorkspace: prepare,
+      network: { resolveHostname: async () => [{ address: "203.0.113.10", family: 4 }] },
+    });
+    const context = {
+      spaceId: "w1",
+      userId: "u1",
+      botId: "bot-1",
+      signal: new AbortController().signal,
+    } as never;
+    const tools = await connector.discoverTools(context);
+    expect(tools.map((t) => t.route?.toolName)).toEqual(["search_issues"]);
+    const events = [];
+    for await (const event of connector.execute(
+      { tool: tools[0]!.name, args: {}, executionId: "search", route: tools[0]!.route },
+      context,
+    ))
+      events.push(event);
+    expect(events).toMatchObject([{ type: "result" }]);
+    expect(prepare).toHaveBeenCalledTimes(1);
     await connector.close();
   });
 

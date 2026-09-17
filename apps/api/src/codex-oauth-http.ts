@@ -44,6 +44,11 @@ export function mountCodexOAuth(
   );
   app.get("/api/oauth/codex/consent", async (c) => {
     try {
+      // This response names the signed-in user. CORS trusts every loopback origin
+      // for local development, so restrict it to the product origins explicitly.
+      const origin = c.req.header("origin");
+      if (origin && ![options.webOrigin, new URL(api).origin].includes(origin))
+        return json({ error: "untrusted_origin" }, 403);
       const p = parse(new URL(c.req.url).search.slice(1));
       if (!service) return json({ error: "temporarily_unavailable" }, 503);
       if (!validRequest(p, resource)) return json({ error: "invalid_request" }, 400);
@@ -98,7 +103,10 @@ export function mountCodexOAuth(
           await service.revoke(p.token);
           return json({});
         }
-        if (p.resource !== resource) return json({ error: "invalid_target" }, 400);
+        // RFC 8707: resource is optional on refresh; a present value must still match.
+        const resourceOmitted = p.grant_type === "refresh_token" && p.resource === undefined;
+        if (!resourceOmitted && p.resource !== resource)
+          return json({ error: "invalid_target" }, 400);
         const tokens = await service.exchange(p);
         return tokens ? json(tokens) : json({ error: "invalid_grant" }, 400);
       } catch {

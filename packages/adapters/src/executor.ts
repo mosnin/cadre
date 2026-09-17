@@ -1832,7 +1832,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
             }
           }
           const viaConnector = !BUILTIN_AGENT_TOOL_NAMES.has(name);
-          const requiresApprovalByDefault = toolRequiresApproval(name, viaConnector);
+          // A connector's read-only hint is only accepted for tools whose name does
+          // not announce a mutation (see connectorToolNamesMutation); such tools are
+          // not consequential by default but still honor explicit "ask" rules below.
+          const requiresApprovalByDefault =
+            !connectorReadOnly && toolRequiresApproval(name, viaConnector);
           const requiresExplicitApproval = toolRequiresExplicitApproval(name);
           const connectorKind = connectorKindFromToolName(
             name,
@@ -1875,8 +1879,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
             name === "request_secret" || needsApprovalEarly || requiresApprovalByDefault
               ? approvalEffectKey(runId, replayEffectToolName, args)
               : executionId;
+          // Read-only calls skip the effect ledger unless the gate may ask for
+          // approval: an approval card needs an effect row, and skipping it would
+          // otherwise let the call run unreviewed.
           const applied =
-            READ_ONLY_AGENT_TOOLS.has(name) || connectorReadOnly
+            READ_ONLY_AGENT_TOOLS.has(name) || (connectorReadOnly && !needsApprovalEarly)
               ? undefined
               : await recordEffect(deps, run, replayEffectToolName, effectKey, effectRequest);
 
