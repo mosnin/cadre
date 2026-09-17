@@ -5,25 +5,40 @@ import {
   type CronFreq,
   type CronPreset,
   type CronUnit,
+  clockFrom24h,
+  clockTo24h,
   cronFromPreset,
+  ordinalDay,
 } from "@rakazo/core";
 import { Input, NativeSelect, NativeSelectOption } from "@rakazo/ui-web";
 import { Clock } from "lucide-react";
 
 const UNITS: CronUnit[] = ["minutes", "hours", "days"];
 const NUMBERS = [1, 2, 3, 5, 10, 15, 30, 45];
-const TIMES = [
-  "6:00 AM",
-  "7:00 AM",
-  "8:00 AM",
-  "9:00 AM",
-  "12:00 PM",
-  "3:00 PM",
-  "6:00 PM",
-  "9:00 PM",
-];
+const MONTH_DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
 
 const TIMED: CronFreq[] = ["Every day", "Weekdays", "Every week", "Every month"];
+
+function weekdayLabel(weekday: number): string {
+  switch (weekday) {
+    case 0:
+      return t`Sunday`;
+    case 1:
+      return t`Monday`;
+    case 2:
+      return t`Tuesday`;
+    case 3:
+      return t`Wednesday`;
+    case 4:
+      return t`Thursday`;
+    case 5:
+      return t`Friday`;
+    case 6:
+      return t`Saturday`;
+    default:
+      return String(weekday);
+  }
+}
 
 function cronFreqLabel(freq: CronFreq): string {
   switch (freq) {
@@ -91,10 +106,12 @@ function describeCronPresetLocalized(preset: CronPreset): { lead: string; detail
     return { lead: t`Weekdays`, detail: t`at ${preset.time}` };
   }
   if (preset.freq === "Every week") {
-    return { lead: t`Every Monday`, detail: t`at ${preset.time}` };
+    const day = weekdayLabel(preset.weekday);
+    return { lead: t`Every ${day}`, detail: t`at ${preset.time}` };
   }
   if (preset.freq === "Every month") {
-    return { lead: t`Monthly`, detail: t`on the 1st at ${preset.time}` };
+    const day = ordinalDay(preset.day);
+    return { lead: t`Monthly`, detail: t`on the ${day} at ${preset.time}` };
   }
   return { lead: t`Every day`, detail: t`at ${preset.time}` };
 }
@@ -108,7 +125,6 @@ export function RoutineSchedule({
 }) {
   const { t } = useLingui();
   const { lead, detail } = describeCronPresetLocalized(value);
-  const times = TIMES.includes(value.time) ? TIMES : [...TIMES, value.time];
   const numbers = NUMBERS.includes(value.n) ? NUMBERS : [...NUMBERS, value.n].sort((a, b) => a - b);
 
   function patch(partial: Partial<CronPreset>) {
@@ -145,16 +161,45 @@ export function RoutineSchedule({
     </NativeSelect>
   );
 
-  const timeSelect = (
+  // A native time input gives an exact hour and minute instead of a fixed list.
+  const timeInput = (
+    <Input
+      type="time"
+      value={clockTo24h(value.time)}
+      aria-label={t`Time of day`}
+      onChange={(event) => {
+        const time = clockFrom24h(event.target.value);
+        if (time) patch({ time });
+      }}
+      className="h-7 w-auto text-[13px] md:text-[13px]"
+    />
+  );
+
+  const weekdaySelect = (
     <NativeSelect
       size="sm"
-      value={value.time}
-      aria-label={t`Time of day`}
-      onChange={(event) => patch({ time: event.target.value })}
+      value={String(value.weekday)}
+      aria-label={t`Day of week`}
+      onChange={(event) => patch({ weekday: Number(event.target.value) })}
     >
-      {times.map((time) => (
-        <NativeSelectOption key={time} value={time}>
-          {time}
+      {[1, 2, 3, 4, 5, 6, 0].map((weekday) => (
+        <NativeSelectOption key={weekday} value={weekday}>
+          {weekdayLabel(weekday)}
+        </NativeSelectOption>
+      ))}
+    </NativeSelect>
+  );
+
+  const monthDaySelect = (
+    <NativeSelect
+      size="sm"
+      value={String(value.day)}
+      aria-label={t`Day of month`}
+      onChange={(event) => patch({ day: Number(event.target.value) })}
+    >
+      {MONTH_DAYS.map((day) => (
+        <NativeSelectOption key={day} value={day}>
+          {ordinalDay(day)}
         </NativeSelectOption>
       ))}
     </NativeSelect>
@@ -194,7 +239,9 @@ export function RoutineSchedule({
             every {intervalAmountSelect} {intervalUnitSelect}
           </Trans>
         ) : null}
-        {TIMED.includes(value.freq) ? <Trans>at {timeSelect}</Trans> : null}
+        {value.freq === "Every week" ? <Trans>on {weekdaySelect}</Trans> : null}
+        {value.freq === "Every month" ? <Trans>on the {monthDaySelect}</Trans> : null}
+        {TIMED.includes(value.freq) ? <Trans>at {timeInput}</Trans> : null}
         {value.freq === "Advanced" ? (
           <Input
             value={value.cron}

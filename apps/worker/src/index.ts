@@ -183,6 +183,7 @@ async function main() {
     jobs,
     events,
     leadership: createPostgresReconciliationLeadership(pool),
+    notifications: new ExpoPushProvider(dataDir),
   });
   reconciler.start();
   const companyOsOAuth = companyOsOAuthFromEnv();
@@ -217,6 +218,8 @@ async function main() {
     try {
       await workforce.stop();
       await reconciler.stop();
+      // Active runs checkpoint and requeue instead of being killed mid-task by the deploy.
+      await executor.stopAll();
       await jobHost.stop();
       await jobs.close();
       await realtime.close();

@@ -290,7 +290,11 @@ test("group chats share every context-menu action", async ({ page }, testInfo) =
   await expect(sidebar.getByText("Archived", { exact: true })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
+  // The narrow layout hides the sidebar a moment after the resize; opening navigation
+  // before that lands leaves the group button off screen.
+  await expect(page.getByRole("button", { name: "Open navigation", exact: true })).toBeVisible();
   await openNavigation(page);
+  await expect(group).toBeVisible();
   await group.click({ button: "right" });
   await captureScreenshot(page, testInfo, "group-context-menu-mobile");
   await page.keyboard.press("Escape");

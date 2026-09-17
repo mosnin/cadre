@@ -23,6 +23,7 @@ import {
   ComputersUnavailableHint,
   computersAreUnavailable,
 } from "../components/ComputersUnavailableHint";
+import { SiteLoginsSettings } from "../components/SiteLoginsSettings";
 import { SoftwareUpdateSection } from "../components/SoftwareUpdateSection";
 import { authClient } from "../lib/auth";
 import { useAuthCapabilities } from "../lib/auth-capabilities";
@@ -153,6 +154,7 @@ export function AccountSettingsOverlay({
 
         <CompanyWorkspaceSettings onConnect={setCompanySpaceId} />
         <ChangePasswordSection />
+        <SiteLoginsSettings />
 
         {messagingEnabled && onOpenMessaging ? (
           <section className="mt-8">

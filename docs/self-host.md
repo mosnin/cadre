@@ -200,7 +200,12 @@ SANDBOX_IDLE_MS=600000    # pause the bot computer after 10 minutes idle
 SANDBOX_COMMAND_TIMEOUT_MS=300000 # stop a shell command after 5 minutes
 MAX_TOOL_CALLS_PER_TURN=200 # durable executor tool budget; maximum 1000
 MAX_RUN_DURATION_MS=1200000 # Pi attempt deadline, including subagents; maximum 3600000
-MAX_RUN_TOKENS=500000 # aggregate Pi model usage; maximum 2000000
+MAX_RUN_TOKENS=500000 # generated output plus the largest request context; maximum 2000000
+MAX_RUN_SEGMENTS=6 # budget segments an unattended run (schedule, webhook, bot message) may chain through; maximum 24
+UNATTENDED_WAIT_MS=1800000 # how long an unattended run waits for approval or an answer before it fails; maximum 86400000
+MODEL_MAX_RETRIES=4 # client-side retries for transient model provider errors; maximum 10
+MODEL_TURN_RETRIES=3 # whole-turn retries when a model stream fails after it started; maximum 10
+RAKAZO_COMPUTER_MEMORY_MB=4096 # memory cap for each Docker bot computer; minimum 512
 E2B_API_KEY=              # when SANDBOX_PROVIDER=e2b
 DAYTONA_API_KEY=          # when SANDBOX_PROVIDER=daytona
 BOX_API_KEY=              # when SANDBOX_PROVIDER=box

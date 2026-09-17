@@ -100,6 +100,9 @@ export function containerCreateOptions(input: ComputerCreateInput) {
       Binds: [`${input.homePath}:/home/rakazo`],
       PortBindings: ports.PortBindings,
       ShmSize: 256 * 1024 * 1024,
+      // A browser with many tabs must not take the host down with it.
+      Memory: computerMemoryBytes(),
+      MemorySwap: computerMemoryBytes(),
       CapDrop: ["ALL"],
       SecurityOpt: ["no-new-privileges:true"],
       PidsLimit: 2048,
@@ -230,4 +233,13 @@ function mapKey(key: string) {
   if (lower === "shift") return "shift";
   if (lower === "meta" || lower === "cmd" || lower === "super") return "super";
   return key;
+}
+
+const DEFAULT_COMPUTER_MEMORY_BYTES = 4 * 1024 * 1024 * 1024;
+
+/** Container memory cap; RAKAZO_COMPUTER_MEMORY_MB overrides the 4 GiB default. */
+export function computerMemoryBytes(env: NodeJS.ProcessEnv = process.env): number {
+  const mb = Number(env.RAKAZO_COMPUTER_MEMORY_MB);
+  if (Number.isFinite(mb) && mb >= 512) return Math.floor(mb) * 1024 * 1024;
+  return DEFAULT_COMPUTER_MEMORY_BYTES;
 }

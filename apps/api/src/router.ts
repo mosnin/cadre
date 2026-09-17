@@ -3517,6 +3517,71 @@ export function createRouter(deps: RouterDeps) {
         }),
       },
     },
+    siteLogins: {
+      list: authed.siteLogins.list.handler(async ({ context }) => {
+        const rows = await deps.prisma.siteLogin.findMany({
+          where: { spaceId: context.actor.spaceId },
+          orderBy: [{ host: "asc" }, { username: "asc" }],
+        });
+        return rows.map(siteLoginDto);
+      }),
+      save: authed.siteLogins.save.handler(async ({ context, input }) => {
+        const stored = await deps.secrets.put(input.password, {
+          operationId: "siteLogins.save",
+          traceId: "siteLogins.save",
+          spaceId: context.actor.spaceId,
+          userId: context.actor.userId,
+          signal: context.signal ?? new AbortController().signal,
+        });
+        const row = await deps.prisma.$transaction(async (tx) => {
+          await tx.secret.create({
+            data: {
+              id: stored.id,
+              userId: context.actor.userId,
+              spaceId: context.actor.spaceId,
+              kind: "site_login",
+              ciphertext: stored.ciphertext,
+            },
+          });
+          const existing = await tx.siteLogin.findUnique({
+            where: {
+              spaceId_host_username: {
+                spaceId: context.actor.spaceId,
+                host: input.host,
+                username: input.username,
+              },
+            },
+          });
+          if (existing) {
+            const updated = await tx.siteLogin.update({
+              where: { id: existing.id },
+              data: { secretId: stored.id, userId: context.actor.userId },
+            });
+            await tx.secret.delete({ where: { id: existing.secretId } });
+            return updated;
+          }
+          return tx.siteLogin.create({
+            data: {
+              spaceId: context.actor.spaceId,
+              userId: context.actor.userId,
+              host: input.host,
+              username: input.username,
+              secretId: stored.id,
+            },
+          });
+        });
+        return siteLoginDto(row);
+      }),
+      remove: authed.siteLogins.remove.handler(async ({ context, input }) => {
+        const login = await deps.prisma.siteLogin.findFirst({
+          where: { id: input.id, spaceId: context.actor.spaceId },
+        });
+        if (!login) throw new ORPCError("NOT_FOUND", { message: "Login not found." });
+        // The secret row owns the login row, so removing it removes both.
+        await deps.prisma.secret.delete({ where: { id: login.secretId } });
+        return { ok: true as const };
+      }),
+    },
     approvalRules: {
       list: authed.approvalRules.list.handler(async ({ context }) => {
         const rows = await deps.prisma.actionApprovalRule.findMany({
@@ -4454,6 +4519,15 @@ function mapRoutine(row: {
     webhookEnabled: row.webhookEnabled,
     lastRunAt: row.lastRunAt?.toISOString() ?? null,
     nextRunAt: row.nextRunAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function siteLoginDto(row: { id: string; host: string; username: string; createdAt: Date }) {
+  return {
+    id: row.id,
+    host: row.host,
+    username: row.username,
     createdAt: row.createdAt.toISOString(),
   };
 }

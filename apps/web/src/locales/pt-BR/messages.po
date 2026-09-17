@@ -33,7 +33,7 @@ msgid "{0} (over 10 MiB)"
 msgstr "{0} (acima de 10 MiB)"
 
 #. placeholder {0}: preset.n
-#: src/pages/RoutineSchedule.tsx:81
+#: src/pages/RoutineSchedule.tsx:96
 msgid "{0} {unitLabel}"
 msgstr "{0} {unitLabel}"
 
@@ -59,7 +59,7 @@ msgstr "{0} MB"
 
 #. placeholder {0}: usage.runs
 #. placeholder {1}: usage.inputTokens + usage.outputTokens
-#: src/pages/AccountSettingsOverlay.tsx:233
+#: src/pages/AccountSettingsOverlay.tsx:235
 #: src/pages/Shell.tsx:2903
 msgid "{0} runs · {1} tokens"
 msgstr "{0} execuções · {1} tokens"
@@ -143,7 +143,7 @@ msgstr ""
 msgid "Access token (optional)"
 msgstr "Token de acesso (opcional)"
 
-#: src/pages/AccountSettingsOverlay.tsx:148
+#: src/pages/AccountSettingsOverlay.tsx:149
 msgid "Account"
 msgstr "Conta"
 
@@ -261,13 +261,13 @@ msgstr ""
 msgid "Adding…"
 msgstr "Adicionando"
 
-#: src/pages/AccountSettingsOverlay.tsx:248
+#: src/pages/AccountSettingsOverlay.tsx:250
 msgid "Administration"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:268
+#: src/pages/AccountSettingsOverlay.tsx:270
 #: src/pages/McpServersOverlay.tsx:344
-#: src/pages/RoutineSchedule.tsx:43
+#: src/pages/RoutineSchedule.tsx:58
 #: src/pages/shell/bot-panel.tsx:373
 msgid "Advanced"
 msgstr "Avançado"
@@ -394,8 +394,8 @@ msgstr "Chave de API"
 msgid "API key header"
 msgstr "Cabeçalho da chave API"
 
-#: src/pages/AccountSettingsOverlay.tsx:173
-#: src/pages/AccountSettingsOverlay.tsx:413
+#: src/pages/AccountSettingsOverlay.tsx:175
+#: src/pages/AccountSettingsOverlay.tsx:415
 msgid "Appearance"
 msgstr "Aparência"
 
@@ -473,15 +473,15 @@ msgid "Ask before sending external email"
 msgstr "Perguntar antes de enviar e-mail externo"
 
 #. placeholder {0}: preset.time
-#: src/pages/RoutineSchedule.tsx:91
-#: src/pages/RoutineSchedule.tsx:94
-#: src/pages/RoutineSchedule.tsx:99
+#: src/pages/RoutineSchedule.tsx:106
+#: src/pages/RoutineSchedule.tsx:110
+#: src/pages/RoutineSchedule.tsx:116
 msgid "at {0}"
 msgstr "em {0}"
 
-#: src/pages/RoutineSchedule.tsx:197
-msgid "at {timeSelect}"
-msgstr "em {timeSelect}"
+#: src/pages/RoutineSchedule.tsx:244
+msgid "at {timeInput}"
+msgstr ""
 
 #: src/components/AttachmentMenu.tsx:52
 msgid "Attach file"
@@ -525,7 +525,7 @@ msgstr "Autorizar"
 msgid "Available after the routine is saved"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:193
+#: src/pages/AccountSettingsOverlay.tsx:195
 msgid "Avatars"
 msgstr ""
 
@@ -634,7 +634,7 @@ msgstr "cancelar resposta"
 msgid "Cancelled"
 msgstr "Cancelado"
 
-#: src/pages/AccountSettingsOverlay.tsx:362
+#: src/pages/AccountSettingsOverlay.tsx:364
 msgid "Change password"
 msgstr "Alterar senha"
 
@@ -642,7 +642,7 @@ msgstr "Alterar senha"
 msgid "Changes saved. Reload the library to see them."
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:362
+#: src/pages/AccountSettingsOverlay.tsx:364
 msgid "Changing…"
 msgstr "Alterando…"
 
@@ -658,7 +658,7 @@ msgstr "Falha na renderização do gráfico: {error}"
 msgid "Chat apps"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:163
+#: src/pages/AccountSettingsOverlay.tsx:165
 msgid "Chat apps, group channels, and agent connections."
 msgstr ""
 
@@ -761,7 +761,7 @@ msgstr "Fechar gráfico"
 msgid "Close company connection"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:499
+#: src/pages/CompanyWorkspaces.tsx:501
 msgid "Close company context"
 msgstr ""
 
@@ -813,7 +813,7 @@ msgstr ""
 msgid "Close setup"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:139
+#: src/pages/AccountSettingsOverlay.tsx:140
 msgid "Close user settings"
 msgstr "Fechar configurações do usuário"
 
@@ -851,8 +851,8 @@ msgstr "Comando"
 msgid "Company"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:466
-#: src/pages/CompanyWorkspaces.tsx:498
+#: src/pages/CompanyWorkspaces.tsx:468
+#: src/pages/CompanyWorkspaces.tsx:500
 msgid "Company context"
 msgstr ""
 
@@ -906,7 +906,7 @@ msgstr ""
 msgid "Computer is stopped"
 msgstr "O computador está parado"
 
-#: src/pages/AccountSettingsOverlay.tsx:256
+#: src/pages/AccountSettingsOverlay.tsx:258
 msgid "Computers"
 msgstr "Computadores"
 
@@ -926,7 +926,7 @@ msgstr "Servidores configurados"
 msgid "Confirm delete"
 msgstr "Confirmar exclusão"
 
-#: src/pages/AccountSettingsOverlay.tsx:345
+#: src/pages/AccountSettingsOverlay.tsx:347
 #: src/pages/Auth.tsx:345
 msgid "Confirm password"
 msgstr "Confirmar senha"
@@ -960,7 +960,7 @@ msgstr ""
 #: src/pages/CompanyWorkspaces.tsx:85
 #: src/pages/CompanyWorkspaces.tsx:347
 #: src/pages/CompanyWorkspaces.tsx:381
-#: src/pages/CompanyWorkspaces.tsx:487
+#: src/pages/CompanyWorkspaces.tsx:489
 #: src/pages/Onboarding.tsx:473
 msgid "Connect Company OS"
 msgstr ""
@@ -1042,7 +1042,7 @@ msgstr ""
 msgid "Connecting…"
 msgstr "Conectando…"
 
-#: src/pages/CompanyWorkspaces.tsx:486
+#: src/pages/CompanyWorkspaces.tsx:488
 msgid "Connection not completed. Try again."
 msgstr ""
 
@@ -1052,7 +1052,7 @@ msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "A conexão com o {0} ainda está pendente. Você pode fechar isso e verificar novamente."
 
 #: src/pages/CompanyWorkspaces.tsx:63
-#: src/pages/CompanyWorkspaces.tsx:482
+#: src/pages/CompanyWorkspaces.tsx:484
 msgid "Connection unavailable"
 msgstr ""
 
@@ -1113,7 +1113,7 @@ msgstr "Não foi possível aprovar este servidor"
 msgid "Could not authorize this app"
 msgstr "Não foi possível autorizar este aplicativo"
 
-#: src/pages/AccountSettingsOverlay.tsx:311
+#: src/pages/AccountSettingsOverlay.tsx:313
 msgid "Could not change password"
 msgstr "Não foi possível alterar a senha"
 
@@ -1263,6 +1263,10 @@ msgstr "Não foi possível carregar as integrações"
 msgid "Could not load library"
 msgstr ""
 
+#: src/components/SiteLoginsSettings.tsx:24
+msgid "Could not load logins"
+msgstr ""
+
 #: src/pages/McpServersOverlay.tsx:83
 msgid "Could not load MCP servers"
 msgstr "Não foi possível carregar os servidores MCP"
@@ -1317,7 +1321,7 @@ msgstr "Não foi possível reproduzir um clipe de teste"
 msgid "Could not reach sign-in. Reconnecting…"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:319
+#: src/pages/AccountSettingsOverlay.tsx:321
 #: src/pages/Auth.tsx:88
 #: src/pages/Auth.tsx:318
 msgid "Could not reach the server"
@@ -1339,6 +1343,10 @@ msgstr "Não foi possível remover o conector"
 #: src/pages/GroupPanel.tsx:180
 msgid "Could not remove group"
 msgstr "Não foi possível remover o grupo"
+
+#: src/components/SiteLoginsSettings.tsx:56
+msgid "Could not remove login"
+msgstr ""
 
 #: src/components/ApprovalRulesSettings.tsx:92
 msgid "Could not remove rule"
@@ -1375,6 +1383,10 @@ msgstr ""
 #: src/pages/GroupPanel.tsx:179
 msgid "Could not save group"
 msgstr "Não foi possível salvar o grupo"
+
+#: src/components/SiteLoginsSettings.tsx:44
+msgid "Could not save login"
+msgstr ""
 
 #: src/pages/Onboarding.tsx:287
 msgid "Could not save model"
@@ -1457,7 +1469,7 @@ msgstr ""
 msgid "Couldn't load messaging settings"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:106
+#: src/pages/AccountSettingsOverlay.tsx:107
 msgid "Couldn't update avatars"
 msgstr ""
 
@@ -1553,15 +1565,15 @@ msgstr "Credencial"
 msgid "credential saved"
 msgstr "credencial salva"
 
-#: src/pages/RoutineSchedule.tsx:88
+#: src/pages/RoutineSchedule.tsx:103
 msgid "Cron"
 msgstr "Cron"
 
-#: src/pages/RoutineSchedule.tsx:202
+#: src/pages/RoutineSchedule.tsx:249
 msgid "Cron expression"
 msgstr "Expressão cron"
 
-#: src/pages/AccountSettingsOverlay.tsx:333
+#: src/pages/AccountSettingsOverlay.tsx:335
 msgid "Current password"
 msgstr "Senha atual"
 
@@ -1573,15 +1585,23 @@ msgstr ""
 msgid "Customer support"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:408
+#: src/pages/AccountSettingsOverlay.tsx:410
 msgid "Dark"
 msgstr "Escuro"
 
-#: src/pages/RoutineSchedule.tsx:69
+#: src/pages/RoutineSchedule.tsx:84
 msgid "day"
 msgstr "dia"
 
-#: src/pages/RoutineSchedule.tsx:56
+#: src/pages/RoutineSchedule.tsx:197
+msgid "Day of month"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:182
+msgid "Day of week"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:71
 msgid "days"
 msgstr "dias"
 
@@ -1784,37 +1804,37 @@ msgstr ""
 msgid "Enter this code at <0>{0}</0>"
 msgstr "Digite este código em <0>{0}</0>"
 
-#: src/pages/RoutineSchedule.tsx:80
+#: src/pages/RoutineSchedule.tsx:95
 msgid "Every"
 msgstr "A cada"
 
-#: src/pages/RoutineSchedule.tsx:193
+#: src/pages/RoutineSchedule.tsx:110
+msgid "Every {day}"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:238
 msgid "every {intervalAmountSelect} {intervalUnitSelect}"
 msgstr "cada {intervalAmountSelect} {intervalUnitSelect}"
 
 #: src/pages/RoutineEditor.tsx:516
-#: src/pages/RoutineSchedule.tsx:33
-#: src/pages/RoutineSchedule.tsx:99
+#: src/pages/RoutineSchedule.tsx:48
+#: src/pages/RoutineSchedule.tsx:116
 msgid "Every day"
 msgstr "Todos os dias"
 
 #: src/pages/RoutineEditor.tsx:514
-#: src/pages/RoutineSchedule.tsx:31
-#: src/pages/RoutineSchedule.tsx:85
+#: src/pages/RoutineSchedule.tsx:46
+#: src/pages/RoutineSchedule.tsx:100
 msgid "Every hour"
 msgstr "A cada hora"
 
-#: src/pages/RoutineSchedule.tsx:94
-msgid "Every Monday"
-msgstr "Toda segunda-feira"
-
 #: src/pages/RoutineEditor.tsx:522
-#: src/pages/RoutineSchedule.tsx:39
+#: src/pages/RoutineSchedule.tsx:54
 msgid "Every month"
 msgstr "A cada mês"
 
 #: src/pages/RoutineEditor.tsx:520
-#: src/pages/RoutineSchedule.tsx:37
+#: src/pages/RoutineSchedule.tsx:52
 msgid "Every week"
 msgstr "A cada semana"
 
@@ -1918,6 +1938,10 @@ msgstr "Esqueceu a senha?"
 msgid "Free"
 msgstr ""
 
+#: src/pages/RoutineSchedule.tsx:35
+msgid "Friday"
+msgstr ""
+
 #: src/pages/WindowChrome.tsx:31
 msgid "Fullscreen"
 msgstr "Tela Cheia"
@@ -1995,15 +2019,15 @@ msgstr "Segure para falar"
 msgid "Hold to talk (on-device dictation)"
 msgstr "Segure para falar (ditado no dispositivo)"
 
-#: src/pages/RoutineSchedule.tsx:67
+#: src/pages/RoutineSchedule.tsx:82
 msgid "hour"
 msgstr "hora"
 
-#: src/pages/RoutineSchedule.tsx:54
+#: src/pages/RoutineSchedule.tsx:69
 msgid "hours"
 msgstr "horas"
 
-#: src/pages/RoutineSchedule.tsx:176
+#: src/pages/RoutineSchedule.tsx:221
 msgid "How often"
 msgstr "Com que frequência"
 
@@ -2067,15 +2091,15 @@ msgid "Interrupt"
 msgstr "Interromper"
 
 #: src/pages/RoutineEditor.tsx:524
-#: src/pages/RoutineSchedule.tsx:41
+#: src/pages/RoutineSchedule.tsx:56
 msgid "Interval"
 msgstr "Intervalo"
 
-#: src/pages/RoutineSchedule.tsx:122
+#: src/pages/RoutineSchedule.tsx:138
 msgid "Interval amount"
 msgstr "Quantidade Intervalo"
 
-#: src/pages/RoutineSchedule.tsx:137
+#: src/pages/RoutineSchedule.tsx:153
 msgid "Interval unit"
 msgstr "Unidade do intervalo:"
 
@@ -2116,8 +2140,8 @@ msgstr ""
 msgid "Keys stay on the server. The app only learns whether a provider is configured."
 msgstr "As chaves permanecem no servidor. O aplicativo só descobre se um provedor está configurado."
 
-#: src/pages/AccountSettingsOverlay.tsx:186
-#: src/pages/AccountSettingsOverlay.tsx:448
+#: src/pages/AccountSettingsOverlay.tsx:188
+#: src/pages/AccountSettingsOverlay.tsx:450
 msgid "Language"
 msgstr "Idioma"
 
@@ -2129,7 +2153,7 @@ msgstr ""
 msgid "Leave blank to keep saved key"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:407
+#: src/pages/AccountSettingsOverlay.tsx:409
 msgid "Light"
 msgstr "Claro"
 
@@ -2159,7 +2183,7 @@ msgid "Loading Company OS…"
 msgstr ""
 
 #: src/pages/CompanyWorkspaces.tsx:65
-#: src/pages/CompanyWorkspaces.tsx:480
+#: src/pages/CompanyWorkspaces.tsx:482
 msgid "Loading company…"
 msgstr ""
 
@@ -2210,6 +2234,10 @@ msgstr "Local"
 msgid "Log out"
 msgstr "Sair"
 
+#: src/components/SiteLoginsSettings.tsx:63
+msgid "Logins"
+msgstr ""
+
 #: src/pages/shell/bot-panel.tsx:573
 msgid "Low"
 msgstr "Baixo"
@@ -2222,7 +2250,7 @@ msgstr "O macOS não pedirá permissão extra se você permitir que os bots seja
 msgid "Make a copy"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:166
+#: src/pages/AccountSettingsOverlay.tsx:168
 msgid "Manage messaging settings"
 msgstr ""
 
@@ -2300,7 +2328,7 @@ msgstr "Mensagem…"
 msgid "Messaged {peer}"
 msgstr "Enviou mensagem para {peer}"
 
-#: src/pages/AccountSettingsOverlay.tsx:160
+#: src/pages/AccountSettingsOverlay.tsx:162
 #: src/pages/MessagingSettingsOverlay.tsx:92
 msgid "Messaging"
 msgstr ""
@@ -2317,11 +2345,11 @@ msgstr "Mínimo"
 msgid "Minimize"
 msgstr "Minimizar"
 
-#: src/pages/RoutineSchedule.tsx:65
+#: src/pages/RoutineSchedule.tsx:80
 msgid "minute"
 msgstr "minuto"
 
-#: src/pages/RoutineSchedule.tsx:52
+#: src/pages/RoutineSchedule.tsx:67
 msgid "minutes"
 msgstr "minutos"
 
@@ -2348,7 +2376,7 @@ msgstr "Opções do modelo"
 msgid "Model providers"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:239
+#: src/pages/AccountSettingsOverlay.tsx:241
 msgid "Model spend uses your provider keys."
 msgstr "O modelo de gasto usa suas chaves de provedor."
 
@@ -2366,7 +2394,11 @@ msgstr "Modelos"
 msgid "Models from server"
 msgstr "Modelos do servidor"
 
-#: src/pages/RoutineSchedule.tsx:97
+#: src/pages/RoutineSchedule.tsx:27
+msgid "Monday"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:114
 msgid "Monthly"
 msgstr "Mensalmente"
 
@@ -2452,7 +2484,7 @@ msgstr ""
 msgid "New open-work item"
 msgstr "Novo item de trabalho aberto"
 
-#: src/pages/AccountSettingsOverlay.tsx:339
+#: src/pages/AccountSettingsOverlay.tsx:341
 #: src/pages/Auth.tsx:339
 msgid "New password"
 msgstr "Nova senha"
@@ -2613,14 +2645,22 @@ msgstr "Falha na conexão OAuth"
 msgid "OAuth expired"
 msgstr ""
 
+#: src/pages/RoutineSchedule.tsx:242
+msgid "on {weekdaySelect}"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:375
 msgid "On a schedule"
 msgstr ""
 
 #. placeholder {0}: preset.time
-#: src/pages/RoutineSchedule.tsx:97
-msgid "on the 1st at {0}"
-msgstr "no dia 1º às {0}"
+#: src/pages/RoutineSchedule.tsx:114
+msgid "on the {day} at {0}"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:243
+msgid "on the {monthDaySelect}"
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx:159
 #: src/pages/Shell.tsx:3671
@@ -2678,7 +2718,7 @@ msgstr ""
 msgid "Optional"
 msgstr "Opcional"
 
-#: src/pages/AccountSettingsOverlay.tsx:271
+#: src/pages/AccountSettingsOverlay.tsx:273
 msgid "Optional controls most people never need"
 msgstr "Controles opcionais que a maioria das pessoas nunca precisa"
 
@@ -2694,7 +2734,7 @@ msgstr "Ou conecte uma chave de API"
 msgid "Or paste an API key"
 msgstr "Ou cole uma chave de API"
 
-#: src/pages/AccountSettingsOverlay.tsx:211
+#: src/pages/AccountSettingsOverlay.tsx:213
 msgid "Organic"
 msgstr ""
 
@@ -2720,7 +2760,8 @@ msgstr ""
 msgid "Park"
 msgstr "Suspender"
 
-#: src/pages/AccountSettingsOverlay.tsx:329
+#: src/components/SiteLoginsSettings.tsx:113
+#: src/pages/AccountSettingsOverlay.tsx:331
 #: src/pages/Auth.tsx:167
 #: src/pages/Auth.tsx:217
 #: src/pages/Auth.tsx:226
@@ -2731,12 +2772,12 @@ msgstr "Senha"
 msgid "Password recovery is not configured for this server"
 msgstr "A recuperação de senha não está configurada para este servidor"
 
-#: src/pages/AccountSettingsOverlay.tsx:364
+#: src/pages/AccountSettingsOverlay.tsx:366
 #: src/pages/Auth.tsx:329
 msgid "Password updated"
 msgstr "Senha atualizada"
 
-#: src/pages/AccountSettingsOverlay.tsx:298
+#: src/pages/AccountSettingsOverlay.tsx:300
 #: src/pages/Auth.tsx:305
 msgid "Passwords do not match"
 msgstr "As senhas não coincidem"
@@ -2919,6 +2960,7 @@ msgid "Reload library"
 msgstr ""
 
 #: src/components/ApprovalRulesSettings.tsx:179
+#: src/components/SiteLoginsSettings.tsx:79
 #: src/pages/PluginsOverlay.tsx:392
 #: src/pages/PluginsOverlay.tsx:458
 #: src/pages/PluginsOverlay.tsx:664
@@ -3071,7 +3113,7 @@ msgstr ""
 msgid "Right-click"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:211
+#: src/pages/AccountSettingsOverlay.tsx:213
 msgid "Robot"
 msgstr ""
 
@@ -3118,6 +3160,10 @@ msgstr "Em execução · Parar"
 msgid "Running…"
 msgstr "Executando..."
 
+#: src/pages/RoutineSchedule.tsx:37
+msgid "Saturday"
+msgstr ""
+
 #: src/components/teach/SkillDraftCard.tsx:142
 #: src/pages/GroupPanel.tsx:236
 #: src/pages/ModelSettingsOverlay.tsx:693
@@ -3129,6 +3175,10 @@ msgstr "Salvar"
 
 #: src/pages/WorkspaceLibrary.tsx:515
 msgid "Save instructions here, or ask an agent to create a reusable skill or workflow."
+msgstr ""
+
+#: src/components/SiteLoginsSettings.tsx:136
+msgid "Save login"
 msgstr ""
 
 #: src/components/teach/SkillDraftCard.tsx:142
@@ -3148,6 +3198,7 @@ msgstr "Salvo."
 msgid "Saved. Rotate to reveal."
 msgstr ""
 
+#: src/components/SiteLoginsSettings.tsx:136
 #: src/components/teach/SkillDraftCard.tsx:142
 #: src/pages/GroupPanel.tsx:236
 #: src/pages/ModelSettingsOverlay.tsx:691
@@ -3258,7 +3309,7 @@ msgstr "Nome do servidor"
 msgid "Server URL"
 msgstr "URL do servidor"
 
-#: src/pages/AccountSettingsOverlay.tsx:136
+#: src/pages/AccountSettingsOverlay.tsx:137
 #: src/pages/Shell.tsx:2833
 #: src/pages/Shell.tsx:3581
 msgid "Settings"
@@ -3330,6 +3381,10 @@ msgstr "Cadastre-se"
 
 #: src/pages/Auth.tsx:131
 msgid "Sign-in was not completed. Check your verified Company OS account and try again."
+msgstr ""
+
+#: src/components/SiteLoginsSettings.tsx:88
+msgid "Site"
 msgstr ""
 
 #. placeholder {0}: skill.name
@@ -3485,6 +3540,10 @@ msgstr "Enviar"
 msgid "Submitted"
 msgstr ""
 
+#: src/pages/RoutineSchedule.tsx:25
+msgid "Sunday"
+msgstr ""
+
 #: src/pages/shell/command-palette.tsx:50
 msgid "Switch agent"
 msgstr ""
@@ -3501,7 +3560,7 @@ msgstr "Alternando…"
 msgid "Synced"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:406
+#: src/pages/AccountSettingsOverlay.tsx:408
 msgid "System"
 msgstr "Sistema"
 
@@ -3639,7 +3698,11 @@ msgstr "Este servidor usa o login do navegador. Autorize-o a permitir que seus a
 msgid "This subscription sign-in is not available yet. Use a deployment credential or choose another provider."
 msgstr ""
 
-#: src/pages/RoutineSchedule.tsx:152
+#: src/pages/RoutineSchedule.tsx:33
+msgid "Thursday"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:169
 msgid "Time of day"
 msgstr "Hora do dia"
 
@@ -3662,6 +3725,10 @@ msgstr ""
 #: src/pages/PluginsOverlay.tsx:593
 msgid "Treg token"
 msgstr "Token Treg"
+
+#: src/pages/RoutineSchedule.tsx:29
+msgid "Tuesday"
+msgstr ""
 
 #: src/components/ComputerNavigationControls.tsx:184
 msgid "Turn on Trackpad mode in the menu. Slide one finger to move the pointer and tap to click. Tap twice and hold the second touch to drag. Recenter pointer brings it back to the middle."
@@ -3736,7 +3803,7 @@ msgstr ""
 msgid "Updating…"
 msgstr "Atualizando…"
 
-#: src/pages/AccountSettingsOverlay.tsx:229
+#: src/pages/AccountSettingsOverlay.tsx:231
 #: src/pages/Shell.tsx:2899
 msgid "Usage"
 msgstr "Uso"
@@ -3757,6 +3824,10 @@ msgstr ""
 #: src/pages/ModelSettingsOverlay.tsx:725
 msgid "Use this model"
 msgstr "Use este modelo"
+
+#: src/components/SiteLoginsSettings.tsx:101
+msgid "Username"
+msgstr ""
 
 #: src/components/ComputerNavigationControls.tsx:87
 #: src/components/ComputerNavigationControls.tsx:128
@@ -3810,9 +3881,13 @@ msgstr "Aguardando…"
 msgid "Webhook"
 msgstr ""
 
+#: src/pages/RoutineSchedule.tsx:31
+msgid "Wednesday"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:518
-#: src/pages/RoutineSchedule.tsx:35
-#: src/pages/RoutineSchedule.tsx:91
+#: src/pages/RoutineSchedule.tsx:50
+#: src/pages/RoutineSchedule.tsx:106
 msgid "Weekdays"
 msgstr "Dias da semana"
 

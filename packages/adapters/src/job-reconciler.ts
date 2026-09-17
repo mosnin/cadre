@@ -1,6 +1,7 @@
 import {
   type JobPublisher,
   messagingDeliverJob,
+  type NotificationProvider,
   routineWakeupJob,
   runContinueJob,
 } from "@rakazo/adapter-kit";
@@ -14,6 +15,8 @@ import {
   COMPUTER_STARTUP_MAX_ATTEMPTS,
   expiredComputerStartupWhere,
 } from "./computer-lifecycle.js";
+import { runNotificationsEnabled } from "./executor.js";
+import { isUnattendedTrigger, unattendedWaitMs } from "./run-guardrails.js";
 import { isUserProgressClientNonce } from "./user-progress.js";
 
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -102,12 +105,61 @@ export function createPostgresReconciliationLeadership(
   };
 }
 
+const UNATTENDED_TRIGGERS = ["routine", "webhook", "bot_message", "spawn"].filter(
+  isUnattendedTrigger,
+);
+const UNATTENDED_WAIT_EXPIRED =
+  "Stopped: this run needed approval or an answer and no one responded in time. Review the request and run it again, or add an approval rule so it can proceed on its own.";
+
+/**
+ * An unattended run that asked for approval or an answer has nobody to answer it. After the
+ * allowed wait it fails with a clear reason, so it neither blocks the next occurrence nor
+ * sits in "waiting" forever.
+ */
+async function expireUnattendedWaits(
+  deps: { prisma: PrismaClient; events?: ThreadEvents; notifications?: NotificationProvider },
+  now: Date,
+) {
+  if (!deps.events?.expireWaitingRuns) return;
+  const expired = await deps.events.expireWaitingRuns({
+    olderThan: new Date(now.getTime() - unattendedWaitMs()),
+    triggers: UNATTENDED_TRIGGERS,
+    statuses: ["waiting_input"],
+    error: UNATTENDED_WAIT_EXPIRED,
+  });
+  if (!deps.notifications) return;
+  for (const run of expired) {
+    const enabled = await runNotificationsEnabled(deps.prisma, run).catch(() => false);
+    if (!enabled) continue;
+    await deps.notifications
+      .send(
+        {
+          kind: "failure",
+          title: "Run stopped",
+          body: UNATTENDED_WAIT_EXPIRED.slice(0, 180),
+          botId: run.botId,
+          threadId: run.threadId,
+        },
+        {
+          operationId: "notify",
+          traceId: run.botId,
+          spaceId: run.spaceId,
+          userId: run.userId,
+          botId: run.botId,
+          signal: new AbortController().signal,
+        },
+      )
+      .catch((error) => getLogger().error("unattended wait notification", error));
+  }
+}
+
 export function createJobReconciler(
   deps: {
     prisma: PrismaClient;
     jobs: JobPublisher;
     events?: ThreadEvents;
     leadership?: ReconciliationLeadership;
+    notifications?: NotificationProvider;
   },
   options: { intervalMs?: number; batchSize?: number } = {},
 ) {
@@ -128,6 +180,9 @@ export function createJobReconciler(
 
       const now = new Date();
       controlScanDeadline ??= new Date(now.getTime() + CONTROL_LOOKAHEAD_MS);
+      await expireUnattendedWaits(deps, now).catch((error) =>
+        getLogger().error("reconcile unattended waits", error),
+      );
       const runCursorFilter = runCursor
         ? {
             OR: [

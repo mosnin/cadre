@@ -33,7 +33,7 @@ msgid "{0} (over 10 MiB)"
 msgstr "{0} (10 MiB 초과)"
 
 #. placeholder {0}: preset.n
-#: src/pages/RoutineSchedule.tsx:81
+#: src/pages/RoutineSchedule.tsx:96
 msgid "{0} {unitLabel}"
 msgstr "{0} {unitLabel}"
 
@@ -59,7 +59,7 @@ msgstr "{0} MB"
 
 #. placeholder {0}: usage.runs
 #. placeholder {1}: usage.inputTokens + usage.outputTokens
-#: src/pages/AccountSettingsOverlay.tsx:233
+#: src/pages/AccountSettingsOverlay.tsx:235
 #: src/pages/Shell.tsx:2903
 msgid "{0} runs · {1} tokens"
 msgstr "{0}회 실행 · 토큰 {1}개"
@@ -143,7 +143,7 @@ msgstr ""
 msgid "Access token (optional)"
 msgstr "액세스 토큰(선택 사항)"
 
-#: src/pages/AccountSettingsOverlay.tsx:148
+#: src/pages/AccountSettingsOverlay.tsx:149
 msgid "Account"
 msgstr "계정"
 
@@ -261,13 +261,13 @@ msgstr ""
 msgid "Adding…"
 msgstr "추가 중…"
 
-#: src/pages/AccountSettingsOverlay.tsx:248
+#: src/pages/AccountSettingsOverlay.tsx:250
 msgid "Administration"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:268
+#: src/pages/AccountSettingsOverlay.tsx:270
 #: src/pages/McpServersOverlay.tsx:344
-#: src/pages/RoutineSchedule.tsx:43
+#: src/pages/RoutineSchedule.tsx:58
 #: src/pages/shell/bot-panel.tsx:373
 msgid "Advanced"
 msgstr "고급 설정"
@@ -394,8 +394,8 @@ msgstr "API 키"
 msgid "API key header"
 msgstr "API 키 헤더"
 
-#: src/pages/AccountSettingsOverlay.tsx:173
-#: src/pages/AccountSettingsOverlay.tsx:413
+#: src/pages/AccountSettingsOverlay.tsx:175
+#: src/pages/AccountSettingsOverlay.tsx:415
 msgid "Appearance"
 msgstr "모양"
 
@@ -473,15 +473,15 @@ msgid "Ask before sending external email"
 msgstr "외부 이메일을 보내기 전에 확인"
 
 #. placeholder {0}: preset.time
-#: src/pages/RoutineSchedule.tsx:91
-#: src/pages/RoutineSchedule.tsx:94
-#: src/pages/RoutineSchedule.tsx:99
+#: src/pages/RoutineSchedule.tsx:106
+#: src/pages/RoutineSchedule.tsx:110
+#: src/pages/RoutineSchedule.tsx:116
 msgid "at {0}"
 msgstr "{0}에"
 
-#: src/pages/RoutineSchedule.tsx:197
-msgid "at {timeSelect}"
-msgstr "{timeSelect}에"
+#: src/pages/RoutineSchedule.tsx:244
+msgid "at {timeInput}"
+msgstr ""
 
 #: src/components/AttachmentMenu.tsx:52
 msgid "Attach file"
@@ -525,7 +525,7 @@ msgstr "인증하기"
 msgid "Available after the routine is saved"
 msgstr "루틴을 저장한 후 사용할 수 있습니다"
 
-#: src/pages/AccountSettingsOverlay.tsx:193
+#: src/pages/AccountSettingsOverlay.tsx:195
 msgid "Avatars"
 msgstr "아바타"
 
@@ -634,7 +634,7 @@ msgstr "답장 취소"
 msgid "Cancelled"
 msgstr "취소됨"
 
-#: src/pages/AccountSettingsOverlay.tsx:362
+#: src/pages/AccountSettingsOverlay.tsx:364
 msgid "Change password"
 msgstr "비밀번호 변경"
 
@@ -642,7 +642,7 @@ msgstr "비밀번호 변경"
 msgid "Changes saved. Reload the library to see them."
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:362
+#: src/pages/AccountSettingsOverlay.tsx:364
 msgid "Changing…"
 msgstr "변경 중…"
 
@@ -658,7 +658,7 @@ msgstr "차트를 표시하지 못했습니다: {error}"
 msgid "Chat apps"
 msgstr "채팅 앱"
 
-#: src/pages/AccountSettingsOverlay.tsx:163
+#: src/pages/AccountSettingsOverlay.tsx:165
 msgid "Chat apps, group channels, and agent connections."
 msgstr "채팅 앱, 그룹 채널 및 Agent 연결을 관리합니다."
 
@@ -761,7 +761,7 @@ msgstr "차트 닫기"
 msgid "Close company connection"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:499
+#: src/pages/CompanyWorkspaces.tsx:501
 msgid "Close company context"
 msgstr ""
 
@@ -813,7 +813,7 @@ msgstr ""
 msgid "Close setup"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:139
+#: src/pages/AccountSettingsOverlay.tsx:140
 msgid "Close user settings"
 msgstr "계정 설정 닫기"
 
@@ -851,8 +851,8 @@ msgstr "실행 명령"
 msgid "Company"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:466
-#: src/pages/CompanyWorkspaces.tsx:498
+#: src/pages/CompanyWorkspaces.tsx:468
+#: src/pages/CompanyWorkspaces.tsx:500
 msgid "Company context"
 msgstr ""
 
@@ -906,7 +906,7 @@ msgstr "컴퓨터가 절전 상태입니다. 열어 깨우세요."
 msgid "Computer is stopped"
 msgstr "컴퓨터가 중지됨"
 
-#: src/pages/AccountSettingsOverlay.tsx:256
+#: src/pages/AccountSettingsOverlay.tsx:258
 msgid "Computers"
 msgstr "컴퓨터"
 
@@ -926,7 +926,7 @@ msgstr "연결된 서버"
 msgid "Confirm delete"
 msgstr "삭제 확인"
 
-#: src/pages/AccountSettingsOverlay.tsx:345
+#: src/pages/AccountSettingsOverlay.tsx:347
 #: src/pages/Auth.tsx:345
 msgid "Confirm password"
 msgstr "비밀번호 확인"
@@ -960,7 +960,7 @@ msgstr ""
 #: src/pages/CompanyWorkspaces.tsx:85
 #: src/pages/CompanyWorkspaces.tsx:347
 #: src/pages/CompanyWorkspaces.tsx:381
-#: src/pages/CompanyWorkspaces.tsx:487
+#: src/pages/CompanyWorkspaces.tsx:489
 #: src/pages/Onboarding.tsx:473
 msgid "Connect Company OS"
 msgstr ""
@@ -1042,7 +1042,7 @@ msgstr ""
 msgid "Connecting…"
 msgstr "연결 중…"
 
-#: src/pages/CompanyWorkspaces.tsx:486
+#: src/pages/CompanyWorkspaces.tsx:488
 msgid "Connection not completed. Try again."
 msgstr ""
 
@@ -1052,7 +1052,7 @@ msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "{0} 연결이 아직 진행 중입니다. 이 창을 닫고 나중에 다시 확인할 수 있습니다."
 
 #: src/pages/CompanyWorkspaces.tsx:63
-#: src/pages/CompanyWorkspaces.tsx:482
+#: src/pages/CompanyWorkspaces.tsx:484
 msgid "Connection unavailable"
 msgstr ""
 
@@ -1113,7 +1113,7 @@ msgstr "서버를 승인하지 못했습니다."
 msgid "Could not authorize this app"
 msgstr "앱 인증을 완료하지 못했습니다."
 
-#: src/pages/AccountSettingsOverlay.tsx:311
+#: src/pages/AccountSettingsOverlay.tsx:313
 msgid "Could not change password"
 msgstr "비밀번호를 변경할 수 없습니다"
 
@@ -1263,6 +1263,10 @@ msgstr "연동 목록을 불러오지 못했습니다."
 msgid "Could not load library"
 msgstr ""
 
+#: src/components/SiteLoginsSettings.tsx:24
+msgid "Could not load logins"
+msgstr ""
+
 #: src/pages/McpServersOverlay.tsx:83
 msgid "Could not load MCP servers"
 msgstr "MCP 서버 목록을 불러오지 못했습니다."
@@ -1317,7 +1321,7 @@ msgstr "샘플 음성을 재생하지 못했습니다."
 msgid "Could not reach sign-in. Reconnecting…"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:319
+#: src/pages/AccountSettingsOverlay.tsx:321
 #: src/pages/Auth.tsx:88
 #: src/pages/Auth.tsx:318
 msgid "Could not reach the server"
@@ -1339,6 +1343,10 @@ msgstr "도구 연결을 삭제하지 못했습니다."
 #: src/pages/GroupPanel.tsx:180
 msgid "Could not remove group"
 msgstr "그룹을 삭제하지 못했습니다."
+
+#: src/components/SiteLoginsSettings.tsx:56
+msgid "Could not remove login"
+msgstr ""
 
 #: src/components/ApprovalRulesSettings.tsx:92
 msgid "Could not remove rule"
@@ -1375,6 +1383,10 @@ msgstr ""
 #: src/pages/GroupPanel.tsx:179
 msgid "Could not save group"
 msgstr "그룹을 저장하지 못했습니다."
+
+#: src/components/SiteLoginsSettings.tsx:44
+msgid "Could not save login"
+msgstr ""
 
 #: src/pages/Onboarding.tsx:287
 msgid "Could not save model"
@@ -1457,7 +1469,7 @@ msgstr ""
 msgid "Couldn't load messaging settings"
 msgstr "메시징 설정을 불러올 수 없습니다"
 
-#: src/pages/AccountSettingsOverlay.tsx:106
+#: src/pages/AccountSettingsOverlay.tsx:107
 msgid "Couldn't update avatars"
 msgstr "아바타를 업데이트할 수 없습니다"
 
@@ -1553,15 +1565,15 @@ msgstr "인증 정보"
 msgid "credential saved"
 msgstr "인증 정보 저장됨"
 
-#: src/pages/RoutineSchedule.tsx:88
+#: src/pages/RoutineSchedule.tsx:103
 msgid "Cron"
 msgstr "Cron"
 
-#: src/pages/RoutineSchedule.tsx:202
+#: src/pages/RoutineSchedule.tsx:249
 msgid "Cron expression"
 msgstr "Cron 표현식"
 
-#: src/pages/AccountSettingsOverlay.tsx:333
+#: src/pages/AccountSettingsOverlay.tsx:335
 msgid "Current password"
 msgstr "현재 비밀번호"
 
@@ -1573,15 +1585,23 @@ msgstr ""
 msgid "Customer support"
 msgstr "고객 지원"
 
-#: src/pages/AccountSettingsOverlay.tsx:408
+#: src/pages/AccountSettingsOverlay.tsx:410
 msgid "Dark"
 msgstr "다크"
 
-#: src/pages/RoutineSchedule.tsx:69
+#: src/pages/RoutineSchedule.tsx:84
 msgid "day"
 msgstr "일"
 
-#: src/pages/RoutineSchedule.tsx:56
+#: src/pages/RoutineSchedule.tsx:197
+msgid "Day of month"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:182
+msgid "Day of week"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:71
 msgid "days"
 msgstr "일"
 
@@ -1784,37 +1804,37 @@ msgstr ""
 msgid "Enter this code at <0>{0}</0>"
 msgstr "<0>{0}</0>에서 이 코드를 입력하세요"
 
-#: src/pages/RoutineSchedule.tsx:80
+#: src/pages/RoutineSchedule.tsx:95
 msgid "Every"
 msgstr "매"
 
-#: src/pages/RoutineSchedule.tsx:193
+#: src/pages/RoutineSchedule.tsx:110
+msgid "Every {day}"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:238
 msgid "every {intervalAmountSelect} {intervalUnitSelect}"
 msgstr "{intervalAmountSelect} {intervalUnitSelect}마다"
 
 #: src/pages/RoutineEditor.tsx:516
-#: src/pages/RoutineSchedule.tsx:33
-#: src/pages/RoutineSchedule.tsx:99
+#: src/pages/RoutineSchedule.tsx:48
+#: src/pages/RoutineSchedule.tsx:116
 msgid "Every day"
 msgstr "매일"
 
 #: src/pages/RoutineEditor.tsx:514
-#: src/pages/RoutineSchedule.tsx:31
-#: src/pages/RoutineSchedule.tsx:85
+#: src/pages/RoutineSchedule.tsx:46
+#: src/pages/RoutineSchedule.tsx:100
 msgid "Every hour"
 msgstr "매시간"
 
-#: src/pages/RoutineSchedule.tsx:94
-msgid "Every Monday"
-msgstr "매주 월요일"
-
 #: src/pages/RoutineEditor.tsx:522
-#: src/pages/RoutineSchedule.tsx:39
+#: src/pages/RoutineSchedule.tsx:54
 msgid "Every month"
 msgstr "매월"
 
 #: src/pages/RoutineEditor.tsx:520
-#: src/pages/RoutineSchedule.tsx:37
+#: src/pages/RoutineSchedule.tsx:52
 msgid "Every week"
 msgstr "매주"
 
@@ -1918,6 +1938,10 @@ msgstr "비밀번호를 잊으셨나요?"
 msgid "Free"
 msgstr "무료"
 
+#: src/pages/RoutineSchedule.tsx:35
+msgid "Friday"
+msgstr ""
+
 #: src/pages/WindowChrome.tsx:31
 msgid "Fullscreen"
 msgstr "전체 화면"
@@ -1995,15 +2019,15 @@ msgstr "누르고 말하기"
 msgid "Hold to talk (on-device dictation)"
 msgstr "누르고 말하기(기기 내 음성 인식)"
 
-#: src/pages/RoutineSchedule.tsx:67
+#: src/pages/RoutineSchedule.tsx:82
 msgid "hour"
 msgstr "시간"
 
-#: src/pages/RoutineSchedule.tsx:54
+#: src/pages/RoutineSchedule.tsx:69
 msgid "hours"
 msgstr "시간"
 
-#: src/pages/RoutineSchedule.tsx:176
+#: src/pages/RoutineSchedule.tsx:221
 msgid "How often"
 msgstr "실행 주기"
 
@@ -2067,15 +2091,15 @@ msgid "Interrupt"
 msgstr "끼어들기"
 
 #: src/pages/RoutineEditor.tsx:524
-#: src/pages/RoutineSchedule.tsx:41
+#: src/pages/RoutineSchedule.tsx:56
 msgid "Interval"
 msgstr "간격"
 
-#: src/pages/RoutineSchedule.tsx:122
+#: src/pages/RoutineSchedule.tsx:138
 msgid "Interval amount"
 msgstr "간격 숫자"
 
-#: src/pages/RoutineSchedule.tsx:137
+#: src/pages/RoutineSchedule.tsx:153
 msgid "Interval unit"
 msgstr "간격 단위"
 
@@ -2116,8 +2140,8 @@ msgstr "key"
 msgid "Keys stay on the server. The app only learns whether a provider is configured."
 msgstr "API 키는 서버에만 안전하게 보관되며, 앱에는 연결 여부만 표시됩니다."
 
-#: src/pages/AccountSettingsOverlay.tsx:186
-#: src/pages/AccountSettingsOverlay.tsx:448
+#: src/pages/AccountSettingsOverlay.tsx:188
+#: src/pages/AccountSettingsOverlay.tsx:450
 msgid "Language"
 msgstr "언어"
 
@@ -2129,7 +2153,7 @@ msgstr "나가기"
 msgid "Leave blank to keep saved key"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:407
+#: src/pages/AccountSettingsOverlay.tsx:409
 msgid "Light"
 msgstr "라이트"
 
@@ -2159,7 +2183,7 @@ msgid "Loading Company OS…"
 msgstr ""
 
 #: src/pages/CompanyWorkspaces.tsx:65
-#: src/pages/CompanyWorkspaces.tsx:480
+#: src/pages/CompanyWorkspaces.tsx:482
 msgid "Loading company…"
 msgstr ""
 
@@ -2210,6 +2234,10 @@ msgstr "로컬"
 msgid "Log out"
 msgstr "로그아웃"
 
+#: src/components/SiteLoginsSettings.tsx:63
+msgid "Logins"
+msgstr ""
+
 #: src/pages/shell/bot-panel.tsx:573
 msgid "Low"
 msgstr "낮음"
@@ -2222,7 +2250,7 @@ msgstr "이 Mac에서 실행하면 Bot이 내 계정 권한으로 동작하며 m
 msgid "Make a copy"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:166
+#: src/pages/AccountSettingsOverlay.tsx:168
 msgid "Manage messaging settings"
 msgstr "메시징 설정 관리"
 
@@ -2300,7 +2328,7 @@ msgstr "메시지를 입력하세요"
 msgid "Messaged {peer}"
 msgstr "{peer}에게 메시지 보냄"
 
-#: src/pages/AccountSettingsOverlay.tsx:160
+#: src/pages/AccountSettingsOverlay.tsx:162
 #: src/pages/MessagingSettingsOverlay.tsx:92
 msgid "Messaging"
 msgstr "메시징"
@@ -2317,11 +2345,11 @@ msgstr "최소"
 msgid "Minimize"
 msgstr "최소화"
 
-#: src/pages/RoutineSchedule.tsx:65
+#: src/pages/RoutineSchedule.tsx:80
 msgid "minute"
 msgstr "분"
 
-#: src/pages/RoutineSchedule.tsx:52
+#: src/pages/RoutineSchedule.tsx:67
 msgid "minutes"
 msgstr "분"
 
@@ -2348,7 +2376,7 @@ msgstr "모델 선택지"
 msgid "Model providers"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:239
+#: src/pages/AccountSettingsOverlay.tsx:241
 msgid "Model spend uses your provider keys."
 msgstr "모델 사용 비용은 연결한 서비스의 API 키로 청구됩니다."
 
@@ -2366,7 +2394,11 @@ msgstr "AI 모델"
 msgid "Models from server"
 msgstr "서버에서 찾은 모델"
 
-#: src/pages/RoutineSchedule.tsx:97
+#: src/pages/RoutineSchedule.tsx:27
+msgid "Monday"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:114
 msgid "Monthly"
 msgstr "매월"
 
@@ -2452,7 +2484,7 @@ msgstr ""
 msgid "New open-work item"
 msgstr "새 진행 작업"
 
-#: src/pages/AccountSettingsOverlay.tsx:339
+#: src/pages/AccountSettingsOverlay.tsx:341
 #: src/pages/Auth.tsx:339
 msgid "New password"
 msgstr "새 비밀번호"
@@ -2613,14 +2645,22 @@ msgstr "OAuth 연결 실패"
 msgid "OAuth expired"
 msgstr ""
 
+#: src/pages/RoutineSchedule.tsx:242
+msgid "on {weekdaySelect}"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:375
 msgid "On a schedule"
 msgstr "일정에 따라"
 
 #. placeholder {0}: preset.time
-#: src/pages/RoutineSchedule.tsx:97
-msgid "on the 1st at {0}"
-msgstr "매월 1일 {0}에"
+#: src/pages/RoutineSchedule.tsx:114
+msgid "on the {day} at {0}"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:243
+msgid "on the {monthDaySelect}"
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx:159
 #: src/pages/Shell.tsx:3671
@@ -2678,7 +2718,7 @@ msgstr ""
 msgid "Optional"
 msgstr "선택 사항"
 
-#: src/pages/AccountSettingsOverlay.tsx:271
+#: src/pages/AccountSettingsOverlay.tsx:273
 msgid "Optional controls most people never need"
 msgstr "필요할 때만 쓰는 세부 설정"
 
@@ -2694,7 +2734,7 @@ msgstr "또는 API 키 연결"
 msgid "Or paste an API key"
 msgstr "또는 API 키 붙여넣기"
 
-#: src/pages/AccountSettingsOverlay.tsx:211
+#: src/pages/AccountSettingsOverlay.tsx:213
 msgid "Organic"
 msgstr "자연스럽게"
 
@@ -2720,7 +2760,8 @@ msgstr "PagerDuty 인시던트"
 msgid "Park"
 msgstr "보류"
 
-#: src/pages/AccountSettingsOverlay.tsx:329
+#: src/components/SiteLoginsSettings.tsx:113
+#: src/pages/AccountSettingsOverlay.tsx:331
 #: src/pages/Auth.tsx:167
 #: src/pages/Auth.tsx:217
 #: src/pages/Auth.tsx:226
@@ -2731,12 +2772,12 @@ msgstr "비밀번호"
 msgid "Password recovery is not configured for this server"
 msgstr "이 서버에는 비밀번호 복구가 설정되어 있지 않습니다"
 
-#: src/pages/AccountSettingsOverlay.tsx:364
+#: src/pages/AccountSettingsOverlay.tsx:366
 #: src/pages/Auth.tsx:329
 msgid "Password updated"
 msgstr "비밀번호가 업데이트되었습니다"
 
-#: src/pages/AccountSettingsOverlay.tsx:298
+#: src/pages/AccountSettingsOverlay.tsx:300
 #: src/pages/Auth.tsx:305
 msgid "Passwords do not match"
 msgstr "비밀번호가 일치하지 않습니다"
@@ -2919,6 +2960,7 @@ msgid "Reload library"
 msgstr ""
 
 #: src/components/ApprovalRulesSettings.tsx:179
+#: src/components/SiteLoginsSettings.tsx:79
 #: src/pages/PluginsOverlay.tsx:392
 #: src/pages/PluginsOverlay.tsx:458
 #: src/pages/PluginsOverlay.tsx:664
@@ -3071,7 +3113,7 @@ msgstr "연결 해제"
 msgid "Right-click"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:211
+#: src/pages/AccountSettingsOverlay.tsx:213
 msgid "Robot"
 msgstr "로봇"
 
@@ -3118,6 +3160,10 @@ msgstr "실행 중 · 중지"
 msgid "Running…"
 msgstr "실행 중…"
 
+#: src/pages/RoutineSchedule.tsx:37
+msgid "Saturday"
+msgstr ""
+
 #: src/components/teach/SkillDraftCard.tsx:142
 #: src/pages/GroupPanel.tsx:236
 #: src/pages/ModelSettingsOverlay.tsx:693
@@ -3129,6 +3175,10 @@ msgstr "저장"
 
 #: src/pages/WorkspaceLibrary.tsx:515
 msgid "Save instructions here, or ask an agent to create a reusable skill or workflow."
+msgstr ""
+
+#: src/components/SiteLoginsSettings.tsx:136
+msgid "Save login"
 msgstr ""
 
 #: src/components/teach/SkillDraftCard.tsx:142
@@ -3148,6 +3198,7 @@ msgstr "저장되었습니다."
 msgid "Saved. Rotate to reveal."
 msgstr "저장되었습니다. key를 교체하면 표시됩니다."
 
+#: src/components/SiteLoginsSettings.tsx:136
 #: src/components/teach/SkillDraftCard.tsx:142
 #: src/pages/GroupPanel.tsx:236
 #: src/pages/ModelSettingsOverlay.tsx:691
@@ -3258,7 +3309,7 @@ msgstr "서버 이름"
 msgid "Server URL"
 msgstr "서버 URL"
 
-#: src/pages/AccountSettingsOverlay.tsx:136
+#: src/pages/AccountSettingsOverlay.tsx:137
 #: src/pages/Shell.tsx:2833
 #: src/pages/Shell.tsx:3581
 msgid "Settings"
@@ -3330,6 +3381,10 @@ msgstr "가입하기"
 
 #: src/pages/Auth.tsx:131
 msgid "Sign-in was not completed. Check your verified Company OS account and try again."
+msgstr ""
+
+#: src/components/SiteLoginsSettings.tsx:88
+msgid "Site"
 msgstr ""
 
 #. placeholder {0}: skill.name
@@ -3485,6 +3540,10 @@ msgstr "확인"
 msgid "Submitted"
 msgstr "제출됨"
 
+#: src/pages/RoutineSchedule.tsx:25
+msgid "Sunday"
+msgstr ""
+
 #: src/pages/shell/command-palette.tsx:50
 msgid "Switch agent"
 msgstr ""
@@ -3501,7 +3560,7 @@ msgstr "전환 중…"
 msgid "Synced"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:406
+#: src/pages/AccountSettingsOverlay.tsx:408
 msgid "System"
 msgstr "시스템"
 
@@ -3639,7 +3698,11 @@ msgstr "이 서버는 브라우저 로그인이 필요합니다. 인증을 누�
 msgid "This subscription sign-in is not available yet. Use a deployment credential or choose another provider."
 msgstr ""
 
-#: src/pages/RoutineSchedule.tsx:152
+#: src/pages/RoutineSchedule.tsx:33
+msgid "Thursday"
+msgstr ""
+
+#: src/pages/RoutineSchedule.tsx:169
 msgid "Time of day"
 msgstr "실행 시각"
 
@@ -3662,6 +3725,10 @@ msgstr ""
 #: src/pages/PluginsOverlay.tsx:593
 msgid "Treg token"
 msgstr "Treg 토큰"
+
+#: src/pages/RoutineSchedule.tsx:29
+msgid "Tuesday"
+msgstr ""
 
 #: src/components/ComputerNavigationControls.tsx:184
 msgid "Turn on Trackpad mode in the menu. Slide one finger to move the pointer and tap to click. Tap twice and hold the second touch to drag. Recenter pointer brings it back to the middle."
@@ -3736,7 +3803,7 @@ msgstr "업데이트됨"
 msgid "Updating…"
 msgstr "업데이트 중…"
 
-#: src/pages/AccountSettingsOverlay.tsx:229
+#: src/pages/AccountSettingsOverlay.tsx:231
 #: src/pages/Shell.tsx:2899
 msgid "Usage"
 msgstr "사용량"
@@ -3757,6 +3824,10 @@ msgstr ""
 #: src/pages/ModelSettingsOverlay.tsx:725
 msgid "Use this model"
 msgstr "이 모델 사용"
+
+#: src/components/SiteLoginsSettings.tsx:101
+msgid "Username"
+msgstr ""
 
 #: src/components/ComputerNavigationControls.tsx:87
 #: src/components/ComputerNavigationControls.tsx:128
@@ -3810,9 +3881,13 @@ msgstr "기다리는 중…"
 msgid "Webhook"
 msgstr "웹훅"
 
+#: src/pages/RoutineSchedule.tsx:31
+msgid "Wednesday"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx:518
-#: src/pages/RoutineSchedule.tsx:35
-#: src/pages/RoutineSchedule.tsx:91
+#: src/pages/RoutineSchedule.tsx:50
+#: src/pages/RoutineSchedule.tsx:106
 msgid "Weekdays"
 msgstr "주중"
 
