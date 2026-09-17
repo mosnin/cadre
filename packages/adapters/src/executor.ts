@@ -102,6 +102,7 @@ import {
   catalogExecuteToolName,
   catalogIdForRoute,
   claimApprovedEffect,
+  claimFailedEffect,
   claimIntendedEffect,
   completeExternalEffect,
   createApprovedEffectReplayQueue,
@@ -580,6 +581,34 @@ function escapeProgressNote(value: string): string {
   return value.replace(/<\/?progress_note>/gi, "[progress_note]");
 }
 
+const TAKEOVER_UNATTENDED =
+  "Stopped: this run needed a person at the screen (for example to log in) and no one was available. Add a saved login or run it while you are around.";
+
+/** Fail a run that is parked on takeover or input without a worker lease. */
+async function failWaitingRun(
+  deps: ExecutorDeps,
+  run: { id: string; spaceId: string; threadId: string; botId: string; userId: string; taskId: string },
+  error: string,
+) {
+  const failed = await deps.events.failWaitingRun?.({
+    spaceId: run.spaceId,
+    threadId: run.threadId,
+    botId: run.botId,
+    runId: run.id,
+    taskId: run.taskId,
+    error,
+    statuses: ["queued", "waiting_input", "waiting_takeover"],
+  });
+  if (!failed) return;
+  await notifyRun(deps, run, {
+    kind: "failure",
+    title: "Run stopped",
+    body: error.slice(0, 180),
+    botId: run.botId,
+    threadId: run.threadId,
+  });
+}
+
 /** Stop-all hook: the worker calls this on shutdown so active runs checkpoint and requeue instead of dying mid-task. */
 const activeRunAborts = new Map<string, () => void>();
 
@@ -831,6 +860,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
           ? run.checkpoint
           : null;
       const resumeFromTakeover = run.status === "waiting_takeover" || Boolean(resumeCheckpoint);
+      if (resumeCheckpoint === "takeover-skipped" && isUnattendedTrigger(run.trigger)) {
+        // Nobody was at the screen. An unattended run cannot log in by itself, so stop with a
+        // clear reason instead of asking again until the budget runs out.
+        await failWaitingRun(deps, run, TAKEOVER_UNATTENDED);
+        return;
+      }
       const takeoverResume = resumeFromTakeover
         ? takeoverResumeFromRelease(resumeCheckpoint === "takeover-skipped" ? "skipped" : "done")
         : null;
@@ -1142,7 +1177,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
             peerMessage.repliesToRequest
             ? `Update from ${peerMessage.fromBotName}: ${peerMessage.text}`
             : "The delegated bot completed its turn without a written summary."
-          : undefined;
+          : run.trigger === "routine"
+            ? "Finished without a written report."
+            : undefined;
         const recallPromise =
           threadContext.includeSemanticRecall &&
           semanticMemory &&
@@ -1941,9 +1978,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
           let claimedEffect = false;
 
           const claimOrReturn = async (
-            from: "approved" | "intended",
+            from: "approved" | "intended" | "failed",
           ): Promise<unknown | undefined> => {
-            const claim = from === "approved" ? claimApprovedEffect : claimIntendedEffect;
+            const claim =
+              from === "approved"
+                ? claimApprovedEffect
+                : from === "failed"
+                  ? claimFailedEffect
+                  : claimIntendedEffect;
             if (await claim(deps.prisma, applied!.effect.id)) {
               claimedEffect = true;
               return undefined;
@@ -2053,6 +2095,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
               return settleUncertainEffect(deps.prisma, applied.effect.id, gate.toolName);
             } else if (gate.action === "execute") {
               const early = await claimOrReturn("approved");
+              if (early !== undefined) return early;
+            } else if (gate.action === "retry") {
+              const early = await claimOrReturn("failed");
               if (early !== undefined) return early;
             }
           } else if (needsApproval && applied) {

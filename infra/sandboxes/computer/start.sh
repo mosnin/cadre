@@ -20,6 +20,17 @@ cd "$AGENT_HOME"
 # Each display owns its own diagnostics; parallel agents never overwrite them.
 LOG_DIR="/tmp/rakazo/display-$DISPLAY_NUMBER"
 mkdir -p "$LOG_DIR"
+# Logs restart empty and are truncated when they pass 10 MiB, so weeks of daily runs
+# cannot fill the container disk.
+for log in "$LOG_DIR"/*.log; do [ -f "$log" ] && : > "$log"; done
+(
+  while sleep 600; do
+    for log in "$LOG_DIR"/*.log; do
+      [ -f "$log" ] || continue
+      if [ "$(stat -c %s "$log" 2>/dev/null || echo 0)" -gt 10485760 ]; then : > "$log"; fi
+    done
+  done
+) &
 cleanup() {
   trap - EXIT TERM INT
   jobs -pr | xargs -r kill 2>/dev/null || true

@@ -1,4 +1,5 @@
 import type { JobPublisher } from "@rakazo/adapter-kit";
+import { isValidTimezone } from "@rakazo/contracts";
 import { routineJobKey, routineWakeupJob } from "@rakazo/adapter-kit";
 import {
   cronFromPreset,
@@ -192,6 +193,7 @@ export async function createScheduleFromTool(
   if (!prompt) return { error: "prompt is required." };
 
   const timezone = String(input.timezone ?? "UTC");
+  if (!isValidTimezone(timezone)) return { error: `Unknown time zone: ${timezone}` };
   const resolved = resolveScheduleTiming(input.schedule, timezone);
   if (!resolved.ok) return { error: resolved.error };
 

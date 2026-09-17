@@ -328,6 +328,8 @@ export function isApprovalPausedResult(result: unknown): result is ApprovalPause
 
 export type DuplicateEffectGate =
   | { action: "execute" }
+  /** The earlier execution returned an error without side effects; run it again. */
+  | { action: "retry" }
   | { action: "return"; result: unknown }
   | { action: "paused" }
   | { action: "uncertain"; toolName: string };
@@ -363,7 +365,29 @@ export function resolveDuplicateEffectGate(
   if (effect.status === "intended") {
     return { action: "paused" };
   }
+  if (effect.status === "failed") {
+    return { action: "retry" };
+  }
   return { action: "uncertain", toolName };
+}
+
+/** A tool result that reports an error and makes no claim of an uncertain side effect. */
+export function isFailedEffectResult(result: unknown): boolean {
+  if (!result || typeof result !== "object") return false;
+  const record = result as { error?: unknown; uncertain?: unknown; isError?: unknown };
+  if (record.uncertain === true) return false;
+  return (typeof record.error === "string" && record.error.length > 0) || record.isError === true;
+}
+
+export async function claimFailedEffect(
+  store: ExternalEffectStore,
+  effectId: string,
+): Promise<boolean> {
+  const claimed = await store.externalEffect.updateMany({
+    where: { id: effectId, status: "failed" },
+    data: { status: "executing" },
+  });
+  return claimed.count === 1;
 }
 
 export type UncertainEffectResult = { error: string; uncertain: true };
@@ -438,9 +462,12 @@ export async function completeExternalEffect(
   expectedStatus: "intended" | "executing",
   result: unknown,
 ): Promise<boolean> {
+  // An error result is not a completed side effect. Caching it as "completed" would hand the
+  // same stale error back on every retry for the rest of the run.
+  const status = isFailedEffectResult(result) ? "failed" : "completed";
   const completed = await store.externalEffect.updateMany({
     where: { id: effectId, status: expectedStatus },
-    data: { status: "completed", result: result as never },
+    data: { status, result: result as never },
   });
   return completed.count === 1;
 }

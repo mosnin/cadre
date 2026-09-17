@@ -33,8 +33,39 @@ export interface AppendEventInput {
   runId?: string;
 }
 
+export interface FailWaitingRunInput {
+  spaceId: string;
+  threadId: string;
+  botId: string;
+  runId: string;
+  taskId: string;
+  error: string;
+  /** Statuses the run may be in; defaults to the two waiting statuses. */
+  statuses?: string[];
+}
+
+export interface ExpireWaitingRunsInput {
+  /** Runs that have waited since before this instant. */
+  olderThan: Date;
+  triggers: string[];
+  error: string;
+  statuses?: string[];
+}
+
+export interface ExpiredWaitingRun {
+  id: string;
+  spaceId: string;
+  threadId: string;
+  botId: string;
+  userId: string;
+}
+
 export interface ThreadEvents {
   answerRunInput(input: AnswerRunInput): Promise<boolean>;
+  /** Fail a run parked on input or takeover that no worker holds. */
+  failWaitingRun?(input: FailWaitingRunInput): Promise<boolean>;
+  /** Fail every unattended run that has waited for a person longer than allowed. */
+  expireWaitingRuns?(input: ExpireWaitingRunsInput): Promise<ExpiredWaitingRun[]>;
   append(input: AppendEventInput): Promise<ProductEvent>;
   claimSteering(input: ClaimSteeringInput): Promise<ClaimedSteeringMessage[]>;
   clearThread(input: ClearThreadInput): Promise<ClearThreadResult>;
@@ -231,6 +262,8 @@ export function createThreadEvents(
     finalizeComputerControlRelease: (input) =>
       finalizeComputerControlRelease(prisma, input, realtime),
     finalizeRun: (input) => finalizeRun(prisma, input, realtime),
+    failWaitingRun: (input) => failWaitingRun(prisma, input, realtime),
+    expireWaitingRuns: (input) => expireWaitingRuns(prisma, input, realtime),
     notify: (threadId, seq) => notifyRealtime(realtime, threadId, seq),
     pauseRunForInput: (input) => pauseRunForInput(prisma, input, realtime),
     pauseRunForTakeover: (input) => pauseRunForTakeover(prisma, input, realtime),
@@ -937,6 +970,128 @@ export async function finalizeRun(
   if (!committed) return false;
   await notifyRealtime(realtime, committed.threadId, committed.seq);
   return { continuationRunId: committed.continuationRunId };
+}
+
+const WAITING_RUN_STATUSES = ["waiting_input", "waiting_takeover"] as const;
+
+/**
+ * A waiting run has no lease, so nothing else can finalize it. This is the one path that
+ * ends such a run without a person answering: it records the failure, keeps a visible
+ * message in the thread, and clears the parked attempt and steering.
+ */
+export async function failWaitingRun(
+  prisma: PrismaClient,
+  input: FailWaitingRunInput,
+  realtime?: RealtimeFanout,
+): Promise<boolean> {
+  const committed = await withTransactionRetry(() =>
+    prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.$queryRaw`SELECT id FROM threads WHERE id = ${input.threadId} FOR UPDATE`;
+      const now = new Date();
+      const failed = await tx.run.updateMany({
+        where: {
+          id: input.runId,
+          spaceId: input.spaceId,
+          threadId: input.threadId,
+          botId: input.botId,
+          taskId: input.taskId,
+          status: { in: input.statuses ?? [...WAITING_RUN_STATUSES] },
+        },
+        data: {
+          status: "failed",
+          error: input.error,
+          completedAt: now,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+          checkpoint: null,
+        },
+      });
+      if (failed.count !== 1) return null;
+      await tx.attempt.updateMany({
+        where: {
+          runId: input.runId,
+          status: { in: ["running", "waiting_input", "waiting_takeover"] },
+        },
+        data: { status: "failed", error: input.error, finishedAt: now },
+      });
+      await tx.task.updateMany({ where: { id: input.taskId }, data: { status: "failed" } });
+      const blocks: MessageBlock[] = [{ kind: "text", text: input.error }];
+      const message = await createThreadMessageInTransaction(tx, {
+        threadId: input.threadId,
+        role: "bot",
+        blocks,
+        botId: input.botId,
+        runId: input.runId,
+        markUnread: true,
+      });
+      await appendEventInTransaction(tx, {
+        spaceId: input.spaceId,
+        threadId: input.threadId,
+        botId: input.botId,
+        type: "thread.message.created",
+        runId: input.runId,
+        payload: { messageId: message.id, role: "bot", blocks },
+      });
+      const lastEvent = await appendEventInTransaction(tx, {
+        spaceId: input.spaceId,
+        threadId: input.threadId,
+        botId: input.botId,
+        type: "run.failed",
+        runId: input.runId,
+        payload: { error: input.error },
+      });
+      await tx.event.deleteMany({ where: { runId: input.runId, type: "thread.progress" } });
+      await tx.steeringMessage.updateMany({
+        where: { runId: input.runId },
+        data: { runId: null },
+      });
+      return { threadId: input.threadId, seq: lastEvent.seq };
+    }),
+  );
+  if (!committed) return false;
+  await notifyRealtime(realtime, committed.threadId, committed.seq);
+  return true;
+}
+
+export async function expireWaitingRuns(
+  prisma: PrismaClient,
+  input: ExpireWaitingRunsInput,
+  realtime?: RealtimeFanout,
+): Promise<ExpiredWaitingRun[]> {
+  if (input.triggers.length === 0) return [];
+  const waiting = await prisma.run.findMany({
+    where: {
+      status: { in: input.statuses ?? [...WAITING_RUN_STATUSES] },
+      trigger: { in: input.triggers },
+      updatedAt: { lte: input.olderThan },
+    },
+    select: {
+      id: true,
+      spaceId: true,
+      threadId: true,
+      botId: true,
+      userId: true,
+      taskId: true,
+    },
+    take: 100,
+  });
+  const expired: ExpiredWaitingRun[] = [];
+  for (const run of waiting) {
+    const failed = await failWaitingRun(
+      prisma,
+      {
+        spaceId: run.spaceId,
+        threadId: run.threadId,
+        botId: run.botId,
+        runId: run.id,
+        taskId: run.taskId,
+        error: input.error,
+      },
+      realtime,
+    );
+    if (failed) expired.push(run);
+  }
+  return expired;
 }
 
 /** Stamps one turn-level wall-clock duration on the final tool block. */

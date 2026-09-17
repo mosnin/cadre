@@ -266,13 +266,30 @@ export const RoutineSchema = z.object({
 });
 export type Routine = z.infer<typeof RoutineSchema>;
 
+/** An IANA zone the runtime can actually evaluate; a typo must not silently become UTC. */
+export const RoutineTimezone = z
+  .string()
+  .trim()
+  .min(1)
+  .max(64)
+  .refine(isValidTimezone, { message: "Unknown time zone" });
+
+export function isValidTimezone(timezone: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const CreateRoutineInput = z
   .object({
     botId: Id,
     name: z.string().min(1).max(80),
     prompt: z.string().min(1),
     crons: z.array(z.string().min(1)).default([]),
-    timezone: z.string().default("UTC"),
+    timezone: RoutineTimezone.default("UTC"),
     notify: z.boolean().default(true),
     active: z.boolean().default(false),
     webhookEnabled: z.boolean().default(false),

@@ -183,6 +183,7 @@ async function main() {
     jobs,
     events,
     leadership: createPostgresReconciliationLeadership(pool),
+    notifications: new ExpoPushProvider(dataDir),
   });
   reconciler.start();
   const companyOsOAuth = companyOsOAuthFromEnv();
