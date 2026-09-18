@@ -343,3 +343,84 @@ describe("filling a field by pointing at a known value", () => {
     expect(acted).toEqual([{ action: "fill", snapshotId: "s0", ref: "e2", text: "London" }]);
   });
 });
+
+describe("choosing from a native dropdown", () => {
+  const withSelect: BrowserElement[] = [
+    ...ELEMENTS,
+    { ref: "e5", role: "combobox", name: "Country", options: ["Ireland", "Japan"] },
+  ];
+
+  it("asks for the control and its option as one choice, not two round trips", async () => {
+    const decide = vi.fn(async (_request: unknown) => ({ answers: {}, model: "m" }));
+    await planBrowserAction(
+      { decide },
+      { goal: "set country", snapshot: { elements: withSelect } },
+    );
+    const request = decide.mock.calls[0]![0] as unknown as {
+      questions: Record<string, { criteria: Record<string, unknown> }>;
+    };
+    expect(Object.keys(request.questions)).toContain("select_choice");
+    expect(Object.keys(request.questions)).not.toContain("select_target");
+    expect(Object.keys(request.questions.select_choice!.criteria)).toEqual([
+      "e5::Ireland",
+      "e5::Japan",
+    ]);
+  });
+
+  it("returns the option the browser reported, never one the model composed", async () => {
+    await expect(
+      planBrowserAction(
+        provider({
+          operation: { type: "choice", choice: "SELECT", confidence: 0.9 },
+          select_choice: { type: "choice", choice: "e5::Japan", confidence: 0.9 },
+        }),
+        { goal: "set country", snapshot: { elements: withSelect } },
+      ),
+    ).resolves.toMatchObject({ operation: "SELECT", ref: "e5", option: "Japan" });
+    await expect(
+      planBrowserAction(
+        provider({
+          operation: { type: "choice", choice: "SELECT", confidence: 0.9 },
+          select_choice: { type: "choice", choice: "e5::Narnia", confidence: 0.99 },
+        }),
+        { goal: "set country", snapshot: { elements: withSelect } },
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it("executes a selection through the ordinary browser call, carrying the snapshot", async () => {
+    const act = vi.fn(async () => ({}));
+    const outcome = await pursueBrowserGoal(
+      provider({
+        operation: { type: "choice", choice: "SELECT", confidence: 0.9 },
+        select_choice: { type: "choice", choice: "e5::Japan", confidence: 0.9 },
+      }),
+      { goal: "set country", maxSteps: 1 },
+      { observe: async () => ({ snapshotId: "s1", elements: withSelect }), act },
+    );
+    expect(act).toHaveBeenCalledWith({
+      action: "select",
+      snapshotId: "s1",
+      ref: "e5",
+      option: "Japan",
+    });
+    expect(outcome.steps).toEqual([
+      { operation: "SELECT", ref: "e5", name: "Country", note: "Japan" },
+    ]);
+  });
+});
+
+describe("waiting for a page that is still working", () => {
+  it("gives up rather than waiting out the step budget", async () => {
+    const act = vi.fn(async () => ({}));
+    const outcome = await pursueBrowserGoal(
+      provider({ operation: { type: "choice", choice: "WAIT", confidence: 0.9 } }),
+      { goal: "wait it out", maxSteps: MAX_PURSUIT_STEPS },
+      { observe: async () => ({ snapshotId: "s1", elements: ELEMENTS }), act },
+    );
+    expect(outcome.status).toBe("blocked");
+    // Waiting changes nothing on the page, so nothing is dispatched to the browser.
+    expect(act).not.toHaveBeenCalled();
+    expect(outcome.steps).toEqual([{ operation: "WAIT" }, { operation: "WAIT" }]);
+  });
+});

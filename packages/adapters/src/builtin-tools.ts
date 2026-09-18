@@ -42,7 +42,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "browser_act",
     description:
-      "Navigate or interact with the same browser shown in the live computer view. Each action returns a fresh compact snapshot. Use only refs and snapshotId from the latest snapshot; never invent them. Fill ordinary fields, click controls, press keys, scroll, list or select tabs. To sign in with a saved login, use fill_login with the site host and field (username or password); the value is typed for you and never shown. Use desktop tools for canvas, browser chrome, or unsupported controls.",
+      "Navigate or interact with the same browser shown in the live computer view. Each action returns a fresh compact snapshot. Use only refs and snapshotId from the latest snapshot; never invent them. Fill ordinary fields, click controls, choose from a dropdown with select and one of the options the snapshot listed, press keys, scroll, list or select tabs. To sign in with a saved login, use fill_login with the site host and field (username or password); the value is typed for you and never shown. Use desktop tools for canvas, browser chrome, or unsupported controls.",
     inputSchema: {
       type: "object",
       properties: {
@@ -55,9 +55,14 @@ export const builtinAgentTools: ConnectorTool[] = [
             "fill_login",
             "press",
             "scroll",
+            "select",
             "tabs",
             "select_tab",
           ],
+        },
+        option: {
+          type: "string",
+          description: "For select: one of the options the snapshot listed for that control.",
         },
         login: { type: "string", description: "Host of the saved login, for fill_login." },
         field: { type: "string", enum: ["username", "password"] },

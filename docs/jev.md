@@ -46,7 +46,7 @@ here is the last thing between an agent and an irreversible action.
 | Stuck run (`runIsStuck`) | Nothing; **catches what the hash guard cannot** | `noul` "is this repeating work that already failed?" | Continuing into the next segment |
 | Run model routing (`routeRunModel`) | Nothing; **avoids** paying frontier prices for simple turns | `choice` over the configured pool | The deployment default |
 | Search ranking (`rankWebSearchHits`) | Nothing; **avoids** fetches and context on results that answer nothing | One `score` per result, one request | The engine's own order |
-| Browser action (`planBrowserAction`) | A **generation** per browser step | `choice` operation + speculative `choice` per operation's targets + `choice` of which known value fills the field | The agent deciding, as today |
+| Browser action (`planBrowserAction`) | A **generation** per browser step | `choice` operation + speculative `choice` per operation's targets + `choice` of which known value fills the field + `choice` of dropdown control and option together | The agent deciding, as today |
 | Routine skip (`routineHasWork`) | Nothing; **avoids an entire run** | `noul` "is there anything to do this time?" | Running the occurrence |
 | Handoff target (`chooseHandoffBot`) | A name written in prose | `choice` over the bot directory | The model's own pick |
 
@@ -70,6 +70,37 @@ of being filled with the closest thing.
 
 This is the one idea worth taking from Cua-S1, whose planner points at source
 entities rather than writing values for the same reason.
+
+## Waiting only as long as the page needs
+
+A decision arrives in a few hundred milliseconds, so a fixed wait after every
+action is what a browser step actually costs. The driver used to sleep a fifth of
+a second after each one and then poll `document.readyState`.
+
+It now waits for two animation frames instead, which is what a rerender takes,
+and gives up at 50ms. Only filling a combobox waits longer, and only until its
+suggestions are genuinely on screen — a visible `[role="option"]` under the
+field's own `aria-controls` or `aria-owns` — capped at 200ms. A navigation keeps
+the old wait, because a navigation that has been asked for has not yet replaced
+the document and there is nothing to observe.
+
+The wait runs in an isolated world beside the page, so the page cannot see it and
+the page's own overrides of `requestAnimationFrame` or `setTimeout` do not apply.
+The same world reads the page's **visible** text for the snapshot: an offscreen
+article body or a footer filled the model's context without saying anything about
+the screen being acted on.
+
+## Pointing at a dropdown option
+
+A native dropdown has no on-screen list to click — Chromium renders it outside
+the page — so it was unusable. A snapshot now carries each dropdown's own choices,
+and `SELECT` picks the control and the option in a single question whose answers
+are `control::option`. The browser refuses any option that was not in the snapshot
+it handed out, so this is the same "point, don't write" property as filling a
+field: nothing a model composed reaches the page.
+
+`WAIT` exists for a page that is still working, and spends at most two of a
+pursuit's steps; a third means the pursuit is blocked, not patient.
 
 ## Confidence, and why there is no global threshold
 

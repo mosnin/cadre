@@ -31,6 +31,10 @@ export type BrowserElement = {
   disabled?: unknown;
   checked?: unknown;
   required?: unknown;
+  selected?: unknown;
+  expanded?: unknown;
+  /** The choices of a native dropdown, as the browser reported them. */
+  options?: string[];
 };
 
 export type BrowserSnapshot = {
@@ -47,6 +51,14 @@ export type BrowserStep = { operation: string; ref?: string; name?: string; note
 /** A value the agent already holds, offered as something to point at rather than to write. */
 export type BrowserEntity = { label: string; value: string };
 
+export type ControlOperation =
+  | "PRESS_ENTER"
+  | "SCROLL_DOWN"
+  | "SCROLL_UP"
+  | "WAIT"
+  | "DONE"
+  | "BLOCKED";
+
 export type PlannedBrowserAction =
   | {
       operation: "CLICK" | "TYPE_TEXT";
@@ -55,15 +67,22 @@ export type PlannedBrowserAction =
       /** For TYPE_TEXT: the entity the decision picked for this field, if any. */
       entity?: BrowserEntity;
     }
-  | { operation: "PRESS_ENTER" | "SCROLL_DOWN" | "SCROLL_UP" | "DONE" | "BLOCKED" };
+  | { operation: "SELECT"; ref: string; element: BrowserElement; option: string }
+  | { operation: ControlOperation };
 
 const CONTROL_OPERATIONS: Record<string, string> = {
   PRESS_ENTER: "Press Enter to submit the focused field or accept the highlighted suggestion.",
   SCROLL_DOWN: "Scroll down to bring more of the page into view.",
   SCROLL_UP: "Scroll up to bring earlier content back into view.",
+  WAIT: "The page is still loading or working; nothing can be acted on until it settles.",
   DONE: "Every part of the goal is visibly satisfied on this page.",
   BLOCKED: "No available operation can make progress toward the goal.",
 };
+
+/** Dropdown choices offered in one question, across every dropdown on the page. */
+const MAX_SELECT_CHOICES = 60;
+/** Separates the control from the option inside one dropdown choice. */
+const SELECT_SEPARATOR = "::";
 
 const RULES = [
   "Choose the single next action that makes the most progress toward the goal.",
@@ -76,10 +95,22 @@ const RULES = [
 /** Build the operation-to-candidate map the questions are derived from. */
 export function browserActionSpace(elements: BrowserElement[]): {
   targets: Record<string, BrowserElement[]>;
-  table: { index: string; role: string; name: string; operations: string[] }[];
+  table: {
+    index: string;
+    role: string;
+    name: string;
+    operations: string[];
+    options?: string[];
+  }[];
 } {
   const targets: Record<string, BrowserElement[]> = {};
-  const table: { index: string; role: string; name: string; operations: string[] }[] = [];
+  const table: {
+    index: string;
+    role: string;
+    name: string;
+    operations: string[];
+    options?: string[];
+  }[] = [];
   for (const element of elements) {
     if (element.disabled === true) continue;
     const operations: string[] = [];
@@ -87,6 +118,9 @@ export function browserActionSpace(elements: BrowserElement[]): {
     // suggestion list the next step needs.
     operations.push("CLICK");
     if (TEXT_ROLES.has(element.role)) operations.push("TYPE_TEXT");
+    // A native dropdown has no on-screen list to click, so choosing from it is its own
+    // operation; the choices come from the browser, never from the model.
+    if (element.options?.length) operations.push("SELECT");
     for (const operation of operations) {
       targets[operation] ??= [];
       targets[operation].push(element);
@@ -96,6 +130,7 @@ export function browserActionSpace(elements: BrowserElement[]): {
       role: element.role,
       name: element.name.slice(0, 200),
       operations,
+      ...(element.options?.length ? { options: element.options.slice(0, 50) } : {}),
     });
   }
   return { targets, table };
@@ -121,6 +156,17 @@ export async function planBrowserAction(
   if (targets.CLICK?.length) operations.CLICK = "Click a button, link, menu option, or suggestion.";
   if (targets.TYPE_TEXT?.length)
     operations.TYPE_TEXT = "Type a value into an editable field. The value is written separately.";
+  // One flat list of every dropdown choice on the page, so picking the control and
+  // picking its option are the same decision rather than two round trips.
+  const selectChoices: { key: string; element: BrowserElement; option: string }[] = [];
+  for (const element of targets.SELECT ?? []) {
+    for (const option of element.options ?? []) {
+      if (selectChoices.length >= MAX_SELECT_CHOICES) break;
+      selectChoices.push({ key: `${element.ref}${SELECT_SEPARATOR}${option}`, element, option });
+    }
+  }
+  if (selectChoices.length > 0)
+    operations.SELECT = "Choose one of the listed options of a dropdown.";
   Object.assign(operations, CONTROL_OPERATIONS);
 
   const questions: Record<string, ReturnType<typeof choice>> = {
@@ -129,7 +175,8 @@ export async function planBrowserAction(
   // Speculative: a target question per operation that has candidates. Only the one matching
   // the chosen operation is read, so both decisions cost a single request.
   for (const [operation, candidates] of Object.entries(targets)) {
-    if (candidates.length === 0) continue;
+    // SELECT asks for a control and an option together, below.
+    if (candidates.length === 0 || operation === "SELECT") continue;
     questions[`${operation.toLowerCase()}_target`] = choice(
       { goal: input.goal, operation, rules: RULES },
       Object.fromEntries(
@@ -139,7 +186,21 @@ export async function planBrowserAction(
             element: `[${element.ref}] ${element.role} · ${element.name.slice(0, 200)}`,
             ...(element.checked === undefined ? {} : { checked: element.checked }),
             ...(element.required === undefined ? {} : { required: element.required }),
+            ...(element.selected === undefined ? {} : { selected: element.selected }),
+            ...(element.expanded === undefined ? {} : { expanded: element.expanded }),
           },
+        ]),
+      ),
+    );
+  }
+
+  if (selectChoices.length > 0) {
+    questions.select_choice = choice(
+      { goal: input.goal, operation: "SELECT", rules: RULES },
+      Object.fromEntries(
+        selectChoices.map((candidate) => [
+          candidate.key,
+          `[${candidate.element.ref}] ${candidate.element.name.slice(0, 120)} · ${candidate.option}`,
         ]),
       ),
     );
@@ -187,10 +248,24 @@ export async function planBrowserAction(
     DECISION_CONFIDENCE.routing,
   );
   if (!operation) return undefined;
-  if (operation !== "CLICK" && operation !== "TYPE_TEXT") {
+  if (operation === "SELECT") {
+    const picked = actionableChoice(
+      result.answers.select_choice,
+      selectChoices.map((candidate) => candidate.key),
+      DECISION_CONFIDENCE.routing,
+    );
+    const candidate = selectChoices.find((entry) => entry.key === picked);
+    // An operation without a target it can actually execute is no decision at all.
+    if (!candidate) return undefined;
     return {
-      operation: operation as "PRESS_ENTER" | "SCROLL_DOWN" | "SCROLL_UP" | "DONE" | "BLOCKED",
+      operation: "SELECT",
+      ref: candidate.element.ref,
+      element: candidate.element,
+      option: candidate.option,
     };
+  }
+  if (operation !== "CLICK" && operation !== "TYPE_TEXT") {
+    return { operation: operation as ControlOperation };
   }
 
   const candidates = targets[operation] ?? [];
@@ -216,6 +291,9 @@ export async function planBrowserAction(
 
 /** How many actions one pursue call may take before handing control back to the agent. */
 export const MAX_PURSUIT_STEPS = 8;
+/** How long a wait step gives the page, and how many waits a pursuit may spend. */
+const WAIT_MS = 500;
+const MAX_WAITS = 2;
 
 export type PursuitOutcome = {
   status: "done" | "blocked" | "needs_value" | "undecided" | "step_limit";
@@ -254,16 +332,18 @@ export async function pursueBrowserGoal(
   browser: {
     observe: () => Promise<BrowserSnapshot>;
     act: (request: {
-      action: "click" | "fill" | "press" | "scroll";
+      action: "click" | "fill" | "press" | "scroll" | "select";
       snapshotId?: string;
       ref?: string;
       text?: string;
       key?: string;
       direction?: string;
+      option?: string;
     }) => Promise<unknown>;
   },
 ): Promise<PursuitOutcome> {
   const steps: BrowserStep[] = [];
+  let waits = 0;
   const limit = Math.max(1, Math.min(input.maxSteps ?? MAX_PURSUIT_STEPS, MAX_PURSUIT_STEPS));
   let snapshot = await browser.observe();
 
@@ -305,6 +385,25 @@ export async function pursueBrowserGoal(
         name: planned.element.name,
         note: planned.entity?.label,
       });
+    } else if (planned.operation === "SELECT") {
+      await browser.act({
+        action: "select",
+        snapshotId: snapshot.snapshotId,
+        ref: planned.ref,
+        option: planned.option,
+      });
+      steps.push({
+        operation: "SELECT",
+        ref: planned.ref,
+        name: planned.element.name,
+        note: planned.option,
+      });
+    } else if (planned.operation === "WAIT") {
+      // Waiting changes nothing, so a run that only ever waits is a run that is stuck.
+      waits += 1;
+      if (waits > MAX_WAITS) return { status: "blocked", steps, snapshot };
+      await new Promise((resolve) => setTimeout(resolve, WAIT_MS));
+      steps.push({ operation: "WAIT" });
     } else if (planned.operation === "CLICK") {
       await browser.act({ action: "click", snapshotId: snapshot.snapshotId, ref: planned.ref });
       steps.push({ operation: "CLICK", ref: planned.ref, name: planned.element.name });
