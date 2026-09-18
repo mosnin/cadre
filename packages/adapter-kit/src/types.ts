@@ -181,6 +181,7 @@ export interface BrowserRequest {
     | "fill_protected"
     | "press"
     | "scroll"
+    | "select"
     | "tabs"
     | "select_tab";
   snapshotId?: string;
@@ -190,6 +191,8 @@ export interface BrowserRequest {
   key?: string;
   direction?: string;
   tabId?: string;
+  /** For `select`: one of the options the snapshot listed for that control. */
+  option?: string;
   /**
    * Value for `fill_protected`. Providers pass it to the browser out of band (never on a
    * command line) and no result echoes it.

@@ -150,7 +150,8 @@ function truncate(value: string, max: number): string {
   return `${trimmed.slice(0, max - 1)}…`;
 }
 
-function escapePromptData(value: string): string {
+/** Untrusted data goes to a model as data, never as something that could read as markup. */
+export function escapePromptData(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 

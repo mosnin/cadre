@@ -155,6 +155,10 @@ import {
 import { observationToolResult, parseComputerActions } from "./computer-tools.js";
 import { checkpointAfterComputerWork } from "./computer-workspace.js";
 import { sanitizeConnectorError } from "./connector-safety.js";
+import { type BrowserSnapshot, pursueBrowserGoal } from "./decision-browser.js";
+import { runIsStuck } from "./decision-guards.js";
+import { routeRunModel, routerCandidates } from "./decision-routing.js";
+import { decideToolCall } from "./decision-turn.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
 import { isSandboxGoneError } from "./e2b-sandbox.js";
 import { handoffToGroupBot, loadGroupContext } from "./group-handoff.js";
@@ -169,6 +173,7 @@ import {
   selectCompactedHistory,
   shouldEnqueueCompaction,
 } from "./history-compaction.js";
+import { type DecisionProvider, decisionProvider } from "./jev-decisions.js";
 import {
   assertConnectorToolArgs,
   CATALOG_EXECUTE,
@@ -447,6 +452,12 @@ export interface ExecutorDeps {
   listConnectedPluginSlugs?: (userId: string) => Promise<string[]>;
   /** Builtin web_search / web_fetch. Defaults to keyless HTTP when omitted. */
   web?: WebProvider;
+  /**
+   * Typed decisions for ranking, routing and the browser action space. Defaults to the
+   * configured provider, and stays undefined when none is configured: every caller that
+   * consults it keeps its own behaviour.
+   */
+  decisions?: DecisionProvider;
 }
 
 export async function deferFutureRoutine(
@@ -578,6 +589,25 @@ const MAX_INTERRUPTED_ATTEMPTS_AFTER_EFFECTS = 2;
 const INTERRUPTED_TOO_OFTEN =
   "Stopped: this run was interrupted repeatedly after it had already made changes. Review what was done before starting it again.";
 
+/**
+ * What the run was actually asked to do, for a routing decision. The newest user message in
+ * the thread, which is the request the model is about to answer.
+ */
+async function routableTaskText(
+  prisma: ExecutorDeps["prisma"],
+  run: { threadId: string },
+): Promise<string> {
+  const message = await prisma.message
+    .findFirst({
+      where: { threadId: run.threadId, role: "user" },
+      orderBy: { seq: "desc" },
+      select: { blocks: true },
+    })
+    .catch(() => null);
+  if (!message) return "";
+  return blocksToAgentHistoryText((message.blocks ?? []) as MessageBlock[]).slice(0, 4_000);
+}
+
 function escapeProgressNote(value: string): string {
   return value.replace(/<\/?progress_note>/gi, "[progress_note]");
 }
@@ -621,6 +651,9 @@ async function failWaitingRun(
 const activeRunAborts = new Map<string, () => void>();
 
 export function createRunExecutor(deps: ExecutorDeps) {
+  // Resolved once per executor rather than per tool call: reading the environment and building
+  // a client on every search would cost more than the decision saves.
+  const defaultDecisions = decisionProvider();
   const web = deps.web ?? createWebProvider();
   return {
     async resolveModel(scope: {
@@ -1210,7 +1243,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
           await Promise.all([
             discoveredPromise,
             loadCurrentTurnImages(deps, turnBlocks, context),
-            loadAgentMemoryContext(deps.memory, bot.id, context),
+            loadAgentMemoryContext(deps.memory, bot.id, context, {
+              decisions: deps.decisions ?? defaultDecisions,
+              task: task.prompt,
+            }),
             loadAgentScratchpadContext(deps, {
               spaceId: run.spaceId,
               botId: bot.id,
@@ -1245,12 +1281,23 @@ export function createRunExecutor(deps: ExecutorDeps) {
           settings?.defaultModelProvider ??
           runDeployment?.provider ??
           runtimeFallback?.provider;
-        const runModelId =
+        const chosenModelId =
           (useModelOverride ? bot.modelId : null) ??
           credential?.defaultModel ??
-          settings?.defaultModelId ??
-          runDeployment?.model ??
-          runtimeFallback?.id;
+          settings?.defaultModelId;
+        let runModelId = chosenModelId ?? runDeployment?.model ?? runtimeFallback?.id;
+        // Only a run nobody chose a model for is routed: an explicit bot, credential or
+        // deployment-settings choice is the user's and is never second-guessed.
+        const routerPool = chosenModelId ? [] : routerCandidates();
+        if (routerPool.length > 1 && runModelId) {
+          const routed = await routeRunModel(deps.decisions ?? defaultDecisions, {
+            task: await routableTaskText(deps.prisma, run),
+            candidates: routerPool,
+            fallbackModel: runModelId,
+            sessionId: runId,
+          });
+          if (routed) runModelId = routed;
+        }
         if (!runModelProvider || !runModelId) {
           const failed = await deps.events.finalizeRun({
             spaceId: run.spaceId,
@@ -1835,8 +1882,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           // A connector's read-only hint is only accepted for tools whose name does
           // not announce a mutation (see connectorToolNamesMutation); such tools are
           // not consequential by default but still honor explicit "ask" rules below.
-          const requiresApprovalByDefault =
-            !connectorReadOnly && toolRequiresApproval(name, viaConnector);
+          const nameSaysApprove = !connectorReadOnly && toolRequiresApproval(name, viaConnector);
           const requiresExplicitApproval = toolRequiresExplicitApproval(name);
           const connectorKind = connectorKindFromToolName(
             name,
@@ -1853,6 +1899,28 @@ export function createRunExecutor(deps: ExecutorDeps) {
             ? false
             : await loadAutoReviewPreference();
           const checker = requiresExplicitApproval ? undefined : resolveAutoReviewChecker();
+          // The name check has been wrong in the dangerous direction before, and a
+          // connector's tool names are written by whoever wrote the connector. Only a
+          // connector call the name already cleared is read, and the answer can only
+          // add approval: the name's own "yes" is never revisited.
+          const askConsequence = viaConnector && !nameSaysApprove;
+          // The review verdict rides along on the request that is being made anyway, so
+          // that a call the consequence answer sends to a judge needs no second round
+          // trip. It is never the reason for a request of its own here.
+          const turn = await decideToolCall(deps.decisions ?? defaultDecisions, {
+            toolName: name,
+            connectorKind,
+            // Redacted before it leaves the machine, on both questions.
+            args: redactToolArgsForReview(args, runSecrets),
+            userTask: task.prompt,
+            botDescription: `${bot.name}: ${bot.title}\n${bot.description}`,
+            matchingRules: approvalResolved.matchingRules,
+            askConsequence,
+            askReview: askConsequence && autoReviewPref && Boolean(checker),
+            runId,
+            signal: runAbortController?.signal,
+          });
+          const requiresApprovalByDefault = nameSaysApprove || turn.consequential;
           const checkerConfigured =
             autoReviewPref && checker
               ? isAutoReviewCheckerConfigured({}) ||
@@ -1907,29 +1975,52 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 (values) => runSecrets.push(...values),
                 runAbortController?.signal,
               );
-              const judge = await runAutoReviewJudge({
-                runtime: deps.runtime,
-                checker,
-                apiKey: judgeKey.oauth ? undefined : judgeKey.apiKey,
-                baseUrl: judgeKey.baseUrl,
-                oauth: judgeKey.oauth
-                  ? { credential: judgeKey.oauth, modify: judgeKey.modifyOAuth }
-                  : undefined,
-                prompt: buildAutoReviewPrompt({
-                  toolName: name,
-                  connectorKind,
-                  args: redactToolArgsForReview(args, runSecrets),
-                  userTask: task.prompt,
-                  botDescription: `${bot.name}: ${bot.title}\n${bot.description}`,
-                  matchingRules: approvalResolved.matchingRules,
-                }),
-                runId,
-                spaceId: run.spaceId,
-                userId: run.userId,
-                botId: bot.id,
-                threadId: thread.id,
-                timeoutMs: autoReviewTimeoutMs(),
-              });
+              // A decision model answers the same pass/ask question without a
+              // generation. The verdict is usually already in hand from the bundle
+              // above; only a path that made no bundle asks here. The generative
+              // judge stays as the fallback for when none is configured or the
+              // model will not commit.
+              const decided =
+                turn.review ??
+                (
+                  await decideToolCall(deps.decisions ?? defaultDecisions, {
+                    toolName: name,
+                    connectorKind,
+                    args: redactToolArgsForReview(args, runSecrets),
+                    userTask: task.prompt,
+                    botDescription: `${bot.name}: ${bot.title}\n${bot.description}`,
+                    matchingRules: approvalResolved.matchingRules,
+                    askConsequence: false,
+                    askReview: true,
+                    runId,
+                    signal: runAbortController?.signal,
+                  })
+                ).review;
+              const judge =
+                decided ??
+                (await runAutoReviewJudge({
+                  runtime: deps.runtime,
+                  checker,
+                  apiKey: judgeKey.oauth ? undefined : judgeKey.apiKey,
+                  baseUrl: judgeKey.baseUrl,
+                  oauth: judgeKey.oauth
+                    ? { credential: judgeKey.oauth, modify: judgeKey.modifyOAuth }
+                    : undefined,
+                  prompt: buildAutoReviewPrompt({
+                    toolName: name,
+                    connectorKind,
+                    args: redactToolArgsForReview(args, runSecrets),
+                    userTask: task.prompt,
+                    botDescription: `${bot.name}: ${bot.title}\n${bot.description}`,
+                    matchingRules: approvalResolved.matchingRules,
+                  }),
+                  runId,
+                  spaceId: run.spaceId,
+                  userId: run.userId,
+                  botId: bot.id,
+                  threadId: thread.id,
+                  timeoutMs: autoReviewTimeoutMs(),
+                }));
               reviewReason = judge.reason;
               gateDecision = applyJudgeDecision({
                 decision: judge.decision,
@@ -2134,7 +2225,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               : Promise.resolve(true);
           const finish = async (result: unknown) =>
             (await persistEffectResult(result)) ? result : uncertainEffectResult(name);
-          if (name === "browser_observe" || name === "browser_act") {
+          if (name === "browser_observe" || name === "browser_act" || name === "browser_pursue") {
             if (await getActiveTeachingSession(deps.prisma, run.spaceId, run.botId)) {
               return { error: "Teaching is in progress. Stop teaching before using the computer." };
             }
@@ -2153,7 +2244,47 @@ export function createRunExecutor(deps: ExecutorDeps) {
               };
             if (!deps.sandbox.browser)
               return { error: "Structured browser control is unavailable. Use desktop tools." };
-            if (name === "browser_act") workspaceCheckpoint.markDirty();
+            if (name !== "browser_observe") workspaceCheckpoint.markDirty();
+            if (name === "browser_pursue") {
+              const goal = String(args.goal ?? "").trim();
+              if (!goal) return { error: "browser_pursue needs a goal." };
+              const entities: { label: string; value: string }[] = [];
+              for (const entry of Array.isArray(args.entities) ? args.entities : []) {
+                const row = entry as { label?: unknown; value?: unknown };
+                if (typeof row?.label === "string" && typeof row?.value === "string")
+                  entities.push({ label: row.label, value: row.value });
+              }
+              const values: Record<string, string> = {};
+              for (const [key, value] of Object.entries(
+                (args.values ?? {}) as Record<string, unknown>,
+              ))
+                if (typeof value === "string") values[key] = value;
+              // Every step runs through the same browser call as browser_act, so snapshot
+              // freshness, the human-input epoch and occlusion checks still gate each one.
+              const run = () =>
+                pursueBrowserGoal(
+                  deps.decisions ?? defaultDecisions,
+                  {
+                    goal,
+                    values,
+                    entities,
+                    maxSteps: Number(args.maxSteps) || undefined,
+                    sessionId: runId,
+                    signal: context.signal,
+                  },
+                  {
+                    observe: async () =>
+                      (await deps.sandbox.browser!(
+                        computer,
+                        { action: "snapshot" },
+                        context,
+                      )) as BrowserSnapshot,
+                    act: (request) =>
+                      deps.sandbox.browser!(computer, request as BrowserRequest, context),
+                  },
+                );
+              return computerScreenToolResult(run, finish);
+            }
             let browserRequest: BrowserRequest =
               name === "browser_observe"
                 ? { action: "snapshot" }
@@ -2520,7 +2651,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
             return finish({ ok: true });
           }
           if (name === "web_search") {
-            return finish(await webSearchFromTool(web, context, args));
+            return finish(
+              await webSearchFromTool(web, context, args, {
+                provider: deps.decisions ?? defaultDecisions,
+                sessionId: runId,
+              }),
+            );
           }
           if (name === "web_fetch") {
             return finish(await webFetchFromTool(web, context, args));
@@ -3661,6 +3797,23 @@ export function createRunExecutor(deps: ExecutorDeps) {
 
           if (approvalPausePending) return;
           if (segmentPending) {
+            // A whole segment went by. Before spending another, read whether the run
+            // is making progress: the hash-based loop guard cannot see an agent
+            // retrying the same broken thing with slightly different arguments, and
+            // that is exactly what burns an unattended run's budget. Asked once per
+            // segment, so it costs nothing on the hot path.
+            const stuck = await runIsStuck(deps.decisions ?? defaultDecisions, {
+              goal: task.prompt,
+              evidence: segmentPending.note,
+              runId,
+              signal: runAbortController?.signal,
+            });
+            if (stuck) {
+              throw new RunGuardrailError(
+                "Stopped: this run kept repeating work that was not making progress. Review what it tried before starting it again.",
+                "loop",
+              );
+            }
             await continueInNewSegment(segmentPending.reason, segmentPending.note);
             return;
           }
@@ -4078,7 +4231,7 @@ export function selectBuiltinToolsForRun(options: {
           builtinAgentTools.filter(
             (tool) =>
               options.browserToolsAllowed ||
-              !["browser_observe", "browser_act"].includes(tool.name),
+              !["browser_observe", "browser_act", "browser_pursue"].includes(tool.name),
           ),
           options.graphicalToolsAllowed,
         ),
