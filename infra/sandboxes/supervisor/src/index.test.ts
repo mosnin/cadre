@@ -258,8 +258,9 @@ describe("sandbox supervisor input containment", () => {
     expect(containerActionStep({ kind: "launch", application: "XTerm" }, ":3")).toEqual({
       argv: ["env", "DISPLAY=:3", "xterm"],
     });
-    expect(() => containerActionStep({ kind: "launch", application: "/bin/sh", uri: "-c" }, ":2"))
-      .toThrow();
+    expect(() =>
+      containerActionStep({ kind: "launch", application: "/bin/sh", uri: "-c" }, ":2"),
+    ).toThrow();
     expect(() =>
       containerActionStep(
         { kind: "launch", application: "chromium", uri: "--gpu-launcher=sh -c id" },

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   type ActionApprovalRule,
   applyJudgeDecision,
-  connectorKindFromToolName,
   connectorHintCanClaimReadOnly,
+  connectorKindFromToolName,
   connectorToolNamesMutation,
   connectorToolRequiresApproval,
   isApprovalAskBlock,
