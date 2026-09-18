@@ -158,14 +158,11 @@ export function attachTouchNavigation(rfb, releaseCapture) {
   const screen = document.getElementById("screen");
   const canvas = screen.querySelector("canvas");
   if (!canvas || rfb.viewOnly) return;
-  const cursor = document.createElement("div");
-  cursor.id = "touch-pointer";
-  cursor.hidden = true;
-  cursor.innerHTML =
-    '<svg width="24" height="28" viewBox="0 0 24 28" aria-hidden="true"><path d="M3 2v21l5-6 4 9 4-2-4-8h8Z" fill="white" stroke="black" stroke-width="1.5"/></svg>';
-  screen.append(cursor);
-  let mode = false,
-    zoom = 1,
+  // There is no pointer overlay here on purpose. x11vnc paints the real desktop
+  // cursor into every frame (see the computer image's start.sh), so an overlay
+  // drawn from the same coordinates is a second arrow beside the true one, a few
+  // pixels off because it carries its own hotspot and its own rounding.
+  let zoom = 1,
     heldButtons = 0,
     holdTimer;
   const abort = new AbortController(),
@@ -202,15 +199,6 @@ export function attachTouchNavigation(rfb, releaseCapture) {
       }),
     );
   }
-  let position = { x: canvas.width / 2, y: canvas.height / 2 };
-  function showPointer(at) {
-    position = at;
-    const rect = canvas.getBoundingClientRect(),
-      parent = screen.getBoundingClientRect();
-    cursor.style.left = `${rect.left - parent.left + (at.x / canvas.width) * rect.width}px`;
-    cursor.style.top = `${rect.top - parent.top + (at.y / canvas.height) * rect.height}px`;
-    cursor.hidden = !mode;
-  }
   function button(at, mask, down) {
     heldButtons = down ? heldButtons | mask : heldButtons & ~mask;
     emit(down ? "mousedown" : "mouseup", at, { button: mask === 4 ? 2 : mask === 2 ? 1 : 0 });
@@ -223,7 +211,6 @@ export function attachTouchNavigation(rfb, releaseCapture) {
     point,
     move(at) {
       emit("mousemove", at);
-      showPointer(at);
     },
     button,
     scroll(at, dx, dy) {
@@ -241,13 +228,11 @@ export function attachTouchNavigation(rfb, releaseCapture) {
       );
     },
     view(state) {
-      mode = state.trackpad;
       zoom = state.zoom;
       canvas.style.transformOrigin = "center";
       canvas.style.transform = `translate(${state.pan.x}px, ${state.pan.y}px) scale(${zoom})`;
-      screen.dataset.trackpad = String(mode);
+      screen.dataset.trackpad = String(state.trackpad);
       screen.dataset.zoom = String(zoom);
-      showPointer(position);
     },
   });
   // Wheel buttons are not standard DOM MouseEvent.button values. Dispatch wheel
@@ -366,7 +351,6 @@ export function attachTouchNavigation(rfb, releaseCapture) {
     navigation.cancel();
     resize.disconnect();
     abort.abort();
-    cursor.remove();
   });
   // The sandboxed frame has an opaque origin; the parent validates event.source.
   window.parent.postMessage({ type: "cadre:computer-navigation-ready" }, "*");
