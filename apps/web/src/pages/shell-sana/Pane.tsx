@@ -5,7 +5,6 @@ import {
   Globe,
   Monitor,
   Plus,
-  Sparkles,
   Terminal,
   UserPlus,
   Zap,
@@ -25,46 +24,80 @@ import { SHELL } from "./tokens";
 
 export type Suggestion = {
   id: string;
-  icon: ReactNode;
+  /**
+   * Every row in the reference that names a third-party app carries that app's
+   * own logo — Google Docs, Outlook, Teams — not a shape standing in for it.
+   * `logo` is the URL the integration provider supplies, the same one the
+   * integrations overlay already renders. When a row is about one of Cadre's
+   * own surfaces instead (a Computer, a terminal, memory) there is no
+   * third-party mark to show and `icon` is correct.
+   */
+  logo?: string;
+  /** Shown when an app is named but its provider gave us no mark. */
+  appName?: string;
+  icon?: ReactNode;
   /** Plain text, with the destination emphasised — as in the reference. */
   text: string;
   target: string;
 };
 
+function SuggestionMark({ suggestion }: { suggestion: Suggestion }) {
+  if (suggestion.logo) {
+    return (
+      <img
+        src={suggestion.logo}
+        alt=""
+        width={16}
+        height={16}
+        className="size-4 shrink-0 rounded-[3px] object-contain"
+      />
+    );
+  }
+  if (suggestion.appName) {
+    // A labelled tile, never an empty box: the row still reads as being about
+    // that app when its provider has not given us a mark.
+    return (
+      <span
+        aria-hidden
+        className="grid size-4 shrink-0 place-items-center rounded-[3px] text-[8px] font-semibold uppercase"
+        style={{ background: "var(--sana-hairline)", color: "var(--sana-fg-soft)" }}
+      >
+        {suggestion.appName.slice(0, 2)}
+      </span>
+    );
+  }
+  return <span className="shrink-0">{suggestion.icon}</span>;
+}
+
 export const CADRE_SUGGESTIONS: Suggestion[] = [
+  // Cadre's own surfaces: no third-party mark exists for these, so they carry
+  // Cadre's icons.
   {
-    id: "brief",
-    icon: <Zap size={15} className="text-amber-500" />,
+    id: "resume",
+    icon: <Zap size={15} style={{ color: "var(--sana-fg-soft)" }} />,
     text: "Pick up where",
     target: "yesterday's run",
   },
   {
     id: "computer",
-    icon: <Monitor size={15} className="text-sky-600" />,
+    icon: <Monitor size={15} style={{ color: "var(--sana-fg-soft)" }} />,
     text: "Open a browser on the",
     target: "Team Computer",
   },
   {
     id: "terminal",
-    icon: <Terminal size={15} className="text-neutral-700" />,
+    icon: <Terminal size={15} style={{ color: "var(--sana-fg-soft)" }} />,
     text: "Run a build and report back from the",
     target: "terminal",
   },
-  {
-    id: "schedule",
-    icon: <CircleDashed size={15} className="text-violet-500" />,
-    text: "Turn this into a",
-    target: "recurring schedule",
-  },
-  {
-    id: "memory",
-    icon: <Sparkles size={15} className="text-rose-500" />,
-    text: "Remember this for next time in",
-    target: "memory",
-  },
+  // Integration rows. `logo` is filled from the connected provider at runtime,
+  // exactly as the integrations overlay does it; the tile is what shows until
+  // then.
+  { id: "gmail", appName: "Gmail", text: "Cut through the noise in", target: "Gmail" },
+  { id: "slack", appName: "Slack", text: "Recap this morning in", target: "Slack" },
   {
     id: "connect",
-    icon: <Globe size={15} className="text-neutral-400" />,
+    icon: <Globe size={15} style={{ color: "var(--sana-muted)" }} />,
     text: "Connect your apps for better answers",
     target: "",
   },
@@ -147,7 +180,7 @@ export function Pane({ agentName, suggestions }: { agentName: string; suggestion
                   borderColor: "var(--sana-hairline)",
                 }}
               >
-                <span className="shrink-0">{suggestion.icon}</span>
+                <SuggestionMark suggestion={suggestion} />
                 <span className="truncate" style={{ color: "var(--sana-fg-soft)" }}>
                   {suggestion.text}
                   {suggestion.target ? (

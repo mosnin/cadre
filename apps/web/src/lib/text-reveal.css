@@ -20,11 +20,19 @@
   --reveal-duration: 1.2s;
   --reveal-delay: 0.1s;
   --reveal-blur: 2px;
-  --reveal-color-1: rgb(121, 184, 255);
-  --reveal-color-2: rgb(31, 128, 255);
-  --reveal-color-3: rgb(255, 91, 244);
-  --reveal-color-4: rgb(255, 48, 41);
-  --reveal-color-5: rgb(254, 123, 2);
+  /*
+   * Claude's palette rather than the generic rainbow the effect ships with.
+   * The ramp runs manilla -> kraft -> the coral Claude leads with -> book
+   * cloth -> a deeper terracotta, so the sweep reads as the model that did
+   * the work instead of as decoration. Only the five colour values change;
+   * the stops, the 300% window and the 66.67% transparent boundary are
+   * untouched, which is what the effect depends on.
+   */
+  --reveal-color-1: rgb(235, 219, 188);
+  --reveal-color-2: rgb(212, 162, 127);
+  --reveal-color-3: rgb(217, 119, 87);
+  --reveal-color-4: rgb(204, 120, 92);
+  --reveal-color-5: rgb(189, 93, 58);
   display: inline;
   color: transparent;
   background-image: linear-gradient(

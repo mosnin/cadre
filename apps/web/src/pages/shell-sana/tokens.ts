@@ -14,12 +14,16 @@ export const SHELL = {
   paneBg: "#ffffff",
 
   /** Workspace switcher block above the nav. */
-  workspaceHeight: 44,
+  /** 44 in the reference; 56 here because Cadre's switcher carries a subtitle. */
+  workspaceHeight: 56,
 
   /** Primary nav rows. */
   navPitch: 38,
   navFontSize: 13.5,
   navIconSize: 15,
+
+  /** Bot avatars in the rail, sized to the nav row. */
+  botAvatarSize: 20,
 
   /** Section labels above a group ("Bots", "Today"). */
   sectionFontSize: 11,

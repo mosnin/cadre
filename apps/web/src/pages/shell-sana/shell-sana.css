@@ -1,44 +1,36 @@
 /*
- * Palette for the Sana-derived shell, both themes, sampled off the reference
- * screenshots rather than approximated:
+ * Palette for the Sana-derived shell.
  *
- *   light  rail #f9f9f9  pane #ffffff  composer #f3f3f3  primary #0b1418
- *   dark   rail #0e0e0e  pane #131313  composer #1e1e1e  primary #e8e8e8
+ * Dark is the default, and it is Cadre's own dark — `--sidebar`, `--background`
+ * and friends straight out of ui-tokens — not the values sampled off Sana.
+ * Taking Sana's near-blacks would have made this one screen a slightly
+ * different colour from every other screen in the app, which is worse than not
+ * matching the reference exactly. The reference decides the geometry; Cadre
+ * decides the colour.
  *
- * Cadre defaults to dark (`:root` in ui-tokens), so the dark values are the
- * ones most people will see; the light set is applied under the same
- * `[data-theme="light"]` switch the rest of the app uses.
+ * Light maps to the same token names so the shell follows the app's own
+ * appearance switch rather than carrying a second one.
  */
 
 .sana-shell {
-  --sana-rail: #0e0e0e;
-  --sana-pane: #131313;
-  --sana-composer: #1e1e1e;
-  --sana-primary: #e8e8e8;
-  --sana-primary-fg: #0b0b0b;
-  --sana-fg: #ededed;
-  --sana-fg-soft: #a8a8a8;
-  --sana-muted: #6f6f6f;
-  --sana-hairline: #242424;
-  --sana-active: #1e1e1e;
+  --sana-rail: var(--sidebar, #171717);
+  --sana-pane: var(--background, #1c1c1c);
+  --sana-composer: var(--card, #242424);
+  --sana-primary: var(--primary, #f2f2f2);
+  --sana-primary-fg: var(--primary-foreground, #1c1c1c);
+  --sana-fg: var(--foreground, #f4f4f4);
+  --sana-fg-soft: var(--muted-foreground, #a8a8a8);
+  --sana-muted: color-mix(in oklab, var(--muted-foreground, #a8a8a8) 70%, transparent);
+  --sana-hairline: var(--sidebar-border, #333333);
+  --sana-active: var(--sidebar-accent, #242424);
   --sana-active-shadow: none;
+  --sana-success: var(--success, #4ecb71);
+  --sana-warning: var(--warning, #e9c46a);
+
+  color: var(--sana-fg);
 }
 
 [data-theme="light"] .sana-shell,
 .sana-shell[data-theme="light"] {
-  --sana-rail: #f9f9f9;
-  --sana-pane: #ffffff;
-  --sana-composer: #f3f3f3;
-  --sana-primary: #0b1418;
-  --sana-primary-fg: #ffffff;
-  --sana-fg: #171717;
-  --sana-fg-soft: #525252;
-  --sana-muted: #a3a3a3;
-  --sana-hairline: #f0f0f0;
-  --sana-active: #ffffff;
   --sana-active-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-.sana-shell {
-  color: var(--sana-fg);
 }
