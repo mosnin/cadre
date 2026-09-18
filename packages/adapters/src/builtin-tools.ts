@@ -73,6 +73,27 @@ export const builtinAgentTools: ConnectorTool[] = [
     },
   },
   {
+    name: "browser_pursue",
+    description:
+      "Take several browser steps toward one goal in a single call, when the next steps are obvious from the page: clicking through a form, a wizard, or a results list. A fast decision model picks each operation and its target from the controls actually on the page. Supply values for any field that must be typed, keyed by the field's visible name; it never invents a value, and hands control back when a value is missing, when it is unsure, or when the goal is met. Prefer browser_act for a single deliberate action.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        goal: {
+          type: "string",
+          description: "What should be true on the page when this is finished.",
+        },
+        values: {
+          type: "object",
+          description: "Text to type, keyed by the field's visible name.",
+          additionalProperties: { type: "string" },
+        },
+        maxSteps: { type: "number", description: "Up to 8. Defaults to 8." },
+      },
+      required: ["goal"],
+    },
+  },
+  {
     name: "computer_observe",
     description:
       "Capture the current screen of this bot's computer. Returns frame metadata and an image. Observe before coordinate-based actions and whenever another actor may have changed the desktop.",

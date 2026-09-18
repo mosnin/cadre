@@ -155,6 +155,8 @@ import {
 import { observationToolResult, parseComputerActions } from "./computer-tools.js";
 import { checkpointAfterComputerWork } from "./computer-workspace.js";
 import { sanitizeConnectorError } from "./connector-safety.js";
+import { type BrowserSnapshot, pursueBrowserGoal } from "./decision-browser.js";
+import { routeRunModel, routerCandidates } from "./decision-routing.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
 import { isSandboxGoneError } from "./e2b-sandbox.js";
 import { handoffToGroupBot, loadGroupContext } from "./group-handoff.js";
@@ -584,6 +586,25 @@ export function buildApprovalContinuation(
 const MAX_INTERRUPTED_ATTEMPTS_AFTER_EFFECTS = 2;
 const INTERRUPTED_TOO_OFTEN =
   "Stopped: this run was interrupted repeatedly after it had already made changes. Review what was done before starting it again.";
+
+/**
+ * What the run was actually asked to do, for a routing decision. The newest user message in
+ * the thread, which is the request the model is about to answer.
+ */
+async function routableTaskText(
+  prisma: ExecutorDeps["prisma"],
+  run: { threadId: string },
+): Promise<string> {
+  const message = await prisma.message
+    .findFirst({
+      where: { threadId: run.threadId, role: "user" },
+      orderBy: { seq: "desc" },
+      select: { blocks: true },
+    })
+    .catch(() => null);
+  if (!message) return "";
+  return blocksToAgentHistoryText((message.blocks ?? []) as MessageBlock[]).slice(0, 4_000);
+}
 
 function escapeProgressNote(value: string): string {
   return value.replace(/<\/?progress_note>/gi, "[progress_note]");
@@ -1255,12 +1276,23 @@ export function createRunExecutor(deps: ExecutorDeps) {
           settings?.defaultModelProvider ??
           runDeployment?.provider ??
           runtimeFallback?.provider;
-        const runModelId =
+        const chosenModelId =
           (useModelOverride ? bot.modelId : null) ??
           credential?.defaultModel ??
-          settings?.defaultModelId ??
-          runDeployment?.model ??
-          runtimeFallback?.id;
+          settings?.defaultModelId;
+        let runModelId = chosenModelId ?? runDeployment?.model ?? runtimeFallback?.id;
+        // Only a run nobody chose a model for is routed: an explicit bot, credential or
+        // deployment-settings choice is the user's and is never second-guessed.
+        const routerPool = chosenModelId ? [] : routerCandidates();
+        if (routerPool.length > 1 && runModelId) {
+          const routed = await routeRunModel(deps.decisions ?? defaultDecisions, {
+            task: await routableTaskText(deps.prisma, run),
+            candidates: routerPool,
+            fallbackModel: runModelId,
+            sessionId: runId,
+          });
+          if (routed) runModelId = routed;
+        }
         if (!runModelProvider || !runModelId) {
           const failed = await deps.events.finalizeRun({
             spaceId: run.spaceId,
@@ -2144,7 +2176,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               : Promise.resolve(true);
           const finish = async (result: unknown) =>
             (await persistEffectResult(result)) ? result : uncertainEffectResult(name);
-          if (name === "browser_observe" || name === "browser_act") {
+          if (name === "browser_observe" || name === "browser_act" || name === "browser_pursue") {
             if (await getActiveTeachingSession(deps.prisma, run.spaceId, run.botId)) {
               return { error: "Teaching is in progress. Stop teaching before using the computer." };
             }
@@ -2163,7 +2195,40 @@ export function createRunExecutor(deps: ExecutorDeps) {
               };
             if (!deps.sandbox.browser)
               return { error: "Structured browser control is unavailable. Use desktop tools." };
-            if (name === "browser_act") workspaceCheckpoint.markDirty();
+            if (name !== "browser_observe") workspaceCheckpoint.markDirty();
+            if (name === "browser_pursue") {
+              const goal = String(args.goal ?? "").trim();
+              if (!goal) return { error: "browser_pursue needs a goal." };
+              const values: Record<string, string> = {};
+              for (const [key, value] of Object.entries(
+                (args.values ?? {}) as Record<string, unknown>,
+              ))
+                if (typeof value === "string") values[key] = value;
+              // Every step runs through the same browser call as browser_act, so snapshot
+              // freshness, the human-input epoch and occlusion checks still gate each one.
+              const run = () =>
+                pursueBrowserGoal(
+                  deps.decisions ?? defaultDecisions,
+                  {
+                    goal,
+                    values,
+                    maxSteps: Number(args.maxSteps) || undefined,
+                    sessionId: runId,
+                    signal: context.signal,
+                  },
+                  {
+                    observe: async () =>
+                      (await deps.sandbox.browser!(
+                        computer,
+                        { action: "snapshot" },
+                        context,
+                      )) as BrowserSnapshot,
+                    act: (request) =>
+                      deps.sandbox.browser!(computer, request as BrowserRequest, context),
+                  },
+                );
+              return computerScreenToolResult(run, finish);
+            }
             let browserRequest: BrowserRequest =
               name === "browser_observe"
                 ? { action: "snapshot" }
@@ -4093,7 +4158,7 @@ export function selectBuiltinToolsForRun(options: {
           builtinAgentTools.filter(
             (tool) =>
               options.browserToolsAllowed ||
-              !["browser_observe", "browser_act"].includes(tool.name),
+              !["browser_observe", "browser_act", "browser_pursue"].includes(tool.name),
           ),
           options.graphicalToolsAllowed,
         ),

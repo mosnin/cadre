@@ -41,7 +41,7 @@ describe("ranking web search results", () => {
   });
 
   it("sends one request carrying every result", async () => {
-    const decide = vi.fn(async () => ({ answers: {}, model: "m" }));
+    const decide = vi.fn(async (_request: unknown) => ({ answers: {}, model: "m" }));
     await rankWebSearchHits({ decide }, "q", HITS);
     expect(decide).toHaveBeenCalledTimes(1);
     const request = decide.mock.calls[0]![0] as unknown as {
