@@ -1,0 +1,44 @@
+/*
+ * Palette for the Sana-derived shell, both themes, sampled off the reference
+ * screenshots rather than approximated:
+ *
+ *   light  rail #f9f9f9  pane #ffffff  composer #f3f3f3  primary #0b1418
+ *   dark   rail #0e0e0e  pane #131313  composer #1e1e1e  primary #e8e8e8
+ *
+ * Cadre defaults to dark (`:root` in ui-tokens), so the dark values are the
+ * ones most people will see; the light set is applied under the same
+ * `[data-theme="light"]` switch the rest of the app uses.
+ */
+
+.sana-shell {
+  --sana-rail: #0e0e0e;
+  --sana-pane: #131313;
+  --sana-composer: #1e1e1e;
+  --sana-primary: #e8e8e8;
+  --sana-primary-fg: #0b0b0b;
+  --sana-fg: #ededed;
+  --sana-fg-soft: #a8a8a8;
+  --sana-muted: #6f6f6f;
+  --sana-hairline: #242424;
+  --sana-active: #1e1e1e;
+  --sana-active-shadow: none;
+}
+
+[data-theme="light"] .sana-shell,
+.sana-shell[data-theme="light"] {
+  --sana-rail: #f9f9f9;
+  --sana-pane: #ffffff;
+  --sana-composer: #f3f3f3;
+  --sana-primary: #0b1418;
+  --sana-primary-fg: #ffffff;
+  --sana-fg: #171717;
+  --sana-fg-soft: #525252;
+  --sana-muted: #a3a3a3;
+  --sana-hairline: #f0f0f0;
+  --sana-active: #ffffff;
+  --sana-active-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.sana-shell {
+  color: var(--sana-fg);
+}

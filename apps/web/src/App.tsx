@@ -3,6 +3,7 @@ import { Button, Skeleton } from "@rakazo/ui-web";
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { LoadingState } from "./components/ai/primitives";
+import { SHELL_SANA_FIXTURE, ShellSana } from "./pages/shell-sana/ShellSana";
 import { authClient } from "./lib/auth";
 import { safeLoginReturn, useAuthCapabilities } from "./lib/auth-capabilities";
 import { markAfterPaint, markOnce } from "./lib/performance";
@@ -156,6 +157,10 @@ export function App() {
             }
           />
           <Route path="/reset-password" element={<PasswordResetPage />} />
+          <Route
+            path="/design/shell"
+            element={<ShellSana {...SHELL_SANA_FIXTURE} />}
+          />
           <Route
             path="/onboarding"
             element={

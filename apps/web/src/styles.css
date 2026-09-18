@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "@rakazo/ui-web/styles.css";
 @import "@fontsource-variable/geist/wght.css";
+@import "./lib/text-reveal.css";
 
 @source "../../packages/ui-web/src/**/*.{ts,tsx}";
 @source "./src/**/*.{ts,tsx}";
