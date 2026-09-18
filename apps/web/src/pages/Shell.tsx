@@ -67,6 +67,7 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  modalIsOpen,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -507,7 +508,10 @@ export function ShellPage() {
   useEffect(() => {
     if (!navigationOpen) return;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const frame = requestAnimationFrame(() => sidebarSearchRef.current?.focus());
+    const frame = requestAnimationFrame(() => {
+      if (modalIsOpen()) return;
+      sidebarSearchRef.current?.focus();
+    });
     return () => {
       cancelAnimationFrame(frame);
       const active = document.activeElement;
@@ -517,6 +521,10 @@ export function ShellPage() {
           // A user can focus another surface before this frame runs.
           if (current !== document.body && current && !navigatorRef.current?.contains(current))
             return;
+          // Settings collapses the navigator as it opens, so this restoration
+          // is queued behind a dialog that now owns the focus. Handing it back
+          // to the page would take it off the dialog.
+          if (modalIsOpen()) return;
           if (previous?.isConnected && previous !== document.body) previous.focus();
           else if (desktopLayout) showBotsRef.current?.focus();
         });

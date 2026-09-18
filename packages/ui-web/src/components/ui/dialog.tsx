@@ -16,6 +16,7 @@ import {
   CenterMorphModalClose,
   CenterMorphModalContent,
   CenterMorphModalTrigger,
+  modalIsOpen,
 } from "../../directory/center-morph-modal";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
@@ -163,4 +164,5 @@ export {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  modalIsOpen,
 };
