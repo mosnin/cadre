@@ -293,6 +293,53 @@ ip6tables -I DOCKER-USER -d fd00:ec2::/32  -j DROP
 
 Require IMDSv2 (or the provider's equivalent) as well, and give the instance the smallest role you
 can. This is a host control; Rakazo cannot enforce it from inside the container.
+## Typed decisions
+
+`docs/jev.md` is the inventory: every decision, what it replaces, and what it
+falls back to. The short version follows.
+
+Some points in a run need a small, fast judgement rather than prose: which model serves a run,
+which search result answers the question, which control to operate next. A decision model
+answers those directly, returning a typed choice and a calibrated probability per option
+instead of text that has to be parsed.
+
+Rakazo uses TypeSafe's Jev through OpenRouter's Decisions API. It reuses `OPENROUTER_API_KEY`,
+so if the deployment already routes models through OpenRouter there is nothing to add. Input is
+billed at $0.042 per million tokens and output is free, so a decision costs a small fraction of
+the generation it replaces.
+
+```bash
+JEV_DECISIONS_ENABLED=1     # set to 0 to turn every decision off
+JEV_MODEL=typesafe/jev-1.13 # the decision model
+JEV_API_KEY=                # only if decisions should not use OPENROUTER_API_KEY
+JEV_TIMEOUT_MS=6000         # per request; 500 to 30000
+```
+
+Nothing requires it. With no key, or with `JEV_DECISIONS_ENABLED=0`, every caller keeps the
+behaviour it has without a decision model: search returns the engine's own order, `browser_pursue`
+takes no steps, and runs use the model they would otherwise have used. A hedged answer does the
+same, because confidence is checked per action rather than against one global threshold, and an
+answer naming an option that was never offered is discarded.
+
+Decisions send the state a question is about to a third party: the search query and result
+snippets, the page text and control names, or the newest user message when routing. Leave it
+off for workloads that cannot share that context.
+
+### Routing runs between models
+
+With a pool configured, a run that nobody chose a model for is routed to the cheapest model in
+the pool that suits the request. An explicit bot, credential or deployment-settings choice is
+never overridden, and a decision the model is not confident about keeps the default.
+
+```bash
+JEV_ROUTER_MODELS='[
+  {"model":"qwen/qwen3-8b","description":"Cheap and fast. Short answers, lookups, summaries."},
+  {"model":"qwen/qwen3-235b-a22b","description":"Strong reasoning. Long multi-step work and code."}
+]'
+```
+
+Each entry needs a provider model id and a description; the description is all the decision
+model reads about a candidate. An unset or malformed pool routes nothing.
 
 ## Choosing a computer provider
 

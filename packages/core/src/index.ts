@@ -12,6 +12,7 @@ export * from "./composer-mentions.js";
 export * from "./composer-slash.js";
 export { waitForComputerStartup } from "./computer-startup.js";
 export * from "./cron.js";
+export * from "./decisions.js";
 export * from "./events.js";
 export * from "./featured-connectors.js";
 export * from "./group-mentions.js";
