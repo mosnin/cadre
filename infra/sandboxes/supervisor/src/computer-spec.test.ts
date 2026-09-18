@@ -143,6 +143,14 @@ describe("graphical computer spec", () => {
     expect(start).toMatch(/xdg-settings set default-web-browser rakazo-browser\.desktop/);
     expect(start).not.toMatch(/xdg-mime default rakazo-browser\.desktop .*\|\| true/);
     expect(start).toMatch(/x11vnc .* -viewonly /);
+    // WebGL and GPU canvas must stay available: a browser reporting neither reads as
+    // broken or automated and cannot clear a Cloudflare challenge, even for a person.
+    const browserFlags = browser.split("\n").find((line) => line.startsWith("FLAGS=")) ?? "";
+    expect(browserFlags).toMatch(/--use-gl=angle/);
+    expect(browserFlags).toMatch(/--use-angle=swiftshader/);
+    expect(browserFlags).not.toMatch(/--disable-gpu/);
+    expect(browserFlags).not.toMatch(/--disable-software-rasterizer/);
+    expect(browserFlags).not.toMatch(/--test-type/);
     expect(start).toContain("-nocursorshape -nocursorpos");
     expect(browser).toMatch(/\.browser-profiles\/chromium/);
     expect(browser).toMatch(/chromium-screen-\$\{DISPLAY/);

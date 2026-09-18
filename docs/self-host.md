@@ -206,6 +206,8 @@ UNATTENDED_WAIT_MS=1800000 # how long an unattended run waits for approval or an
 MODEL_MAX_RETRIES=4 # client-side retries for transient model provider errors; maximum 10
 MODEL_TURN_RETRIES=3 # whole-turn retries when a model stream fails after it started; maximum 10
 RAKAZO_COMPUTER_MEMORY_MB=4096 # memory cap for each Docker bot computer; minimum 512
+MCP_STDIO_ENABLED=false   # let MCP servers run as local processes on the worker host
+MCP_STDIO_ALLOWED_COMMANDS= # comma-separated exact commands stdio MCP may launch
 E2B_API_KEY=              # when SANDBOX_PROVIDER=e2b
 DAYTONA_API_KEY=          # when SANDBOX_PROVIDER=daytona
 BOX_API_KEY=              # when SANDBOX_PROVIDER=box
@@ -218,11 +220,23 @@ with subagents. Token usage is checked after each model response, so in-flight r
 the threshold. Already-issued external effects may finish after cancellation.
 
 Six identical tool calls within the last 24 calls stop the run, even with intervening text.
-Each run can create at most four bots or four schedules, send eight peer messages, and hand off
-once. Bot and schedule creation requires a user-triggered run; automated turns cannot create more
-persistent automation. A guardrail failure pauses its originating schedule. Review the failure
-before manually resuming the schedule or sending a new request. Three failed setup attempts stop
+Calls that take no arguments, such as the observation tools, are exempt: repeating them is how a
+browser or desktop task verifies each step. Each run can create at most four bots or four
+schedules, send eight peer messages, and hand off once. Bot and schedule creation requires a
+user-triggered run; automated turns cannot create more persistent automation.
+
+A time, tool or token limit ends the current budget segment rather than the run. Runs with no
+person waiting (schedule, webhook, peer message, spawn) write a progress note, reset the tool
+budget and continue in a new segment, up to `MAX_RUN_SEGMENTS`; the schedule stays active. Only
+automation abuse, such as an automated turn trying to create more automation, pauses a schedule,
+and that posts a thread event and a notification naming the reason. An unattended run that asks
+for approval or an answer fails after `UNATTENDED_WAIT_MS` instead of waiting forever, and a new
+occurrence is skipped while the previous one is still running. Three failed setup attempts stop
 the run instead of retrying indefinitely.
+
+`MCP_STDIO_ENABLED` lets MCP servers run as local processes on the worker host. It is off by
+default; leave it off unless you need it. When enabled, `MCP_STDIO_ALLOWED_COMMANDS` must list
+each permitted command exactly, and anything not listed is refused.
 
 Apply database migrations before starting updated API and worker processes. The connection migration
 preserves older revoked connections as disconnected; reconnect explicitly when needed. A failed
