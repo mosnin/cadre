@@ -464,9 +464,9 @@ export function importOpenApiDocument(document: Record<string, unknown>): {
           properties,
           ...(required.length > 0 ? { required: [...new Set(required)] } : {}),
         },
-        // A GET can still change state in someone else's API. An imported operation is
-        // consequential until the person who imported it says otherwise.
-        readOnly: false,
+        // A GET is the document's own claim, so it only proposes read-only: the name guard
+        // where the tool is exposed has the final say, and a "GET /transfer" is refused there.
+        readOnly: method === "get",
         queryParameters,
         headerParameters,
       });

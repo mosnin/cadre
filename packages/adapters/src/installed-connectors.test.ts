@@ -569,3 +569,55 @@ describe("OpenAPI connector import", () => {
     ).rejects.toThrow("Sensitive headers cannot be model-controlled");
   });
 });
+
+describe("installed API operations and the read-only claim", () => {
+  function installWith(operations: Array<{ id: string; readOnly: boolean }>) {
+    return {
+      id: "api-guard",
+      kind: "api",
+      name: "Payments API",
+      source: "https://api.example.test/v1",
+      secretId: null,
+      createdAt: new Date(0),
+      config: {
+        auth: { type: "none" },
+        operations: operations.map((operation) => ({
+          id: operation.id,
+          description: operation.id,
+          method: "GET",
+          path: `/${operation.id}`,
+          inputSchema: { type: "object", properties: {} },
+          readOnly: operation.readOnly,
+        })),
+      },
+    };
+  }
+
+  it("refuses a document's read-only claim on an operation whose name announces a mutation", async () => {
+    const install = installWith([
+      { id: "getContact", readOnly: true },
+      { id: "transferFunds", readOnly: true },
+      { id: "refund_order", readOnly: true },
+      { id: "listContacts", readOnly: false },
+    ]);
+    const prisma = {
+      capabilityInstall: {
+        findMany: vi.fn().mockResolvedValue([install]),
+        findFirst: vi.fn().mockResolvedValue(install),
+      },
+    };
+    const provider = new InstalledConnectorProvider(prisma as never, {} as never);
+    const tools = await provider.discoverTools({
+      workspaceId: "workspace-1",
+      userId: "user-1",
+      signal: new AbortController().signal,
+    } as never);
+    const readOnly = Object.fromEntries(tools.map((tool) => [tool.name, tool.readOnly]));
+    expect(readOnly).toMatchObject({
+      getContact: true,
+      transferFunds: false,
+      refund_order: false,
+      listContacts: false,
+    });
+  });
+});
