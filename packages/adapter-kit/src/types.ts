@@ -198,6 +198,10 @@ export interface BrowserRequest {
    * command line) and no result echoes it.
    */
   secretText?: string;
+  /** Host the credential belongs to. The browser refuses to type it into any other page. */
+  secretHost?: string;
+  /** Which half of the saved login is being typed, so the browser can require a password field. */
+  secretField?: "username" | "password";
 }
 
 export interface SandboxCapabilities {

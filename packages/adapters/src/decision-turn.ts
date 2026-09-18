@@ -20,8 +20,15 @@
  */
 
 import type { ActionApprovalRule } from "@rakazo/core";
-import { actionableChoice, choice, DECISION_CONFIDENCE, type NoulAnswer, noul } from "@rakazo/core";
-import { type AutoReviewJudgeResult, escapePromptData } from "./auto-review.js";
+import {
+  actionableChoice,
+  choice,
+  DECISION_CONFIDENCE,
+  escapePromptData,
+  type NoulAnswer,
+  noul,
+} from "@rakazo/core";
+import type { AutoReviewJudgeResult } from "./auto-review.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 const MAX_TASK_CHARS = 400;

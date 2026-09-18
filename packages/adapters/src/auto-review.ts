@@ -4,7 +4,7 @@ import type {
   ModifyModelOAuthCredential,
 } from "@rakazo/adapter-kit";
 import type { ActionApprovalRule } from "@rakazo/core";
-import { type AutoReviewJudgeDecision, redactSecrets } from "@rakazo/core";
+import { type AutoReviewJudgeDecision, escapePromptData, redactSecrets } from "@rakazo/core";
 import { resolveDeploymentModel } from "./deployment-model.js";
 import { LOCAL_PROVIDER_ID } from "./pi-local-provider.js";
 
@@ -148,11 +148,6 @@ function truncate(value: string, max: number): string {
   const trimmed = value.trim();
   if (trimmed.length <= max) return trimmed;
   return `${trimmed.slice(0, max - 1)}…`;
-}
-
-/** Untrusted data goes to a model as data, never as something that could read as markup. */
-export function escapePromptData(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 function sanitizeReason(reason: string | undefined): string | undefined {

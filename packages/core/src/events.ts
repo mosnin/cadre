@@ -323,6 +323,32 @@ export function redactSecrets(value: string, secrets: string[]): string {
   }, value);
 }
 
+/**
+ * Redact every string inside a tool result before the model sees it. A page can echo a typed
+ * password back in its URL, an aria-label or its text, so the value has to be stripped on the
+ * way out of the tool, not only out of the narration the user reads.
+ */
+export function redactSecretsDeep<T>(value: T, secrets: string[]): T {
+  const active = secrets.filter((secret) => secret.length > 0);
+  if (active.length === 0) return value;
+  const walk = (current: unknown): unknown => {
+    if (typeof current === "string") return redactSecrets(current, active);
+    if (Array.isArray(current)) return current.map(walk);
+    if (current && typeof current === "object") {
+      // Only plain objects are rebuilt; anything else (a typed array of image bytes, a Date)
+      // is passed through so redaction never changes a value's shape.
+      const proto = Object.getPrototypeOf(current);
+      if (proto !== Object.prototype && proto !== null) return current;
+      const out: Record<string, unknown> = {};
+      for (const [key, item] of Object.entries(current as Record<string, unknown>))
+        out[redactSecrets(key, active)] = walk(item);
+      return out;
+    }
+    return current;
+  };
+  return walk(value) as T;
+}
+
 export function containsSecret(value: unknown, secrets: string[]): boolean {
   const active = secrets.filter((secret) => secret.length > 0);
   if (active.length === 0) return false;

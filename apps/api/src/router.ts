@@ -3520,7 +3520,9 @@ export function createRouter(deps: RouterDeps) {
     siteLogins: {
       list: authed.siteLogins.list.handler(async ({ context }) => {
         const rows = await deps.prisma.siteLogin.findMany({
-          where: { spaceId: context.actor.spaceId },
+          // A saved credential belongs to the person who saved it: other members of the space
+          // never see it, use it, or delete it.
+          where: { spaceId: context.actor.spaceId, userId: context.actor.userId },
           orderBy: [{ host: "asc" }, { username: "asc" }],
         });
         return rows.map(siteLoginDto);
@@ -3545,8 +3547,9 @@ export function createRouter(deps: RouterDeps) {
           });
           const existing = await tx.siteLogin.findUnique({
             where: {
-              spaceId_host_username: {
+              spaceId_userId_host_username: {
                 spaceId: context.actor.spaceId,
+                userId: context.actor.userId,
                 host: input.host,
                 username: input.username,
               },
@@ -3574,7 +3577,7 @@ export function createRouter(deps: RouterDeps) {
       }),
       remove: authed.siteLogins.remove.handler(async ({ context, input }) => {
         const login = await deps.prisma.siteLogin.findFirst({
-          where: { id: input.id, spaceId: context.actor.spaceId },
+          where: { id: input.id, spaceId: context.actor.spaceId, userId: context.actor.userId },
         });
         if (!login) throw new ORPCError("NOT_FOUND", { message: "Login not found." });
         // The secret row owns the login row, so removing it removes both.

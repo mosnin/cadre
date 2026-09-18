@@ -109,7 +109,9 @@ export function containerCreateOptions(input: ComputerCreateInput) {
       CapDrop: ["ALL"],
       SecurityOpt: ["no-new-privileges:true"],
       PidsLimit: 2048,
-      ReadonlyPaths: ["/usr/share/novnc"],
+      // No ReadonlyPaths entry: a non-empty list replaces Docker's defaults, which cover
+      // /proc/sys, /proc/irq and /proc/sysrq-trigger. noVNC is already root-owned and the
+      // container runs as an unprivileged user, so the entry bought nothing and cost those.
       AutoRemove: false,
       NetworkMode: input.networkMode ?? "bridge",
     },
@@ -247,8 +249,15 @@ export function computerMemoryBytes(env: NodeJS.ProcessEnv = process.env): numbe
   return DEFAULT_COMPUTER_MEMORY_BYTES;
 }
 
-/** Docker rejects memory limits on hosts without the memory cgroup controller. */
+/**
+ * Docker rejects memory limits on hosts without the memory cgroup controller. Only the
+ * daemon's own "cannot enforce this" wording counts: a looser match would drop the cap on an
+ * unrelated cgroup error and let one computer take the host's memory with it.
+ */
+const MEMORY_LIMIT_UNSUPPORTED =
+  /your kernel does not support (memory|swap) limit|memory (limit|cgroup) (is )?not supported|cannot set memory limit|memory\.(max|limit_in_bytes)|memory cgroup (is )?not (mounted|available|enabled)|swap limit capabilities/i;
+
 export function isMemoryLimitUnsupportedError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return /memory (limit|cgroup)|cgroup.*memory|swap limit|MemorySwap/i.test(message);
+  return MEMORY_LIMIT_UNSUPPORTED.test(message);
 }

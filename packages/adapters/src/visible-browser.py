@@ -96,6 +96,10 @@ def bounded_request(req):
     if action == 'fill_protected':
         if not isinstance(os.environ.get('RAKAZO_PROTECTED_TEXT'), str) or not os.environ.get('RAKAZO_PROTECTED_TEXT'):
             raise ValueError('Protected text is missing')
+        if not isinstance(req.get('secretHost'), str) or not req['secretHost'].strip():
+            raise ValueError('A protected fill must name the host the credential belongs to')
+        if req.get('secretField') not in ('username', 'password'):
+            raise ValueError('A protected fill must name the username or password field')
     if action == 'navigate':
         url = req.get('url', '')
         if not isinstance(url, str) or len(url) > 4096 or urlsplit(url).scheme not in ('http', 'https') or not urlsplit(url).hostname:
@@ -165,6 +169,13 @@ def validate_human_input(observed):
         raise ValueError('The user changed this screen. Take a fresh browser snapshot before acting.')
 
 
+def host_matches(page_host, saved_host):
+    page_host = (page_host or '').strip().lower().rstrip('.')
+    saved_host = (saved_host or '').strip().lower().rstrip('.')
+    if not page_host or not saved_host: return False
+    return page_host == saved_host or page_host.endswith('.' + saved_host)
+
+
 def validate_reference(state, req, target, loader):
     if state.get('snapshotId') != req.get('snapshotId') or state.get('target') != target or state.get('loader') != loader:
         raise ValueError('The browser snapshot is stale. Take a new snapshot before acting.')
@@ -217,6 +228,33 @@ class VisibleBrowser:
     def loader(self):
         return self.call('Page.getFrameTree')['frameTree']['frame'].get('loaderId')
 
+    def top_frame_url(self, backend):
+        # The document URL comes from the browser's own frame tree, never from page
+        # JavaScript, which a hostile page controls. The node must also live in the top
+        # frame: an iframe carries its own origin and the frame tree URL would not describe it.
+        frame = self.call('Page.getFrameTree')['frameTree']['frame']
+        try:
+            self.call('Page.enable')
+            context = self.call('Page.createIsolatedWorld', {'frameId': frame['frameId']})['executionContextId']
+            self.call('DOM.resolveNode', {'backendNodeId': backend, 'executionContextId': context})
+        except RuntimeError:
+            raise ValueError('A saved login can only be typed into the top-level page, not a frame. Request user takeover for this field.')
+        return frame.get('url', '')
+
+    def validate_secret_target(self, req, backend, attributes):
+        field_type = attributes.get('type', '').lower()
+        autocomplete = attributes.get('autocomplete', '').lower()
+        if req['secretField'] == 'password':
+            if field_type != 'password' and autocomplete not in ('current-password', 'new-password'):
+                raise ValueError('That field is not a password field. Take a fresh snapshot and choose the password field.')
+        elif field_type == 'password':
+            raise ValueError('That field is a password field. Use field password for it.')
+        url = self.top_frame_url(backend)
+        parts = urlsplit(url)
+        if parts.scheme != 'https':
+            raise ValueError('A saved login is only typed into pages served over https.')
+        if not host_matches(parts.hostname, req['secretHost']):
+            raise ValueError('This page is not ' + req['secretHost'] + '. A saved login is only typed into the site it belongs to.')
     def isolated_world(self):
         # Reads and waits run beside the page, not inside it: the page cannot observe
         # them and its own overrides of the DOM and timer APIs do not apply.
@@ -322,7 +360,9 @@ class VisibleBrowser:
                     self.call('Input.dispatchKeyEvent', {'type': 'keyDown', 'key': 'a', 'code': 'KeyA', 'modifiers': 2, 'windowsVirtualKeyCode': 65})
                     self.call('Input.dispatchKeyEvent', {'type': 'keyUp', 'key': 'a', 'code': 'KeyA', 'modifiers': 2, 'windowsVirtualKeyCode': 65})
                     # A protected value is typed from the environment and never appears in the
-                    # request, the snapshot, or this process's arguments.
+                    # request, the snapshot, or this process's arguments. The page is checked
+                    # here, immediately before the keystrokes, so a navigation cannot race it.
+                    if action == 'fill_protected': self.validate_secret_target(req, ref['backend'], attributes)
                     self.call('Input.insertText', {'text': os.environ['RAKAZO_PROTECTED_TEXT'] if action == 'fill_protected' else req['text']})
                 else:
                     codes = {'Enter': 13, 'Tab': 9, 'Escape': 27, 'ArrowDown': 40, 'ArrowUp': 38, 'Space': 32}

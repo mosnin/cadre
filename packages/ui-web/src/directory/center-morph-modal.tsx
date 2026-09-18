@@ -170,6 +170,17 @@ const FOCUSABLE_SELECTOR = [
 ].join(",");
 
 const modalStack: { token: symbol; panel: RefObject<HTMLDivElement | null> }[] = [];
+
+/**
+ * Whether a modal currently owns the page. The surfaces around a modal restore
+ * focus of their own accord when they open and close — a sidebar handing focus
+ * back to the control that opened it, say — and those restorations are queued a
+ * frame at a time, so one can land after a modal has opened and take the focus
+ * off it. A caller that moves focus on a delay asks this first and stands down.
+ */
+export function modalIsOpen() {
+  return modalStack.length > 0;
+}
 let initialPageState: { overflow: string; inert: boolean } | null = null;
 
 const CENTER_FOLDED_CLIP = "inset(8% 8% 8% 8% round 24px)";
@@ -243,8 +254,7 @@ export function CenterMorphModalContent({
     if (app) app.inert = true;
     document.body.style.overflow = "hidden";
 
-    const focusFrame = requestAnimationFrame(() => {
-      if (modalStack.at(-1)?.token !== token) return;
+    const focusPanel = () => {
       const [firstFocusable] = getFocusableElements(panelRef.current);
       const preferred = focusOptions.current.initialFocus;
       const target =
@@ -254,7 +264,44 @@ export function CenterMorphModalContent({
             ? preferred?.current
             : null;
       if (preferred !== false) (target ?? firstFocusable ?? panelRef.current)?.focus();
+    };
+
+    let recheckFrame = 0;
+    const focusFrame = requestAnimationFrame(() => {
+      if (modalStack.at(-1)?.token !== token) return;
+      focusPanel();
+      // The page behind the dialog can have a focus restoration of its own
+      // already queued — a panel or sidebar that closed as this opened. It
+      // lands a frame later and leaves an open `aria-modal` dialog with the
+      // focus outside it, which strands a keyboard user behind the backdrop.
+      recheckFrame = requestAnimationFrame(() => {
+        if (modalStack.at(-1)?.token !== token) return;
+        const active = document.activeElement;
+        if (active && active !== document.body && panelRef.current?.contains(active)) return;
+        focusPanel();
+      });
     });
+
+    // Same guarantee for the rest of the dialog's life: when focus leaves the
+    // panel with nowhere to go, it belongs back in the dialog rather than on
+    // the body. Focus that moves to a real element — a portalled popover the
+    // dialog itself opened, or a nested dialog — is left alone.
+    const onFocusOut = (event: FocusEvent) => {
+      const panel = panelRef.current;
+      if (modalStack.at(-1)?.token !== token || !panel) return;
+      // A dialog that asked not to take focus on open does not take it back.
+      if (focusOptions.current.initialFocus === false) return;
+      if (!(event.target instanceof Node) || !panel.contains(event.target)) return;
+      const next = event.relatedTarget;
+      if (next instanceof Node && next !== document.body) return;
+      requestAnimationFrame(() => {
+        if (modalStack.at(-1)?.token !== token) return;
+        const active = document.activeElement;
+        if (active && active !== document.body) return;
+        panelRef.current?.focus();
+      });
+    };
+    window.addEventListener("focusout", onFocusOut);
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || modalStack.at(-1)?.token !== token) return;
@@ -286,7 +333,10 @@ export function CenterMorphModalContent({
     window.addEventListener("keydown", onKeyDown);
     return () => {
       cancelAnimationFrame(focusFrame);
+      cancelAnimationFrame(recheckFrame);
       window.removeEventListener("keydown", onKeyDown);
+      // Before the restoration below moves focus out of the panel on purpose.
+      window.removeEventListener("focusout", onFocusOut);
       const wasTop = modalStack.at(-1)?.token === token;
       const index = modalStack.findIndex((entry) => entry.token === token);
       if (index >= 0) modalStack.splice(index, 1);

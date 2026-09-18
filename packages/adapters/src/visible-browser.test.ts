@@ -122,6 +122,28 @@ print('outcome preserved')`),
   ).toContain("outcome preserved");
 });
 
+it("requires a protected fill to name the host and the field it belongs to", () => {
+  expect(
+    python(`
+import os
+os.environ['RAKAZO_PROTECTED_TEXT']='secret'
+for request in [{'action':'fill_protected','snapshotId':'s','ref':'e1'},{'action':'fill_protected','snapshotId':'s','ref':'e1','secretHost':' ','secretField':'password'},{'action':'fill_protected','snapshotId':'s','ref':'e1','secretHost':'bank.example','secretField':'anything'}]:
+    try: m['bounded_request'](request)
+    except ValueError: continue
+    raise Exception('unbound protected fill accepted')
+print(m['bounded_request']({'action':'fill_protected','snapshotId':'s','ref':'e1','secretHost':'bank.example','secretField':'password'}))`),
+  ).toContain("fill_protected");
+});
+
+it("types a saved login only into its own site, never a subdomain impostor", () => {
+  const matches = JSON.parse(
+    python(`
+pairs=[('bank.example','bank.example'),('accounts.bank.example','bank.example'),('BANK.EXAMPLE.','bank.example'),('bank.example.evil.test','bank.example'),('evilbank.example','bank.example'),('','bank.example')]
+print(json.dumps([m['host_matches'](page, saved) for page, saved in pairs]))`),
+  );
+  expect(matches).toEqual([true, true, true, false, false, false]);
+});
+
 it("lists a native dropdown's own choices and still exposes no field value", () => {
   const result = JSON.parse(
     python(`

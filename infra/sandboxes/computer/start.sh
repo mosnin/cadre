@@ -20,13 +20,13 @@ cd "$AGENT_HOME"
 # Each display owns its own diagnostics; parallel agents never overwrite them.
 LOG_DIR="/tmp/rakazo/display-$DISPLAY_NUMBER"
 mkdir -p "$LOG_DIR"
-# Logs restart empty and are truncated when they pass 10 MiB, so weeks of daily runs
-# cannot fill the container disk.
-for log in "$LOG_DIR"/*.log; do [ -f "$log" ] && : > "$log"; done
+# Logs are truncated when they pass 10 MiB, so weeks of daily runs cannot fill the container
+# disk. Every writer appends, so truncation resets its offset: with ">" the next line would
+# land back at 10 MiB and the file would read as over the limit forever.
 (
   while sleep 600; do
     for log in "$LOG_DIR"/*.log; do
-      [ -f "$log" ] || continue
+      [ -f "$log" ] && [ ! -L "$log" ] || continue
       if [ "$(stat -c %s "$log" 2>/dev/null || echo 0)" -gt 10485760 ]; then : > "$log"; fi
     done
   done
@@ -61,14 +61,14 @@ PYVNC
 }
 
 if [[ -n "${RAKAZO_COMPUTER_CONTROL_TOKEN:-}" ]]; then
-  /usr/local/bin/rakazo-computer-control >"$LOG_DIR"/control.log 2>&1 &
+  /usr/local/bin/rakazo-computer-control >>"$LOG_DIR"/control.log 2>&1 &
 fi
 
 # Reattaching a supervisor must never remove a live server's X socket.
 DESKTOP_FRESH=0
 if ! xdpyinfo -display "$DISPLAY" >/dev/null 2>&1; then
   rm -f "/tmp/.X$DISPLAY_NUMBER-lock" "/tmp/.X11-unix/X$DISPLAY_NUMBER"
-  Xvfb "$DISPLAY" -nolisten tcp -screen 0 1280x800x24 -ac +extension RANDR +render -noreset >"$LOG_DIR"/xvfb.log 2>&1 &
+  Xvfb "$DISPLAY" -nolisten tcp -screen 0 1280x800x24 -ac +extension RANDR +render -noreset >>"$LOG_DIR"/xvfb.log 2>&1 &
   DESKTOP_FRESH=1
 fi
 
@@ -82,7 +82,7 @@ for _ in $(seq 1 100); do
 done
 if [[ "$ready" -ne 1 ]]; then
   echo "Xvfb failed to start" >&2
-  cat "$LOG_DIR"/xvfb.log >&2 || true
+  tail -n 200 "$LOG_DIR"/xvfb.log >&2 || true
   exit 1
 fi
 
@@ -101,9 +101,9 @@ cat > ${FLUX_HOME}/.fluxbox/startup <<EOF
 exec fluxbox -rc ${FLUX_HOME}/.fluxbox/init
 EOF
 chmod +x ${FLUX_HOME}/.fluxbox/startup
-HOME=${FLUX_HOME} ${FLUX_HOME}/.fluxbox/startup >"$LOG_DIR"/fluxbox.log 2>&1 &
+HOME=${FLUX_HOME} ${FLUX_HOME}/.fluxbox/startup >>"$LOG_DIR"/fluxbox.log 2>&1 &
 
-tint2 -c /etc/rakazo/tint2rc >"$LOG_DIR"/dock.log 2>&1 &
+tint2 -c /etc/rakazo/tint2rc >>"$LOG_DIR"/dock.log 2>&1 &
 
 register_browser_handler() {
   local mime="$1"
@@ -126,7 +126,7 @@ rm -f "$PROFILE/SingletonLock" \
   "$PROFILE/SingletonCookie" \
   "$PROFILE/SingletonSocket"
 
-HOME="$AGENT_HOME" rakazo-browser >"$LOG_DIR"/browser.log 2>&1 &
+HOME="$AGENT_HOME" rakazo-browser >>"$LOG_DIR"/browser.log 2>&1 &
 browser_up=0
 for _ in $(seq 1 40); do
   if xdotool search --onlyvisible --class chromium >/dev/null 2>&1; then
@@ -141,15 +141,15 @@ for _ in $(seq 1 40); do
 done
 if [[ "$browser_up" -ne 1 ]]; then
   echo "browser failed to start" >&2
-  cat "$LOG_DIR"/browser.log >&2 || true
-  xterm -geometry 100x28+48+48 -bg "#111113" -fg "#E8E8EA" -cr "#E8E8EA" -title "Terminal" >"$LOG_DIR"/xterm.log 2>&1 &
+  tail -n 200 "$LOG_DIR"/browser.log >&2 || true
+  xterm -geometry 100x28+48+48 -bg "#111113" -fg "#E8E8EA" -cr "#E8E8EA" -title "Terminal" >>"$LOG_DIR"/xterm.log 2>&1 &
 fi
 
 fi # fresh desktop
 
 start_view_vnc() {
   # Render the real desktop cursor into frames so passive browser viewers see agents move it.
-  x11vnc -display "$DISPLAY" -forever -nocursorshape -nocursorpos -shared -viewonly -nopw -listen 127.0.0.1 -rfbport "$VIEW_VNC_PORT" -xkb -ncache 0 -noshm -no6 >"$LOG_DIR"/x11vnc.log 2>&1 &
+  x11vnc -display "$DISPLAY" -forever -nocursorshape -nocursorpos -shared -viewonly -nopw -listen 127.0.0.1 -rfbport "$VIEW_VNC_PORT" -xkb -ncache 0 -noshm -no6 >>"$LOG_DIR"/x11vnc.log 2>&1 &
   VIEW_VNC_PID=$!
   VNC_FAILURES=0
 }
@@ -168,7 +168,7 @@ if [[ ! -f "$NOVNC_ROOT/clipboard-bridge.js" ]]; then
   exit 1
 fi
 start_view_proxy() {
-  websockify --heartbeat=30 --web="$NOVNC_ROOT" "${RAKAZO_VNC_HOST:-0.0.0.0}:$VIEW_PORT" "127.0.0.1:$VIEW_VNC_PORT" >"$LOG_DIR"/novnc.log 2>&1 &
+  websockify --heartbeat=30 --web="$NOVNC_ROOT" "${RAKAZO_VNC_HOST:-0.0.0.0}:$VIEW_PORT" "127.0.0.1:$VIEW_VNC_PORT" >>"$LOG_DIR"/novnc.log 2>&1 &
 }
 
 # Repair a dropped stream without replacing the desktop or its browser tabs.

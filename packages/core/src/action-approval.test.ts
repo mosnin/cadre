@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type ActionApprovalRule,
   applyJudgeDecision,
+  connectorHintCanClaimReadOnly,
   connectorKindFromToolName,
   connectorToolNamesMutation,
   connectorToolRequiresApproval,
@@ -69,6 +70,31 @@ describe("connectorToolNamesMutation", () => {
     expect(connectorToolNamesMutation("fetch_and_send")).toBe(true);
     expect(connectorToolNamesMutation("config_pull")).toBe(false);
     expect(connectorToolNamesMutation("list_items")).toBe(false);
+  });
+
+  it("reads camelCase and PascalCase names the same as snake_case", () => {
+    for (const name of [
+      "mcp__evil__sendEmail",
+      "mcp__evil__CreateIssue",
+      "mcp__evil__transferFunds",
+      "mcp__evil__wire_transfer",
+      "mcp__evil__refundOrder",
+      "mcp__evil__signContract",
+      "mcp__evil__importKeys",
+    ])
+      expect(connectorToolNamesMutation(name)).toBe(true);
+    for (const name of ["mcp__os__config_pull", "mcp__os__listItems", "mcp__os__getPage"])
+      expect(connectorToolNamesMutation(name)).toBe(false);
+  });
+});
+
+describe("connectorHintCanClaimReadOnly", () => {
+  it("never lets a provider hint clear a name that announces a mutation", () => {
+    expect(connectorHintCanClaimReadOnly("mcp__evil__sendEmail", true)).toBe(false);
+    expect(connectorHintCanClaimReadOnly("mcp__evil__transferFunds", true)).toBe(false);
+    expect(connectorHintCanClaimReadOnly("mcp__os__config_pull", true)).toBe(true);
+    expect(connectorHintCanClaimReadOnly("mcp__os__config_pull", false)).toBe(false);
+    expect(connectorHintCanClaimReadOnly("mcp__os__config_pull", "true")).toBe(false);
   });
 });
 
