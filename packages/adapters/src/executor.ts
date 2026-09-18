@@ -1243,7 +1243,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
           await Promise.all([
             discoveredPromise,
             loadCurrentTurnImages(deps, turnBlocks, context),
-            loadAgentMemoryContext(deps.memory, bot.id, context),
+            loadAgentMemoryContext(deps.memory, bot.id, context, {
+              decisions: deps.decisions ?? defaultDecisions,
+              task: task.prompt,
+            }),
             loadAgentScratchpadContext(deps, {
               spaceId: run.spaceId,
               botId: bot.id,

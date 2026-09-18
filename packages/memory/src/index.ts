@@ -59,12 +59,18 @@ export class MarkdownMemoryStore implements MemoryStore {
       },
     });
     const q = request.query.toLowerCase();
+    // A score every hit shares is not a score. Rank by how often the query appears and
+    // whether the path itself matches, so the field means something to whoever reads it.
     return documents
-      .filter((doc) => doc.content.toLowerCase().includes(q) || doc.path.toLowerCase().includes(q))
-      .map((doc) => ({
-        path: doc.path,
-        snippet: snippet(doc.content, q),
-        score: 1,
+      .map((doc) => ({ doc, score: lexicalScore(doc.path, doc.content, q) }))
+      .filter((entry) => entry.score > 0)
+      .sort(
+        (left, right) => right.score - left.score || left.doc.path.localeCompare(right.doc.path),
+      )
+      .map((entry) => ({
+        path: entry.doc.path,
+        snippet: snippet(entry.doc.content, q),
+        score: entry.score,
       }));
   }
 
@@ -142,4 +148,23 @@ function snippet(content: string, q: string): string {
   const idx = content.toLowerCase().indexOf(q);
   if (idx < 0) return content.slice(0, 140);
   return content.slice(Math.max(0, idx - 40), idx + q.length + 80);
+}
+
+/**
+ * How well a document answers a substring query, from zero (not at all) to one.
+ *
+ * Deliberately simple: this store is Markdown files in Postgres, and anything cleverer
+ * belongs in a memory provider built for retrieval rather than here.
+ */
+function lexicalScore(path: string, content: string, query: string): number {
+  if (!query) return 0;
+  const haystack = content.toLowerCase();
+  let occurrences = 0;
+  for (let at = haystack.indexOf(query); at >= 0; at = haystack.indexOf(query, at + query.length))
+    occurrences += 1;
+  const inPath = path.toLowerCase().includes(query);
+  if (occurrences === 0 && !inPath) return 0;
+  // A name that matches is a stronger signal than a passing mention in a long document.
+  const density = occurrences === 0 ? 0 : Math.min(1, occurrences / 5);
+  return Math.min(1, (inPath ? 0.5 : 0) + density * 0.5) || 0.1;
 }

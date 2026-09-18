@@ -70,6 +70,7 @@ here is the last thing between an agent and an irreversible action.
 | Stuck run (`runIsStuck`) | Nothing; **catches what the hash guard cannot** | `noul` "is this repeating work that already failed?" | Continuing into the next segment |
 | Run model routing (`routeRunModel`) | Nothing; **avoids** paying frontier prices for simple turns | `choice` over the configured pool | The deployment default |
 | Search ranking (`rankWebSearchHits`) | Nothing; **avoids** fetches and context on results that answer nothing | One `score` per result, one request | The engine's own order |
+| Memory order (`rankMemoryDocuments`) | A **recency sort** that decided which saved facts a run would never see | One `score` per document, one request | The recency order, unchanged |
 | Browser action (`planBrowserAction`) | A **generation** per browser step | `choice` operation + speculative `choice` per operation's targets + `choice` of which known value fills the field + `choice` of dropdown control and option together | The agent deciding, as today |
 
 The consequence question is the one that is purely additive on latency, and it is
@@ -107,6 +108,20 @@ of being filled with the closest thing.
 
 This is the one idea worth taking from Cua-S1, whose planner points at source
 entities rather than writing values for the same reason.
+
+## Ordering is what the ceiling makes of it
+
+A run carries the user's and the bot's durable memory up to a byte ceiling, and
+whatever does not fit is dropped. That made the sort order a silent decision
+about which facts the run would never see, and the order was recency — so a fact
+saved months ago was cut for its age rather than its irrelevance.
+
+Scoring each document against the task fixes both halves: the model reads less
+that has nothing to do with the task, which its own documentation says makes it
+more accurate, and the document that matters survives the ceiling. It only
+reorders. Nothing is dropped that would otherwise have fitted, because a memory
+is a fact the user chose to keep and a low score is not a reason to hide one, and
+a document the model will not judge keeps the slot it arrived in.
 
 ## Waiting only as long as the page needs
 
@@ -206,8 +221,11 @@ standing between an agent and something irreversible.
 
 A decision sends the state its question is about to a third party: the arguments
 of a tool call, a search query and its result snippets, the text and control names
-of a page, or the newest user message when routing. Leave it off for workloads
-that cannot share that context.
+of a page, the newest user message when routing, or **an excerpt of each durable
+memory document** when ordering them. That last one is the most sensitive on the
+list, because durable memory is whatever the user chose to keep. Leave it off for
+workloads that cannot share that context; with no key every caller keeps the
+behaviour it had, and memory stays in recency order.
 
 ## Adding one
 
