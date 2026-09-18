@@ -85,8 +85,19 @@ export const builtinAgentTools: ConnectorTool[] = [
         },
         values: {
           type: "object",
-          description: "Text to type, keyed by the field's visible name.",
+          description:
+            "Text to type, keyed by the field's visible name. Use when you already know the exact field names.",
           additionalProperties: { type: "string" },
+        },
+        entities: {
+          type: "array",
+          description:
+            "Known values to fill from, when you do not know the field names yet. Each is a label and a value; the right one is matched to whichever field is being filled. Nothing outside this list is ever typed.",
+          items: {
+            type: "object",
+            properties: { label: { type: "string" }, value: { type: "string" } },
+            required: ["label", "value"],
+          },
         },
         maxSteps: { type: "number", description: "Up to 8. Defaults to 8." },
       },

@@ -18,6 +18,9 @@
 import { actionableChoice, type ChoiceAnswer, choice, DECISION_CONFIDENCE } from "@rakazo/core";
 import type { DecisionProvider } from "./jev-decisions.js";
 
+/** The option that means "no supplied value belongs here", so the model need not force one. */
+const NO_ENTITY = "none_of_these";
+
 /** Roles the browser will accept text into. */
 const TEXT_ROLES = new Set(["textbox", "searchbox", "combobox", "spinbutton"]);
 
@@ -41,8 +44,17 @@ export type BrowserSnapshot = {
 
 export type BrowserStep = { operation: string; ref?: string; name?: string; note?: string };
 
+/** A value the agent already holds, offered as something to point at rather than to write. */
+export type BrowserEntity = { label: string; value: string };
+
 export type PlannedBrowserAction =
-  | { operation: "CLICK" | "TYPE_TEXT"; ref: string; element: BrowserElement }
+  | {
+      operation: "CLICK" | "TYPE_TEXT";
+      ref: string;
+      element: BrowserElement;
+      /** For TYPE_TEXT: the entity the decision picked for this field, if any. */
+      entity?: BrowserEntity;
+    }
   | { operation: "PRESS_ENTER" | "SCROLL_DOWN" | "SCROLL_UP" | "DONE" | "BLOCKED" };
 
 const CONTROL_OPERATIONS: Record<string, string> = {
@@ -95,6 +107,8 @@ export async function planBrowserAction(
     goal: string;
     snapshot: BrowserSnapshot;
     history?: BrowserStep[];
+    /** Known values the agent holds. Filling picks one of these; it never writes a value. */
+    entities?: BrowserEntity[];
     sessionId?: string;
     signal?: AbortSignal;
   },
@@ -128,6 +142,26 @@ export async function planBrowserAction(
           },
         ]),
       ),
+    );
+  }
+
+  // Filling a field is a mapping problem, not a writing one: the agent already holds
+  // the values, and which known value belongs in which field is a choice over a
+  // closed set. Asking it here means a form is filled without generating a single
+  // character, and the value can only ever be one the caller supplied.
+  const entities = (input.entities ?? []).slice(0, 40);
+  if (entities.length > 0 && targets.TYPE_TEXT?.length) {
+    questions.type_text_value = choice(
+      { goal: input.goal, task: "Which known value belongs in the field being filled?" },
+      {
+        ...Object.fromEntries(
+          entities.map((entity, index) => [
+            `v${index}`,
+            `${entity.label}: ${entity.value.slice(0, 200)}`,
+          ]),
+        ),
+        [NO_ENTITY]: "None of these belongs in that field.",
+      },
     );
   }
 
@@ -168,7 +202,16 @@ export async function planBrowserAction(
   // An operation without a target it can actually execute is no decision at all.
   if (!ref) return undefined;
   const element = candidates.find((candidate) => candidate.ref === ref)!;
-  return { operation, ref, element };
+  if (operation !== "TYPE_TEXT" || entities.length === 0) return { operation, ref, element };
+  const picked = actionableChoice(
+    result.answers.type_text_value,
+    [...entities.map((_, index) => `v${index}`), NO_ENTITY],
+    DECISION_CONFIDENCE.routing,
+  );
+  // NO_ENTITY, a hedge, or silence all leave the value unresolved, and the caller
+  // hands back rather than typing something nobody supplied.
+  const index = picked && picked !== NO_ENTITY ? Number(picked.slice(1)) : -1;
+  return { operation, ref, element, entity: entities[index] };
 }
 
 /** How many actions one pursue call may take before handing control back to the agent. */
@@ -199,6 +242,11 @@ export async function pursueBrowserGoal(
     goal: string;
     /** Text the agent already knows, keyed by the field's accessible name. */
     values?: Record<string, string>;
+    /**
+     * The same knowledge without having to guess field names in advance. The decision
+     * picks which of these belongs in whichever field it chose to fill.
+     */
+    entities?: BrowserEntity[];
     maxSteps?: number;
     sessionId?: string;
     signal?: AbortSignal;
@@ -224,6 +272,7 @@ export async function pursueBrowserGoal(
       goal: input.goal,
       snapshot,
       history: steps,
+      entities: input.entities,
       sessionId: input.sessionId,
       signal: input.signal,
     });
@@ -232,7 +281,9 @@ export async function pursueBrowserGoal(
     if (planned.operation === "BLOCKED") return { status: "blocked", steps, snapshot };
 
     if (planned.operation === "TYPE_TEXT") {
-      const value = input.values?.[planned.element.name];
+      // A value the decision pointed at wins: it was chosen against the field that was
+      // actually picked, where the name map was written before the page was seen.
+      const value = planned.entity?.value ?? input.values?.[planned.element.name];
       // The decision model chooses where to type; it never invents what to type.
       if (value === undefined) {
         return {
@@ -248,7 +299,12 @@ export async function pursueBrowserGoal(
         ref: planned.ref,
         text: value,
       });
-      steps.push({ operation: "TYPE_TEXT", ref: planned.ref, name: planned.element.name });
+      steps.push({
+        operation: "TYPE_TEXT",
+        ref: planned.ref,
+        name: planned.element.name,
+        note: planned.entity?.label,
+      });
     } else if (planned.operation === "CLICK") {
       await browser.act({ action: "click", snapshotId: snapshot.snapshotId, ref: planned.ref });
       steps.push({ operation: "CLICK", ref: planned.ref, name: planned.element.name });

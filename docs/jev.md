@@ -46,7 +46,7 @@ here is the last thing between an agent and an irreversible action.
 | Stuck run (`runIsStuck`) | Nothing; **catches what the hash guard cannot** | `noul` "is this repeating work that already failed?" | Continuing into the next segment |
 | Run model routing (`routeRunModel`) | Nothing; **avoids** paying frontier prices for simple turns | `choice` over the configured pool | The deployment default |
 | Search ranking (`rankWebSearchHits`) | Nothing; **avoids** fetches and context on results that answer nothing | One `score` per result, one request | The engine's own order |
-| Browser action (`planBrowserAction`) | A **generation** per browser step | `choice` operation + speculative `choice` per operation's targets | The agent deciding, as today |
+| Browser action (`planBrowserAction`) | A **generation** per browser step | `choice` operation + speculative `choice` per operation's targets + `choice` of which known value fills the field | The agent deciding, as today |
 | Routine skip (`routineHasWork`) | Nothing; **avoids an entire run** | `noul` "is there anything to do this time?" | Running the occurrence |
 | Handoff target (`chooseHandoffBot`) | A name written in prose | `choice` over the bot directory | The model's own pick |
 
@@ -54,6 +54,22 @@ here is the last thing between an agent and an irreversible action.
 it is deliberately narrow: it is asked **only** for connector calls the name check
 already cleared, which is the one place that regex can be wrong in the dangerous
 direction. It has been wrong there twice.
+
+## Filling a form without writing anything
+
+Filling a field looks like a writing task and is not. The agent already holds the
+values; which known value belongs in which field is a mapping over a closed set.
+So `browser_pursue` takes `entities` (label and value pairs) and the decision that
+picks the field also picks the value, in the same request.
+
+Two things follow. A form is filled without generating a single character, and
+the text typed can only ever be one the caller supplied: there is no path from the
+model's output to the keyboard. The option list also carries an explicit "none of
+these belongs here", so a field with no matching value hands control back instead
+of being filled with the closest thing.
+
+This is the one idea worth taking from Cua-S1, whose planner points at source
+entities rather than writing values for the same reason.
 
 ## Confidence, and why there is no global threshold
 

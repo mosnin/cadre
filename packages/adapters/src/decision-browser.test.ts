@@ -245,3 +245,101 @@ describe("pursuing a goal over several steps", () => {
     expect(io.act).not.toHaveBeenCalled();
   });
 });
+
+describe("filling a field by pointing at a known value", () => {
+  const ENTITIES = [
+    { label: "Home city", value: "Zurich" },
+    { label: "Work city", value: "London" },
+  ];
+
+  it("offers the known values as options in the same request", async () => {
+    const decide = vi.fn(async (_request: unknown) => ({ answers: {}, model: "m" }));
+    await planBrowserAction(
+      { decide },
+      { goal: "set origin", snapshot: { elements: ELEMENTS }, entities: ENTITIES },
+    );
+    expect(decide).toHaveBeenCalledTimes(1);
+    const request = decide.mock.calls[0]![0] as unknown as {
+      questions: { type_text_value?: { criteria: Record<string, unknown> } };
+    };
+    // Still one round trip, and an explicit way to decline.
+    expect(Object.keys(request.questions.type_text_value!.criteria)).toEqual([
+      "v0",
+      "v1",
+      "none_of_these",
+    ]);
+  });
+
+  it("returns the value the decision pointed at, never one it wrote", async () => {
+    const planned = await planBrowserAction(
+      provider({
+        operation: { type: "choice", choice: "TYPE_TEXT", confidence: 0.9 },
+        type_text_target: { type: "choice", choice: "e2", confidence: 0.9 },
+        type_text_value: { type: "choice", choice: "v0", confidence: 0.9 },
+      }),
+      { goal: "set origin", snapshot: { elements: ELEMENTS }, entities: ENTITIES },
+    );
+    expect(planned).toMatchObject({
+      operation: "TYPE_TEXT",
+      ref: "e2",
+      entity: { label: "Home city", value: "Zurich" },
+    });
+  });
+
+  it("leaves the value unresolved when none of them belongs there", async () => {
+    const planned = await planBrowserAction(
+      provider({
+        operation: { type: "choice", choice: "TYPE_TEXT", confidence: 0.9 },
+        type_text_target: { type: "choice", choice: "e2", confidence: 0.9 },
+        type_text_value: { type: "choice", choice: "none_of_these", confidence: 0.95 },
+      }),
+      { goal: "set origin", snapshot: { elements: ELEMENTS }, entities: ENTITIES },
+    );
+    expect(planned).toMatchObject({ operation: "TYPE_TEXT", ref: "e2" });
+    expect((planned as { entity?: unknown }).entity).toBeUndefined();
+  });
+
+  it("does not offer values on a page with nothing to type into", async () => {
+    const decide = vi.fn(async (_request: unknown) => ({ answers: {}, model: "m" }));
+    await planBrowserAction(
+      { decide },
+      {
+        goal: "g",
+        snapshot: { elements: [{ ref: "e1", role: "button", name: "Go" }] },
+        entities: ENTITIES,
+      },
+    );
+    const request = decide.mock.calls[0]![0] as unknown as { questions: Record<string, unknown> };
+    expect(request.questions).not.toHaveProperty("type_text_value");
+  });
+
+  it("types a pointed value in preference to a name that was guessed in advance", async () => {
+    let step = 0;
+    const pointing: DecisionProvider = {
+      decide: vi.fn(async () => ({
+        answers: (step++ === 0
+          ? {
+              operation: { type: "choice", choice: "TYPE_TEXT", confidence: 0.9 },
+              type_text_target: { type: "choice", choice: "e2", confidence: 0.9 },
+              type_text_value: { type: "choice", choice: "v1", confidence: 0.9 },
+            }
+          : { operation: { type: "choice", choice: "DONE", confidence: 0.95 } }) as never,
+        model: "m",
+      })),
+    };
+    const acted: unknown[] = [];
+    const outcome = await pursueBrowserGoal(
+      pointing,
+      { goal: "set origin", values: { "Where from?": "stale guess" }, entities: ENTITIES },
+      {
+        observe: async () => ({ snapshotId: "s0", elements: ELEMENTS }),
+        act: async (request) => {
+          acted.push(request);
+          return {};
+        },
+      },
+    );
+    expect(outcome.status).toBe("done");
+    expect(acted).toEqual([{ action: "fill", snapshotId: "s0", ref: "e2", text: "London" }]);
+  });
+});

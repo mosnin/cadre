@@ -2229,6 +2229,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
             if (name === "browser_pursue") {
               const goal = String(args.goal ?? "").trim();
               if (!goal) return { error: "browser_pursue needs a goal." };
+              const entities: { label: string; value: string }[] = [];
+              for (const entry of Array.isArray(args.entities) ? args.entities : []) {
+                const row = entry as { label?: unknown; value?: unknown };
+                if (typeof row?.label === "string" && typeof row?.value === "string")
+                  entities.push({ label: row.label, value: row.value });
+              }
               const values: Record<string, string> = {};
               for (const [key, value] of Object.entries(
                 (args.values ?? {}) as Record<string, unknown>,
@@ -2242,6 +2248,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   {
                     goal,
                     values,
+                    entities,
                     maxSteps: Number(args.maxSteps) || undefined,
                     sessionId: runId,
                     signal: context.signal,
