@@ -25,6 +25,7 @@ import { escapePromptData, oneLine } from "@rakazo/core";
 import { getLogger } from "@rakazo/logging";
 import { isToolPauseResult } from "./approval-effect.js";
 import { builtinAgentTools, SUBAGENT_PARENT_TOOL_NAMES } from "./builtin-tools.js";
+import { tokenLimit } from "./env-limits.js";
 import { PiRuntimeCredentialStore, toOAuthCredential } from "./pi-credentials.js";
 import { registerLocalProvider } from "./pi-local-provider.js";
 import {
@@ -58,7 +59,13 @@ const MAX_PARALLEL_SUBAGENTS = 4;
 // that to reasoning.effort "none", which 400s on endpoints that mandate
 // reasoning (e.g. google/gemini-3.7-flash). Keep a real level when model.reasoning
 // is set; plain models stay off.
-const REASONING_MODEL_THINKING_LEVEL: ModelThinkingLevel = "medium";
+//
+// The level is the cheapest one that is still real. This default is what an
+// agent turn spends on a step it was always going to take — clicking a named
+// control, reading a file — and deliberating over those bought nothing while
+// costing seconds each. A bot that should think harder carries its own
+// thinkingLevel, which still wins here.
+const REASONING_MODEL_THINKING_LEVEL: ModelThinkingLevel = "low";
 function thinkingLevelFor(
   model: Model<Api>,
   preferred?: ModelThinkingLevel | null,
@@ -379,11 +386,21 @@ function toPiImages(images: AgentRunRequest["currentTurnImages"]) {
   }));
 }
 
+// A model configured by id is not in Pi's static catalog, so its real limits are
+// unknown and these are a guess. The guess is deliberately unchanged: it decides
+// when `pruneOldToolResultContext` starts trimming older tool results, and raising
+// it means every later turn carries more transcript, which costs prefill on a path
+// that is already the slowest thing in a run. It is worth raising for a model whose
+// real window is far larger, but that is a measurement per deployment rather than a
+// new default, so it is set through the environment.
+const CONFIGURED_CONTEXT_WINDOW = 16_384;
+const CONFIGURED_MAX_TOKENS = 4_096;
+
 function configuredOpenRouterModel(id: string): Model<"openai-completions"> {
-  // A configured model can intentionally be newer than Pi's static catalog. Keep
-  // pricing conservative, but enable reasoning: unknown OpenRouter endpoints
-  // (e.g. gemini-3.7-flash before the snapshot catches up) often mandate it, and
-  // thinkingLevel "off" becomes effort "none" which those endpoints reject.
+  // Reasoning stays declared: unknown OpenRouter endpoints (e.g. gemini-3.7-flash
+  // before the snapshot catches up) mandate it, and thinkingLevel "off" becomes
+  // effort "none" which those endpoints reject. What it must not do is make every
+  // turn deliberate — see REASONING_MODEL_THINKING_LEVEL.
   return {
     id,
     name: id,
@@ -393,8 +410,8 @@ function configuredOpenRouterModel(id: string): Model<"openai-completions"> {
     reasoning: true,
     input: ["text"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 16_384,
-    maxTokens: 4_096,
+    contextWindow: tokenLimit("RAKAZO_MODEL_CONTEXT_WINDOW", CONFIGURED_CONTEXT_WINDOW),
+    maxTokens: tokenLimit("RAKAZO_MODEL_MAX_TOKENS", CONFIGURED_MAX_TOKENS),
   };
 }
 

@@ -222,11 +222,14 @@ describe("Pi agent thinking level", () => {
     removed.mockRestore();
   });
 
-  it("uses medium reasoning for the main agent and subagent", async () => {
+  it("reasons at the cheapest real level for the main agent and subagent", async () => {
     // Regression for OpenRouter mandatory-reasoning models (#114): forcing
     // thinkingLevel "off" becomes effort "none" and the provider returns 400.
+    // The level only has to be real, and the default is the cheapest one that
+    // is: deliberating over every routine step cost seconds a turn and bought
+    // nothing. A bot that should think harder carries its own thinkingLevel.
     const levels = await runWithModel("reasoning-model");
-    expect(levels).toEqual(["medium", "medium"]);
+    expect(levels).toEqual(["low", "low"]);
     expect(levels.every((level) => level !== "off")).toBe(true);
   });
 
@@ -260,7 +263,7 @@ describe("Pi agent thinking level", () => {
       maxTokens: 4_096,
     });
     // Unknown OpenRouter PI_DEFAULT_MODEL must not force thinking off (#114).
-    expect(levels).toEqual(["medium", "medium"]);
+    expect(levels).toEqual(["low", "low"]);
     expect(levels.every((level) => level !== "off")).toBe(true);
   });
 

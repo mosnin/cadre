@@ -42,7 +42,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "browser_act",
     description:
-      "Navigate or interact with the same browser shown in the live computer view. Each action returns a fresh compact snapshot. Use only refs and snapshotId from the latest snapshot; never invent them. Fill ordinary fields, click controls, choose from a dropdown with select and one of the options the snapshot listed, press keys, scroll, list or select tabs. To sign in with a saved login, use fill_login with the site host and field (username or password); the value is typed for you and never shown. Use desktop tools for canvas, browser chrome, or unsupported controls.",
+      "Take ONE deliberate action in the same browser shown in the live computer view. Each action costs a whole turn, so use browser_pursue for anything that takes several steps and keep this for the single step that needs your judgement. Each action returns a fresh compact snapshot. Use only refs and snapshotId from the latest snapshot; never invent them. Fill ordinary fields, click controls, choose from a dropdown with select and one of the options the snapshot listed, press keys, scroll, list or select tabs. To sign in with a saved login, use fill_login with the site host and field (username or password); the value is typed for you and never shown. Use desktop tools for canvas, browser chrome, or unsupported controls.",
     inputSchema: {
       type: "object",
       properties: {
@@ -80,7 +80,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "browser_pursue",
     description:
-      "Take several browser steps toward one goal in a single call, when the next steps are obvious from the page: clicking through a form, a wizard, or a results list. A fast decision model picks each operation and its target from the controls actually on the page. Supply values for any field that must be typed, keyed by the field's visible name; it never invents a value, and hands control back when a value is missing, when it is unsure, or when the goal is met. Prefer browser_act for a single deliberate action.",
+      "Take several browser steps toward one goal in a single call. This is the fast way to operate a page and the one to reach for first: a decision model picks each operation and its target from the controls actually on the page, in a fraction of the time a turn of your own costs. Use it for any sequence — clicking through a form, a wizard, a results list, a checkout, a sign-up — not only when every step is obvious. Supply the values it may type through entities (a label and a value for each), or through values when you already know the field names; it never invents a value, and hands control back when a value is missing, when it is unsure, when the page stops making progress, or when the goal is met. Then take the next single step yourself with browser_act and pursue again.",
     inputSchema: {
       type: "object",
       properties: {
