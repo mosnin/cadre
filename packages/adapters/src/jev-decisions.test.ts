@@ -155,7 +155,7 @@ describe("asking for a decision", () => {
 describe("a question the service would reject", () => {
   it("is dropped before it can cost the whole request", async () => {
     const fetchMock = vi.fn(
-      async () =>
+      async (_url: unknown, _init: RequestInit | undefined) =>
         new Response(
           JSON.stringify({
             model: "typesafe/jev-1.13",
@@ -174,7 +174,7 @@ describe("a question the service would reject", () => {
         broken: { type: "score", instructions: "How much?", criteria: ["only one"] },
       },
     });
-    const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
+    const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
     expect(Object.keys(body.questions)).toEqual(["ok"]);
     expect(result?.answers.ok).toMatchObject({ noul: 1 });
   });
@@ -196,7 +196,7 @@ describe("a question the service would reject", () => {
 describe("choosing an endpoint", () => {
   it("prefers TypeSafe's own, and names the model the way that endpoint does", async () => {
     const fetchMock = vi.fn(
-      async () =>
+      async (_url: unknown, _init: RequestInit | undefined) =>
         new Response(
           JSON.stringify({
             model: "jev-1.13",
@@ -213,10 +213,10 @@ describe("choosing an endpoint", () => {
       JEV_MODEL: "typesafe/jev-1.13",
     } as NodeJS.ProcessEnv);
     const result = await provider?.decide({ state: "s", questions: { ok: noul("Is it so?") } });
-    const [url, init] = fetchMock.mock.calls[0]! as [string, RequestInit];
+    const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toBe("https://api.typesafe.ai/v1/systemone");
     // OpenRouter needs the vendor prefix to route; TypeSafe's own endpoint does not take it.
-    expect(JSON.parse(init.body as string).model).toBe("jev-1.13");
+    expect(JSON.parse(init!.body as string).model).toBe("jev-1.13");
     expect(result?.answers.ok).toMatchObject({ noul: 0.9 });
   });
 

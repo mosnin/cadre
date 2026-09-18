@@ -66,19 +66,31 @@ here is the last thing between an agent and an irreversible action.
 
 | Decision | Replaces | Question | Falls back to |
 | --- | --- | --- | --- |
-| Tool-call review (`runDecisionReview`) | A full judge **generation** per consequential call | `choice` pass/ask, plus a speculative `choice` of concern category | The generative judge, unchanged |
-| Connector consequence (`escalateConnectorConsequence`) | Nothing; **closes a gap** in the name regex | `noul` "does this change anything outside this workspace?" | The name check's own verdict |
+| Tool call (`decideToolCall`) | A full judge **generation** per consequential call, and **closes a gap** in the name regex | One request: `noul` "does this change anything outside this workspace?", plus a speculative `choice` pass/ask and `choice` of concern category | The generative judge, and the name check's own verdict |
 | Stuck run (`runIsStuck`) | Nothing; **catches what the hash guard cannot** | `noul` "is this repeating work that already failed?" | Continuing into the next segment |
 | Run model routing (`routeRunModel`) | Nothing; **avoids** paying frontier prices for simple turns | `choice` over the configured pool | The deployment default |
 | Search ranking (`rankWebSearchHits`) | Nothing; **avoids** fetches and context on results that answer nothing | One `score` per result, one request | The engine's own order |
 | Browser action (`planBrowserAction`) | A **generation** per browser step | `choice` operation + speculative `choice` per operation's targets + `choice` of which known value fills the field + `choice` of dropdown control and option together | The agent deciding, as today |
-| Routine skip (`routineHasWork`) | Nothing; **avoids an entire run** | `noul` "is there anything to do this time?" | Running the occurrence |
-| Handoff target (`chooseHandoffBot`) | A name written in prose | `choice` over the bot directory | The model's own pick |
 
-`escalateConnectorConsequence` is the one that is purely additive on latency, and
-it is deliberately narrow: it is asked **only** for connector calls the name check
+The consequence question is the one that is purely additive on latency, and it is
+deliberately narrow: it is asked **only** for connector calls the name check
 already cleared, which is the one place that regex can be wrong in the dangerous
-direction. It has been wrong there twice.
+direction. It has been wrong there twice. Because it is being asked anyway, the
+review verdict costs nothing but tokens to ask alongside it.
+
+## Two that were built and removed
+
+Worth recording so they are not proposed again.
+
+**Skipping a routine occurrence** would be the largest saving here — the run it
+avoids is the whole cost — but it needs a cheap summary of what changed since the
+last occurrence, and nothing in this product produces one. Asking connectors for
+it would cost the work the skip was meant to save. It goes back in when a change
+feed exists, not before.
+
+**Choosing who takes a handoff** fails the first rule. The name is written in the
+same generation that was going to happen regardless, so a decision replaces
+nothing and only adds a round trip.
 
 ## Filling a form without writing anything
 
