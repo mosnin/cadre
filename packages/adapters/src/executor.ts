@@ -122,6 +122,7 @@ import {
   redactToolArgsForReview,
   resolveAutoReviewChecker,
   runAutoReviewJudge,
+  runDecisionReview,
 } from "./auto-review.js";
 import { loadBotMessageContext, messageBot, returnBotMessageOutcome } from "./bot-messages.js";
 import { agentConnectionTools, builtinAgentTools } from "./builtin-tools.js";
@@ -156,6 +157,7 @@ import { observationToolResult, parseComputerActions } from "./computer-tools.js
 import { checkpointAfterComputerWork } from "./computer-workspace.js";
 import { sanitizeConnectorError } from "./connector-safety.js";
 import { type BrowserSnapshot, pursueBrowserGoal } from "./decision-browser.js";
+import { escalateConnectorConsequence, runIsStuck } from "./decision-guards.js";
 import { routeRunModel, routerCandidates } from "./decision-routing.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
 import { isSandboxGoneError } from "./e2b-sandbox.js";
@@ -1877,13 +1879,26 @@ export function createRunExecutor(deps: ExecutorDeps) {
           // A connector's read-only hint is only accepted for tools whose name does
           // not announce a mutation (see connectorToolNamesMutation); such tools are
           // not consequential by default but still honor explicit "ask" rules below.
-          const requiresApprovalByDefault =
-            !connectorReadOnly && toolRequiresApproval(name, viaConnector);
+          const nameSaysApprove = !connectorReadOnly && toolRequiresApproval(name, viaConnector);
           const requiresExplicitApproval = toolRequiresExplicitApproval(name);
           const connectorKind = connectorKindFromToolName(
             name,
             connectedPlugins.map((plugin) => plugin.provider),
           );
+          // The name check has been wrong in the dangerous direction before, and a
+          // connector's tool names are written by whoever wrote the connector. Only a
+          // connector call the name already cleared is read, and the answer can only
+          // add approval: the name's own "yes" is never revisited.
+          const requiresApprovalByDefault =
+            nameSaysApprove ||
+            (viaConnector &&
+              (await escalateConnectorConsequence(deps.decisions ?? defaultDecisions, {
+                toolName: name,
+                connectorKind,
+                args,
+                runId,
+                signal: runAbortController?.signal,
+              })));
           const approvalResolved = requiresExplicitApproval
             ? { decision: "ask" as const, source: "default" as const, matchingRules: [] }
             : resolveActionApprovalDetail({
@@ -1949,29 +1964,44 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 (values) => runSecrets.push(...values),
                 runAbortController?.signal,
               );
-              const judge = await runAutoReviewJudge({
-                runtime: deps.runtime,
-                checker,
-                apiKey: judgeKey.oauth ? undefined : judgeKey.apiKey,
-                baseUrl: judgeKey.baseUrl,
-                oauth: judgeKey.oauth
-                  ? { credential: judgeKey.oauth, modify: judgeKey.modifyOAuth }
-                  : undefined,
-                prompt: buildAutoReviewPrompt({
-                  toolName: name,
-                  connectorKind,
-                  args: redactToolArgsForReview(args, runSecrets),
-                  userTask: task.prompt,
-                  botDescription: `${bot.name}: ${bot.title}\n${bot.description}`,
-                  matchingRules: approvalResolved.matchingRules,
-                }),
+              // A decision model answers the same pass/ask question without a
+              // generation. The generative judge stays as the fallback for when
+              // none is configured or it will not commit.
+              const decided = await runDecisionReview(deps.decisions ?? defaultDecisions, {
+                toolName: name,
+                connectorKind,
+                args: redactToolArgsForReview(args, runSecrets),
+                userTask: task.prompt,
+                botDescription: `${bot.name}: ${bot.title}\n${bot.description}`,
+                matchingRules: approvalResolved.matchingRules,
                 runId,
-                spaceId: run.spaceId,
-                userId: run.userId,
-                botId: bot.id,
-                threadId: thread.id,
-                timeoutMs: autoReviewTimeoutMs(),
+                signal: runAbortController?.signal,
               });
+              const judge =
+                decided ??
+                (await runAutoReviewJudge({
+                  runtime: deps.runtime,
+                  checker,
+                  apiKey: judgeKey.oauth ? undefined : judgeKey.apiKey,
+                  baseUrl: judgeKey.baseUrl,
+                  oauth: judgeKey.oauth
+                    ? { credential: judgeKey.oauth, modify: judgeKey.modifyOAuth }
+                    : undefined,
+                  prompt: buildAutoReviewPrompt({
+                    toolName: name,
+                    connectorKind,
+                    args: redactToolArgsForReview(args, runSecrets),
+                    userTask: task.prompt,
+                    botDescription: `${bot.name}: ${bot.title}\n${bot.description}`,
+                    matchingRules: approvalResolved.matchingRules,
+                  }),
+                  runId,
+                  spaceId: run.spaceId,
+                  userId: run.userId,
+                  botId: bot.id,
+                  threadId: thread.id,
+                  timeoutMs: autoReviewTimeoutMs(),
+                }));
               reviewReason = judge.reason;
               gateDecision = applyJudgeDecision({
                 decision: judge.decision,
@@ -3741,6 +3771,23 @@ export function createRunExecutor(deps: ExecutorDeps) {
 
           if (approvalPausePending) return;
           if (segmentPending) {
+            // A whole segment went by. Before spending another, read whether the run
+            // is making progress: the hash-based loop guard cannot see an agent
+            // retrying the same broken thing with slightly different arguments, and
+            // that is exactly what burns an unattended run's budget. Asked once per
+            // segment, so it costs nothing on the hot path.
+            const stuck = await runIsStuck(deps.decisions ?? defaultDecisions, {
+              goal: task.prompt,
+              evidence: segmentPending.note,
+              runId,
+              signal: runAbortController?.signal,
+            });
+            if (stuck) {
+              throw new RunGuardrailError(
+                "Stopped: this run kept repeating work that was not making progress. Review what it tried before starting it again.",
+                "loop",
+              );
+            }
             await continueInNewSegment(segmentPending.reason, segmentPending.note);
             return;
           }

@@ -257,6 +257,9 @@ Do not commit `.env`. Never put `COMPOSIO_API_KEY`, OpenRouter keys, or provider
 
 ## Typed decisions
 
+`docs/jev.md` is the inventory: every decision, what it replaces, and what it
+falls back to. The short version follows.
+
 Some points in a run need a small, fast judgement rather than prose: which model serves a run,
 which search result answers the question, which control to operate next. A decision model
 answers those directly, returning a typed choice and a calibrated probability per option
