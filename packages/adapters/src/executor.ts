@@ -169,6 +169,7 @@ import {
   selectCompactedHistory,
   shouldEnqueueCompaction,
 } from "./history-compaction.js";
+import { type DecisionProvider, decisionProvider } from "./jev-decisions.js";
 import {
   assertConnectorToolArgs,
   CATALOG_EXECUTE,
@@ -447,6 +448,12 @@ export interface ExecutorDeps {
   listConnectedPluginSlugs?: (userId: string) => Promise<string[]>;
   /** Builtin web_search / web_fetch. Defaults to keyless HTTP when omitted. */
   web?: WebProvider;
+  /**
+   * Typed decisions for ranking, routing and the browser action space. Defaults to the
+   * configured provider, and stays undefined when none is configured: every caller that
+   * consults it keeps its own behaviour.
+   */
+  decisions?: DecisionProvider;
 }
 
 export async function deferFutureRoutine(
@@ -621,6 +628,9 @@ async function failWaitingRun(
 const activeRunAborts = new Map<string, () => void>();
 
 export function createRunExecutor(deps: ExecutorDeps) {
+  // Resolved once per executor rather than per tool call: reading the environment and building
+  // a client on every search would cost more than the decision saves.
+  const defaultDecisions = decisionProvider();
   const web = deps.web ?? createWebProvider();
   return {
     async resolveModel(scope: {
@@ -2520,7 +2530,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
             return finish({ ok: true });
           }
           if (name === "web_search") {
-            return finish(await webSearchFromTool(web, context, args));
+            return finish(
+              await webSearchFromTool(web, context, args, {
+                provider: deps.decisions ?? defaultDecisions,
+                sessionId: runId,
+              }),
+            );
           }
           if (name === "web_fetch") {
             return finish(await webFetchFromTool(web, context, args));
