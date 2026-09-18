@@ -24,6 +24,7 @@ export * from "./model-oauth.js";
 export * from "./model-providers.js";
 export * from "./plugin-bundle.js";
 export { conversationPreview } from "./preview-text.js";
+export * from "./prompt-data.js";
 export * from "./run-state.js";
 export * from "./sandbox-command.js";
 export * from "./screen-lease.js";

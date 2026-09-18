@@ -145,17 +145,34 @@ app.post("/computers", async (c) => {
           (!networkMode || info.HostConfig.NetworkMode === networkMode) &&
           info.Config.User === computerUser
         ) {
-          if (!info.State.Running) await existing.start();
-          const screenUrl = await publishedScreenUrl(
-            existing,
-            info.State.Running ? info : undefined,
-          );
-          return c.json({
-            id: existing.id,
-            image: COMPUTER_IMAGE,
-            screenUrl,
-            resumed: true,
-          });
+          // A container created while the host could enforce a memory cap cannot be resumed
+          // once it cannot. Recreate it uncapped below instead of failing every restart.
+          let resumable = true;
+          if (!info.State.Running) {
+            try {
+              await existing.start();
+            } catch (error) {
+              if (!isMemoryLimitUnsupportedError(error)) throw error;
+              getLogger().warn("computer.memory_cap_unsupported", {
+                botId: body.botId,
+                phase: "resume",
+                error: error instanceof Error ? error.message : String(error),
+              });
+              resumable = false;
+            }
+          }
+          if (resumable) {
+            const screenUrl = await publishedScreenUrl(
+              existing,
+              info.State.Running ? info : undefined,
+            );
+            return c.json({
+              id: existing.id,
+              image: COMPUTER_IMAGE,
+              screenUrl,
+              resumed: true,
+            });
+          }
         }
       }
       // Existing containers with the current image already use the selected user.
@@ -186,18 +203,24 @@ app.post("/computers", async (c) => {
         controlToken: randomUUID(),
       };
       let container: Awaited<ReturnType<typeof docker.createContainer>>;
+      let created: Awaited<ReturnType<typeof docker.createContainer>> | undefined;
       try {
-        container = await docker.createContainer(containerCreateOptions(createInput));
+        created = await docker.createContainer(containerCreateOptions(createInput));
+        container = created;
         await container.start();
       } catch (error) {
         if (!isMemoryLimitUnsupportedError(error)) throw error;
         // The daemon cannot enforce a memory cap here (no memory cgroup, rootless
-        // without delegation). Boot without it rather than not at all.
-        getLogger().warn("computer.memory_cap_unsupported");
-        await docker
-          .getContainer(name)
-          .remove({ force: true })
-          .catch(() => undefined);
+        // without delegation). Boot without it rather than not at all. Uncapped boots are
+        // logged with the bot and the daemon's own wording so they can be audited.
+        getLogger().warn("computer.memory_cap_unsupported", {
+          botId: body.botId,
+          phase: "create",
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Remove the container this request created, by its handle. Removing by name could
+        // reach a container this request does not own.
+        if (created) await created.remove({ force: true });
         container = await docker.createContainer(
           containerCreateOptions({ ...createInput, memoryLimit: false }),
         );
@@ -756,6 +779,9 @@ function isRakazoContainer(info: Docker.ContainerInspectInfo, botId: string, spa
 }
 
 function assertBotHomePath(homePath: string, botId: string) {
+  // path.join resolves "..", so an id carrying traversal would name a directory outside the
+  // homes tree and that directory would then be bind-mounted into the sandbox.
+  if (!/^[A-Za-z0-9_-]+$/.test(botId)) throw new Error("computer id is not a bot id");
   const expected = path.join(dataDir, "homes", botId);
   if (homePath !== expected) {
     throw new Error("computer home must be the bot's home directory");

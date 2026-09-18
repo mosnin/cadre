@@ -269,6 +269,31 @@ rejected.
 
 Do not commit `.env`. Never put `COMPOSIO_API_KEY`, OpenRouter keys, or provider tokens in git, logs, or chat.
 
+### Saved site logins
+
+A saved login belongs to the person who saved it: nobody else in the space lists it, uses it, or
+deletes it, and a bot only offers the logins of the person whose run it is. The password is never
+shown to the model. Before it is typed, the browser checks the page it is actually on against the
+saved host and refuses anything else, refuses a page that is not https, refuses a field that is not
+a password field, and refuses a frame. A page that echoes a typed value back is stripped of it
+before the model reads the result.
+
+### Bot computers and the cloud metadata endpoint
+
+Each bot computer sits on its own Docker bridge network with ordinary outbound routing, so the
+browser inside it can reach whatever the host can, including a cloud provider's instance metadata
+service. Rakazo's own fetch path already refuses link-local and metadata addresses, but a page
+loaded in the bot browser does not go through it. On a cloud VM, block that range for the bot
+bridges at the host, for example:
+
+```bash
+iptables  -I DOCKER-USER -d 169.254.0.0/16 -j DROP
+ip6tables -I DOCKER-USER -d fd00:ec2::/32  -j DROP
+```
+
+Require IMDSv2 (or the provider's equivalent) as well, and give the instance the smallest role you
+can. This is a host control; Rakazo cannot enforce it from inside the container.
+
 ## Choosing a computer provider
 
 The Electron desktop app is a client of the same API. Docker and E2B still apply. On first launch, Electron asks the deployment owner whether bots should keep using Docker or run on this Mac as you. `SANDBOX_PROVIDER=desktop` is a separate, explicit provider that always runs commands on the service host.

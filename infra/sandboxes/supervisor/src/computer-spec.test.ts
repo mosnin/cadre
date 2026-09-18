@@ -78,7 +78,8 @@ describe("graphical computer spec", () => {
     expect(options.HostConfig.CapDrop).toEqual(["ALL"]);
     expect(options.HostConfig.SecurityOpt).toEqual(["no-new-privileges:true"]);
     expect(options.HostConfig.PidsLimit).toBe(2048);
-    expect(options.HostConfig.ReadonlyPaths).toContain("/usr/share/novnc");
+    // A non-empty ReadonlyPaths replaces Docker's defaults for /proc, so the spec sets none.
+    expect(options.HostConfig).not.toHaveProperty("ReadonlyPaths");
     expect(options.HostConfig.NetworkMode).toBe("rakazo_default");
   });
 

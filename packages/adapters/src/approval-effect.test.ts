@@ -15,6 +15,7 @@ import {
   completeExternalEffect,
   createApprovedEffectReplayQueue,
   isApprovalPausedResult,
+  isAmbiguousEffectError,
   isFailedEffectResult,
   isToolPauseResult,
   replaceCompletedExternalEffectResult,
@@ -509,14 +510,38 @@ describe("approvalPausedToolResult", () => {
 });
 
 describe("failed effect results", () => {
-  it("stores an error result as failed so the same call can run again", async () => {
+  it.each([
+    "connection reset",
+    "The request timed out after 30000 ms",
+    "fetch failed",
+    "502 Bad Gateway",
+  ])("records %s as uncertain because the call may have landed", async (error) => {
     const updateMany = vi.fn(async () => ({ count: 1 }));
     await completeExternalEffect({ externalEffect: { updateMany } }, "effect-1", "executing", {
-      error: "connection reset",
+      error,
     });
     expect(updateMany).toHaveBeenCalledWith({
       where: { id: "effect-1", status: "executing" },
-      data: { status: "failed", result: { error: "connection reset" } },
+      data: { status: "uncertain", result: { error, uncertain: true } },
+    });
+  });
+
+  it("keeps an error that never reached the other side retryable", () => {
+    expect(isAmbiguousEffectError({ error: "connect ECONNREFUSED 127.0.0.1:443" })).toBe(false);
+    expect(isAmbiguousEffectError({ error: "getaddrinfo ENOTFOUND api.example.test" })).toBe(false);
+  });
+
+  it("stores an error result as failed so the same call can run again", async () => {
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    await completeExternalEffect({ externalEffect: { updateMany } }, "effect-1", "executing", {
+      error: "Validation failed: title is required",
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: "effect-1", status: "executing" },
+      data: {
+        status: "failed",
+        result: { error: "Validation failed: title is required" },
+      },
     });
     expect(resolveDuplicateEffectGate({ status: "failed" }, "create_record")).toEqual({
       action: "retry",

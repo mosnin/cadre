@@ -123,7 +123,7 @@ def allowed_xdotool_argv(argv):
         return False
     op = argv[3]
     if op == "key":
-        return len(argv) == 6 and argv[4] == "--clearmodifiers" and argv[5] != ""
+        return len(argv) == 6 and argv[4] == "--clearmodifiers" and argv[5] != "" and not argv[5].startswith("-")
     if op == "mousemove":
         if len(argv) == 7 and argv[4] == "--" and _is_int_string(argv[5]) and _is_int_string(argv[6]):
             return True
@@ -164,6 +164,10 @@ def allowed_control_argv(argv, display):
     if command == "xdg-open":
         return len(argv) == 4
     if "/" in command or command not in KNOWN_LAUNCH:
+        return False
+    # A launch argument is a URI. An option would be passed through to the program, and
+    # Chromium has options (--gpu-launcher, --renderer-cmd-prefix) that run a command.
+    if len(argv) == 4 and argv[3].startswith("-"):
         return False
     return len(argv) in (3, 4)
 

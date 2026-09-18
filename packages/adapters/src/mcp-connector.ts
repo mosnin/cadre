@@ -6,7 +6,7 @@ import type {
   ConnectorTool,
 } from "@rakazo/adapter-kit";
 import { isLocalMcpHost } from "@rakazo/contracts";
-import { connectorToolNamesMutation } from "@rakazo/core";
+import { connectorHintCanClaimReadOnly } from "@rakazo/core";
 import type { McpServer, PrismaClient } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
 import { sanitizeConnectorError } from "./connector-safety.js";
@@ -166,8 +166,7 @@ export class McpConnector implements ConnectorProvider {
               name: `mcp__${assignment.server.slug}__${tool.name}`,
               description: tool.description ?? tool.name,
               inputSchema: tool.inputSchema as Record<string, unknown>,
-              readOnly:
-                tool.annotations?.readOnlyHint === true && !connectorToolNamesMutation(tool.name),
+              readOnly: connectorHintCanClaimReadOnly(tool.name, tool.annotations?.readOnlyHint),
               route: {
                 connectorId: "mcp",
                 resourceId: assignment.serverId,

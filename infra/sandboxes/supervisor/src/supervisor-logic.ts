@@ -39,6 +39,7 @@ export const DOCKER_BROWSER_ALIASES = new Set([
   "google-chrome-stable",
   "rakazo-browser",
 ]);
+const LAUNCHABLE_APPLICATIONS = new Set(["rakazo-browser", "xterm"]);
 
 export function assertRequestIdentity(
   botId: string | undefined,
@@ -349,9 +350,13 @@ export function containerActionStep(
       : workspaceTarget(normalizeWorkspaceRelative(action.path));
     argv = ["env", `DISPLAY=${display}`, "xdg-open", target];
   } else {
-    const application = DOCKER_BROWSER_ALIASES.has(action.application.toLowerCase())
-      ? "rakazo-browser"
-      : action.application;
+    const lowered = action.application.toLowerCase();
+    const application = DOCKER_BROWSER_ALIASES.has(lowered) ? "rakazo-browser" : lowered;
+    // The replay path must not be weaker than the in-container control socket: the same two
+    // launchers, and a URI never an option (Chromium has options that run a command).
+    if (!LAUNCHABLE_APPLICATIONS.has(application))
+      throw new Error("computer launch is limited to the browser and the terminal");
+    if (action.uri?.startsWith("-")) throw new Error("computer launch takes a URI");
     argv = ["env", `DISPLAY=${display}`, application, ...(action.uri ? [action.uri] : [])];
   }
   return { argv };

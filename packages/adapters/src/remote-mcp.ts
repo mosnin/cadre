@@ -3,7 +3,7 @@ import { isIP, type LookupFunction } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { ConnectorTool } from "@rakazo/adapter-kit";
-import { connectorToolNamesMutation } from "@rakazo/core";
+import { connectorHintCanClaimReadOnly } from "@rakazo/core";
 import { Agent } from "undici";
 import { combineSignals } from "./connector-safety.js";
 import {
@@ -55,8 +55,7 @@ export async function listRemoteMcpTools(options: RemoteMcpOptions): Promise<Con
           name: tool.name,
           description: tool.description ?? tool.title ?? tool.name,
           inputSchema: tool.inputSchema,
-          readOnly:
-            tool.annotations?.readOnlyHint === true && !connectorToolNamesMutation(tool.name),
+          readOnly: connectorHintCanClaimReadOnly(tool.name, tool.annotations?.readOnlyHint),
         });
       }
       cursor = result.nextCursor;

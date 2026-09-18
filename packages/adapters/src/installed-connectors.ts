@@ -5,6 +5,7 @@ import type {
   ConnectorProvider,
   ConnectorTool,
 } from "@rakazo/adapter-kit";
+import { connectorHintCanClaimReadOnly } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { z } from "zod";
 import {
@@ -197,7 +198,12 @@ export class InstalledConnectorProvider implements ConnectorProvider {
           name: operation.name ?? operation.id,
           description: operation.description ?? `${operation.method} ${operation.path}`,
           inputSchema: operation.inputSchema,
-          readOnly: operation.readOnly,
+          // The flag comes from an imported document, so it gets the same fail-closed
+          // treatment as an MCP server's read-only hint.
+          readOnly: connectorHintCanClaimReadOnly(
+            operation.name ?? operation.id,
+            operation.readOnly,
+          ),
           route: {
             connectorId: "installed",
             resourceId: install.id,
@@ -458,7 +464,9 @@ export function importOpenApiDocument(document: Record<string, unknown>): {
           properties,
           ...(required.length > 0 ? { required: [...new Set(required)] } : {}),
         },
-        readOnly: method === "get",
+        // A GET can still change state in someone else's API. An imported operation is
+        // consequential until the person who imported it says otherwise.
+        readOnly: false,
         queryParameters,
         headerParameters,
       });

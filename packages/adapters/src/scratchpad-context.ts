@@ -1,3 +1,4 @@
+import { escapePromptData } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { listScratchpadItems, type ScratchpadToolDeps } from "./scratchpad-tools.js";
 
@@ -45,10 +46,6 @@ export async function loadAgentScratchpadContext(
   }
 
   return `${preamble}${lines.join("")}${closing}`;
-}
-
-function escapePromptData(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 function byteLength(value: string): number {
