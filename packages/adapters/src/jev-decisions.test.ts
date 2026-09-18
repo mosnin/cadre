@@ -151,3 +151,85 @@ describe("asking for a decision", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe("a question the service would reject", () => {
+  it("is dropped before it can cost the whole request", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            model: "typesafe/jev-1.13",
+            answers: { ok: { type: "noul", noul: 1 } },
+          }),
+          { status: 200 },
+        ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = decisionProvider({ OPENROUTER_API_KEY: "k" } as NodeJS.ProcessEnv);
+    const result = await provider?.decide({
+      state: "s",
+      questions: {
+        ok: noul("Is it so?"),
+        // A rubric of one level is not a rubric, and the service answers it with a 422.
+        broken: { type: "score", instructions: "How much?", criteria: ["only one"] },
+      },
+    });
+    const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
+    expect(Object.keys(body.questions)).toEqual(["ok"]);
+    expect(result?.answers.ok).toMatchObject({ noul: 1 });
+  });
+
+  it("does not open a request when it was the only question", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = decisionProvider({ OPENROUTER_API_KEY: "k" } as NodeJS.ProcessEnv);
+    await expect(
+      provider?.decide({
+        state: "s",
+        questions: { broken: { type: "score", instructions: "How much?", criteria: ["one"] } },
+      }),
+    ).resolves.toBeUndefined();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("choosing an endpoint", () => {
+  it("prefers TypeSafe's own, and names the model the way that endpoint does", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            model: "jev-1.13",
+            answers: { ok: { type: "noul", noul: 0.9 } },
+            usage: { input_tokens: 10, output_tokens: 0 },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = decisionProvider({
+      TYPESAFE_API_KEY: "ts-test",
+      OPENROUTER_API_KEY: "sk-or-test",
+      JEV_MODEL: "typesafe/jev-1.13",
+    } as NodeJS.ProcessEnv);
+    const result = await provider?.decide({ state: "s", questions: { ok: noul("Is it so?") } });
+    const [url, init] = fetchMock.mock.calls[0]! as [string, RequestInit];
+    expect(String(url)).toBe("https://api.typesafe.ai/v1/systemone");
+    // OpenRouter needs the vendor prefix to route; TypeSafe's own endpoint does not take it.
+    expect(JSON.parse(init.body as string).model).toBe("jev-1.13");
+    expect(result?.answers.ok).toMatchObject({ noul: 0.9 });
+  });
+
+  it("asks once for a state that has not changed", async () => {
+    const fetchMock = respond({
+      model: "typesafe/jev-1.13",
+      answers: { ok: { type: "noul", noul: 0.9 } },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = decisionProvider(KEY_ENV);
+    const request = { state: { page: "one" }, questions: { ok: noul("Is it so?") } };
+    await provider?.decide(request);
+    await provider?.decide({ ...request });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

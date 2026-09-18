@@ -15,9 +15,17 @@ probability for every option:
 - **noul** — the probability that a statement is true.
 
 Many questions travel in one request, including speculative ones the caller
-discards. Through OpenRouter's Decisions API (`POST /api/alpha/decisions`) the
-default model `typesafe/jev-1.13` bills **$0.042 per million input tokens and
-nothing on output**.
+discards. TypeSafe measures a request of thirteen questions over one document at
+**10x faster and 12x cheaper** than thirteen requests, with the same answers:
+questions are evaluated in parallel and in isolation, and the state — the
+expensive part — is paid for once. A decision answers in **70–500ms**.
+
+`typesafe/jev-1.13` bills **$0.042 per million input tokens and nothing on
+output**. Two endpoints serve it, and `packages/adapters/src/jev-decisions.ts`
+speaks both: TypeSafe's own (`POST api.typesafe.ai/v1/systemone`, through the
+vendor SDK, one hop shorter) when `TYPESAFE_API_KEY` is set, and OpenRouter's
+Decisions API (`POST /api/alpha/decisions`) otherwise, because most deployments
+already hold that key. Nothing above the adapter can tell which answered.
 
 ## The rule
 
@@ -28,6 +36,23 @@ Cost is not the constraint at these prices; latency is. Every decision is a
 network round trip. Replacing a generation is a large win because a generation
 is seconds and a decision is a few hundred milliseconds. Bolting a decision onto
 a path that was already fast makes that path slower for nothing.
+
+## The third rule
+
+> A question is free; a **request** is not. Ask everything about one state at
+> once, and never open a request for a question that is only speculative.
+
+This is the whole shape of `packages/adapters/src/decision-turn.ts`. Two things
+used to be asked about the same tool call, one after the other, each carrying its
+own copy of the same state. They now travel together, and the review question —
+which is read only if the gate reaches a judge — rides on the request that was
+being made anyway. It is never the reason for a request of its own.
+
+Answers are also remembered. `decision-cache.ts` keys on the model, the state and
+every question with its criteria, so anything that would change an answer changes
+the key, and a page that did not change or a tool called twice with the same
+arguments costs nothing the second time. Identical requests in flight together
+share one.
 
 ## The second rule
 
@@ -102,6 +127,27 @@ field: nothing a model composed reaches the page.
 `WAIT` exists for a page that is still working, and spends at most two of a
 pursuit's steps; a third means the pursuit is blocked, not patient.
 
+## What it is bad at, and what that forbids
+
+TypeSafe publishes the model's jaggedness, and three items on that list are
+constraints on this code rather than trivia:
+
+- **A statement and its negation do not sum to one.** So a question is always
+  asked in the direction of the action it licenses. `routineHasWork` asks whether
+  the routine has *nothing* to do, because skipping is what a "yes" causes;
+  reading a low "is there work" as a high "there is none" would be inferring an
+  answer that was never given.
+- **Counting, arithmetic, dates and ordered quantities are unreliable.** Nothing
+  here asks for one. Where a number matters, code computes it and the model is
+  asked what it means.
+- **A large state full of irrelevant detail costs accuracy.** Every state on this
+  path is capped and trimmed, and the browser snapshot sends only the text that is
+  actually on screen for exactly this reason.
+
+It is also, by its own documentation, vulnerable to adversarial content — which is
+what a web page is. That is the second rule's real justification, not a
+formality.
+
 ## Confidence, and why there is no global threshold
 
 Probability compares the options. Confidence says whether the model had enough to
@@ -128,7 +174,8 @@ Two places use them asymmetrically on purpose:
 ```bash
 JEV_DECISIONS_ENABLED=1     # 0 turns every decision off
 JEV_MODEL=typesafe/jev-1.13 # the decision model
-JEV_API_KEY=                # only if decisions should not use OPENROUTER_API_KEY
+TYPESAFE_API_KEY=           # TypeSafe directly; preferred when set
+JEV_API_KEY=                # OpenRouter, if not OPENROUTER_API_KEY
 JEV_TIMEOUT_MS=6000         # per request; 500 to 30000
 JEV_ROUTER_MODELS='[...]'   # the model pool; empty means no routing
 ```
@@ -152,7 +199,9 @@ that cannot share that context.
 
 ## Adding one
 
-1. Check it against both rules above. Most ideas fail the first.
+1. Check it against all three rules above. Most ideas fail the first, and the
+   ones that pass usually belong in a bundle that already exists rather than in a
+   request of their own.
 2. Build the question with `choice` / `score` / `noul` from `@rakazo/core`.
 3. Read the answer through `actionableChoice` or an explicit confidence check,
    never `answer.choice` directly.

@@ -121,7 +121,7 @@ export function actionableChoice(
   allowed: readonly string[],
   threshold: number = DECISION_CONFIDENCE.routing,
 ): string | undefined {
-  if (!answer || answer.type !== "choice") return undefined;
+  if (answer?.type !== "choice") return undefined;
   if (!allowed.includes(answer.choice)) return undefined;
   return decisionIsActionable(answer, threshold) ? answer.choice : undefined;
 }

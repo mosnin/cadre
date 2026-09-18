@@ -1,10 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  chooseHandoffBot,
-  escalateConnectorConsequence,
-  routineHasWork,
-  runIsStuck,
-} from "./decision-guards.js";
+import { chooseHandoffBot, routineHasWork, runIsStuck } from "./decision-guards.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 function answering(answers: Record<string, unknown>): DecisionProvider {
@@ -12,38 +7,8 @@ function answering(answers: Record<string, unknown>): DecisionProvider {
 }
 const unavailable: DecisionProvider = { decide: vi.fn(async () => undefined) };
 
-const CALL = { toolName: "fetchLedger", connectorKind: "acme", args: { id: "1" } };
 /** Long enough to clear the evidence floor. */
 const TRAIL = "tried the same export and it failed. ".repeat(12);
-
-describe("escalating a connector call the name check cleared", () => {
-  it("adds nothing without a provider", async () => {
-    await expect(escalateConnectorConsequence(undefined, CALL)).resolves.toBe(false);
-  });
-
-  it("raises the bar only on a confident yes", async () => {
-    await expect(
-      escalateConnectorConsequence(
-        answering({ consequential: { type: "noul", noul: 0.95 } }),
-        CALL,
-      ),
-    ).resolves.toBe(true);
-    await expect(
-      escalateConnectorConsequence(answering({ consequential: { type: "noul", noul: 0.7 } }), CALL),
-    ).resolves.toBe(false);
-  });
-
-  it("never lowers the bar, however sure the model is that the call is harmless", async () => {
-    await expect(
-      escalateConnectorConsequence(answering({ consequential: { type: "noul", noul: 0 } }), CALL),
-    ).resolves.toBe(false);
-  });
-
-  it("adds nothing when the provider is unavailable or silent", async () => {
-    await expect(escalateConnectorConsequence(unavailable, CALL)).resolves.toBe(false);
-    await expect(escalateConnectorConsequence(answering({}), CALL)).resolves.toBe(false);
-  });
-});
 
 describe("detecting a run that is not getting anywhere", () => {
   it("declines to judge a trail too short to read", async () => {
@@ -77,24 +42,35 @@ describe("detecting a run that is not getting anywhere", () => {
 describe("skipping a scheduled occurrence", () => {
   it("runs when there is nothing to compare against", async () => {
     await expect(
-      routineHasWork(answering({ work: { type: "noul", noul: 0 } }), {
+      routineHasWork(answering({ idle: { type: "noul", noul: 1 } }), {
         instruction: "report status",
         since: "   ",
       }),
     ).resolves.toBe(true);
   });
 
+  it("asks whether there is nothing to do, not the opposite of it", async () => {
+    const provider = answering({});
+    await routineHasWork(provider, { instruction: "report status", since: "no commits" });
+    const request = (provider.decide as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+      questions: Record<string, unknown>;
+    };
+    // This model does not promise that a statement and its negation sum to one, so the
+    // statement that licenses the skip has to be the statement that was asked.
+    expect(Object.keys(request.questions)).toEqual(["idle"]);
+  });
+
   it("skips only on a confident nothing-to-do", async () => {
     const input = { instruction: "report status", since: "no commits, no new issues" };
     await expect(
-      routineHasWork(answering({ work: { type: "noul", noul: 0.05 } }), input),
+      routineHasWork(answering({ idle: { type: "noul", noul: 0.95 } }), input),
     ).resolves.toBe(false);
     // Unsure means run: a skipped occurrence that should have happened is invisible.
     await expect(
-      routineHasWork(answering({ work: { type: "noul", noul: 0.3 } }), input),
+      routineHasWork(answering({ idle: { type: "noul", noul: 0.7 } }), input),
     ).resolves.toBe(true);
     await expect(
-      routineHasWork(answering({ work: { type: "noul", noul: 0.9 } }), input),
+      routineHasWork(answering({ idle: { type: "noul", noul: 0.05 } }), input),
     ).resolves.toBe(true);
   });
 

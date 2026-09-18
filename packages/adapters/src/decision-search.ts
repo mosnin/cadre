@@ -47,7 +47,7 @@ export async function rankWebSearchHits(
   if (!provider || hits.length < 2) return hits;
   const ranked = hits.slice(0, MAX_RANKED);
   const questions = Object.fromEntries(
-    ranked.map((hit, index) => [
+    ranked.map((_hit, index) => [
       `r${index}`,
       score(
         { question: query, task: "How well does this result answer the question?" },

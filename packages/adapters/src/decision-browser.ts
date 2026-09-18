@@ -296,12 +296,28 @@ const WAIT_MS = 500;
 const MAX_WAITS = 2;
 
 export type PursuitOutcome = {
-  status: "done" | "blocked" | "needs_value" | "undecided" | "step_limit";
+  status: "done" | "blocked" | "needs_value" | "undecided" | "step_limit" | "failed";
   steps: BrowserStep[];
   /** The control waiting for a value, when the model chose to type and none was supplied. */
   awaiting?: { ref: string; name: string };
+  /** Why the browser refused the step, when it did. */
+  error?: string;
   snapshot?: BrowserSnapshot;
 };
+
+/**
+ * Every action already answers with the page it produced, so a separate observation
+ * would re-walk the accessibility tree for a snapshot the browser just handed back.
+ */
+function observedSnapshot(result: unknown): BrowserSnapshot | undefined {
+  const page = result as BrowserSnapshot | undefined;
+  return typeof page?.snapshotId === "string" ? page : undefined;
+}
+
+function refusal(result: unknown): string | undefined {
+  const message = (result as { error?: unknown } | undefined)?.error;
+  return typeof message === "string" && message ? message : undefined;
+}
 
 /**
  * Take several browser steps toward a goal in one tool call.
@@ -356,6 +372,7 @@ export async function pursueBrowserGoal(
       sessionId: input.sessionId,
       signal: input.signal,
     });
+    let acted: unknown;
     if (!planned) return { status: "undecided", steps, snapshot };
     if (planned.operation === "DONE") return { status: "done", steps, snapshot };
     if (planned.operation === "BLOCKED") return { status: "blocked", steps, snapshot };
@@ -373,7 +390,7 @@ export async function pursueBrowserGoal(
           awaiting: { ref: planned.ref, name: planned.element.name },
         };
       }
-      await browser.act({
+      acted = await browser.act({
         action: "fill",
         snapshotId: snapshot.snapshotId,
         ref: planned.ref,
@@ -386,7 +403,7 @@ export async function pursueBrowserGoal(
         note: planned.entity?.label,
       });
     } else if (planned.operation === "SELECT") {
-      await browser.act({
+      acted = await browser.act({
         action: "select",
         snapshotId: snapshot.snapshotId,
         ref: planned.ref,
@@ -405,19 +422,28 @@ export async function pursueBrowserGoal(
       await new Promise((resolve) => setTimeout(resolve, WAIT_MS));
       steps.push({ operation: "WAIT" });
     } else if (planned.operation === "CLICK") {
-      await browser.act({ action: "click", snapshotId: snapshot.snapshotId, ref: planned.ref });
+      acted = await browser.act({
+        action: "click",
+        snapshotId: snapshot.snapshotId,
+        ref: planned.ref,
+      });
       steps.push({ operation: "CLICK", ref: planned.ref, name: planned.element.name });
     } else if (planned.operation === "PRESS_ENTER") {
-      await browser.act({ action: "press", snapshotId: snapshot.snapshotId, key: "Enter" });
+      acted = await browser.act({ action: "press", snapshotId: snapshot.snapshotId, key: "Enter" });
       steps.push({ operation: "PRESS_ENTER" });
     } else {
       const direction = planned.operation === "SCROLL_UP" ? "up" : "down";
-      await browser.act({ action: "scroll", direction });
+      acted = await browser.act({ action: "scroll", direction });
       steps.push({ operation: planned.operation });
     }
+    // A refusal means the page moved under the plan. Hand back with the trace rather than
+    // re-deciding against a page nobody has looked at since.
+    const refused = refusal(acted);
+    if (refused) return { status: "failed", steps, snapshot, error: refused };
     // Every action invalidates the refs it was chosen from, so the next decision is made
-    // against a fresh table rather than a remembered one.
-    snapshot = await browser.observe();
+    // against a fresh table rather than a remembered one — which the action itself already
+    // returned, so only a step that dispatched nothing has to go and look.
+    snapshot = observedSnapshot(acted) ?? (await browser.observe());
   }
   return { status: "step_limit", steps, snapshot };
 }

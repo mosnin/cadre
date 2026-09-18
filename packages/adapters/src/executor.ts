@@ -122,7 +122,6 @@ import {
   redactToolArgsForReview,
   resolveAutoReviewChecker,
   runAutoReviewJudge,
-  runDecisionReview,
 } from "./auto-review.js";
 import { loadBotMessageContext, messageBot, returnBotMessageOutcome } from "./bot-messages.js";
 import { agentConnectionTools, builtinAgentTools } from "./builtin-tools.js";
@@ -157,7 +156,8 @@ import { observationToolResult, parseComputerActions } from "./computer-tools.js
 import { checkpointAfterComputerWork } from "./computer-workspace.js";
 import { sanitizeConnectorError } from "./connector-safety.js";
 import { type BrowserSnapshot, pursueBrowserGoal } from "./decision-browser.js";
-import { escalateConnectorConsequence, runIsStuck } from "./decision-guards.js";
+import { runIsStuck } from "./decision-guards.js";
+import { decideToolCall } from "./decision-turn.js";
 import { routeRunModel, routerCandidates } from "./decision-routing.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
 import { isSandboxGoneError } from "./e2b-sandbox.js";
@@ -1885,20 +1885,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
             name,
             connectedPlugins.map((plugin) => plugin.provider),
           );
-          // The name check has been wrong in the dangerous direction before, and a
-          // connector's tool names are written by whoever wrote the connector. Only a
-          // connector call the name already cleared is read, and the answer can only
-          // add approval: the name's own "yes" is never revisited.
-          const requiresApprovalByDefault =
-            nameSaysApprove ||
-            (viaConnector &&
-              (await escalateConnectorConsequence(deps.decisions ?? defaultDecisions, {
-                toolName: name,
-                connectorKind,
-                args,
-                runId,
-                signal: runAbortController?.signal,
-              })));
           const approvalResolved = requiresExplicitApproval
             ? { decision: "ask" as const, source: "default" as const, matchingRules: [] }
             : resolveActionApprovalDetail({
@@ -1910,6 +1896,28 @@ export function createRunExecutor(deps: ExecutorDeps) {
             ? false
             : await loadAutoReviewPreference();
           const checker = requiresExplicitApproval ? undefined : resolveAutoReviewChecker();
+          // The name check has been wrong in the dangerous direction before, and a
+          // connector's tool names are written by whoever wrote the connector. Only a
+          // connector call the name already cleared is read, and the answer can only
+          // add approval: the name's own "yes" is never revisited.
+          const askConsequence = viaConnector && !nameSaysApprove;
+          // The review verdict rides along on the request that is being made anyway, so
+          // that a call the consequence answer sends to a judge needs no second round
+          // trip. It is never the reason for a request of its own here.
+          const turn = await decideToolCall(deps.decisions ?? defaultDecisions, {
+            toolName: name,
+            connectorKind,
+            // Redacted before it leaves the machine, on both questions.
+            args: redactToolArgsForReview(args, runSecrets),
+            userTask: task.prompt,
+            botDescription: `${bot.name}: ${bot.title}\n${bot.description}`,
+            matchingRules: approvalResolved.matchingRules,
+            askConsequence,
+            askReview: askConsequence && autoReviewPref && Boolean(checker),
+            runId,
+            signal: runAbortController?.signal,
+          });
+          const requiresApprovalByDefault = nameSaysApprove || turn.consequential;
           const checkerConfigured =
             autoReviewPref && checker
               ? isAutoReviewCheckerConfigured({}) ||
@@ -1965,18 +1973,26 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 runAbortController?.signal,
               );
               // A decision model answers the same pass/ask question without a
-              // generation. The generative judge stays as the fallback for when
-              // none is configured or it will not commit.
-              const decided = await runDecisionReview(deps.decisions ?? defaultDecisions, {
-                toolName: name,
-                connectorKind,
-                args: redactToolArgsForReview(args, runSecrets),
-                userTask: task.prompt,
-                botDescription: `${bot.name}: ${bot.title}\n${bot.description}`,
-                matchingRules: approvalResolved.matchingRules,
-                runId,
-                signal: runAbortController?.signal,
-              });
+              // generation. The verdict is usually already in hand from the bundle
+              // above; only a path that made no bundle asks here. The generative
+              // judge stays as the fallback for when none is configured or the
+              // model will not commit.
+              const decided =
+                turn.review ??
+                (
+                  await decideToolCall(deps.decisions ?? defaultDecisions, {
+                    toolName: name,
+                    connectorKind,
+                    args: redactToolArgsForReview(args, runSecrets),
+                    userTask: task.prompt,
+                    botDescription: `${bot.name}: ${bot.title}\n${bot.description}`,
+                    matchingRules: approvalResolved.matchingRules,
+                    askConsequence: false,
+                    askReview: true,
+                    runId,
+                    signal: runAbortController?.signal,
+                  })
+                ).review;
               const judge =
                 decided ??
                 (await runAutoReviewJudge({

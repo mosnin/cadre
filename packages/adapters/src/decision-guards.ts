@@ -10,61 +10,12 @@
 import { actionableChoice, DECISION_CONFIDENCE, type NoulAnswer, noul } from "@rakazo/core";
 import type { DecisionProvider } from "./jev-decisions.js";
 
-const MAX_ARGS_CHARS = 1_200;
-
 function probability(answer: unknown): number | undefined {
   const noulAnswer = answer as NoulAnswer | undefined;
-  if (!noulAnswer || noulAnswer.type !== "noul") return undefined;
+  if (noulAnswer?.type !== "noul") return undefined;
   return typeof noulAnswer.noul === "number" && Number.isFinite(noulAnswer.noul)
     ? noulAnswer.noul
     : undefined;
-}
-
-/**
- * Whether a connector call the name check cleared is consequential after all.
- *
- * Approval is decided from the tool's *name* by regex. That has been wrong twice
- * in this codebase already, because a name is a label the connector's author
- * chose and nothing forces it to describe what the call does. This reads the
- * call instead.
- *
- * It is asked only for connector tools the name already cleared, so it is the
- * one place the regex can be wrong in the dangerous direction, and it can only
- * return true. A tool the name flagged is never handed back for reconsideration.
- */
-export async function escalateConnectorConsequence(
-  provider: DecisionProvider | undefined,
-  input: {
-    toolName: string;
-    connectorKind: string;
-    args: Record<string, unknown>;
-    runId?: string;
-    signal?: AbortSignal;
-  },
-): Promise<boolean> {
-  if (!provider) return false;
-  const result = await provider.decide({
-    state: {
-      tool: input.toolName,
-      connector: input.connectorKind,
-      arguments: JSON.stringify(input.args).slice(0, MAX_ARGS_CHARS),
-    },
-    questions: {
-      consequential: noul(
-        "Does this call change something outside this workspace, spend money, send data to a third party, or destroy data?",
-        {
-          true: "It writes, sends, pays, deletes, or otherwise has an effect someone would notice.",
-          false: "It only reads or searches, and leaves everything as it was.",
-        },
-      ),
-    },
-    sessionId: input.runId,
-    signal: input.signal,
-  });
-  const value = probability(result?.answers.consequential);
-  // Only a confident "yes" raises the bar. Silence, doubt, or a "no" all leave
-  // the name check's verdict exactly where it was.
-  return value !== undefined && value >= DECISION_CONFIDENCE.consequential;
 }
 
 /** Enough of a trail to tell repetition from ordinary retrying. */
@@ -121,6 +72,11 @@ export async function runIsStuck(
  *
  * It fails toward running: nothing but a confident "there is no work" skips an
  * occurrence, because a skipped run that should have happened is invisible.
+ *
+ * The question is asked in the direction of the action it licenses. This model does not
+ * guarantee that the probability of a statement and of its negation sum to one, so reading
+ * a low "is there work" as a high "there is no work" would be inferring an answer that was
+ * never given. The statement whose truth causes the skip is the statement asked.
  */
 export async function routineHasWork(
   provider: DecisionProvider | undefined,
@@ -133,18 +89,16 @@ export async function routineHasWork(
       changed_since_last_run: input.since.slice(0, 4_000),
     },
     questions: {
-      work: noul("Given what has changed, does this routine have anything to do this time?", {
-        true: "There is new or outstanding work this routine would act on.",
-        false:
-          "Nothing has changed that this routine would act on; running it would repeat the last result.",
+      idle: noul("Given what has changed, does this routine have nothing to do this time?", {
+        true: "Nothing has changed that this routine would act on; running it would repeat the last result.",
+        false: "There is new or outstanding work this routine would act on.",
       }),
     },
     sessionId: input.runId,
     signal: input.signal,
   });
-  const value = probability(result?.answers.work);
-  if (value === undefined) return true;
-  return value > 1 - DECISION_CONFIDENCE.consequential;
+  const value = probability(result?.answers.idle);
+  return value === undefined || value < DECISION_CONFIDENCE.consequential;
 }
 
 /**

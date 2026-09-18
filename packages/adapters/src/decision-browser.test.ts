@@ -424,3 +424,45 @@ describe("waiting for a page that is still working", () => {
     expect(outcome.steps).toEqual([{ operation: "WAIT" }, { operation: "WAIT" }]);
   });
 });
+
+describe("the page each action already returned", () => {
+  const plan = {
+    operation: { type: "choice", choice: "CLICK", confidence: 0.9 },
+    click_target: { type: "choice", choice: "e1", confidence: 0.9 },
+  };
+
+  it("is used instead of looking again, so a step costs one browser call", async () => {
+    const observe = vi.fn(async () => ({ snapshotId: "s1", elements: ELEMENTS }));
+    const act = vi.fn(async () => ({ snapshotId: "s2", elements: ELEMENTS }));
+    const outcome = await pursueBrowserGoal(
+      provider(plan),
+      { goal: "click it", maxSteps: 2 },
+      { observe, act },
+    );
+    // One observation to start, and none after either action.
+    expect(observe).toHaveBeenCalledTimes(1);
+    expect(act).toHaveBeenCalledTimes(2);
+    expect(outcome.snapshot?.snapshotId).toBe("s2");
+  });
+
+  it("falls back to observing when an action answers with something else", async () => {
+    const observe = vi.fn(async () => ({ snapshotId: "s1", elements: ELEMENTS }));
+    const act = vi.fn(async () => ({ ok: true }));
+    await pursueBrowserGoal(provider(plan), { goal: "click it", maxSteps: 1 }, { observe, act });
+    expect(observe).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops on a refusal rather than deciding against a page nobody looked at", async () => {
+    const outcome = await pursueBrowserGoal(
+      provider(plan),
+      { goal: "click it", maxSteps: 4 },
+      {
+        observe: async () => ({ snapshotId: "s1", elements: ELEMENTS }),
+        act: async () => ({ error: "The browser snapshot is stale." }),
+      },
+    );
+    expect(outcome.status).toBe("failed");
+    expect(outcome.error).toContain("stale");
+    expect(outcome.steps).toHaveLength(1);
+  });
+});
