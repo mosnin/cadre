@@ -55,9 +55,19 @@ export class SingleScreenClaimTracker {
   }
 }
 
+/** Undici / AbortSignal.timeout abort while the guest is still marked running. */
+export function isComputerScreenTimeout(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.name === "TimeoutError" ||
+      /aborted due to timeout|the operation timed out/i.test(error.message))
+  );
+}
+
 export function isComputerScreenUnavailable(error: unknown): error is Error {
   return (
     error instanceof ComputerScreenUnavailableError ||
+    isComputerScreenTimeout(error) ||
     (error instanceof Error && /cannot allocate another screen/i.test(error.message))
   );
 }
@@ -68,7 +78,14 @@ export async function withComputerScreenAvailability<T>(
   try {
     return await work();
   } catch (error) {
-    if (isComputerScreenUnavailable(error)) return { error: error.message };
+    if (isComputerScreenUnavailable(error)) {
+      return {
+        error:
+          error instanceof ComputerScreenUnavailableError
+            ? error.message
+            : COMPUTER_SCREEN_UNAVAILABLE,
+      };
+    }
     throw error;
   }
 }

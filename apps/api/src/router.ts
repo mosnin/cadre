@@ -22,6 +22,7 @@ import {
   BotDeletionBusyError,
   buildMcpCredentialBlob,
   buildModelConnectPlaintext,
+  COMPUTER_SCREEN_UNAVAILABLE,
   type ComposioProvider,
   ComputerBusyError,
   type ComputerExecutionLease,
@@ -1956,7 +1957,7 @@ export function createRouter(deps: RouterDeps) {
           )
           .catch(async (error: unknown) => {
             if (isComputerScreenUnavailable(error)) {
-              throw new ORPCError("CONFLICT", { message: error.message });
+              throw new ORPCError("CONFLICT", { message: COMPUTER_SCREEN_UNAVAILABLE });
             }
             if (!isSandboxGoneError(error)) throw error;
             // The provider ended this sandbox while the row still says running.
