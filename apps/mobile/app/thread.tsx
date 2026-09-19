@@ -22,6 +22,7 @@ import {
   type SlashActionId,
   selectedAskActionLabel,
   serializeComposerPrompt,
+  shouldShowMessageDaySeparator,
   truncateSlashDescription,
   userVisibleMessages,
 } from "@cadre/core";
@@ -52,6 +53,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppConnectCard } from "../components/AppConnectCard";
 import { AskActions } from "../components/AskActions";
 import { BotAvatar } from "../components/bot-avatar";
+import { MessageDayStamp } from "../components/message-day-stamp";
+import { ShimmeringText } from "../components/shimmering-text";
 import {
   MarkdownArtifactPreview,
   type MarkdownArtifactPreviewTarget,
@@ -1323,7 +1326,10 @@ function Thread() {
     };
   }
 
-  function renderMessageRow(message: MobileMessage, options?: { enableJump?: boolean }) {
+  function renderMessageRow(
+    message: MobileMessage,
+    options?: { enableJump?: boolean; previousCreatedAt?: string },
+  ) {
     const actionProps = messageActionProps(message);
     const activityBotId =
       !inGroup && message.role === "bot" && message.id.startsWith("progress:")
@@ -1337,6 +1343,9 @@ function Thread() {
       ? (snap?.activeRuns?.find((run) => run.botId === activityBotId)?.status ??
         (snap?.run?.botId === activityBotId ? snap.run.status : currentBotStatus))
       : undefined;
+    const showDay = message.createdAt
+      ? shouldShowMessageDaySeparator(options?.previousCreatedAt, message.createdAt)
+      : false;
     return (
       <View
         key={message.id}
@@ -1354,14 +1363,20 @@ function Thread() {
             : undefined
         }
         style={{
-          marginTop: 12,
+          marginTop: showDay ? 0 : 12,
           width: "100%",
-          flexDirection: "row",
-          alignItems: "flex-start",
-          gap: 8,
-          justifyContent: message.role === "user" ? "flex-end" : "flex-start",
         }}
       >
+        {showDay && message.createdAt ? <MessageDayStamp createdAt={message.createdAt} /> : null}
+        <View
+          style={{
+            width: "100%",
+            flexDirection: "row",
+            alignItems: "flex-start",
+            gap: 8,
+            justifyContent: message.role === "user" ? "flex-end" : "flex-start",
+          }}
+        >
         {activityBotId ? (
           <View style={{ paddingTop: 22 }}>
             <BotAvatar
@@ -1418,6 +1433,7 @@ function Thread() {
             </Pressable>
           ) : null}
         </View>
+        </View>
       </View>
     );
   }
@@ -1439,9 +1455,10 @@ function Thread() {
           size={28}
           status={currentBotStatus}
         />
-        <Text style={{ color: tokens.mutedForeground, fontSize: 13.5 }}>
-          {t("{name} is thinking", { name: currentBot.name })}
-        </Text>
+        <ShimmeringText
+          text={t("{name} is thinking", { name: currentBot.name })}
+          style={{ color: tokens.mutedForeground, fontSize: 13.5, flexShrink: 1 }}
+        />
       </View>
     ) : inGroup && workingGroupBots.length > 0 ? (
       <View
@@ -1466,11 +1483,14 @@ function Thread() {
             </View>
           ))}
         </View>
-        <Text style={{ color: tokens.mutedForeground, fontSize: 13.5, flexShrink: 1 }}>
-          {workingGroupBots.length === 1
-            ? t("{name} is thinking", { name: workingGroupBots[0]?.name ?? t("Agent") })
-            : t("{count} agents thinking", { count: workingGroupBots.length })}
-        </Text>
+        <ShimmeringText
+          text={
+            workingGroupBots.length === 1
+              ? t("{name} is thinking", { name: workingGroupBots[0]?.name ?? t("Agent") })
+              : t("{count} agents thinking", { count: workingGroupBots.length })
+          }
+          style={{ color: tokens.mutedForeground, fontSize: 13.5, flexShrink: 1 }}
+        />
       </View>
     ) : null;
 
@@ -1510,7 +1530,12 @@ function Thread() {
             maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
           >
             {loadEarlierControl}
-            {visibleMessages.map((message) => renderMessageRow(message, { enableJump: true }))}
+            {visibleMessages.map((message, index) =>
+              renderMessageRow(message, {
+                enableJump: true,
+                previousCreatedAt: visibleMessages[index - 1]?.createdAt,
+              }),
+            )}
             {workingFooter}
           </ScrollView>
         ) : (
@@ -1554,7 +1579,11 @@ function Thread() {
             }}
             ListFooterComponent={loadEarlierControl}
             ListHeaderComponent={workingFooter}
-            renderItem={({ item }) => renderMessageRow(item)}
+            renderItem={({ item, index }) =>
+              renderMessageRow(item, {
+                previousCreatedAt: liveMessages[index + 1]?.createdAt,
+              })
+            }
           />
         )}
         {!showPinnedPage && threadScrollState.detached ? (
@@ -1953,7 +1982,7 @@ function Thread() {
                 minWidth: 96,
                 color: tokens.foreground,
                 paddingVertical: 2,
-                maxHeight: 100,
+                maxHeight: 168,
                 writingDirection: "auto",
               }}
             />
@@ -2307,7 +2336,7 @@ const MessageBubble = memo(function MessageBubble({
           width: "100%",
           paddingVertical: 4,
           alignItems: "center",
-          justifyContent: "flex-start",
+          justifyContent: "center",
           flexDirection: "row",
           gap: 6,
         }}

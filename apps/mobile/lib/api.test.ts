@@ -1023,11 +1023,13 @@ describe("mobile thread event reduction", () => {
       type: "thread.message.created",
       seq: 9,
       runId: "run-1",
+      createdAt: "2026-09-19T12:19:00.000Z",
       payload: { messageId: "message-1", role: "bot", blocks: [completed] },
     });
 
     expect(next?.messages.map((item) => item.id)).toEqual(["message-1", "subagent:other"]);
     expect(next?.messages[0]?.blocks).toEqual([completed]);
+    expect(next?.messages[0]?.createdAt).toBe("2026-09-19T12:19:00.000Z");
   });
 
   it("keeps a replayed bot-to-bot marker in its durable transcript position", () => {

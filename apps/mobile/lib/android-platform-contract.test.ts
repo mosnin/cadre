@@ -157,6 +157,14 @@ describe("Android mobile platform contract", () => {
     expect(thread).toContain("agents thinking");
   });
 
+  it("stamps a day when the thread is away and shimmers thinking copy", () => {
+    const thread = readFileSync(resolve(mobileRoot, "app/thread.tsx"), "utf8");
+    expect(thread).toContain("shouldShowMessageDaySeparator");
+    expect(thread).toContain("MessageDayStamp");
+    expect(thread).toContain("ShimmeringText");
+    expect(thread).toContain("{name} is thinking");
+  });
+
   it("keeps send and stop separate while steering active work", () => {
     const thread = readFileSync(resolve(mobileRoot, "app/thread.tsx"), "utf8");
     const stopStart = thread.indexOf("async function stop()");

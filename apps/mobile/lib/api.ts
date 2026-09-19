@@ -579,6 +579,7 @@ export type MobileMessage = {
   botId?: string;
   replyToMessageId?: string;
   thumbsUp?: boolean;
+  createdAt?: string;
   blocks: MessageBlock[];
 };
 
@@ -696,8 +697,15 @@ type ThreadEvent = {
   type: string;
   seq?: number;
   runId?: string;
+  createdAt?: string;
   payload?: Record<string, unknown>;
 };
+
+function eventCreatedAt(event: ThreadEvent): string | undefined {
+  if (typeof event.createdAt === "string" && event.createdAt) return event.createdAt;
+  const payloadCreatedAt = event.payload?.createdAt;
+  return typeof payloadCreatedAt === "string" && payloadCreatedAt ? payloadCreatedAt : undefined;
+}
 
 function takeMobileLiveMessage(
   snapshot: MobileSnapshot,
@@ -829,6 +837,9 @@ export function applyMobileThreadEvent(
       }),
       ...(event.botId ? { botId: event.botId } : {}),
       ...(event.runId ? { runId: event.runId } : {}),
+      ...(eventCreatedAt(event) || previous?.createdAt
+        ? { createdAt: eventCreatedAt(event) ?? previous?.createdAt }
+        : {}),
     };
     return {
       ...prev,
@@ -848,6 +859,9 @@ export function applyMobileThreadEvent(
       }),
       ...(event.botId ? { botId: event.botId } : {}),
       ...(event.runId ? { runId: event.runId } : {}),
+      ...(eventCreatedAt(event) || previous?.createdAt
+        ? { createdAt: eventCreatedAt(event) ?? previous?.createdAt }
+        : {}),
     };
     return {
       ...prev,
@@ -905,6 +919,7 @@ export function applyMobileThreadEvent(
         ? String(event.payload.replyToMessageId)
         : undefined,
       thumbsUp: event.payload?.thumbsUp === true,
+      ...(eventCreatedAt(event) ? { createdAt: eventCreatedAt(event) } : {}),
     };
     return {
       ...prev,
