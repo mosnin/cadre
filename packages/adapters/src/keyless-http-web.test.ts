@@ -164,6 +164,19 @@ describe("prefetching the first start action", () => {
     expect(formatPrefetchedStartPrompt(prefetched!)).toContain("already fetched");
   });
 
+  it("does not need connectors — a boot context with empty plugins is enough", async () => {
+    const fake = new FakeWebProvider();
+    fake.searchHits = [{ title: "Paris", url: "https://w.test", snippet: "12C" }];
+    const boot: AdapterContext = {
+      ...ctx,
+      connectedConnections: [],
+      connectedProviders: [],
+    };
+    await expect(
+      prefetchRunStart(fake, boot, { first: "search" }, "weather in paris"),
+    ).resolves.toMatchObject({ kind: "search", query: "weather in paris" });
+  });
+
   it("searches with the user's own wording when that is already a query", async () => {
     const fake = new FakeWebProvider();
     fake.searchHits = [{ title: "Paris", url: "https://w.test", snippet: "12C" }];
