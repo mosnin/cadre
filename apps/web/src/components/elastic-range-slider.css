@@ -1,0 +1,160 @@
+.range-slider,
+.range-slider *,
+.range-slider *::before,
+.range-slider *::after {
+  box-sizing: border-box;
+}
+
+.range-slider {
+  --slider-track: var(--muted);
+  --slider-text: var(--foreground);
+  --slider-muted: var(--muted-foreground);
+  --slider-thumb: #ffffff;
+  --slider-focus: var(--ring);
+  --slider-radius: 8px;
+  --slider-detail-duration: 182ms;
+  --slider-thumb-duration: 260ms;
+  --slider-thumb-ease: cubic-bezier(0.165, 0.84, 0.44, 1);
+
+  width: min(100%, 400px);
+  color: var(--slider-text);
+}
+
+.range-slider .meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.range-slider .value {
+  color: var(--slider-muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  --number-flow-mask-height: 0.14em;
+  --number-flow-mask-width: 0.2em;
+}
+
+.range-slider .control {
+  position: relative;
+  height: 40px;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.range-slider .control:active {
+  cursor: grabbing;
+}
+
+.range-slider .track {
+  position: relative;
+  height: 100%;
+  border-radius: var(--slider-radius);
+  will-change: width, transform;
+}
+
+.range-slider .track-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--slider-track);
+  border-radius: inherit;
+}
+
+.range-slider .fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: color-mix(in srgb, var(--slider-text) 15%, transparent);
+  transition: background-color var(--slider-detail-duration) ease;
+}
+
+.range-slider .ticks {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.range-slider .ticks span {
+  position: absolute;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  background: color-mix(in srgb, var(--slider-text) 25%, transparent);
+  border-radius: 999px;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: opacity var(--slider-detail-duration) ease;
+}
+
+.range-slider .thumb {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: 2;
+  width: 6px;
+  height: 20px;
+  border-radius: 2px;
+  outline: none;
+  transform-origin: center;
+  will-change: left, transform;
+}
+
+.range-slider .thumb:focus-visible {
+  outline: 2px solid var(--slider-focus);
+  outline-offset: 3px;
+}
+
+.range-slider .thumb-mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--slider-thumb);
+  border-radius: 2px;
+  box-shadow: 0 0 1px rgb(255 255 255 / 0.43);
+  opacity: 0;
+  transform: scale(0);
+  transform-origin: center;
+  transition:
+    opacity var(--slider-detail-duration) ease,
+    transform var(--slider-thumb-duration) var(--slider-thumb-ease);
+}
+
+.range-slider.is-active .fill {
+  background: color-mix(in srgb, var(--slider-text) 22%, transparent);
+}
+
+.range-slider .control:hover .ticks span,
+.range-slider .control:hover .thumb-mark,
+.range-slider.is-active .ticks span,
+.range-slider.is-active .thumb-mark,
+.range-slider:has(.thumb:focus-visible) .ticks span,
+.range-slider:has(.thumb:focus-visible) .thumb-mark {
+  opacity: 1;
+}
+
+.range-slider .control:hover .thumb-mark,
+.range-slider.is-active .thumb-mark,
+.range-slider:has(.thumb:focus-visible) .thumb-mark {
+  transform: scale(1);
+}
+
+.range-slider.is-pointer-input .thumb:focus-visible {
+  outline: none;
+}
+
+.range-slider.is-pointer-input:not(.is-active) .control:not(:hover) .ticks span,
+.range-slider.is-pointer-input:not(.is-active) .control:not(:hover) .thumb-mark {
+  opacity: 0;
+}
+
+.range-slider.is-pointer-input:not(.is-active) .control:not(:hover) .thumb-mark {
+  transform: scale(0);
+}

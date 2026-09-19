@@ -3643,11 +3643,20 @@ export function ShellPage() {
                   className="flex items-center gap-1 truncate text-[16px] font-medium text-foreground"
                   dir="auto"
                 >
-                  {inGroup
-                    ? (activeGroup?.name ?? activeSnapshot?.groupName ?? t`Group`)
-                    : atWorkspaceHome
-                      ? t`All`
-                      : (active?.name ?? t`Select a bot`)}
+                  {inGroup ? (
+                    (activeGroup?.name ?? activeSnapshot?.groupName ?? t`Group`)
+                  ) : atWorkspaceHome ? (
+                    t`All`
+                  ) : active ? (
+                    <BotNameSweep
+                      name={active.name}
+                      status={active.status}
+                      runKey={active.updatedAt}
+                      className="truncate text-[16px] font-medium"
+                    />
+                  ) : (
+                    t`Select a bot`
+                  )}
                   {atWorkspaceHome ? (
                     <ChevronDown size={14} className="shrink-0 text-muted-foreground" />
                   ) : null}
@@ -3956,13 +3965,14 @@ export function ShellPage() {
                     setPanel("routine");
                   }}
                 />
-                {activeRoutines.map((routine) => {
+                {activeRoutines.map((routine, index) => {
                   const routineRunning =
                     snapshot?.run?.routineId === routine.id && isActive(snapshot.run.status);
                   return (
                     <RoutineListRow
                       key={routine.id}
                       routine={routine}
+                      index={index}
                       running={routineRunning}
                       onOpen={() => {
                         setRoutineDraft(draftFromRoutine(routine));

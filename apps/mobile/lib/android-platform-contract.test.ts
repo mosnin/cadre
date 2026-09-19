@@ -171,6 +171,8 @@ describe("Android mobile platform contract", () => {
     expect(thread).toContain("MessageDayStamp");
     expect(thread).toContain("ShimmeringText");
     expect(thread).toContain("{name} is thinking");
+    expect(thread).toContain("nameSweep");
+    expect(thread).toContain("once");
   });
 
   it("keeps send and stop separate while steering active work", () => {

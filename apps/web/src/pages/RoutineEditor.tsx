@@ -24,6 +24,8 @@ import { t } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { ChevronLeft, Clock, Globe, Pause, Plus, X } from "lucide-react";
 import { useId } from "react";
+import { RoutineRunClock } from "../components/RoutineRunClock";
+import { routineClockSource } from "../lib/routine-run-clock";
 import { RoutineSchedule } from "./RoutineSchedule";
 
 function toDatetimeLocalValue(date: Date): string {
@@ -124,11 +126,13 @@ export function RoutineListHeader({ onCreate }: { onCreate: () => void }) {
 export function RoutineListRow({
   routine,
   running,
+  index = 0,
   onOpen,
   onStop,
 }: {
   routine: Routine;
   running: boolean;
+  index?: number;
   onOpen: () => void;
   onStop: () => void;
 }) {
@@ -163,7 +167,9 @@ export function RoutineListRow({
         >
           <Trans>Running · Stop</Trans>
         </Button>
-      ) : null}
+      ) : (
+        <RoutineRunClock iso={routineClockSource(routine)} index={index} />
+      )}
     </div>
   );
 }

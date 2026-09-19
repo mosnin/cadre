@@ -28,7 +28,9 @@ import { t } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Plus, X } from "lucide-react";
 import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
+import { ElasticRangeSlider } from "../../components/ElasticRangeSlider";
 import { rpc } from "../../lib/rpc";
+import { thinkingSliderIndex } from "../../lib/thinking-slider";
 
 const ScratchpadSection = lazy(() =>
   import("../ScratchpadSection").then((module) => ({ default: module.ScratchpadSection })),
@@ -445,22 +447,20 @@ export function BotSettings({
           </NativeSelect>
         </label>
         {thinkingOptions.length ? (
-          <label htmlFor={`${ids}-thinking`} className={fieldLabelClass}>
-            <Trans>Thinking</Trans>
-            <NativeSelect
-              id={`${ids}-thinking`}
-              className="mt-2 w-full"
-              value={thinkingLevel}
-              onChange={(event) => setThinkingLevel(event.target.value)}
-            >
-              <NativeSelectOption value="">{t`Default (medium)`}</NativeSelectOption>
-              {thinkingOptions.map((level) => (
-                <NativeSelectOption key={level} value={level}>
-                  {thinkingLevelLabel(level)}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </label>
+          <div className="mt-4" data-testid="bot-thinking-slider">
+            <ElasticRangeSlider
+              key={thinkingOptions.join(":")}
+              min={1}
+              max={thinkingOptions.length}
+              step={1}
+              value={thinkingSliderIndex(thinkingOptions, thinkingLevel) + 1}
+              label={t`Thinking`}
+              onValueInput={(next) => {
+                const level = thinkingOptions[next - 1];
+                if (level) setThinkingLevel(level);
+              }}
+            />
+          </div>
         ) : null}
         {memoryProviderConfigured ? (
           <div className="mt-4 text-[14px] text-muted-foreground">
@@ -604,16 +604,6 @@ export function BotSettings({
 
 function modelOptionKey(provider: string, modelId: string) {
   return `${provider}::${modelId}`;
-}
-
-function thinkingLevelLabel(level: ThinkingLevel) {
-  if (level === "xhigh") return t`Extra high`;
-  if (level === "low") return t`Low`;
-  if (level === "medium") return t`Medium`;
-  if (level === "high") return t`High`;
-  if (level === "minimal") return t`Minimal`;
-  if (level === "max") return t`Max`;
-  return `${level.slice(0, 1).toUpperCase()}${level.slice(1)}`;
 }
 
 function parseModelOptionKey(key: string) {

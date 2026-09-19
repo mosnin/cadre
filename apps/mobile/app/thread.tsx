@@ -387,6 +387,22 @@ function Thread() {
     });
   }, [inGroup, snap?.activeRuns, snap?.members, snap?.run]);
   const working = inGroup ? workingGroupBots.length > 0 : isWorkingStatus(currentBotStatus);
+  const [nameSweep, setNameSweep] = useState(false);
+  const previousWorking = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    previousWorking.current = null;
+    setNameSweep(false);
+  }, [threadKey]);
+
+  useEffect(() => {
+    const before = previousWorking.current;
+    previousWorking.current = working;
+    if (before !== true || working) return;
+    setNameSweep(true);
+    const timer = setTimeout(() => setNameSweep(false), 2300);
+    return () => clearTimeout(timer);
+  }, [working]);
 
   useEffect(() => {
     void rpc<AgentSkillCatalogEntry[]>("agentSkills/list")
@@ -497,12 +513,20 @@ function Thread() {
               muted={!currentBot.notifyOnFinish}
             />
           ) : null}
-          <Text
-            numberOfLines={1}
-            style={{ color: tokens.foreground, fontSize: 18, fontWeight: "600" }}
-          >
-            {name || t("Thread")}
-          </Text>
+          {nameSweep ? (
+            <ShimmeringText
+              once
+              text={name || t("Thread")}
+              style={{ color: tokens.foreground, fontSize: 18, fontWeight: "600" }}
+            />
+          ) : (
+            <Text
+              numberOfLines={1}
+              style={{ color: tokens.foreground, fontSize: 18, fontWeight: "600" }}
+            >
+              {name || t("Thread")}
+            </Text>
+          )}
         </View>
       ),
       headerRight: () =>
@@ -559,6 +583,7 @@ function Thread() {
     groupId,
     inGroup,
     name,
+    nameSweep,
     navigation,
     router,
     t,

@@ -1,21 +1,20 @@
 import { ACTIVE_RUN_STATUSES } from "@cadre/core";
-import { useEffect, useRef } from "react";
-import { revealNow } from "../../lib/text-reveal";
+import { ShimmeringText } from "@cadre/ui-web/components/ui/shimmering-text";
+import { useEffect, useRef, useState } from "react";
+
+const SHIMMER_MS = 2300;
+
+export function shouldSweepBotName(
+  before: { active: boolean; runKey?: string } | null,
+  next: { active: boolean; runKey?: string },
+): boolean {
+  if (!before) return false;
+  return before.active && !next.active;
+}
 
 /**
- * A bot's name in the rail, which sweeps once through a gradient the moment
- * that bot finishes a run.
- *
- * The sweep is tied to a transition, not to a value. It fires when the bot
- * crosses from an active run status into a finished one — not on mount, not on
- * a re-render, and not when a bot that was already finished is merely
- * re-listed. A run that is still going, or one that ended needing a person,
- * does not sweep: the gesture has to mean exactly one thing or it means
- * nothing.
- *
- * `runKey` distinguishes one run from the next — the row's own updatedAt, which
- * moves when a run ends — so a second completion sweeps again rather than being
- * mistaken for the first.
+ * Official ElevenLabs shimmer on a bot's name, once, when that bot finishes.
+ * First paint never shimmers. Waiting on a person does not count as finished.
  */
 export function BotNameSweep({
   name,
@@ -28,25 +27,33 @@ export function BotNameSweep({
   runKey?: string;
   className?: string;
 }) {
-  const ref = useRef<HTMLSpanElement>(null);
   const previous = useRef<{ active: boolean; runKey?: string } | null>(null);
+  const [sweepKey, setSweepKey] = useState(0);
 
   useEffect(() => {
     const active = ACTIVE_RUN_STATUSES.some((candidate) => candidate === status);
     const before = previous.current;
-    previous.current = { active, runKey };
+    const next = { active, runKey };
+    previous.current = next;
+    if (!shouldSweepBotName(before, next)) return;
 
-    // A bot that was already finished before this row mounted did not just
-    // finish, so first paint never sweeps.
-    if (!before) return;
-    if (!(before.active && !active)) return;
+    setSweepKey((current) => current + 1);
+    const timer = window.setTimeout(() => setSweepKey(0), SHIMMER_MS);
+    return () => window.clearTimeout(timer);
+  }, [runKey, status]);
 
-    revealNow(ref.current, { replay: before.runKey !== runKey });
-  }, [status, runKey]);
+  if (sweepKey > 0) {
+    return (
+      <ShimmeringText
+        key={sweepKey}
+        text={name}
+        className={className}
+        startOnView={false}
+        once
+        repeat={false}
+      />
+    );
+  }
 
-  return (
-    <span ref={ref} data-reveal-06 data-duration="1.1" data-delay="0" className={className}>
-      {name}
-    </span>
-  );
+  return <span className={className}>{name}</span>;
 }

@@ -17,6 +17,7 @@
     "@lingui/core": "5.9.5",
     "@lingui/react": "5.9.5",
     "@number-flow/react": "0.6.2",
+    "number-flow": "0.6.2",
     "@orpc/client": "^1.15.0",
     "@orpc/contract": "^1.15.0",
     "@cadre/chat-ui": "workspace:*",
