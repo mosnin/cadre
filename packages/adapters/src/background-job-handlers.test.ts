@@ -9,6 +9,7 @@ import type { PrismaClient, ThreadEvents } from "@cadre/db";
 import { createLogger, createTestSink, installLogger } from "@cadre/logging";
 import { describe, expect, it, vi } from "vitest";
 import { createBackgroundJobHandlers } from "./background-job-handlers.js";
+import { DEFAULT_OPENROUTER_MODEL } from "./deployment-model.js";
 import { createRunExecutor } from "./executor.js";
 import { compactHistory } from "./history-compaction.js";
 import { deliverMessagingOutbound, mirrorMessagingOutbound } from "./messaging-delivery.js";
@@ -114,7 +115,7 @@ describe("createBackgroundJobHandlers", () => {
       executor.resolveModel({ userId: "user-1", spaceId: "workspace-1" }),
     ).resolves.toEqual({
       provider: "openrouter",
-      id: "deepseek/deepseek-v4-flash-0731",
+      id: DEFAULT_OPENROUTER_MODEL,
       apiKey: "deployment-key",
       baseUrl: undefined,
       thinkingLevel: null,

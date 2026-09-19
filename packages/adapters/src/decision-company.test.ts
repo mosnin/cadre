@@ -5,7 +5,7 @@ import type { DecisionProvider } from "./jev-decisions.js";
 function answering(choice: string, confidence = 0.8): DecisionProvider {
   return {
     decide: vi.fn(async () => ({
-      answers: { focus: { type: "choice", choice, confidence } },
+      answers: { focus: { type: "choice" as const, choice, confidence } },
       model: "typesafe/jev-1.13",
     })),
   };
