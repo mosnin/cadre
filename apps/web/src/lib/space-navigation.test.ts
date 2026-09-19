@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { navigateSpaceBoundary, spaceBoundaryChanged } from "./space-navigation.js";
+import {
+  navigateSpaceBoundary,
+  resolveSpaceChatNavigation,
+  spaceBoundaryChanged,
+} from "./space-navigation.js";
 
 describe("spaceBoundaryChanged", () => {
   it("detects a switch away from the stored space", () => {
@@ -16,6 +20,10 @@ describe("spaceBoundaryChanged", () => {
 
   it("stays in-app when the shell is already on the target", () => {
     expect(spaceBoundaryChanged("space-personal", "space-personal", "space-personal")).toBe(false);
+  });
+
+  it("stays in-app when the click is in the space the shell already shows", () => {
+    expect(spaceBoundaryChanged("space-stale", "space-personal", "space-personal")).toBe(false);
   });
 });
 
@@ -71,5 +79,35 @@ describe("navigateSpaceBoundary", () => {
     );
     expect(location.assign).not.toHaveBeenCalled();
     expect(location.reload).not.toHaveBeenCalled();
+  });
+});
+
+describe("resolveSpaceChatNavigation", () => {
+  it("soft-navigates a same-space roster click even when storage is stale", () => {
+    expect(resolveSpaceChatNavigation("space-personal", "space-personal", "space-stale")).toEqual({
+      nextSpaceId: "space-personal",
+      mode: "soft",
+    });
+  });
+
+  it("soft-navigates when the chat has no space id", () => {
+    expect(resolveSpaceChatNavigation(undefined, "space-personal", "space-personal")).toEqual({
+      nextSpaceId: "space-personal",
+      mode: "soft",
+    });
+  });
+
+  it("soft-navigates when no space can be resolved", () => {
+    expect(resolveSpaceChatNavigation(undefined, undefined, null)).toEqual({
+      nextSpaceId: undefined,
+      mode: "soft",
+    });
+  });
+
+  it("remounts when the click is in a different space", () => {
+    expect(resolveSpaceChatNavigation("space-support", "space-personal", "space-personal")).toEqual({
+      nextSpaceId: "space-support",
+      mode: "boundary",
+    });
   });
 });

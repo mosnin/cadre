@@ -44,6 +44,7 @@ import {
   latestAnswerableAskMessageId,
   mentionChipKey,
   paintGroupMembers,
+  RAIL_ORB_SIZE,
   reorderBotTo,
   resolveComposerSendPlan,
   resolveMentionPickerKey,
@@ -166,7 +167,7 @@ import { markAfterPaint, markOnce } from "../lib/performance";
 import { readRailCollapsed, writeRailCollapsed } from "../lib/rail-collapsed";
 import { clearSpaceSelection, rpc, selectedSpaceId, selectSpace } from "../lib/rpc";
 import { readSeenRunErrorIds, rememberSeenRunErrorId } from "../lib/run-error-storage";
-import { navigateSpaceBoundary, spaceBoundaryChanged } from "../lib/space-navigation";
+import { navigateSpaceBoundary, resolveSpaceChatNavigation } from "../lib/space-navigation";
 import { clearTaskDraft, readTaskDraft, writeTaskDraft } from "../lib/task-draft";
 import {
   activeThreadRuns,
@@ -1702,21 +1703,22 @@ export function ShellPage() {
   }, [currentSpaceId, botSections, bots, groups, spaces, query]);
 
   const openSpaceChat = useCallback(
-    (spaceId: string, path: string) => {
+    (spaceId: string | undefined, path: string) => {
       // The phone drawer closes because it covers the conversation. The
       // desktop rail does not: it is in the layout beside the thing it
       // navigates, so switching workspaces leaves it where it was. This
       // used to collapse it, which is why creating anything from the rail
       // made the rail disappear.
       setMobileSidebarOpen(false);
-      const previousSpaceId = selectedSpaceId();
-      // Persist the active space (including primary) so voice/RPC headers match the chat.
-      const selectionStored = selectSpace(spaceId);
-      if (!selectionStored) return;
+      const decision = resolveSpaceChatNavigation(spaceId, currentSpaceId, selectedSpaceId());
+      if (decision.nextSpaceId) {
+        selectSpace(decision.nextSpaceId);
+      }
       // Soft-navigate within the same space; remount when the auth boundary
       // changes so bootstrapped bots/groups match the request header.
       // Same-document assign("/app") is a no-op in the browser — reload then.
-      if (spaceBoundaryChanged(previousSpaceId, currentSpaceId, spaceId)) {
+      // Storage failure must not swallow the click.
+      if (decision.mode === "boundary" && decision.nextSpaceId) {
         navigateSpaceBoundary(path, window.location);
         return;
       }
@@ -3339,7 +3341,7 @@ export function ShellPage() {
                                   position: { x: event.clientX, y: event.clientY },
                                 });
                               }}
-                              className={`${pinnedShelf ? "flex w-28 shrink-0 flex-col items-center gap-3 rounded-3xl px-2 py-3 text-center" : "flex w-full gap-2.5 rounded-xl px-2.5 py-4 text-start md:py-2"} ${
+                              className={`${pinnedShelf ? "flex w-28 shrink-0 flex-col items-center gap-3 rounded-3xl px-2 py-3 text-center" : "flex w-full items-center gap-3 rounded-xl px-2.5 py-3.5 text-start md:py-2.5"} ${
                                 item.kind === "bot" ? "cursor-grab active:cursor-grabbing" : ""
                               } ${
                                 !pinnedShelf &&
@@ -3363,7 +3365,7 @@ export function ShellPage() {
                                 <BotAvatar
                                   color={item.chat.color}
                                   identity={item.chat.id}
-                                  size={pinnedShelf ? 82 : desktopLayout ? 28 : 46}
+                                  size={pinnedShelf ? 82 : desktopLayout ? RAIL_ORB_SIZE : 46}
                                   status={item.chat.status}
                                 />
                               ) : (
@@ -3374,7 +3376,7 @@ export function ShellPage() {
                                       : item.chat.members,
                                     bots,
                                   )}
-                                  size={pinnedShelf ? 82 : desktopLayout ? 28 : 46}
+                                  size={pinnedShelf ? 82 : desktopLayout ? RAIL_ORB_SIZE : 46}
                                 />
                               )}
                               <div className={pinnedShelf ? "w-full min-w-0" : "min-w-0 flex-1"}>

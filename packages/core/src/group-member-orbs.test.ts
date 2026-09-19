@@ -19,11 +19,11 @@ describe("paintGroupMembers", () => {
 
 describe("groupAvatarMiniSize", () => {
   it("keeps a rail pair large enough for the official orb", () => {
-    expect(groupAvatarMiniSize(28, 2)).toBe(LIVE_ORB_MIN_SIZE);
-    expect(groupAvatarMiniSize(28, 2)).toBeGreaterThanOrEqual(20);
+    expect(groupAvatarMiniSize(36, 2)).toBeGreaterThanOrEqual(LIVE_ORB_MIN_SIZE);
+    expect(groupAvatarMiniSize(36, 2)).toBe(22);
   });
 
   it("does not enlarge mention-sized stacks", () => {
-    expect(groupAvatarMiniSize(16, 2)).toBe(Math.round(16 * 0.65));
+    expect(groupAvatarMiniSize(16, 2)).toBe(Math.round(16 * 0.6));
   });
 });

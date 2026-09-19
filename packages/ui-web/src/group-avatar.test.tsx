@@ -33,15 +33,15 @@ describe("GroupAvatar", () => {
   it("keeps rail-sized pair orbs large enough for the official shader", () => {
     const html = render(
       <GroupAvatar
-        size={28}
+        size={36}
         members={[
           { name: "Sherlock", color: "#8B5CF6" },
           { name: "Elon", color: "#06B6D4" },
         ]}
       />,
     );
-    expect(html).toContain("width:20px");
-    expect(html).toContain("height:20px");
+    expect(html).toContain("width:22px");
+    expect(html).toContain("height:22px");
   });
 
   it("renders a working member inside a group avatar", () => {

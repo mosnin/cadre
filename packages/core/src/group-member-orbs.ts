@@ -1,5 +1,10 @@
+import { groupAvatarLayout } from "./group-avatar-layout.js";
+
 /** Rail orbs run the official shader at this size; mentions stay a still fill. */
 export const LIVE_ORB_MIN_SIZE = 20;
+
+/** Desktop rail avatar. Smaller than this collapses a pair into one disc. */
+export const RAIL_ORB_SIZE = 36;
 
 export type GroupMemberOrb = {
   botId?: string;
@@ -45,8 +50,5 @@ export function groupAvatarMiniSize(size: number, memberCount: number): number {
   if (!Number.isInteger(memberCount) || memberCount < 0) {
     throw new Error("Group avatar member count must be a non-negative integer");
   }
-  if (memberCount <= 1) return size;
-  const raw = Math.round(size * (memberCount === 2 ? 0.65 : 0.54));
-  if (size < LIVE_ORB_MIN_SIZE) return raw;
-  return Math.max(raw, Math.min(size, LIVE_ORB_MIN_SIZE));
+  return groupAvatarLayout(size, memberCount).miniSize;
 }
