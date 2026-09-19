@@ -68,6 +68,22 @@ describe("scripted runtime", () => {
     expect(script?.some((t) => t.toolCalls?.some((c) => c.args.name === "Scout"))).toBe(true);
   });
 
+  it("creates a named group chat", () => {
+    const script = inferScript("create a group named Launch with Writer and Chief");
+    expect(
+      script?.some((turn) =>
+        turn.toolCalls?.some(
+          (call) =>
+            call.name === "create_group" &&
+            call.args.name === "Launch" &&
+            Array.isArray(call.args.names) &&
+            call.args.names.includes("Writer") &&
+            call.args.names.includes("Chief"),
+        ),
+      ),
+    ).toBe(true);
+  });
+
   it("proposes a named space", () => {
     const script = inferScript("create a space named Customer support");
     expect(
@@ -176,6 +192,7 @@ describe("builtin tools", () => {
         "request_secret",
         "run_subagent",
         "create_space",
+        "create_group",
         "spawn_bot",
         "archive_bot",
         "skill_read",

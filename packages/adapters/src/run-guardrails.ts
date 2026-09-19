@@ -68,6 +68,7 @@ export function isBudgetGuardrail(error: unknown): boolean {
 type GuardrailState = { count: number; recent: string[]; automation: Record<string, number> };
 const AUTOMATION_LIMITS: Record<string, number> = {
   spawn_bot: 4,
+  create_group: 2,
   schedule_create: 4,
   message_bot: 8,
   handoff_to_bot: 1,
@@ -111,9 +112,12 @@ export function advanceRunGuardrail(
       `Stopped at the ${limit}-tool run limit. Send a new message to continue.`,
       "budget",
     );
-  if ((name === "spawn_bot" || name === "schedule_create") && trigger !== "user") {
+  if (
+    (name === "spawn_bot" || name === "create_group" || name === "schedule_create") &&
+    trigger !== "user"
+  ) {
     throw new RunGuardrailError(
-      "Creating bots or schedules requires a direct user request. Automated runs cannot create more automation.",
+      "Creating bots, groups, or schedules requires a direct user request. Automated runs cannot create more automation.",
       "abuse",
     );
   }
@@ -229,7 +233,10 @@ export async function reserveRunTool(
           "abuse",
         );
       let trigger = current.trigger;
-      if ((name === "spawn_bot" || name === "schedule_create") && trigger === "follow_up") {
+      if (
+        (name === "spawn_bot" || name === "create_group" || name === "schedule_create") &&
+        trigger === "follow_up"
+      ) {
         // User steering and agent handoffs share a trigger; inspect the server-owned source.
         const source = current.sourceMessageId
           ? await tx.message.findFirst({

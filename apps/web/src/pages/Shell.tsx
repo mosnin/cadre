@@ -1455,6 +1455,7 @@ export function ShellPage() {
               void refreshBots(true).catch(() => undefined);
             } else if (
               event.type === "bot.spawned" ||
+              event.type === "group.created" ||
               event.type === "bot.deleted" ||
               event.type === "run.started" ||
               isRunTerminalEvent(event) ||
@@ -1615,7 +1616,11 @@ export function ShellPage() {
               readVisibleGroups.current.delete(groupId);
               markVisibleGroupRead();
             }
-            if (event.type === "run.started" || isRunTerminalEvent(event)) {
+            if (
+              event.type === "group.created" ||
+              event.type === "run.started" ||
+              isRunTerminalEvent(event)
+            ) {
               void refreshBots().catch(() => undefined);
             }
             if (isRunTerminalEvent(event) || event.type === "run.waiting_input") {

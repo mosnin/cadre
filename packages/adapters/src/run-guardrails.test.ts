@@ -95,7 +95,7 @@ describe("run guardrails", () => {
   it.each(["routine", "bot_message", "spawn", "webhook"])(
     "prevents %s turns from creating new wakeups",
     (trigger) => {
-      for (const name of ["spawn_bot", "schedule_create"]) {
+      for (const name of ["spawn_bot", "create_group", "schedule_create"]) {
         expect(() => advanceRunGuardrail(null, name, {}, trigger)).toThrow("direct user request");
       }
       expect(advanceRunGuardrail(null, "message_bot", { target: "peer" }, trigger).count).toBe(1);

@@ -187,6 +187,7 @@ export function narrateTool(toolName: string): string | null {
     [/^ask_bot$/, "asking a teammate"],
     [/^run_subagent$/, "starting a subagent"],
     [/^spawn_bot$/, "creating a bot"],
+    [/^create_group$/, "creating a group"],
     [/^create_space$/, "creating a space"],
     [/^(archive_bot|delete_bot)$/, "archiving a bot"],
     [/^remember$/, "writing a memory"],

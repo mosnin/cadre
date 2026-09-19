@@ -170,6 +170,7 @@ describe("Pi agent thinking level", () => {
       "schedule_create",
       "schedule_cancel",
       "create_space",
+      "create_group",
       "add_mcp_server",
       "connect_agent",
       "respond_agent_connection",

@@ -2610,6 +2610,35 @@ describeJourneys("required product journeys", () => {
       membershipsBefore + 1,
     );
   });
+
+  it("25: chat creates a group when asked", async () => {
+    const cookie = await signup(app, `group-chat-j-${stamp}@cadre.test`, "Group Chat");
+    const chief = await rpc<Bot>(app, cookie, "bots/create", {
+      name: "Chief",
+      title: "",
+      description: "",
+      instructions: "",
+      notifyOnFinish: true,
+    });
+    const writer = await rpc<Bot>(app, cookie, "bots/create", {
+      name: "Writer",
+      title: "",
+      description: "",
+      instructions: "",
+      notifyOnFinish: true,
+    });
+    await sendAndWait(app, cookie, chief.id, "create a group named Launch with Writer and Chief");
+    const groups = await rpc<Array<{ name: string; members: Array<{ botId: string }> }>>(
+      app,
+      cookie,
+      "groups/list",
+    );
+    const launch = groups.find((group) => group.name === "Launch");
+    expect(launch).toBeTruthy();
+    expect(launch!.members.map((member) => member.botId).sort()).toEqual(
+      [chief.id, writer.id].sort(),
+    );
+  });
 });
 
 type Me = { spaceId: string; userId: string; canChooseHostComputer: boolean };
