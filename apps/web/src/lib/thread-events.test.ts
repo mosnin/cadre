@@ -1136,6 +1136,27 @@ describe("thread event reduction", () => {
     expect(next?.messages.map((item) => item.id)).toEqual(["final"]);
   });
 
+  it("keeps the live reply when a tool-only durable message arrives", () => {
+    const initial = snapshot([
+      message("progress:run-1", [{ kind: "progress", text: "You're free Tuesday." }]),
+    ]);
+
+    const next = reduceThreadSnapshot(
+      initial,
+      event({
+        type: "thread.message.created",
+        seq: 9,
+        payload: {
+          messageId: "steps-only",
+          role: "bot",
+          blocks: [{ kind: "steps", steps: [{ label: "Calendar", count: 1 }] }],
+        },
+      }),
+    );
+
+    expect(next?.messages.map((item) => item.id)).toEqual(["progress:run-1", "steps-only"]);
+  });
+
   it("updates a waiting group run without replacing the newer active run", () => {
     const newerRun = {
       id: "run-newer",

@@ -157,6 +157,14 @@ describe("Android mobile platform contract", () => {
     expect(thread).toContain("agents thinking");
   });
 
+  it("grows the composer without an inner scrollbar and keeps send compact", () => {
+    const thread = readFileSync(resolve(mobileRoot, "app/thread.tsx"), "utf8");
+    expect(thread).toContain("scrollEnabled={false}");
+    expect(thread).toContain("maxHeight: 240");
+    expect(thread).toContain("width: 36");
+    expect(thread).toContain("height: 36");
+  });
+
   it("stamps a day when the thread is away and shimmers thinking copy", () => {
     const thread = readFileSync(resolve(mobileRoot, "app/thread.tsx"), "utf8");
     expect(thread).toContain("shouldShowMessageDaySeparator");

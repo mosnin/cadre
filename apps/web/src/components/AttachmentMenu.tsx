@@ -55,7 +55,7 @@ export function AttachmentMenu({
             <Button
               variant="outline"
               size="icon"
-              className="rounded-full text-foreground/75 md:size-8"
+              className="size-8 min-h-8 min-w-8 rounded-full text-foreground/75"
             />
           }
         >

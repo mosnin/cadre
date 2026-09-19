@@ -95,7 +95,6 @@ export function PromptInput({
   const reduce = useReducedMotion() ?? false;
   const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = inputRef ?? internalTextareaRef;
-  const measurementRef = useRef<HTMLDivElement>(null);
   const [internalValue, setInternalValue] = useState(defaultValue);
   const [internalModel, setInternalModel] = useState(defaultModel ?? models[0]?.value);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -106,18 +105,15 @@ export function PromptInput({
 
   const resizeTextarea = useCallback(() => {
     const textarea = textareaRef.current;
-    const measurement = measurementRef.current;
-    if (!textarea || !measurement) return;
+    if (!textarea) return;
 
     const lineHeight = 24;
+    const minHeight = minRows * lineHeight;
     const maxHeight = maxRows * lineHeight;
-    const nextHeight = Math.min(
-      Math.max(measurement.scrollHeight, minRows * lineHeight),
-      maxHeight,
-    );
-    const height = `${nextHeight}px`;
-    if (textarea.style.height !== height) textarea.style.height = height;
-    textarea.style.overflowY = nextHeight >= maxHeight ? "auto" : "hidden";
+    textarea.style.height = "0px";
+    const nextHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+    textarea.style.height = `${nextHeight}px`;
+    textarea.style.overflowY = "hidden";
   }, [currentValue, maxRows, minRows, textareaRef]);
 
   useLayoutEffect(() => {
@@ -177,13 +173,6 @@ export function PromptInput({
       )}
     >
       {leadingContent}
-      <div
-        ref={measurementRef}
-        aria-hidden="true"
-        className="pointer-events-none invisible absolute inset-x-2 top-0 whitespace-pre-wrap px-2 text-base leading-6 [overflow-wrap:break-word]"
-      >
-        {`${currentValue}\u200b`}
-      </div>
       <textarea
         ref={textareaRef}
         value={currentValue}
@@ -194,10 +183,10 @@ export function PromptInput({
         {...textareaProps}
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={handleKeyDown}
-        className="scrollbar-hide block w-full resize-none overflow-hidden bg-transparent px-2 pt-1.5 text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground/55"
+        className="scrollbar-hide block w-full resize-none overflow-hidden bg-transparent px-2 pt-1.5 text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground/55 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       />
 
-      <div className="mt-2 flex min-h-11 items-center gap-2">
+      <div className="mt-2 flex min-h-8 items-center gap-2">
         {actions.length ? (
           <MorphPopover open={actionsOpen} onOpenChange={setActionsOpen}>
             <MorphPopoverTrigger>
@@ -207,7 +196,7 @@ export function PromptInput({
                 size="icon"
                 disabled={disabled || loading}
                 aria-label="Add to prompt"
-                className="size-8 rounded-full"
+                className="size-8 min-h-8 min-w-8 rounded-full"
               >
                 <motion.span
                   aria-hidden="true"
@@ -304,7 +293,7 @@ export function PromptInput({
             disabled={loading ? !onStop : !canSubmit}
             aria-label={loading ? "Stop generating" : "Send prompt"}
             onClick={loading ? onStop : undefined}
-            className="ml-auto size-8 rounded-full"
+            className="ml-auto size-8 min-h-8 min-w-8 rounded-full"
           >
             <AnimatePresence initial={false} mode="popLayout">
               <motion.span

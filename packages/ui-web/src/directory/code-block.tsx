@@ -39,7 +39,7 @@ export function CodeBlock({
   status = "complete",
   showLineNumbers = true,
   highlightLines = [],
-  maxHeight = 280,
+  maxHeight,
   wrap = false,
   copyable = true,
   onCopy,
@@ -132,10 +132,18 @@ export function CodeBlock({
         ref={viewportRef}
         role={streaming ? "log" : undefined}
         aria-live={streaming ? "polite" : undefined}
-        className="scrollbar-hide overflow-auto border-t border-foreground/[0.06] py-2"
-        style={{ maxHeight }}
+        className={cn(
+          "border-t border-foreground/[0.06] py-2",
+          maxHeight ? "scrollbar-hide overflow-auto" : "overflow-visible",
+        )}
+        style={maxHeight ? { maxHeight } : undefined}
       >
-        <pre className="m-0 min-w-max font-mono text-sm leading-6 text-foreground/85">
+        <pre
+          className={cn(
+            "m-0 font-mono text-sm leading-6 text-foreground/85",
+            wrap ? "min-w-0" : "min-w-max",
+          )}
+        >
           <code>
             {lines.map((line, index) => {
               const lineNumber = index + 1;

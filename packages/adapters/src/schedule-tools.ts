@@ -52,12 +52,17 @@ export function resolveScheduleTiming(
   },
   timezone = "UTC",
 ): ResolvedSchedule {
+  const cronValue = input.cron === undefined ? "" : String(input.cron).trim();
+  const cronIsOnce = cronValue.length > 0 && isOneShotRoutineCron(cronValue);
   const hasRepeat =
-    input.cron !== undefined || input.every !== undefined || input.unit !== undefined;
+    (input.cron !== undefined && !cronIsOnce) ||
+    input.every !== undefined ||
+    input.unit !== undefined;
   const hasOneShot =
     input.runAt !== undefined ||
     input.delayMinutes !== undefined ||
-    input.delaySeconds !== undefined;
+    input.delaySeconds !== undefined ||
+    cronIsOnce;
   if (hasRepeat && hasOneShot) {
     return {
       ok: false,
@@ -269,7 +274,7 @@ export async function listSchedulesFromTool(
       routineId: row.id,
       name: row.name,
       prompt: row.prompt,
-      crons: row.crons,
+      crons: row.crons.map((cron) => (isOneShotRoutineCron(cron) ? "one-time" : cron)),
       active: row.active,
       nextRunAt: row.nextRunAt?.toISOString() ?? null,
       oneShot: isOneShotRoutineCrons(row.crons),

@@ -53,13 +53,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppConnectCard } from "../components/AppConnectCard";
 import { AskActions } from "../components/AskActions";
 import { BotAvatar } from "../components/bot-avatar";
-import { MessageDayStamp } from "../components/message-day-stamp";
-import { ShimmeringText } from "../components/shimmering-text";
 import {
   MarkdownArtifactPreview,
   type MarkdownArtifactPreviewTarget,
 } from "../components/markdown-artifact-preview";
+import { MessageDayStamp } from "../components/message-day-stamp";
 import { NativeSymbol } from "../components/native-symbol";
+import { ShimmeringText } from "../components/shimmering-text";
 import {
   applyMobileThreadEvent,
   blockText,
@@ -1377,62 +1377,62 @@ function Thread() {
             justifyContent: message.role === "user" ? "flex-end" : "flex-start",
           }}
         >
-        {activityBotId ? (
-          <View style={{ paddingTop: 22 }}>
-            <BotAvatar
-              color={activityBot?.color ?? tokens.mutedForeground}
-              identity={activityBotId}
-              size={inGroup ? 20 : 28}
-              status={activityStatus}
-            />
-          </View>
-        ) : null}
-        <View
-          style={{
-            width: isCenteredAgentEvent(message.blocks) ? "100%" : undefined,
-            maxWidth: isCenteredAgentEvent(message.blocks)
-              ? "100%"
-              : activityBotId
-                ? undefined
-                : "90%",
-            flex: activityBotId ? 1 : undefined,
-            flexShrink: 1,
-          }}
-        >
-          <Pressable accessible={false} onLongPress={actionProps.onLongPress}>
-            <MessageBubble
-              botId={botId ?? snap?.members?.[0]?.botId ?? ""}
-              groupId={groupId}
-              message={message}
-              botName={name}
-              bots={mentionBots}
-              members={snap?.members}
-              replyPreview={
-                message.replyToMessageId ? messagesById.get(message.replyToMessageId) : undefined
-              }
-              canAnswer={message.id === answerableAskMessageId}
-              onAnswer={answerMessage}
-              onOpenBot={openBot}
-              onPreviewMarkdown={setMarkdownPreview}
-              actionProps={actionProps}
-            />
-          </Pressable>
-          {canReactToThreadMessage(message) && message.thumbsUp ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("Remove thumbs-up")}
-              accessibilityState={{ selected: true }}
-              onPress={() => void reactToMessage(message)}
-              hitSlop={8}
-              style={{
-                alignSelf: message.role === "user" ? "flex-end" : "flex-start",
-                marginTop: 4,
-              }}
-            >
-              <Text style={{ color: tokens.warning, fontSize: 13 }}>👍</Text>
-            </Pressable>
+          {activityBotId ? (
+            <View style={{ paddingTop: 22 }}>
+              <BotAvatar
+                color={activityBot?.color ?? tokens.mutedForeground}
+                identity={activityBotId}
+                size={inGroup ? 20 : 28}
+                status={activityStatus}
+              />
+            </View>
           ) : null}
-        </View>
+          <View
+            style={{
+              width: isCenteredAgentEvent(message.blocks) ? "100%" : undefined,
+              maxWidth: isCenteredAgentEvent(message.blocks)
+                ? "100%"
+                : activityBotId
+                  ? undefined
+                  : "90%",
+              flex: activityBotId ? 1 : undefined,
+              flexShrink: 1,
+            }}
+          >
+            <Pressable accessible={false} onLongPress={actionProps.onLongPress}>
+              <MessageBubble
+                botId={botId ?? snap?.members?.[0]?.botId ?? ""}
+                groupId={groupId}
+                message={message}
+                botName={name}
+                bots={mentionBots}
+                members={snap?.members}
+                replyPreview={
+                  message.replyToMessageId ? messagesById.get(message.replyToMessageId) : undefined
+                }
+                canAnswer={message.id === answerableAskMessageId}
+                onAnswer={answerMessage}
+                onOpenBot={openBot}
+                onPreviewMarkdown={setMarkdownPreview}
+                actionProps={actionProps}
+              />
+            </Pressable>
+            {canReactToThreadMessage(message) && message.thumbsUp ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("Remove thumbs-up")}
+                accessibilityState={{ selected: true }}
+                onPress={() => void reactToMessage(message)}
+                hitSlop={8}
+                style={{
+                  alignSelf: message.role === "user" ? "flex-end" : "flex-start",
+                  marginTop: 4,
+                }}
+              >
+                <Text style={{ color: tokens.warning, fontSize: 13 }}>👍</Text>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
       </View>
     );
@@ -1974,6 +1974,7 @@ function Thread() {
               placeholderTextColor={tokens.mutedForeground}
               keyboardAppearance={colorScheme}
               multiline
+              scrollEnabled={false}
               textAlignVertical="center"
               blurOnSubmit={false}
               style={{
@@ -1982,7 +1983,7 @@ function Thread() {
                 minWidth: 96,
                 color: tokens.foreground,
                 paddingVertical: 2,
-                maxHeight: 168,
+                maxHeight: 240,
                 writingDirection: "auto",
               }}
             />
@@ -1993,9 +1994,9 @@ function Thread() {
             onPress={() => void send()}
             style={{
               backgroundColor: tokens.primary,
-              borderRadius: 22,
-              width: 44,
-              height: 44,
+              borderRadius: 18,
+              width: 36,
+              height: 36,
               alignItems: "center",
               justifyContent: "center",
               opacity: sending || !canSend ? 0.5 : 1,
@@ -2016,9 +2017,9 @@ function Thread() {
               style={{
                 borderColor: tokens.border,
                 borderWidth: 1,
-                borderRadius: 22,
-                width: 44,
-                height: 44,
+                borderRadius: 18,
+                width: 36,
+                height: 36,
                 alignItems: "center",
                 justifyContent: "center",
                 opacity: sending ? 0.5 : 1,

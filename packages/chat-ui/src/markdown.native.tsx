@@ -72,6 +72,7 @@ function markdownStyles(palette: ColorTokens) {
     fence: {
       backgroundColor: palette.background,
       borderColor: palette.border,
+      flexShrink: 1,
     },
     fence_code: {
       backgroundColor: palette.background,
@@ -121,6 +122,18 @@ const renderRules: RenderRules = {
       }}
     >
       {children}
+    </Text>
+  ),
+  // Default fence/code rules wrap in a nested ScrollView, which clips the
+  // bubble into a half-height scroller inside the thread list.
+  fence: (node, _children, _parent, styleMap) => (
+    <Text key={node.key} style={[styleMap.fence, styleMap.fence_code, { flexShrink: 1 }]}>
+      {node.content}
+    </Text>
+  ),
+  code_block: (node, _children, _parent, styleMap) => (
+    <Text key={node.key} style={[styleMap.code_block, { flexShrink: 1 }]}>
+      {node.content}
     </Text>
   ),
 };

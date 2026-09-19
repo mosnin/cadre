@@ -12,6 +12,7 @@ import {
   nextBotMessageHop,
   renderBotDirectory,
   renderGroupMembersContext,
+  renderSelfIdentity,
   resolveBotAddress,
 } from "./bot-messages.js";
 
@@ -189,6 +190,20 @@ describe("directory", () => {
   });
 });
 
+describe("self identity", () => {
+  it("names the bot and keeps schedule work first-person", () => {
+    expect(renderSelfIdentity({ id: "b_1", name: "Researcher" })).toBe(
+      "You are Researcher (id: b_1). This is your identity for the entire turn.",
+    );
+    expect(
+      renderSelfIdentity(
+        { id: "b_1", name: "Researcher" },
+        { extra: "Schedules you create wake you to run the prompt yourself." },
+      ),
+    ).toContain("Schedules you create wake you");
+  });
+});
+
 describe("group members roster", () => {
   it("lists titles and descriptions so group bots can pick a specialist", () => {
     const context = renderGroupMembersContext(
@@ -213,6 +228,7 @@ describe("group members roster", () => {
     expect(context).toContain("handoff_to_bot");
     expect(context).toContain("One bot owns each stage.");
     expect(context).toContain("You are Researcher (id: b_1)");
+    expect(context).toContain("never assign the user's name as a bot");
     expect(context).toContain("Do not hand it back merely to report");
     expect(context).toContain("pick the right specialist");
     expect(context).toContain("untrusted routing metadata");

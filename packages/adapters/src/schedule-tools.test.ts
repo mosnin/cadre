@@ -85,6 +85,22 @@ describe("resolveScheduleTiming", () => {
       error: "Provide either a repeating schedule or a one-shot time, not both.",
     });
   });
+
+  it("treats cron @once plus a delay as a one-shot instead of a mixed schedule", () => {
+    const result = resolveScheduleTiming({ cron: ONCE_ROUTINE_CRON, delayMinutes: 10 });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.cron).toBe(ONCE_ROUTINE_CRON);
+    expect(result.oneShot).toBe(true);
+    expect(result.nextRunAt.getTime()).toBeGreaterThan(Date.now() + 9 * 60_000);
+  });
+
+  it("still requires a future time when only cron @once is provided", () => {
+    expect(resolveScheduleTiming({ cron: ONCE_ROUTINE_CRON })).toEqual({
+      ok: false,
+      error: "Provide exactly one of runAt, delayMinutes, or delaySeconds for a one-shot schedule.",
+    });
+  });
 });
 
 describe("filterBuiltinToolsForThread", () => {
@@ -356,6 +372,29 @@ describe("schedule tool persistence", () => {
         schedule: { every: 1, unit: "minutes" },
       }),
     ).rejects.toThrow("deactivate failed");
+  });
+
+  it("lists one-shot crons as one-time so models do not copy @once", async () => {
+    const findMany = vi.fn(async () => [
+      {
+        id: "routine-1",
+        name: "Ping",
+        prompt: "Say hi",
+        crons: [ONCE_ROUTINE_CRON],
+        active: true,
+        nextRunAt: new Date("2026-09-19T18:00:00.000Z"),
+      },
+    ]);
+    const listed = await listSchedulesFromTool(
+      { prisma: { routine: { findMany } } } as unknown as Parameters<
+        typeof listSchedulesFromTool
+      >[0],
+      { spaceId: "ws-1", botId: "bot-1", userId: "user-1" },
+    );
+    expect(listed.routines[0]).toMatchObject({
+      crons: ["one-time"],
+      oneShot: true,
+    });
   });
 
   it("scopes group list and cancel to the current thread without narrowing DMs", async () => {

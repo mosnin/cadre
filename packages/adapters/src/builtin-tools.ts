@@ -520,7 +520,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "schedule_create",
     description:
-      'Create a reminder or recurring job for this bot. Use for "remind me in 10 minutes" or "every morning send a joke". Repeats: cron or every/unit (min 1 minute). One-shot: runAt, delayMinutes, or delaySeconds.',
+      'Create a reminder or recurring job that wakes THIS bot to run the prompt itself. Use for "remind me in 10 minutes" or "every morning send a joke". Never spawn a bot or use the user\'s name as the assignee. Repeats: 5-field cron or every/unit (min 1 minute). One-shot: runAt, delayMinutes, or delaySeconds — never cron "@once".',
     inputSchema: {
       type: "object",
       properties: {
@@ -528,9 +528,12 @@ export const builtinAgentTools: ConnectorTool[] = [
         prompt: {
           type: "string",
           description:
-            "Concrete steps for when the schedule fires: name the connected plugin tools to call (e.g. GITHUB_LIST_RELEASES for owner/repo), what to extract, and how to report. Prefer plugin tools over computer browser or web search for app data.",
+            "First-person steps YOU will execute when this fires (you are the bot). Name the connected plugin tools to call (e.g. GITHUB_LIST_RELEASES for owner/repo), what to extract, and how to report. Prefer plugin tools over computer browser or web search for app data. Do not address the user as if they are the bot.",
         },
-        cron: { type: "string", description: "5-field cron for repeating schedules." },
+        cron: {
+          type: "string",
+          description: "5-field cron for repeating schedules. Do not pass @once.",
+        },
         every: { type: "number", description: "Repeat interval amount for repeating schedules." },
         unit: {
           type: "string",
@@ -684,7 +687,7 @@ export const builtinAgentTools: ConnectorTool[] = [
   {
     name: "spawn_bot",
     description:
-      "Create a full, regular bot — the same kind the user creates from the + button. It gets its own thread, computer, and memory, and appears as a peer in the bot list. Do not also call run_subagent. Creating the bot is the whole action. Only set prompt if the user asked that new bot to start work immediately.",
+      "Create a full, regular bot — the same kind the user creates from the + button. It gets its own thread, computer, and memory, and appears as a peer in the bot list. Do not also call run_subagent. Creating the bot is the whole action. Only set prompt if the user asked that new bot to start work immediately. Never spawn a bot named after the user, and never spawn one just to own a reminder — use schedule_create on yourself.",
     inputSchema: {
       type: "object",
       properties: {

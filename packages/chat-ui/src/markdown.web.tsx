@@ -14,12 +14,7 @@ function CodeBlock(props: React.ComponentPropsWithoutRef<"pre">) {
     ? child.props.className?.replace(/^language-/, "")
     : undefined;
   return (
-    <DirectoryCodeBlock
-      code={code}
-      language={language ?? "text"}
-      showLineNumbers={false}
-      maxHeight={480}
-    />
+    <DirectoryCodeBlock code={code} language={language ?? "text"} showLineNumbers={false} wrap />
   );
 }
 

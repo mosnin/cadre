@@ -10,6 +10,7 @@ import type {
 import {
   isActive,
   isRunTerminalEvent,
+  isToolActivityBlock,
   mergeThreadHistory,
   prependThreadHistoryPage,
   progressMessageId,
@@ -465,7 +466,10 @@ export function reduceThreadSnapshot(
       blocks.filter((block) => block.kind === "subagent").map((block) => block.agentId),
     );
     const liveId = progressMessageId(event);
-    const { remaining } = takeLiveMessage(prev.messages, liveId);
+    const replacesLive = blocks.some((block) => !isToolActivityBlock(block));
+    const { remaining } = replacesLive
+      ? takeLiveMessage(prev.messages, liveId)
+      : { remaining: prev.messages };
     const without = remaining.filter((message) => !replacedSubagent(message, replacedSubagentIds));
     return { ...prev, cursor: event.seq, messages: upsertMessageById(without, next) };
   }

@@ -5473,7 +5473,7 @@ const Composer = memo(function Composer({
         autoComplete="off"
         dir="auto"
         minRows={1}
-        maxRows={6}
+        maxRows={10}
         testId="composer-bar"
         allowEmpty
         onSubmit={send}
@@ -5555,7 +5555,7 @@ const Composer = memo(function Composer({
                 onDictateStart((text) => setDraft((current) => `${current} ${text}`.trim()));
               }}
               onTouchEnd={onDictateStop}
-              className={`rounded-full md:size-8 ${
+              className={`size-8 min-h-8 min-w-8 rounded-full ${
                 dictating
                   ? "border-success bg-success/15 text-success hover:bg-success/15 hover:text-success"
                   : "text-foreground/75"
@@ -5576,7 +5576,7 @@ const Composer = memo(function Composer({
                   aria-label={t`Send`}
                   disabled={sending || !canSend || disabled}
                   onClick={send}
-                  className="ms-auto size-11 rounded-full md:size-8"
+                  className="ms-auto size-8 min-h-8 min-w-8 rounded-full"
                 >
                   <ArrowUp size={18} strokeWidth={2} />
                 </Button>
@@ -5586,7 +5586,7 @@ const Composer = memo(function Composer({
                   aria-label={t`Stop`}
                   disabled={sending}
                   onClick={() => void onStop()}
-                  className="size-11 rounded-full text-foreground/75 md:size-8"
+                  className="size-8 min-h-8 min-w-8 rounded-full text-foreground/75"
                 >
                   <Square size={12} strokeWidth={0} fill="currentColor" />
                 </Button>
@@ -5597,7 +5597,7 @@ const Composer = memo(function Composer({
                 aria-label={t`Send`}
                 disabled={sending || !canSend || disabled}
                 onClick={send}
-                className="ms-auto size-11 rounded-full md:size-8"
+                className="ms-auto size-8 min-h-8 min-w-8 rounded-full"
               >
                 <ArrowUp size={18} strokeWidth={2} />
               </Button>
