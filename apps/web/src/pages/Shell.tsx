@@ -166,6 +166,7 @@ import { markAfterPaint, markOnce } from "../lib/performance";
 import { readRailCollapsed, writeRailCollapsed } from "../lib/rail-collapsed";
 import { clearSpaceSelection, rpc, selectedSpaceId, selectSpace } from "../lib/rpc";
 import { readSeenRunErrorIds, rememberSeenRunErrorId } from "../lib/run-error-storage";
+import { navigateSpaceBoundary, spaceBoundaryChanged } from "../lib/space-navigation";
 import { clearTaskDraft, readTaskDraft, writeTaskDraft } from "../lib/task-draft";
 import {
   activeThreadRuns,
@@ -1712,12 +1713,11 @@ export function ShellPage() {
       // Persist the active space (including primary) so voice/RPC headers match the chat.
       const selectionStored = selectSpace(spaceId);
       if (!selectionStored) return;
-      const previousEffective = previousSpaceId ?? currentSpaceId;
-      const boundaryChanged = previousEffective !== spaceId;
-      // Soft-navigate within the same space; reload only when the auth boundary changes
-      // so bootstrapped bots/groups match the request header.
-      if (boundaryChanged) {
-        window.location.assign(path);
+      // Soft-navigate within the same space; remount when the auth boundary
+      // changes so bootstrapped bots/groups match the request header.
+      // Same-document assign("/app") is a no-op in the browser — reload then.
+      if (spaceBoundaryChanged(previousSpaceId, currentSpaceId, spaceId)) {
+        navigateSpaceBoundary(path, window.location);
         return;
       }
       navigate(path);
@@ -3610,7 +3610,7 @@ export function ShellPage() {
               data-testid="workspace-name"
               className="app-no-drag flex min-h-11 min-w-0 shrink items-center truncate px-2 text-sm font-medium sm:w-40 sm:shrink-0"
             >
-              {spaces.find((space) => space.id === bootstrapMe?.spaceId)?.name ?? t`Workspace`}
+              {spaces.find((space) => space.id === currentSpaceId)?.name ?? t`Workspace`}
             </span>
             <button
               type="button"
