@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  activeBotId,
   captureScreenshot,
   completeOnboarding,
   createNamedBot,
@@ -14,6 +15,7 @@ test("clicking an agent from a group chat opens that agent", async ({ page }, te
   await completeOnboarding(page);
   await page.goto("/app");
   await page.waitForURL(/\/app\/[^/]+$/);
+  const chiefId = activeBotId(page);
   const writerId = await createNamedBot(page, "Sidebar Writer");
 
   await openNewGroup(page);
@@ -23,26 +25,25 @@ test("clicking an agent from a group chat opens that agent", async ({ page }, te
   await panel.getByRole("button", { name: "Sidebar Writer" }).click();
   await page.getByRole("button", { name: "Create group", exact: true }).click();
   await page.waitForURL(/\/app\/g\/[^/]+$/);
+  await expect(page.getByRole("combobox", { name: "Message Sidebar group" })).toBeVisible();
 
   await openNavigation(page);
-  const sidebar = page.locator("aside").first();
+  const sidebar = page.getByTestId("bots-sidebar");
   await expect(sidebar.getByRole("button", { name: /^Sidebar group/ })).toBeVisible();
-  const railOrb = sidebar.locator(".cadre-orb").first();
-  await expect(railOrb).toHaveAttribute("data-orb-live", "true");
+  await expect(sidebar.locator(".cadre-orb").first()).toHaveAttribute("data-orb-live", "true");
   await captureScreenshot(page, testInfo, "sidebar-orbs-group");
 
-  await sidebar.getByRole("button", { name: /^Chief/ }).click();
-  await page.waitForURL(/\/app\/(?!g\/)[^/]+$/);
-  await expect(page).not.toHaveURL(/\/app\/g\//);
-  await expect(page.getByRole("combobox", { name: "Message Chief" })).toBeVisible();
+  await sidebar.locator(`[data-roster-bot-id="${chiefId}"]`).click();
+  await page.waitForURL(new RegExp(`/app/${chiefId}$`));
+  await expect(page.getByPlaceholder("Message Chief")).toBeVisible();
 
   await openNavigation(page);
-  await sidebar.getByRole("button", { name: /^Sidebar Writer/ }).click();
-  await expect(page).toHaveURL(new RegExp(`/app/${writerId}$`));
-  await expect(page.getByRole("combobox", { name: "Message Sidebar Writer" })).toBeVisible();
+  await sidebar.locator(`[data-roster-bot-id="${writerId}"]`).click();
+  await page.waitForURL(new RegExp(`/app/${writerId}$`));
+  await expect(page.getByPlaceholder("Message Sidebar Writer")).toBeVisible();
 
   await openNavigation(page);
   await sidebar.getByRole("button", { name: /^Sidebar group/ }).click();
-  await expect(page).toHaveURL(/\/app\/g\/[^/]+$/);
+  await page.waitForURL(/\/app\/g\/[^/]+$/);
   await expect(page.getByRole("combobox", { name: "Message Sidebar group" })).toBeVisible();
 });
