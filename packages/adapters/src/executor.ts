@@ -20,12 +20,7 @@ import type {
   SemanticMemoryProvider,
   WebProvider,
 } from "@cadre/adapter-kit";
-import {
-  historyCompactJob,
-  routineJobKey,
-  routineWakeupJob,
-  runContinueJob,
-} from "@cadre/adapter-kit";
+import { routineJobKey, routineWakeupJob, runContinueJob } from "@cadre/adapter-kit";
 import type { MessageBlock, RunStatus } from "@cadre/contracts";
 import { ATTACHMENT_MAX_BYTES, isAttachmentImageMimeType } from "@cadre/contracts";
 import {
@@ -182,15 +177,13 @@ import { resolveDeploymentModel } from "./deployment-model.js";
 import { isSandboxGoneError } from "./e2b-sandbox.js";
 import { handoffToGroupBot, loadGroupContext } from "./group-handoff.js";
 import {
-  COMPACTION_BATCH_SIZE,
+  enqueueHistoryCompaction,
   formatCompactedSummary,
   formatRecalledMemory,
-  HISTORY_WINDOW_SIZE,
   historyWindowSize,
   LEGACY_HISTORY_WINDOW_SIZE,
   MAX_RECALLED_MEMORIES,
   selectCompactedHistory,
-  shouldEnqueueCompaction,
 } from "./history-compaction.js";
 import { type DecisionProvider, decisionProvider } from "./jev-decisions.js";
 import {
@@ -1123,6 +1116,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
         ]);
         const ownerName = userPreferences?.name?.trim() ?? "";
         const localeLine = describeUserLocale(userPreferences);
+        // A thread already over the window starts compacting during this turn,
+        // so the next run does not pay the summarizer after this one finishes.
+        // replaceKey keeps a start enqueue and the end-of-run enqueue as one job.
+        void enqueueHistoryCompaction(deps.jobs, thread).catch((error) =>
+          getLogger().error("history.compact enqueue failed", error),
+        );
         const hasModelOverride = Boolean(bot.modelProvider && bot.modelId);
         const overrideCredential =
           hasModelOverride && bot.modelProvider
@@ -4124,16 +4123,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 historyCompactedUpToSeq: true,
               },
             });
-            if (
-              shouldEnqueueCompaction(
-                updatedThread.nextMessageSeq,
-                updatedThread.historyCompactedUpToSeq,
-                HISTORY_WINDOW_SIZE,
-                COMPACTION_BATCH_SIZE,
-              )
-            ) {
-              await deps.jobs.enqueue(historyCompactJob(thread.id));
-            }
+            await enqueueHistoryCompaction(deps.jobs, { id: thread.id, ...updatedThread });
           } catch (error) {
             getLogger().error("history.compact enqueue failed", error);
           }
