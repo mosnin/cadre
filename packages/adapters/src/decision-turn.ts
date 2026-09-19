@@ -19,7 +19,7 @@
  * already in flight, against a whole second round trip.
  */
 
-import type { ActionApprovalRule } from "@cadre/core";
+import type { ActionApprovalRule, ActionApprovalSource } from "@cadre/core";
 import {
   actionableChoice,
   choice,
@@ -85,6 +85,27 @@ export type ToolCallDecisions = {
 };
 
 const NOTHING: ToolCallDecisions = { consequential: false };
+
+/**
+ * Review rides the consequence request when that request is happening anyway.
+ * When the name already flagged a mutation and the default path will judge,
+ * review is the request — it replaces the generation that used to open after
+ * a second, empty, decision. Rules that already ask or always-allow never
+ * read a verdict, so they never open one.
+ */
+export function shouldAskToolCallReview(input: {
+  askConsequence: boolean;
+  nameSaysApprove: boolean;
+  autoReviewEnabled: boolean;
+  checkerConfigured: boolean;
+  approvalSource: ActionApprovalSource;
+  requiresExplicitApproval: boolean;
+}): boolean {
+  if (input.requiresExplicitApproval) return false;
+  if (!input.autoReviewEnabled || !input.checkerConfigured) return false;
+  if (input.approvalSource !== "default") return false;
+  return input.askConsequence || input.nameSaysApprove;
+}
 
 function probability(answer: unknown): number | undefined {
   const value = answer as NoulAnswer | undefined;

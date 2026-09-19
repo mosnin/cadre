@@ -58,9 +58,11 @@ after those return. A run with no model never starts either.
 When the first action is `browse`, pursuit starts the moment the computer is
 up — overlapping the rest of prompt assembly — so the first generation sees the
 page that was already acted on instead of spending a turn deciding to call
-`browser_pursue`. Helper routing starts before the helper waits for a slot, so
-a queued delegate does not pay for the decision after it is already allowed to
-run.
+`browser_pursue`. Group context, messaging identity, approved-effect replay,
+prior progress, the bot directory, and saved logins start the moment the
+computer is up too, so those reads are not paid for after files materialize.
+Helper routing starts before the helper waits for a slot, so a queued delegate
+does not pay for the decision after it is already allowed to run.
 
 Answers are also remembered. `decision-cache.ts` keys on the model, the state and
 every question with its criteria, so anything that would change an answer changes
@@ -80,7 +82,7 @@ here is the last thing between an agent and an irreversible action.
 
 | Decision | Replaces | Question | Falls back to |
 | --- | --- | --- | --- |
-| Tool call (`decideToolCall`) | A full judge **generation** per consequential call, and **closes a gap** in the name regex | One request: `noul` "does this change anything outside this workspace?", plus a speculative `choice` pass/ask and `choice` of concern category | The generative judge, and the name check's own verdict |
+| Tool call (`decideToolCall`) | A full judge **generation** per consequential call, and **closes a gap** in the name regex | One request: `noul` consequence when the name cleared the call, plus `choice` pass/ask and concern when a default-rule judge will run — including mutation-named tools the name already flagged | The generative judge, and the name check's own verdict |
 | Run floor (`assessRunFloor`) | Nothing; **catches what the hash guard cannot**, in the Foreman shape | One request: `noul` stuck, off-track, and needs-a-person | Continuing into the next segment |
 | Run start (`decideRunStart`) | Two extra start-of-run **requests**, a `skill_read` **generation**, and the first `web_fetch` / `web_search` **generation** | One request: `choice` first action, speculative `choice` of model / skill / company area / URL, `noul` "is a skill needed?" | Each field unset: the deployment default, the catalog unread, the skill's own order, the agent deciding |
 | Search ranking (`rankWebSearchHits`) | Extra **fetches** on a shortlist that already answers | One request: a `score` per result plus `noul` "already answered?" and the injection `noul` | The engine's own order, and the agent fetching |
@@ -96,7 +98,11 @@ The consequence question is the one that is purely additive on latency, and it i
 deliberately narrow: it is asked **only** for connector calls the name check
 already cleared, which is the one place that regex can be wrong in the dangerous
 direction. It has been wrong there twice. Because it is being asked anyway, the
-review verdict costs nothing but tokens to ask alongside it.
+review verdict costs nothing but tokens to ask alongside it. When the name
+already flagged a mutation and the default path will judge, review **is** the
+request: it replaces the generation that used to open after a second, empty,
+decision. A rule that already asks or always-allows never reads a verdict, so
+it never opens one.
 
 ## Two that were built and removed
 
