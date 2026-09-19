@@ -56,6 +56,5 @@ capability config, fixtures, logs, or snapshots; use the encrypted secret store 
 
 | Address | Use for |
 | --- | --- |
-| [security@rakazo.com](mailto:security@rakazo.com) | Vulnerabilities only — see [SECURITY.md](SECURITY.md) |
-| [support@cadre.com](mailto:support@cadre.com) | User and support questions |
-| [elie@cadre.com](mailto:elie@cadre.com) | Maintainer |
+| [Security advisory](https://github.com/mosnin/cadre/security/advisories/new) | Vulnerabilities only — see [SECURITY.md](SECURITY.md) |
+| [support@cadre.to](mailto:support@cadre.to) | User and support questions |

@@ -8,7 +8,6 @@ import {
   localeHomePath,
   type Locale,
 } from "../i18n/locales";
-import { INBOX_ZERO_URL } from "../site";
 import Logo from "./Logo.astro";
 
 type Props = {
@@ -49,9 +48,7 @@ const {
   <div class="site-footer__brand">
     <Logo href={homeHref} label={homeLabel} />
     <span class="site-footer__legal">
-      © 2026 ·
-      <a href={INBOX_ZERO_URL} target="_blank" rel="noreferrer">Inbox Zero Inc.</a>
-      · Apache-2.0
+      © 2026 Cadre · Apache-2.0
     </span>
   </div>
   <div class="site-footer__nav">

@@ -1,6 +1,6 @@
 # Cadre
 
-[![GitHub stars](https://img.shields.io/github/stars/elie222/rakazo?labelColor=black&style=for-the-badge&color=2563EB)](https://github.com/elie222/rakazo/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/mosnin/cadre?labelColor=black&style=for-the-badge&color=2563EB)](https://github.com/mosnin/cadre/stargazers)
 [![Discord](https://img.shields.io/badge/Discord-Join%20the%20community-5865F2?labelColor=black&style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/RWwKa2Sn7h)
 
 ![Cadre — AI teammates you actually own](./docs/readme-hero.png)
@@ -9,7 +9,7 @@ Cadre is an open-source platform for running persistent AI teammates. It is avai
 as an Electron desktop app, and through an Expo mobile app. Bring your own model and computer
 provider, or run the complete stack locally.
 
-Cadre is in beta. Learn more at [cadre.com](https://cadre.com).
+Cadre is in beta. Learn more at [cadre.to](https://cadre.to).
 
 ## Features
 
@@ -45,7 +45,7 @@ You need Docker Engine, the Compose plugin, curl, and OpenSSL. No clone or Node 
 
 ```bash
 mkdir -p cadre && cd cadre &&
-curl -fsSLO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/install-images.sh &&
+curl -fsSLO https://raw.githubusercontent.com/mosnin/cadre/main/infra/compose/install-images.sh &&
 bash install-images.sh
 ```
 
@@ -87,7 +87,7 @@ You need Node.js 22.22.2 or newer in the 22.x line, Node.js 24.x, or Node.js 26+
 pnpm 9; and Docker. Node.js 23.x and 25.x are not supported.
 
 ```bash
-git clone https://github.com/elie222/rakazo.git
+git clone https://github.com/mosnin/cadre.git
 cd cadre
 cp .env.example .env
 ```

@@ -1,0 +1,9 @@
+Cadre
+Copyright 2026 Cadre contributors
+
+This product includes software developed as Rakazo
+(https://github.com/elie222/rakazo), Copyright 2026 Rakazo contributors,
+licensed under the Apache License, Version 2.0.
+
+Cadre is a derivative work. The changes made to it are recorded in
+docs/upstream-audit.md, which names the upstream commit this fork is based on.

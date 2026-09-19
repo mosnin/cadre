@@ -8,12 +8,12 @@ Same as the README quick start: `.env` from `.env.example`, Postgres via Compose
 
 ## Published images (no checkout)
 
-Pull Postgres and `ghcr.io/elie222/rakazo/app` into any empty folder. No clone or image build.
+Pull Postgres and `ghcr.io/mosnin/cadre/app` into any empty folder. No clone or image build.
 Requires Docker Engine, the Compose plugin, curl, and OpenSSL.
 
 ```bash
 mkdir -p cadre && cd cadre &&
-curl -fsSLO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/install-images.sh &&
+curl -fsSLO https://raw.githubusercontent.com/mosnin/cadre/main/infra/compose/install-images.sh &&
 bash install-images.sh
 ```
 
@@ -62,14 +62,14 @@ bash install-images.sh
 
 Stage C (`docker compose pull`) uses `CADRE_IMAGE`, `CADRE_IMAGE_TAG`,
 `CADRE_COMPUTER_IMAGE`, and `CADRE_COMPUTER_IMAGE_TAG` (defaults
-`ghcr.io/elie222/rakazo/{app,computer}`). When GHCR is unreachable, override those
+`ghcr.io/mosnin/cadre/{app,computer}`). When GHCR is unreachable, override those
 four in `.env` to a registry you control — keep app and computer on the same
 mirror. Do not rely on vendor-specific CDN defaults:
 
 ```env
-CADRE_IMAGE=registry.example.com/mirror/elie222/rakazo/app
+CADRE_IMAGE=registry.example.com/mirror/mosnin/cadre/app
 CADRE_IMAGE_TAG=edge
-CADRE_COMPUTER_IMAGE=registry.example.com/mirror/elie222/rakazo/computer
+CADRE_COMPUTER_IMAGE=registry.example.com/mirror/mosnin/cadre/computer
 CADRE_COMPUTER_IMAGE_TAG=edge
 ```
 
@@ -82,7 +82,7 @@ pairing is unchanged — set both tags to the same published multi-arch release
 them; configure the Docker daemon `registry-mirrors` or vendor those images.
 
 `SANDBOX_PROVIDER` defaults to `docker`. The images Compose file runs a sandbox supervisor
-(from the app image, on the internal network only) and pulls `ghcr.io/elie222/rakazo/computer`.
+(from the app image, on the internal network only) and pulls `ghcr.io/mosnin/cadre/computer`.
 Signup and local Docker computers work without an E2B account. Optional remote providers: set
 `SANDBOX_PROVIDER` to `e2b`, `daytona`, or `box` and add the matching API key. Compose requires
 `SANDBOX_SUPERVISOR_TOKEN` for the Docker path; leave it empty and `compose up` fails closed.
@@ -346,7 +346,7 @@ model reads about a candidate. An unset or malformed pool routes nothing.
 The Electron desktop app is a client of the same API. Docker and E2B still apply. On first launch, Electron asks the deployment owner whether bots should keep using Docker or run on this Mac as you. `SANDBOX_PROVIDER=desktop` is a separate, explicit provider that always runs commands on the service host.
 
 - **Published images** (`docker-compose.images.yml`) default to `SANDBOX_PROVIDER=docker` with a
-  local supervisor and published `ghcr.io/elie222/rakazo/computer` image. No E2B account required.
+  local supervisor and published `ghcr.io/mosnin/cadre/computer` image. No E2B account required.
   Optional: set `e2b`, `daytona`, or `box` plus the matching API key for remote computers.
 - **Docker** is the quick-start default for published images and for a source checkout / full local
   Compose stack. Workspace bots share a persistent Team Computer by default; Private computers are
@@ -551,9 +551,9 @@ this repository that is:
 
 | Image | Contents |
 | --- | --- |
-| `ghcr.io/elie222/rakazo/app` | api, worker, web, and sandbox supervisor — one image, multiple commands |
-| `ghcr.io/elie222/rakazo/computer` | Linux desktop used as each bot computer |
-| `ghcr.io/elie222/rakazo/updater` | the updater sidecar, plus the Docker CLI |
+| `ghcr.io/mosnin/cadre/app` | api, worker, web, and sandbox supervisor — one image, multiple commands |
+| `ghcr.io/mosnin/cadre/computer` | Linux desktop used as each bot computer |
+| `ghcr.io/mosnin/cadre/updater` | the updater sidecar, plus the Docker CLI |
 
 `infra/compose/docker-compose.images.yml` is the no-checkout path for those app and computer tags
 plus Postgres. The supervisor runs from the app image on the internal network only (not a separate

@@ -108,7 +108,7 @@ describe("ComposioEmulator", () => {
     for await (const event of emulator.execute(
       {
         tool: "GITHUB_LIST_RELEASES",
-        args: { owner: "elie222", repo: "cadre" },
+        args: { owner: "mosnin", repo: "cadre" },
         executionId: "github-list-releases",
       },
       connectedContext,

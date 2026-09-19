@@ -2,7 +2,7 @@
 
 ## Reporting vulnerabilities
 
-Email **security@rakazo.com** only. Do not open public GitHub issues for security bugs.
+Report privately through GitHub: **[open a security advisory](https://github.com/mosnin/cadre/security/advisories/new)**. Do not open a public issue for an unfixed vulnerability.
 
 Please include:
 
@@ -10,12 +10,7 @@ Please include:
 - Impact (what an attacker could do)
 - Whether the issue is already public
 
-We will acknowledge your report and work on a fix. Please do not file a public issue for unfixed vulnerabilities.
-
-## Other contact
-
-- General support: **support@cadre.com**
-- Maintainer: **elie@cadre.com**
+We will acknowledge your report and work on a fix.
 
 ## Scope
 

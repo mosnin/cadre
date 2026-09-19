@@ -289,7 +289,7 @@ jobs:
       cancel-in-progress: false
     environment:
       name: production
-      url: https://app.cadre.com
+      url: https://app.cadre.to
     steps:
       - name: Configure production SSH identity
         env:
