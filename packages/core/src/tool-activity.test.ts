@@ -1,4 +1,4 @@
-import type { MessageBlock } from "@rakazo/contracts";
+import type { MessageBlock } from "@cadre/contracts";
 import { describe, expect, it } from "vitest";
 import { isToolActivityBlock } from "./tool-activity.js";
 

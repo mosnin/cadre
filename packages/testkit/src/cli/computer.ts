@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { loadRootEnv } from "@rakazo/core/node/load-root-env";
+import { loadRootEnv } from "@cadre/core/node/load-root-env";
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import { runProcess } from "./process.js";
 
@@ -11,7 +11,7 @@ async function main() {
   for (const key of ["E2B_API_KEY", "OPENROUTER_API_KEY", "COMPUTER_E2E_MODEL"]) {
     if (!process.env[key]) throw new Error(`${key} is required`);
   }
-  const dataDir = await mkdtemp(path.join(tmpdir(), "rakazo-computer-e2e-run-"));
+  const dataDir = await mkdtemp(path.join(tmpdir(), "cadre-computer-e2e-run-"));
   const database = await new PostgreSqlContainer("postgres:16-alpine").start();
   const env = {
     ...process.env,
@@ -34,11 +34,11 @@ async function main() {
     SIGNUP_ALLOWLIST: "",
   };
   try {
-    execFileSync("pnpm", ["--filter", "@rakazo/db", "generate"], {
+    execFileSync("pnpm", ["--filter", "@cadre/db", "generate"], {
       stdio: "inherit",
       env,
     });
-    execFileSync("pnpm", ["--filter", "@rakazo/db", "exec", "prisma", "migrate", "deploy"], {
+    execFileSync("pnpm", ["--filter", "@cadre/db", "exec", "prisma", "migrate", "deploy"], {
       stdio: "inherit",
       env,
       cwd: path.resolve("packages/db"),

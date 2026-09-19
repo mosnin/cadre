@@ -121,3 +121,122 @@ else: raise Exception('snapshot failure swallowed')
 print('outcome preserved')`),
   ).toContain("outcome preserved");
 });
+
+it("requires a protected fill to name the host and the field it belongs to", () => {
+  expect(
+    python(`
+import os
+os.environ['CADRE_PROTECTED_TEXT']='secret'
+for request in [{'action':'fill_protected','snapshotId':'s','ref':'e1'},{'action':'fill_protected','snapshotId':'s','ref':'e1','secretHost':' ','secretField':'password'},{'action':'fill_protected','snapshotId':'s','ref':'e1','secretHost':'bank.example','secretField':'anything'}]:
+    try: m['bounded_request'](request)
+    except ValueError: continue
+    raise Exception('unbound protected fill accepted')
+print(m['bounded_request']({'action':'fill_protected','snapshotId':'s','ref':'e1','secretHost':'bank.example','secretField':'password'}))`),
+  ).toContain("fill_protected");
+});
+
+it("types a saved login only into its own site, never a subdomain impostor", () => {
+  const matches = JSON.parse(
+    python(`
+pairs=[('bank.example','bank.example'),('accounts.bank.example','bank.example'),('BANK.EXAMPLE.','bank.example'),('bank.example.evil.test','bank.example'),('evilbank.example','bank.example'),('','bank.example')]
+print(json.dumps([m['host_matches'](page, saved) for page, saved in pairs]))`),
+  );
+  expect(matches).toEqual([true, true, true, false, false, false]);
+});
+
+it("lists a native dropdown's own choices and still exposes no field value", () => {
+  const result = JSON.parse(
+    python(`
+nodes=[{'nodeId':'1','role':{'value':'combobox'},'name':{'value':'Country'},'value':{'value':'private-secret'},'backendDOMNodeId':4,'childIds':['2','3','4']},
+ {'nodeId':'2','role':{'value':'menuitem'},'name':{'value':'Ireland'}},
+ {'nodeId':'3','role':{'value':'menuitem'},'name':{'value':'Japan'},'ignored':True},
+ {'nodeId':'4','role':{'value':'StaticText'},'name':{'value':'Pick one'}}]
+print(json.dumps(m['snapshot_nodes'](nodes)))`),
+  );
+  expect(result[0]).toEqual([
+    { ref: "e1", role: "combobox", name: "Country", options: ["Ireland"] },
+  ]);
+  expect(JSON.stringify(result)).not.toContain("private-secret");
+});
+
+it("chooses a dropdown option the snapshot listed, and nothing else", () => {
+  expect(
+    python(`
+for request in [{'action':'select','snapshotId':'s','ref':'e1'},{'action':'select','snapshotId':'s','ref':'e1','option':''},{'action':'select','snapshotId':'s','ref':'e1','option':'x'*241}]:
+    try: m['bounded_request'](request)
+    except ValueError: continue
+    raise Exception('unusable selection accepted')
+
+def browser(calls):
+    b=m['VisibleBrowser'].__new__(m['VisibleBrowser'])
+    b.pages=[{'targetId':'tab'}]
+    b.page=b.pages[0]
+    b.visible_page=lambda: b.pages[0]
+    b.attach=lambda: None
+    b.save=lambda state: None
+    b.loader=lambda: 'doc'
+    b.snapshot=lambda: {'ok':True}
+    b.state={'snapshotId':'s','target':'tab','loader':'doc','humanInputEpoch':'0','refs':{'e1':{'backend':4,'role':'combobox','name':'Country','options':['Ireland','Japan']}}}
+    class FakeCDP:
+        def call(self, method, params=None, session=None): return {'targetInfos':[{'type':'page','targetId':'tab'}]}
+    b.cdp=FakeCDP()
+    def call(method, params=None):
+        calls.append((method, params))
+        if method == 'Accessibility.getPartialAXTree': return {'nodes':[{'backendDOMNodeId':4,'role':{'value':'combobox'},'name':{'value':'Country'}}]}
+        if method == 'DOM.describeNode': return {'node':{'attributes':[]}}
+        if method == 'Page.getFrameTree': return {'frameTree':{'frame':{'id':'f','loaderId':'doc'}}}
+        if method == 'Page.createIsolatedWorld': return {'executionContextId':11}
+        if method == 'DOM.resolveNode': return {'object':{'objectId':'o'}}
+        if method == 'Runtime.callFunctionOn': return {'result':{'value':True}}
+        if method == 'Runtime.evaluate': return {'result':{'value':'complete'}}
+        return {}
+    b.call=call
+    return b
+
+calls=[]
+b=browser(calls)
+try: b.act({'action':'select','snapshotId':'s','ref':'e1','option':'Narnia'})
+except ValueError as e: assert 'not in this control' in str(e), str(e)
+else: raise Exception('accepted an option the browser never reported')
+assert not any(method.startswith('Input.') for method, _ in calls)
+
+calls=[]
+b=browser(calls)
+assert b.act({'action':'select','snapshotId':'s','ref':'e1','option':'Japan'}) == {'ok':True}
+chosen=[params for method, params in calls if method == 'Runtime.callFunctionOn']
+assert chosen[0]['arguments'] == [{'value':'Japan'}]
+# A selection is a choice, never typing: no text or key ever reaches the page.
+assert not any(method.startswith('Input.') for method, _ in calls)
+assert ('DOM.focus', {'backendNodeId':4}) in calls
+print('selected')`),
+  ).toContain("selected");
+});
+
+it("waits for the page to settle, longer only for a suggestion list", () => {
+  expect(
+    python(`
+def budget(role, action):
+    waits=[]
+    b=m['VisibleBrowser'].__new__(m['VisibleBrowser'])
+    def call(method, params=None):
+        if method == 'Page.enable': return {}
+        if method == 'Page.getFrameTree': return {'frameTree':{'frame':{'id':'f'}}}
+        if method == 'Page.createIsolatedWorld': return {'executionContextId':11}
+        if method == 'DOM.resolveNode': return {'object':{'objectId':'o'}}
+        if method == 'Runtime.callFunctionOn':
+            waits.append(params['arguments'][0]['value'])
+            return {'result':{'value':True}}
+        raise Exception('unexpected '+method)
+    b.call=call
+    b.settle(4, action in ('fill','fill_protected') and role == 'combobox')
+    return waits
+
+assert budget('combobox','fill') == [True]
+assert budget('textbox','fill') == [False]
+assert budget('button','click') == [False]
+# The script itself asks for two animation frames and caps each wait.
+assert 'requestAnimationFrame' in m['SETTLE'] and 'frames >= 2' in m['SETTLE']
+assert 'autocomplete ? 200 : 50' in m['SETTLE']
+print('settled')`),
+  ).toContain("settled");
+});

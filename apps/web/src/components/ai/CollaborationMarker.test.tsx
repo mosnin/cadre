@@ -1,4 +1,4 @@
-import { AvatarStyleProvider } from "@rakazo/ui-web";
+import { AvatarStyleProvider } from "@cadre/ui-web";
 import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -26,7 +26,7 @@ describe("collaboration transcript markers", () => {
     expect(html).toContain('class="flex justify-start"');
     expect(html).toContain('class="inline-flex max-w-full');
     expect(html).toContain('class="truncate"');
-    expect(html).toContain("rakazo-bot-avatar");
+    expect(html).toContain("cadre-bot-avatar");
     expect(html).toContain("Message from Research");
     expect(html).not.toContain("{peer}");
   });
@@ -41,6 +41,6 @@ describe("collaboration transcript markers", () => {
 
     expect(html).toContain('role="status"');
     expect(html).toContain('data-working="true"');
-    expect(html).toContain("rakazo-bot-avatar-ring");
+    expect(html).toContain("cadre-bot-avatar-ring");
   });
 });

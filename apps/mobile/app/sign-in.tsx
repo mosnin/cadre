@@ -151,9 +151,9 @@ export default function SignIn() {
                 }}
               >
                 {mode === "in"
-                  ? t("Sign in to Rakazo")
+                  ? t("Sign in to Cadre")
                   : mode === "up"
-                    ? t("Sign up for Rakazo")
+                    ? t("Sign up for Cadre")
                     : resetSent
                       ? t("Check your email")
                       : t("Reset your password")}
@@ -463,7 +463,7 @@ function ServerSheet({
           <Text
             style={{ color: tokens.mutedForeground, marginTop: 28, fontSize: 15, lineHeight: 22 }}
           >
-            {t("Enter your Rakazo server address.")}
+            {t("Enter your Cadre server address.")}
           </Text>
           <TextInput
             autoCapitalize="none"

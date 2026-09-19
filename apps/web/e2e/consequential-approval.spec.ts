@@ -12,7 +12,7 @@ test("actions run by default while optional confirmations live in advanced user 
   page,
 }, testInfo) => {
   const stamp = Date.now();
-  await signup(page, `action-confirmations-${stamp}@rakazo.test`, "password12", "Approval UI");
+  await signup(page, `action-confirmations-${stamp}@cadre.test`, "password12", "Approval UI");
   await completeOnboarding(page, testInfo);
 
   await sendDestinationWrite(page, "write this to the destination crm as a note");
@@ -25,10 +25,6 @@ test("actions run by default while optional confirmations live in advanced user 
   await expect(page.getByTestId("bot-settings")).toBeVisible();
   await expect(page.getByTestId("bot-settings").getByText("Action confirmations")).toHaveCount(0);
   await page.getByRole("button", { name: "Close panel" }).click();
-  // Wait for the panel to actually go. A closing panel restores focus to the control that
-  // opened it, and it does so after its exit animation — so opening the next dialog while
-  // this one is still leaving means that restoration lands *after* the dialog has focused
-  // itself, and takes the focus back off it.
   await expect(page.getByTestId("bot-settings")).toBeHidden();
 
   await openUserSettings(page);

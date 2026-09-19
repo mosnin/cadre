@@ -1,5 +1,5 @@
 {
-  "name": "@rakazo/auth",
+  "name": "@cadre/auth",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "type": "module",
@@ -19,9 +19,9 @@
     "test": "vitest run --root ../.. packages/auth/src"
   },
   "dependencies": {
-    "@rakazo/adapter-kit": "workspace:*",
-    "@rakazo/core": "workspace:*",
-    "@rakazo/db": "workspace:*",
+    "@cadre/adapter-kit": "workspace:*",
+    "@cadre/core": "workspace:*",
+    "@cadre/db": "workspace:*",
     "better-auth": "^1.6.27"
   },
   "devDependencies": {

@@ -1,7 +1,4 @@
-import { t } from "@lingui/core/macro";
-import { Trans, useLingui } from "@lingui/react/macro";
-import NumberFlow from "@number-flow/react";
-import { ChatMarkdown } from "@rakazo/chat-ui/web";
+import { ChatMarkdown } from "@cadre/chat-ui/web";
 import type {
   AgentSkillCatalogEntry,
   Bot,
@@ -22,14 +19,14 @@ import type {
   ThreadMessage,
   ThreadSnapshot,
   VoiceStatus,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   ATTACHMENT_ALLOWED_MIME_TYPES,
   ATTACHMENT_MAX_BYTES,
   ATTACHMENT_MAX_COUNT,
   canReactToThreadMessage,
   normalizeCreateBotProfile,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   abortableDelay,
   attachmentsForThread,
@@ -57,7 +54,7 @@ import {
   truncateSlashDescription,
   userVisibleMessages,
   waitForComputerStartup,
-} from "@rakazo/core";
+} from "@cadre/core";
 import {
   AvatarStyleProvider,
   BotAvatar,
@@ -68,19 +65,23 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  modalIsOpen,
   Popover,
   PopoverContent,
   PopoverTrigger,
   Tabs,
   TabsList,
   TabsTrigger,
-} from "@rakazo/ui-web";
-import { AppSidebar } from "@rakazo/ui-web/directory/app-sidebar";
-import { AttachmentUpload } from "@rakazo/ui-web/directory/attachment-upload";
-import { Message, MessageBubble, MessageBubbleContent } from "@rakazo/ui-web/directory/message";
-import { MessageScroller } from "@rakazo/ui-web/directory/message-scroller";
-import { PromptInput } from "@rakazo/ui-web/directory/prompt-input";
-import { SidebarProvider } from "@rakazo/ui-web/directory/sidebar";
+} from "@cadre/ui-web";
+import { AppSidebar } from "@cadre/ui-web/directory/app-sidebar";
+import { AttachmentUpload } from "@cadre/ui-web/directory/attachment-upload";
+import { Message, MessageBubble, MessageBubbleContent } from "@cadre/ui-web/directory/message";
+import { MessageScroller } from "@cadre/ui-web/directory/message-scroller";
+import { PromptInput } from "@cadre/ui-web/directory/prompt-input";
+import { SidebarProvider } from "@cadre/ui-web/directory/sidebar";
+import { t } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import NumberFlow from "@number-flow/react";
 import {
   ArrowDown,
   ArrowUp,
@@ -295,7 +296,7 @@ function threadSnapshotSignal(parent: AbortSignal): AbortSignal {
 
 function collapsedSidebarSectionsStorageKey(userId: string | null | undefined): string | null {
   if (!userId) return null;
-  return `rakazo:collapsed-sidebar-sections:${userId}`;
+  return `cadre:collapsed-sidebar-sections:${userId}`;
 }
 
 function readCollapsedSidebarSections(userId: string | null | undefined): Set<string> {
@@ -532,7 +533,10 @@ export function ShellPage() {
     // rail that is always there must not, or it steals focus on every load.
     const frame = desktopLayout
       ? 0
-      : requestAnimationFrame(() => sidebarSearchRef.current?.focus());
+      : requestAnimationFrame(() => {
+          if (modalIsOpen()) return;
+          sidebarSearchRef.current?.focus();
+        });
     return () => {
       cancelAnimationFrame(frame);
       const active = document.activeElement;
@@ -542,6 +546,10 @@ export function ShellPage() {
           // A user can focus another surface before this frame runs.
           if (current !== document.body && current && !navigatorRef.current?.contains(current))
             return;
+          // Settings collapses the navigator as it opens, so this restoration
+          // is queued behind a dialog that now owns the focus. Handing it back
+          // to the page would take it off the dialog.
+          if (modalIsOpen()) return;
           if (previous?.isConnected && previous !== document.body) previous.focus();
           else if (desktopLayout) showBotsRef.current?.focus();
         });

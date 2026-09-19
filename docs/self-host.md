@@ -1,19 +1,19 @@
-# Self-hosting Rakazo
+# Self-hosting Cadre
 
 The signed-in product is a long-running API, a Graphile Worker, Postgres, and a computer provider (Docker supervisor, E2B, Daytona, or Box). It is not a static site. The marketing site in `apps/www` can be hosted separately.
 
 ## Local (source checkout)
 
-Same as the README quick start: `.env` from `.env.example`, Postgres via Compose, `pnpm sandbox:build`, `pnpm dev`, then [http://127.0.0.1:5173](http://127.0.0.1:5173). Electron: `pnpm --filter @rakazo/desktop dev` while that stack is up, choosing **Existing instance** with that address. The desktop app's **This computer** option instead installs and runs the published images itself with Docker Compose (see [Published images](#published-images-no-checkout)), which clashes with `pnpm dev` on port 5173.
+Same as the README quick start: `.env` from `.env.example`, Postgres via Compose, `pnpm sandbox:build`, `pnpm dev`, then [http://127.0.0.1:5173](http://127.0.0.1:5173). Electron: `pnpm --filter @cadre/desktop dev` while that stack is up, choosing **Existing instance** with that address. The desktop app's **This computer** option instead installs and runs the published images itself with Docker Compose (see [Published images](#published-images-no-checkout)), which clashes with `pnpm dev` on port 5173.
 
 ## Published images (no checkout)
 
-Pull Postgres and `ghcr.io/elie222/rakazo/app` into any empty folder. No clone or image build.
+Pull Postgres and `ghcr.io/mosnin/cadre/app` into any empty folder. No clone or image build.
 Requires Docker Engine, the Compose plugin, curl, and OpenSSL.
 
 ```bash
-mkdir -p rakazo && cd rakazo &&
-curl -fsSLO https://raw.githubusercontent.com/elie222/rakazo/main/infra/compose/install-images.sh &&
+mkdir -p cadre && cd cadre &&
+curl -fsSLO https://raw.githubusercontent.com/mosnin/cadre/main/infra/compose/install-images.sh &&
 bash install-images.sh
 ```
 
@@ -30,21 +30,21 @@ Stage B of the installer (Compose YAML and `.env.images.example`) downloads from
 vendor-specific CDN defaults:
 
 ```bash
-export RAKAZO_DOWNLOAD_BASE=https://example.com/mirror/rakazo/infra/compose
+export CADRE_DOWNLOAD_BASE=https://example.com/mirror/cadre/infra/compose
 bash install-images.sh
 ```
 
-Trailing slashes on `RAKAZO_DOWNLOAD_BASE` are trimmed; non-HTTPS bases are rejected. Downloads
+Trailing slashes on `CADRE_DOWNLOAD_BASE` are trimmed; non-HTTPS bases are rejected. Downloads
 use finite curl retries (`--retry 3 --retry-delay 2 --retry-all-errors` when supported).
 
 To reuse files already present in the working directory (skip curl when the target exists), set
-`RAKAZO_DOWNLOAD_SKIP_EXISTING=1` and/or pass `--local`:
+`CADRE_DOWNLOAD_SKIP_EXISTING=1` and/or pass `--local`:
 
 ```bash
 # after placing docker-compose.images.yml and .env.images.example locally
 bash install-images.sh --local --prepare-only
 # or
-RAKAZO_DOWNLOAD_SKIP_EXISTING=1 bash install-images.sh --prepare-only
+CADRE_DOWNLOAD_SKIP_EXISTING=1 bash install-images.sh --prepare-only
 ```
 
 If skip mode is on and a required file is missing, the installer still downloads it (or fails with
@@ -54,23 +54,23 @@ Stage A (fetching `install-images.sh` itself) is separate. When raw GitHub is un
 bootstrap curl at your mirror of the installer script, for example:
 
 ```bash
-export RAKAZO_INSTALLER_URL=https://example.com/mirror/rakazo/infra/compose/install-images.sh
-mkdir -p rakazo && cd rakazo &&
-curl -fsSLO "${RAKAZO_INSTALLER_URL}" &&
+export CADRE_INSTALLER_URL=https://example.com/mirror/cadre/infra/compose/install-images.sh
+mkdir -p cadre && cd cadre &&
+curl -fsSLO "${CADRE_INSTALLER_URL}" &&
 bash install-images.sh
 ```
 
-Stage C (`docker compose pull`) uses `RAKAZO_IMAGE`, `RAKAZO_IMAGE_TAG`,
-`RAKAZO_COMPUTER_IMAGE`, and `RAKAZO_COMPUTER_IMAGE_TAG` (defaults
-`ghcr.io/elie222/rakazo/{app,computer}`). When GHCR is unreachable, override those
+Stage C (`docker compose pull`) uses `CADRE_IMAGE`, `CADRE_IMAGE_TAG`,
+`CADRE_COMPUTER_IMAGE`, and `CADRE_COMPUTER_IMAGE_TAG` (defaults
+`ghcr.io/mosnin/cadre/{app,computer}`). When GHCR is unreachable, override those
 four in `.env` to a registry you control — keep app and computer on the same
 mirror. Do not rely on vendor-specific CDN defaults:
 
 ```env
-RAKAZO_IMAGE=registry.example.com/mirror/elie222/rakazo/app
-RAKAZO_IMAGE_TAG=edge
-RAKAZO_COMPUTER_IMAGE=registry.example.com/mirror/elie222/rakazo/computer
-RAKAZO_COMPUTER_IMAGE_TAG=edge
+CADRE_IMAGE=registry.example.com/mirror/mosnin/cadre/app
+CADRE_IMAGE_TAG=edge
+CADRE_COMPUTER_IMAGE=registry.example.com/mirror/mosnin/cadre/computer
+CADRE_COMPUTER_IMAGE_TAG=edge
 ```
 
 After `--prepare-only`, edit `.env` then rerun `bash install-images.sh` (or
@@ -82,7 +82,7 @@ pairing is unchanged — set both tags to the same published multi-arch release
 them; configure the Docker daemon `registry-mirrors` or vendor those images.
 
 `SANDBOX_PROVIDER` defaults to `docker`. The images Compose file runs a sandbox supervisor
-(from the app image, on the internal network only) and pulls `ghcr.io/elie222/rakazo/computer`.
+(from the app image, on the internal network only) and pulls `ghcr.io/mosnin/cadre/computer`.
 Signup and local Docker computers work without an E2B account. Optional remote providers: set
 `SANDBOX_PROVIDER` to `e2b`, `daytona`, or `box` and add the matching API key. Compose requires
 `SANDBOX_SUPERVISOR_TOKEN` for the Docker path; leave it empty and `compose up` fails closed.
@@ -99,7 +99,7 @@ that HTTPS URL.
 Images Compose binds web to loopback (`127.0.0.1:5173`). Terminate TLS on the host and proxy
 there. Vite preview same-origin-proxies `/api` and `/rpc`, so do not expose `:3100`. Set
 `BETTER_AUTH_URL`, `WEB_ORIGIN`, and `API_URL` to that same HTTPS origin, and set
-`RAKAZO_HOST` to its hostname (for example, `app.example.com`).
+`CADRE_HOST` to its hostname (for example, `app.example.com`).
 
 ```Caddyfile
 app.example.com {
@@ -122,7 +122,7 @@ instead of this host proxy.
 
 On Windows, if an older clone with `core.autocrlf=true` leaves the computer pane hung on boot (`bash\r` in sandbox logs): from a clean worktree, set `git config core.autocrlf false`, run `git add --renormalize . && git checkout -- .`, then rebuild with `pnpm sandbox:build`.
 
-Compose runs Postgres, the sandbox supervisor (Docker socket), API, worker, and a Vite preview of the web app. Bot computers are sibling containers (`rakazo/computer:local`) on separate per-bot networks; only the supervisor and screen proxy join each one. The API process does not get an unrestricted Docker socket; the supervisor owns the lifecycle.
+Compose runs Postgres, the sandbox supervisor (Docker socket), API, worker, and a Vite preview of the web app. Bot computers are sibling containers (`cadre/computer:local`) on separate per-bot networks; only the supervisor and screen proxy join each one. The API process does not get an unrestricted Docker socket; the supervisor owns the lifecycle.
 
 Postgres is published on **loopback only** (`127.0.0.1:5433` on the host). Do not expose that port on a public VPS. Change `POSTGRES_PASSWORD` and keep Postgres on an internal network when you deploy remotely.
 
@@ -147,20 +147,20 @@ Cookies and CORS follow those origins. `SIGNUPS_ENABLED` / `SIGNUP_ALLOWLIST` se
 ### Password recovery email
 
 Password changes for signed-in users require no email configuration. Forgotten-password recovery
-appears on sign-in only when a transactional email provider is available. Rakazo uses a
+appears on sign-in only when a transactional email provider is available. Cadre uses a
 provider-neutral contract and ships an SMTP adapter, so Amazon SES, Resend, and self-hosted SMTP
 servers use the same configuration:
 
 ```env
 SMTP_URL=smtps://smtp-user:replace-with-password@smtp.example.com:465
-EMAIL_FROM=Rakazo <no-reply@example.com>
+EMAIL_FROM=Cadre <no-reply@example.com>
 ```
 
 For Resend, use `smtp.resend.com`, username `resend`, and an API key as the password. For Amazon
 SES, use the regional SMTP endpoint and SES SMTP credentials; these are different from ordinary AWS
 access keys. Verify the sender/domain with the provider before testing delivery. Keep credentials in
 `.env`, never in tracked files. `smtps://` uses implicit TLS; `smtp://` is also supported but requires
-STARTTLS. Rakazo rejects configuration that disables TLS or certificate verification.
+STARTTLS. Cadre rejects configuration that disables TLS or certificate verification.
 
 Local source development can use the offline email emulator instead. It captures email without
 contacting a provider:
@@ -181,8 +181,8 @@ or `off` (default `info`). Production defaults to `LOG_FORMAT=json`; development
 unless you set `json` or `pretty`.
 
 Axiom is optional. Set both `AXIOM_TOKEN` and `AXIOM_DATASET` for ingest to one shared dataset.
-Services set `service.name` (`rakazo-api`, `rakazo-worker`, `rakazo-sandbox-supervisor`,
-`rakazo-updater`). A partial Axiom config logs a one-time warning and stays off. `AXIOM_EDGE` is a
+Services set `service.name` (`cadre-api`, `cadre-worker`, `cadre-sandbox-supervisor`,
+`cadre-updater`). A partial Axiom config logs a one-time warning and stays off. `AXIOM_EDGE` is a
 regional hostname; `AXIOM_EDGE_URL` must be https and wins when both are set.
 
 Compose passes these into the API, worker, supervisor, and updater. Computer containers and updater
@@ -205,7 +205,9 @@ MAX_RUN_SEGMENTS=6 # budget segments an unattended run (schedule, webhook, bot m
 UNATTENDED_WAIT_MS=1800000 # how long an unattended run waits for approval or an answer before it fails; maximum 86400000
 MODEL_MAX_RETRIES=4 # client-side retries for transient model provider errors; maximum 10
 MODEL_TURN_RETRIES=3 # whole-turn retries when a model stream fails after it started; maximum 10
-RAKAZO_COMPUTER_MEMORY_MB=4096 # memory cap for each Docker bot computer; minimum 512
+CADRE_COMPUTER_MEMORY_MB=4096 # memory cap for each Docker bot computer; minimum 512
+MCP_STDIO_ENABLED=false   # let MCP servers run as local processes on the worker host
+MCP_STDIO_ALLOWED_COMMANDS= # comma-separated exact commands stdio MCP may launch
 E2B_API_KEY=              # when SANDBOX_PROVIDER=e2b
 DAYTONA_API_KEY=          # when SANDBOX_PROVIDER=daytona
 BOX_API_KEY=              # when SANDBOX_PROVIDER=box
@@ -218,11 +220,23 @@ with subagents. Token usage is checked after each model response, so in-flight r
 the threshold. Already-issued external effects may finish after cancellation.
 
 Six identical tool calls within the last 24 calls stop the run, even with intervening text.
-Each run can create at most four bots or four schedules, send eight peer messages, and hand off
-once. Bot and schedule creation requires a user-triggered run; automated turns cannot create more
-persistent automation. A guardrail failure pauses its originating schedule. Review the failure
-before manually resuming the schedule or sending a new request. Three failed setup attempts stop
+Calls that take no arguments, such as the observation tools, are exempt: repeating them is how a
+browser or desktop task verifies each step. Each run can create at most four bots or four
+schedules, send eight peer messages, and hand off once. Bot and schedule creation requires a
+user-triggered run; automated turns cannot create more persistent automation.
+
+A time, tool or token limit ends the current budget segment rather than the run. Runs with no
+person waiting (schedule, webhook, peer message, spawn) write a progress note, reset the tool
+budget and continue in a new segment, up to `MAX_RUN_SEGMENTS`; the schedule stays active. Only
+automation abuse, such as an automated turn trying to create more automation, pauses a schedule,
+and that posts a thread event and a notification naming the reason. An unattended run that asks
+for approval or an answer fails after `UNATTENDED_WAIT_MS` instead of waiting forever, and a new
+occurrence is skipped while the previous one is still running. Three failed setup attempts stop
 the run instead of retrying indefinitely.
+
+`MCP_STDIO_ENABLED` lets MCP servers run as local processes on the worker host. It is off by
+default; leave it off unless you need it. When enabled, `MCP_STDIO_ALLOWED_COMMANDS` must list
+each permitted command exactly, and anything not listed is refused.
 
 Apply database migrations before starting updated API and worker processes. The connection migration
 preserves older revoked connections as disconnected; reconnect explicitly when needed. A failed
@@ -233,46 +247,118 @@ To use an operator-controlled OpenAI-compatible server such as Ollama, LM Studio
 MLX, list its model IDs and an endpoint that both the API and worker processes can reach:
 
 ```env
-RAKAZO_LOCAL_MODELS=qwen3:4b,llama3.1:8b
-RAKAZO_LOCAL_MODELS_URL=http://127.0.0.1:11434/v1
-RAKAZO_LOCAL_CONTEXT_WINDOW=32768
-RAKAZO_LOCAL_MAX_TOKENS=4096
+CADRE_LOCAL_MODELS=qwen3:4b,llama3.1:8b
+CADRE_LOCAL_MODELS_URL=http://127.0.0.1:11434/v1
+CADRE_LOCAL_CONTEXT_WINDOW=32768
+CADRE_LOCAL_MAX_TOKENS=4096
 ```
 
-The loopback default is suitable when running Rakazo from a source checkout. In Docker Compose,
+The loopback default is suitable when running Cadre from a source checkout. In Docker Compose,
 use the model server's Compose service name or another address reachable from the containers.
 Only configure an endpoint you control: prompts, attachments, and tool results sent to that model
-leave Rakazo through this URL. Leave `RAKAZO_LOCAL_MODELS` blank to disable the provider.
+leave Cadre through this URL. Leave `CADRE_LOCAL_MODELS` blank to disable the provider.
 
 Each user can also connect their own OpenAI-compatible endpoint from **Connect a model** /
 **Settings → Models** on web and mobile. Choose **OpenAI-compatible**, enter the server base URL
 (for example `http://127.0.0.1:8000/v1` for Rapid-MLX, Ollama, LM Studio, llama.cpp, or vLLM),
-the exact model id from that server, and an optional API key. By default Rakazo only allows
+the exact model id from that server, and an optional API key. By default Cadre only allows
 loopback, RFC1918, and `host.docker.internal` targets. To permit public hostnames, set
-`RAKAZO_OPENAI_COMPAT_ALLOW_PUBLIC=1` in the deployment environment. Public hostnames must resolve
+`CADRE_OPENAI_COMPAT_ALLOW_PUBLIC=1` in the deployment environment. Public hostnames must resolve
 only to public addresses; redirects and DNS answers that reach private or link-local networks are
 rejected.
 
 Do not commit `.env`. Never put `COMPOSIO_API_KEY`, OpenRouter keys, or provider tokens in git, logs, or chat.
+
+### Saved site logins
+
+A saved login belongs to the person who saved it: nobody else in the space lists it, uses it, or
+deletes it, and a bot only offers the logins of the person whose run it is. The password is never
+shown to the model. Before it is typed, the browser checks the page it is actually on against the
+saved host and refuses anything else, refuses a page that is not https, refuses a field that is not
+a password field, and refuses a frame. A page that echoes a typed value back is stripped of it
+before the model reads the result.
+
+### Bot computers and the cloud metadata endpoint
+
+Each bot computer sits on its own Docker bridge network with ordinary outbound routing, so the
+browser inside it can reach whatever the host can, including a cloud provider's instance metadata
+service. Cadre's own fetch path already refuses link-local and metadata addresses, but a page
+loaded in the bot browser does not go through it. On a cloud VM, block that range for the bot
+bridges at the host, for example:
+
+```bash
+iptables  -I DOCKER-USER -d 169.254.0.0/16 -j DROP
+ip6tables -I DOCKER-USER -d fd00:ec2::/32  -j DROP
+```
+
+Require IMDSv2 (or the provider's equivalent) as well, and give the instance the smallest role you
+can. This is a host control; Cadre cannot enforce it from inside the container.
+## Typed decisions
+
+`docs/jev.md` is the inventory: every decision, what it replaces, and what it
+falls back to. The short version follows.
+
+Some points in a run need a small, fast judgement rather than prose: which model serves a run,
+which search result answers the question, which control to operate next. A decision model
+answers those directly, returning a typed choice and a calibrated probability per option
+instead of text that has to be parsed.
+
+Cadre uses TypeSafe's Jev through OpenRouter's Decisions API. It reuses `OPENROUTER_API_KEY`,
+so if the deployment already routes models through OpenRouter there is nothing to add. Input is
+billed at $0.042 per million tokens and output is free, so a decision costs a small fraction of
+the generation it replaces.
+
+```bash
+JEV_DECISIONS_ENABLED=1     # set to 0 to turn every decision off
+JEV_MODEL=typesafe/jev-1.13 # the decision model
+JEV_API_KEY=                # only if decisions should not use OPENROUTER_API_KEY
+JEV_TIMEOUT_MS=6000         # per request; 500 to 30000
+```
+
+Nothing requires it. With no key, or with `JEV_DECISIONS_ENABLED=0`, every caller keeps the
+behaviour it has without a decision model: search returns the engine's own order, `browser_pursue`
+takes no steps, and runs use the model they would otherwise have used. A hedged answer does the
+same, because confidence is checked per action rather than against one global threshold, and an
+answer naming an option that was never offered is discarded.
+
+Decisions send the state a question is about to a third party: the search query and result
+snippets, the page text and control names, or the newest user message when routing. Leave it
+off for workloads that cannot share that context.
+
+### Routing runs between models
+
+With a pool configured, a run that nobody chose a model for is routed to the cheapest model in
+the pool that suits the request. An explicit bot, credential or deployment-settings choice is
+never overridden, and a decision the model is not confident about keeps the default.
+
+```bash
+JEV_ROUTER_MODELS='[
+  {"model":"qwen/qwen3-8b","description":"Cheap and fast. Short answers, lookups, summaries."},
+  {"model":"qwen/qwen3-235b-a22b","description":"Strong reasoning. Long multi-step work and code."}
+]'
+```
+
+Each entry needs a provider model id and a description; the description is all the decision
+model reads about a candidate. An unset or malformed pool routes nothing.
 
 ## Choosing a computer provider
 
 The Electron desktop app is a client of the same API. Docker and E2B still apply. On first launch, Electron asks the deployment owner whether bots should keep using Docker or run on this Mac as you. `SANDBOX_PROVIDER=desktop` is a separate, explicit provider that always runs commands on the service host.
 
 - **Published images** (`docker-compose.images.yml`) default to `SANDBOX_PROVIDER=docker` with a
-  local supervisor and published `ghcr.io/elie222/rakazo/computer` image. No E2B account required.
+  local supervisor and published `ghcr.io/mosnin/cadre/computer` image. No E2B account required.
   Optional: set `e2b`, `daytona`, or `box` plus the matching API key for remote computers.
 - **Docker** is the quick-start default for published images and for a source checkout / full local
   Compose stack. Workspace bots share a persistent Team Computer by default; Private computers are
   optional. Keep the supervisor private, as the included Compose files do.
-- **E2B** runs bot computers away from the Rakazo host and is a good choice for public or multi-user
-  production deployments. Rakazo checkpoints the portable workspace and browser-profile directory to
+- **E2B** runs bot computers away from the Cadre host and is a good choice for public or multi-user
+  production deployments. Cadre checkpoints the portable workspace and browser-profile directory to
   `DATA_DIR`; the E2B disk is a runtime cache, not the durable source of truth.
 - **Daytona** provides the same remote-computer contract through Daytona sandboxes. Configure
   `DAYTONA_API_KEY` and optionally `DAYTONA_API_URL` / `DAYTONA_TARGET`.
 - **Box by ASCII** provides a managed Linux desktop through `BOX_API_KEY` and optionally
-  `BOX_API_URL`. Rakazo always creates or resumes boxes with `noEnv: true`, keeps the portable
-  workspace under `/home/user/rakazo-home`, and refreshes a two-hour TTL. A Box currently exposes one
+  `BOX_API_URL`. Cadre always creates or resumes boxes with `noEnv: true`, keeps the portable
+  workspace under `/home/user/cadre-home`, and refreshes a two-hour TTL. A Box currently exposes one
   shared desktop, so concurrent Team bots can still use shell and files but only one can use
   graphical tools at a time.
 - **Desktop provider** / **This Mac** runs commands on the API/worker host. Docker stays the default.
@@ -319,18 +405,18 @@ container logs, default no-new-privileges, and the kernel NAT path instead of Do
 2. Clone the repository on the VM and create a root `.env` with production-only values. At minimum set
    `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY`, `SCREEN_PROXY_SECRET`,
    `OPENROUTER_API_KEY`, the API key for your selected sandbox provider,
-   `RAKAZO_HOST`, and the three public origins. Set `RAKAZO_DEPLOY_DIR` when the checkout is not at
-   the supported Linux default, `/srv/rakazo`. Use URL-safe random values for database credentials.
-   If you enable the `updater` profile, also set a dedicated `RAKAZO_UPDATER_TOKEN` (at least 32
+   `CADRE_HOST`, and the three public origins. Set `CADRE_DEPLOY_DIR` when the checkout is not at
+   the supported Linux default, `/srv/cadre`. Use URL-safe random values for database credentials.
+   If you enable the `updater` profile, also set a dedicated `CADRE_UPDATER_TOKEN` (at least 32
    characters) that differs from `BETTER_AUTH_SECRET`, `SANDBOX_SUPERVISOR_TOKEN`, and
    `SCREEN_PROXY_SECRET`.
 3. Keep registration allowlisted while the service is private:
 
 ```env
 NODE_ENV=production
-RAKAZO_HOST=app.example.com
+CADRE_HOST=app.example.com
 # Optional operator-owned override, for example the Cloudflare allowlist file:
-# CADDYFILE_PATH=/etc/rakazo/Caddyfile.prod
+# CADDYFILE_PATH=/etc/cadre/Caddyfile.prod
 BETTER_AUTH_URL=https://app.example.com
 WEB_ORIGIN=https://app.example.com
 API_URL=https://app.example.com
@@ -341,12 +427,12 @@ SANDBOX_PROVIDER=e2b
 AGENT_RUNTIME=pi
 WAKEUP_DRIVER=graphile
 DATA_DIR=/data
-# Absolute path of this checkout as the Docker daemon sees it. /srv/rakazo is the Linux default;
+# Absolute path of this checkout as the Docker daemon sees it. /srv/cadre is the Linux default;
 # set this explicitly for every other layout. See "The deploy directory must be one path" below.
-RAKAZO_DEPLOY_DIR=/srv/rakazo
-RAKAZO_IMAGE_TAG=local
+CADRE_DEPLOY_DIR=/srv/cadre
+CADRE_IMAGE_TAG=local
 # Optional: required only with `--profile updater`.
-# RAKAZO_UPDATER_TOKEN=replace-with-32-plus-character-updater-token
+# CADRE_UPDATER_TOKEN=replace-with-32-plus-character-updater-token
 ```
 
 4. Build the images from your checkout and start the stack, then verify its public health endpoint:
@@ -359,7 +445,7 @@ docker compose --env-file .env -f infra/compose/docker-compose.prod.yml \
 curl --fail https://app.example.com/health
 ```
 
-**Build, do not pull, for a first deployment.** `RAKAZO_IMAGE_TAG` ships as `local`, a tag no
+**Build, do not pull, for a first deployment.** `CADRE_IMAGE_TAG` ships as `local`, a tag no
 registry serves, so the commands above build `api`, `worker`, and `web` from the checkout you just
 cloned. The opt-in command under [Updater sidecar](#updater-sidecar) builds `updater` when needed.
 Running `docker compose … pull` first — as earlier versions of this page told you to — fails outright
@@ -372,7 +458,7 @@ you switch to a release tag you should leave `GIT_SHA` unset — a value in `.en
 the image already knows.
 
 Once a release has been published you can switch this host to prebuilt images by setting
-`RAKAZO_IMAGE_TAG` to that release tag and running `pull` followed by `up -d --wait --pull never`.
+`CADRE_IMAGE_TAG` to that release tag and running `pull` followed by `up -d --wait --pull never`.
 See [Published images and tags](#published-images-and-tags) for the tag contract.
 
 The root `.env` is excluded from both Git and the Docker build context. The database, application data,
@@ -384,8 +470,8 @@ when taking upstream security updates; changing only the visible major tag does 
 content while a digest is present.
 
 For the single-VM production layout, install `infra/compose/backup-prod.sh` as
-`/usr/local/sbin/rakazo-backup` and enable the supplied `rakazo-backup.timer`. It creates a verified
-Postgres custom-format dump plus an application-data archive under `/var/backups/rakazo`, with mode
+`/usr/local/sbin/cadre-backup` and enable the supplied `cadre-backup.timer`. It creates a verified
+Postgres custom-format dump plus an application-data archive under `/var/backups/cadre`, with mode
 `0600` and seven-day rotation. These local snapshots help with operator mistakes but are not a
 substitute for an encrypted off-host backup or provider snapshot.
 
@@ -417,16 +503,16 @@ GIT_SHA=$(git rev-parse HEAD) docker compose --env-file .env -f infra/compose/do
 `up --wait` does not report success until the new API is healthy and the worker and web containers
 are running. The API's start command runs `prisma migrate deploy` before it serves, so migration
 failure keeps health red. A failed CLI recreate does not auto-roll back; recover with the previous
-`RAKAZO_IMAGE_TAG` (or rebuild `local`) and `up -d --wait --pull never`.
+`CADRE_IMAGE_TAG` (or rebuild `local`) and `up -d --wait --pull never`.
 
 The updater sidecar has its own image and tag so an update never recreates the process performing
-it. Move it deliberately by setting `RAKAZO_UPDATER_IMAGE_TAG` to the full `sha-<commit>` tag, then
+it. Move it deliberately by setting `CADRE_UPDATER_IMAGE_TAG` to the full `sha-<commit>` tag, then
 running `docker compose … pull updater && docker compose … up -d --wait --pull never updater`.
 Sidecar `/apply` and `/rollback` recover a failed recreate by redeploying the previously cached
 image when possible; if that also fails, they report a possible mixed-version runtime.
 
 Source checkouts (not Compose) still upgrade the old way: pull, rebuild with
-`GIT_SHA=$(git rev-parse HEAD)`, run `pnpm --filter @rakazo/db migrate`, then restart API and worker.
+`GIT_SHA=$(git rev-parse HEAD)`, run `pnpm --filter @cadre/db migrate`, then restart API and worker.
 Product contracts stay compatible across cloud and self-hosted.
 
 ### Space privacy-boundary migration
@@ -465,16 +551,16 @@ this repository that is:
 
 | Image | Contents |
 | --- | --- |
-| `ghcr.io/elie222/rakazo/app` | api, worker, web, and sandbox supervisor — one image, multiple commands |
-| `ghcr.io/elie222/rakazo/computer` | Linux desktop used as each bot computer |
-| `ghcr.io/elie222/rakazo/updater` | the updater sidecar, plus the Docker CLI |
+| `ghcr.io/mosnin/cadre/app` | api, worker, web, and sandbox supervisor — one image, multiple commands |
+| `ghcr.io/mosnin/cadre/computer` | Linux desktop used as each bot computer |
+| `ghcr.io/mosnin/cadre/updater` | the updater sidecar, plus the Docker CLI |
 
 `infra/compose/docker-compose.images.yml` is the no-checkout path for those app and computer tags
 plus Postgres. The supervisor runs from the app image on the internal network only (not a separate
 published supervisor image, and no host port). Production Compose (`docker-compose.prod.yml`) can
-also pull the same app tags once `RAKAZO_IMAGE_TAG` is set to a published value.
+also pull the same app tags once `CADRE_IMAGE_TAG` is set to a published value.
 
-If you deploy from your own fork, set `RAKAZO_IMAGE` and `RAKAZO_UPDATER_IMAGE` to your namespace —
+If you deploy from your own fork, set `CADRE_IMAGE` and `CADRE_UPDATER_IMAGE` to your namespace —
 your CI cannot publish into someone else's.
 
 | Tag | Published on | Moves? |
@@ -503,7 +589,7 @@ not `latest` or a moving minor tag. A registry tag is not an OCI digest and GHCR
 replace it, so the trust boundary remains this repository's publishing credentials. The workflow
 reduces that boundary by using SHA-pinned actions, read-only pull-request jobs, digest-pinned base
 images, SBOM/provenance output, and a GitHub build attestation. Operators who require registry-level
-content addressing can pin `RAKAZO_IMAGE` outside the automatic updater to a verified digest.
+content addressing can pin `CADRE_IMAGE` outside the automatic updater to a verified digest.
 
 Rollback never contacts the registry: it redeploys the previous tag from the local Docker cache,
 so a later tag move cannot change rollback content. Do not prune the previous application image
@@ -519,7 +605,7 @@ and refuses the official path until a stable `vX.Y.Z` exists.
 
 Compose production deployments offer an opt-in `updater` profile on a private `control` network.
 Normal deployments do not start it or require its credential. To enable it, set a dedicated
-`RAKAZO_UPDATER_TOKEN` and explicitly start the profile:
+`CADRE_UPDATER_TOKEN` and explicitly start the profile:
 
 ```bash
 docker compose --env-file .env -f infra/compose/docker-compose.prod.yml \
@@ -527,7 +613,7 @@ docker compose --env-file .env -f infra/compose/docker-compose.prod.yml \
 ```
 
 It exposes `/health`, `/state`, `/plan`, `/apply`, and `/rollback` at `http://updater:7092` with
-`RAKAZO_UPDATER_TOKEN`. Operator CLI upgrades above do not need it; the sidecar is for automated
+`CADRE_UPDATER_TOKEN`. Operator CLI upgrades above do not need it; the sidecar is for automated
 apply/rollback over that private HTTP API.
 
 The API cannot update itself — its image has no `.git`, and nothing inside the container would
@@ -535,10 +621,10 @@ restart it — so the work happens in a separate `updater` container that outliv
 
 - *Official repository:* resolves the newest stable release and its source commit with
   `git ls-remote --tags`, pins the corresponding full `sha-<commit>` image tag in `.env`, keeps the
-  outgoing tag in `RAKAZO_IMAGE_TAG_PREVIOUS`, explicitly pulls the new image, then runs
+  outgoing tag in `CADRE_IMAGE_TAG_PREVIOUS`, explicitly pulls the new image, then runs
   `up -d --wait --pull never`. No build runs on the server.
 - *Fork (Advanced):* a fork has no published images, so the sidecar fast-forwards the checkout in
-  `RAKAZO_DEPLOY_DIR` and runs `up -d --build`. This builds on the server and takes minutes rather
+  `CADRE_DEPLOY_DIR` and runs `up -d --build`. This builds on the server and takes minutes rather
   than seconds. Point it only at a fork you control and have reviewed — the sidecar runs that
   Compose file through a root-equivalent Docker socket.
 
@@ -554,17 +640,17 @@ untracked source tree fails closed before anything runs (the application Dockerf
 
 ### The deploy directory must be one path
 
-`RAKAZO_DEPLOY_DIR` is bind-mounted into the updater at the same path it is read from
-(`${RAKAZO_DEPLOY_DIR}:${RAKAZO_DEPLOY_DIR}`), and that is load-bearing rather than tidy. Production
-Compose defaults both sides to `/srv/rakazo`; set the variable for any other layout. When the
-updater runs `docker compose -p <project> --file $RAKAZO_DEPLOY_DIR/infra/compose/docker-compose.prod.yml up -d`,
+`CADRE_DEPLOY_DIR` is bind-mounted into the updater at the same path it is read from
+(`${CADRE_DEPLOY_DIR}:${CADRE_DEPLOY_DIR}`), and that is load-bearing rather than tidy. Production
+Compose defaults both sides to `/srv/cadre`; set the variable for any other layout. When the
+updater runs `docker compose -p <project> --file $CADRE_DEPLOY_DIR/infra/compose/docker-compose.prod.yml up -d`,
 the Compose CLI *inside* the container expands this file's relative bind mounts — `../../.env`,
 `./Caddyfile.prod` — against that path and hands the results to the daemon. The daemon has to be
 able to resolve the same strings, or it silently creates empty directories where your `.env` and
 Caddyfile should be. Compose makes the effective `-p` value available for interpolation but does
 not automatically put it in a container's environment, so the production file explicitly assigns
 `COMPOSE_PROJECT_NAME` to the updater. A standalone sidecar can instead set
-`RAKAZO_COMPOSE_PROJECT_NAME`; the final fallback is `rakazo-prod`. Without that propagation, a
+`CADRE_COMPOSE_PROJECT_NAME`; the final fallback is `cadre-prod`. Without that propagation, a
 stack started with `-p something-else` would be left alone while a second project with a new empty
 Postgres volume came up beside it.
 
@@ -572,15 +658,15 @@ The value therefore has to be the path **the daemon** sees, which is not always 
 sees:
 
 - **Linux.** The daemon shares the host filesystem, so the checkout path is the answer:
-  `/srv/rakazo` is the default and supported production layout. Set `RAKAZO_DEPLOY_DIR` explicitly
+  `/srv/cadre` is the default and supported production layout. Set `CADRE_DEPLOY_DIR` explicitly
   when the checkout is elsewhere.
 - **Docker Desktop (Windows/macOS).** The daemon runs in a VM that mounts your drive somewhere else.
-  On Windows, `C:` appears at `/run/desktop/mnt/host/c`, so a checkout at `C:\Users\you\rakazo` is
-  `RAKAZO_DEPLOY_DIR=/run/desktop/mnt/host/c/Users/you/rakazo`. Host Git may use `core.autocrlf=true`; the updater ignores CR-only diffs so that does not block `/apply`. Verify the mount before deploying:
+  On Windows, `C:` appears at `/run/desktop/mnt/host/c`, so a checkout at `C:\Users\you\cadre` is
+  `CADRE_DEPLOY_DIR=/run/desktop/mnt/host/c/Users/you/cadre`. Host Git may use `core.autocrlf=true`; the updater ignores CR-only diffs so that does not block `/apply`. Verify the mount before deploying:
 
 ```bash
 docker compose --env-file .env -f infra/compose/docker-compose.prod.yml \
-  --profile updater run --rm updater git -C "$RAKAZO_DEPLOY_DIR" log --oneline -1
+  --profile updater run --rm updater git -C "$CADRE_DEPLOY_DIR" log --oneline -1
 ```
 
   That must print your checkout's HEAD. The two tempting wrong answers both fail: a native Windows
@@ -597,18 +683,18 @@ as that allows:
 - Only on the dedicated `control` network shared with the API. Caddy is not attached, so the
   reverse proxy has no route to the updater.
 - Every route except `/health` requires the shared bearer token, compared in constant time.
-- The process environment carries only updater settings (`RAKAZO_UPDATER_TOKEN`, deploy path,
+- The process environment carries only updater settings (`CADRE_UPDATER_TOKEN`, deploy path,
   image name, project name). Application secrets stay in the bind-mounted `.env` that Compose
   reads for interpolation; they are not loaded into this container.
 - The Docker CLI lives only in the updater image. The api, worker, and web containers keep
   `cap_drop: ALL` and no socket.
 
-Enabling the `updater` profile requires `RAKAZO_UPDATER_TOKEN` to be a dedicated random value (at
+Enabling the `updater` profile requires `CADRE_UPDATER_TOKEN` to be a dedicated random value (at
 least 32 characters in production). It must differ from `BETTER_AUTH_SECRET`,
 `SANDBOX_SUPERVISOR_TOKEN`, and `SCREEN_PROXY_SECRET`. Leave the profile disabled if you would
 rather not grant the capability.
 
-## What “Rakazo Cloud” still needs
+## What “Cadre Cloud” still needs
 
 The product cannot be “pushed live” as a Vercel serverless app. Graphile Worker, Postgres `LISTEN`, Pi runs, and Docker computers need durable processes and a sandbox host.
 
@@ -617,14 +703,14 @@ To run a hosted product (same codebase):
 1. Push `main` (this checkout may be ahead of GitHub).
 2. Provision managed Postgres 16 and run `pnpm db:migrate`.
 3. Run **API** and **worker** as always-on services using Node.js 22.22.2 or newer in the 22.x line, Node.js 24.x, or Node.js 26+ (Fly machines, a VM, ECS, k8s). Node.js 23.x and 25.x are not supported. Not lambda-style request handlers.
-4. Persist and back up `DATA_DIR` (bot homes, browser profiles, artifacts). Today the concrete store is a local filesystem (`LocalAgentHomeStore`), so attach a Rakazo-owned durable volume shared by API and worker processes. The storage contract is separate from the computer-provider contract, but an object-storage implementation is not wired yet.
-5. Choose computers: **`SANDBOX_PROVIDER=e2b`**, `daytona`, or `box` with the matching provider key for a public or multi-user production service. Each Team or Private Computer reconnects to its sandbox id (`providerRef`), while workspace state is checkpointed outside the provider at run completion, explicit stop, and idle suspension. If that sandbox is gone—or the deployment changes providers—the replacement is hydrated from Rakazo's copy. Idle computers pause after `SANDBOX_IDLE_MS` (default 10 minutes) and resume on the next message or Take control. Docker remains the local and trusted single-machine default.
+4. Persist and back up `DATA_DIR` (bot homes, browser profiles, artifacts). Today the concrete store is a local filesystem (`LocalAgentHomeStore`), so attach a Cadre-owned durable volume shared by API and worker processes. The storage contract is separate from the computer-provider contract, but an object-storage implementation is not wired yet.
+5. Choose computers: **`SANDBOX_PROVIDER=e2b`**, `daytona`, or `box` with the matching provider key for a public or multi-user production service. Each Team or Private Computer reconnects to its sandbox id (`providerRef`), while workspace state is checkpointed outside the provider at run completion, explicit stop, and idle suspension. If that sandbox is gone—or the deployment changes providers—the replacement is hydrated from Cadre's copy. Idle computers pause after `SANDBOX_IDLE_MS` (default 10 minutes) and resume on the next message or Take control. Docker remains the local and trusted single-machine default.
 6. A Hetzner CX22 (2 vCPU / 4 GB) is enough for API + worker + Postgres when E2B owns the desktops. 2 GB works for a quiet box; 8 GB is only needed if you also run Docker computers on that same machine.
 7. Set public HTTPS `WEB_ORIGIN` / `BETTER_AUTH_URL` / `API_URL`, secrets, and an OpenRouter (or other Pi) deployment key if you want to skip per-user model keys.
 8. Put the web app behind the same origin as `/api` and `/rpc` (Vite preview proxy, or a reverse proxy). Docker noVNC connections use short-lived signed `/novnc/*` capabilities; do not replace that route with an unrestricted port proxy.
 9. Deploy `apps/www` to your public website and point `app.example.com` (or similar) at the product origin.
-10. Turn on `SIGNUP_ALLOWLIST` until you want open registration. There is no Rakazo-managed model billing in version 1 — users bring keys.
+10. Turn on `SIGNUP_ALLOWLIST` until you want open registration. There is no Cadre-managed model billing in version 1 — users bring keys.
 
-Expo / desktop installers are clients of that origin (`EXPO_PUBLIC_API_URL`, `RAKAZO_WEB_URL`). They are not a Cloud control plane.
+Expo / desktop installers are clients of that origin (`EXPO_PUBLIC_API_URL`, `CADRE_WEB_URL`). They are not a Cloud control plane.
 
 The iOS and Android app can also point at a self-hosted origin at runtime. On the sign-in screen, tap **Use a custom server** and enter the same HTTPS origin as `WEB_ORIGIN` (for example `https://app.example.com`). Store builds still default to `EXPO_PUBLIC_API_URL`; the in-app setting is an override for people running their own API. Changing the server signs the device out of any previous session.

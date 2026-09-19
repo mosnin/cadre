@@ -1,4 +1,4 @@
-import { ACTIVE_RUN_STATUSES } from "@rakazo/core";
+import { ACTIVE_RUN_STATUSES } from "@cadre/core";
 import { useEffect, useRef } from "react";
 import { revealNow } from "../../lib/text-reveal";
 

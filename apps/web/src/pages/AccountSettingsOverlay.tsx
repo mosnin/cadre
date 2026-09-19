@@ -1,5 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import type { AvatarStyle } from "@rakazo/contracts";
+import type { AvatarStyle } from "@cadre/contracts";
 import {
   BotAvatar,
   Button,
@@ -11,9 +10,10 @@ import {
   FieldLabel,
   Input,
   Toggle,
-} from "@rakazo/ui-web";
-import { Disclosure } from "@rakazo/ui-web/components/ui/disclosure";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@rakazo/ui-web/directory/select";
+} from "@cadre/ui-web";
+import { Disclosure } from "@cadre/ui-web/components/ui/disclosure";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@cadre/ui-web/directory/select";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { XIcon } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";

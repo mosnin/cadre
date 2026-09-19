@@ -8,7 +8,7 @@ install -d -m 700 /run/cadre
 rm -f /tmp/.X?-lock /tmp/.X11-unix/X?
 python3 -c 'import sys; sys.path.insert(0,"/opt/cadre"); import screens; screens.resume_sessions()'
 export CADRE_SHARED_BROWSER_SESSIONS=1
-env -u CADRE_SCREEN_VIEW_TOKEN runuser -u rakazo -- /usr/local/bin/rakazo-computer &
+env -u CADRE_SCREEN_VIEW_TOKEN runuser -u cadre -- /usr/local/bin/cadre-computer &
 COMPUTER_PID=$!
 trap 'kill "$COMPUTER_PID" 2>/dev/null || true' EXIT
 for _ in $(seq 1 100); do

@@ -1,7 +1,7 @@
+import { Button, Input, Label } from "@cadre/ui-web";
+import { LoginSurface } from "@cadre/ui-web/directory/login-surface";
+import { SignUpForm } from "@cadre/ui-web/directory/signup-form";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Button, Input, Label } from "@rakazo/ui-web";
-import { LoginSurface } from "@rakazo/ui-web/directory/login-surface";
-import { SignUpForm } from "@rakazo/ui-web/directory/signup-form";
 import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";

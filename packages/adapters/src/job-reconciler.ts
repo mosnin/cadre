@@ -4,10 +4,10 @@ import {
   type NotificationProvider,
   routineWakeupJob,
   runContinueJob,
-} from "@rakazo/adapter-kit";
-import type { MessageBlock } from "@rakazo/contracts";
-import type { Pool, PrismaClient, ThreadEvents } from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+} from "@cadre/adapter-kit";
+import type { MessageBlock } from "@cadre/contracts";
+import type { Pool, PrismaClient, ThreadEvents } from "@cadre/db";
+import { getLogger } from "@cadre/logging";
 import type { PoolClient } from "pg";
 import { returnBotMessageOutcome } from "./bot-messages.js";
 import { scheduleComputerControlExpiry } from "./computer-control.js";
@@ -23,7 +23,7 @@ const DEFAULT_INTERVAL_MS = 30_000;
 const DEFAULT_BATCH_SIZE = 100;
 const ROUTINE_LOOKAHEAD_MS = 60_000;
 const CONTROL_LOOKAHEAD_MS = 60_000;
-// Two keys give Rakazo's lock a namespace without relying on a hash that might collide
+// Two keys give Cadre's lock a namespace without relying on a hash that might collide
 // with an application using the one-key advisory-lock API.
 const RECONCILIATION_LOCK_NAMESPACE = 1_380_019_075;
 const RECONCILIATION_LOCK_ID = 1;
@@ -110,6 +110,13 @@ const UNATTENDED_TRIGGERS = ["routine", "webhook", "bot_message", "spawn"].filte
 );
 const UNATTENDED_WAIT_EXPIRED =
   "Stopped: this run needed approval or an answer and no one responded in time. Review the request and run it again, or add an approval rule so it can proceed on its own.";
+const UNATTENDED_TAKEOVER_EXPIRED =
+  "Stopped: this run needed a person at the screen and no one took over in time. Add a saved login for the site, or run it while you are around.";
+/** Each waiting state expires on its own reason, so the message names what was actually missing. */
+const UNATTENDED_WAITS = [
+  { status: "waiting_input", error: UNATTENDED_WAIT_EXPIRED },
+  { status: "waiting_takeover", error: UNATTENDED_TAKEOVER_EXPIRED },
+] as const;
 
 /**
  * An unattended run that asked for approval or an answer has nobody to answer it. After the
@@ -121,14 +128,22 @@ async function expireUnattendedWaits(
   now: Date,
 ) {
   if (!deps.events?.expireWaitingRuns) return;
-  const expired = await deps.events.expireWaitingRuns({
-    olderThan: new Date(now.getTime() - unattendedWaitMs()),
-    triggers: UNATTENDED_TRIGGERS,
-    statuses: ["waiting_input"],
-    error: UNATTENDED_WAIT_EXPIRED,
-  });
+  const olderThan = new Date(now.getTime() - unattendedWaitMs());
+  const expired: Array<{
+    run: Awaited<ReturnType<NonNullable<ThreadEvents["expireWaitingRuns"]>>>[number];
+    error: string;
+  }> = [];
+  for (const wait of UNATTENDED_WAITS) {
+    const runs = await deps.events.expireWaitingRuns({
+      olderThan,
+      triggers: UNATTENDED_TRIGGERS,
+      statuses: [wait.status],
+      error: wait.error,
+    });
+    for (const run of runs) expired.push({ run, error: wait.error });
+  }
   if (!deps.notifications) return;
-  for (const run of expired) {
+  for (const { run, error } of expired) {
     const enabled = await runNotificationsEnabled(deps.prisma, run).catch(() => false);
     if (!enabled) continue;
     await deps.notifications
@@ -136,7 +151,7 @@ async function expireUnattendedWaits(
         {
           kind: "failure",
           title: "Run stopped",
-          body: UNATTENDED_WAIT_EXPIRED.slice(0, 180),
+          body: error.slice(0, 180),
           botId: run.botId,
           threadId: run.threadId,
         },

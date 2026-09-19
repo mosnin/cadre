@@ -1,6 +1,6 @@
-import type { SandboxProvider } from "@rakazo/adapter-kit";
-import type { Actor } from "@rakazo/contracts";
-import type { PrismaClient } from "@rakazo/db";
+import type { SandboxProvider } from "@cadre/adapter-kit";
+import type { Actor } from "@cadre/contracts";
+import type { PrismaClient } from "@cadre/db";
 import { describe, expect, it, vi } from "vitest";
 import {
   cancelSupersededQueuedRuns,
@@ -848,7 +848,7 @@ describe("stopThreadRuns", () => {
     expect(execute).toHaveBeenCalledWith(
       expect.objectContaining({ providerRef: "computer-a" }),
       expect.objectContaining({
-        argv: expect.arrayContaining(["rakazo-cancel-run-work", "computer-db-a", "run-a"]),
+        argv: expect.arrayContaining(["cadre-cancel-run-work", "computer-db-a", "run-a"]),
       }),
       expect.objectContaining({ cancelRunWork: true, runId: "run-a" }),
     );

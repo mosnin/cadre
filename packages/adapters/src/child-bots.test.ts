@@ -4,8 +4,8 @@ import type {
   ArtifactStore,
   JobPublisher,
   SandboxProvider,
-} from "@rakazo/adapter-kit";
-import type { PrismaClient } from "@rakazo/db";
+} from "@cadre/adapter-kit";
+import type { PrismaClient } from "@cadre/db";
 import { describe, expect, it, vi } from "vitest";
 import {
   archiveBot,
@@ -460,7 +460,7 @@ describe("destroyBot", () => {
           sandbox: {} as SandboxProvider,
           home: {} as AgentHomeStore,
           jobs: { cancel: vi.fn() } as unknown as JobPublisher,
-          dataDir: "/tmp/rakazo-destroy-bot-test",
+          dataDir: "/tmp/cadre-destroy-bot-test",
         },
         {
           id: "bot-1",

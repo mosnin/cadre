@@ -1,4 +1,4 @@
-import type { RunStatus } from "@rakazo/contracts";
+import type { RunStatus } from "@cadre/contracts";
 
 export const ACTIVE_RUN_STATUSES = [
   "queued",
@@ -12,9 +12,19 @@ const TERMINAL: RunStatus[] = ["completed", "failed", "cancelled"];
 const allowed: Record<RunStatus, RunStatus[]> = {
   queued: ["leased", "cancelled"],
   leased: ["running", "queued", "cancelled"],
-  running: ["waiting_input", "waiting_takeover", "completed", "failed", "cancelled", "leased"],
-  waiting_input: ["queued", "leased", "cancelled"],
-  waiting_takeover: ["queued", "leased", "cancelled"],
+  // running -> queued is a budget segment: the run keeps its identity and continues on a
+  // fresh budget. waiting -> failed is an unattended wait that nobody answered in time.
+  running: [
+    "waiting_input",
+    "waiting_takeover",
+    "completed",
+    "failed",
+    "cancelled",
+    "leased",
+    "queued",
+  ],
+  waiting_input: ["queued", "leased", "cancelled", "failed"],
+  waiting_takeover: ["queued", "leased", "cancelled", "failed"],
   completed: [],
   failed: ["queued"],
   cancelled: [],

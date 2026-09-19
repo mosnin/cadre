@@ -1,4 +1,4 @@
-import type { AdapterContext, MemorySnapshot, MemoryStore } from "@rakazo/adapter-kit";
+import type { AdapterContext, MemorySnapshot, MemoryStore } from "@cadre/adapter-kit";
 import { describe, expect, it, vi } from "vitest";
 import { loadAgentMemoryContext } from "./memory-context.js";
 
@@ -42,7 +42,9 @@ describe("agent memory context", () => {
       ),
     );
 
-    const result = await loadAgentMemoryContext(storeWith(read), "bot-1", context, 300);
+    const result = await loadAgentMemoryContext(storeWith(read), "bot-1", context, {
+      maxBytes: 300,
+    });
 
     expect(Buffer.byteLength(result ?? "", "utf8")).toBeLessThanOrEqual(300);
     expect(result).toContain("## bot: new.md");

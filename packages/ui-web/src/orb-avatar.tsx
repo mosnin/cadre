@@ -14,7 +14,7 @@
  *   they are on screen and motion is allowed. Everything else draws the same
  *   three stops as a still gradient, which is what the rail wants anyway.
  */
-import { orbStops } from "@rakazo/core";
+import { orbStops } from "@cadre/core";
 import { type CSSProperties, memo, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { cn } from "./lib/utils.js";
 import "./styles.css";
@@ -312,12 +312,12 @@ export const OrbAvatar = memo(function OrbAvatar({
       // Only the still orb breathes: a live one already shows the run in its
       // own motion, and two signals at once reads as a glitch.
       data-working={!wantsLive && state === "speaking" ? "true" : undefined}
-      className={cn("rakazo-orb relative inline-block shrink-0 rounded-full", className)}
+      className={cn("cadre-orb relative inline-block shrink-0 rounded-full", className)}
       style={
         {
           width: size,
           height: size,
-          "--rakazo-orb-halo": `color-mix(in oklab, ${mid} 45%, transparent)`,
+          "--cadre-orb-halo": `color-mix(in oklab, ${mid} 45%, transparent)`,
         } as CSSProperties
       }
     >

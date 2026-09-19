@@ -16,7 +16,7 @@ import time
 import screens
 import input_epoch
 
-ROOT = Path('/home/rakazo').resolve()
+ROOT = Path('/home/cadre').resolve()
 LIMIT = 64 * 1024 * 1024
 
 def target(value):
@@ -75,7 +75,7 @@ def execute(req):
             env['DISPLAY'] = ''
     # Platform credentials never enter ordinary shell commands.
     for name in list(env):
-        if name.startswith(('MODAL_', 'CADRE_RPC_', 'CADRE_SCREEN_', 'RAKAZO_COMPUTER_CONTROL_')):
+        if name.startswith(('MODAL_', 'CADRE_RPC_', 'CADRE_SCREEN_', 'CADRE_COMPUTER_CONTROL_')):
             env.pop(name)
     if marker(key + ':cancel').exists():
         return {'stdout': '', 'stderr': 'Cancelled', 'code': 130}
@@ -200,7 +200,7 @@ def actions(req):
                     dispatch_started=True
                     subprocess.Popen(['xdg-open', location], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True, preexec_fn=demote)
                 elif kind == 'launch':
-                    application = 'rakazo-browser' if a['application'].lower() in ('browser', 'chromium', 'chrome') else a['application']
+                    application = 'cadre-browser' if a['application'].lower() in ('browser', 'chromium', 'chrome') else a['application']
                     dispatch_started=True
                     subprocess.Popen([application] + ([a['uri']] if a.get('uri') else []), env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True, preexec_fn=demote)
                 else: raise ValueError('Unsupported action')

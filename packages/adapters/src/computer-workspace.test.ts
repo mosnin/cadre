@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { PrismaClient } from "@rakazo/db";
+import type { PrismaClient } from "@cadre/db";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cachedWorkspaceSnapshot,
@@ -50,7 +50,7 @@ describe("provider-neutral computer workspace", () => {
   });
 
   it("restores a checkpoint into a replacement provider machine", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "rakazo-workspace-store-"));
+    const root = await mkdtemp(path.join(tmpdir(), "cadre-workspace-store-"));
     roots.push(root);
     const home = new LocalAgentHomeStore(root);
     const firstProvider = new FakeSandboxProvider();
@@ -151,7 +151,7 @@ describe("provider-neutral computer workspace", () => {
 
 describe("stop workspace durability", () => {
   async function fixture(durable?: boolean) {
-    const root = await mkdtemp(path.join(tmpdir(), "rakazo-stop-store-"));
+    const root = await mkdtemp(path.join(tmpdir(), "cadre-stop-store-"));
     roots.push(root);
     const home = new LocalAgentHomeStore(root);
     const sandbox = new FakeSandboxProvider();
@@ -292,7 +292,7 @@ describe("task checkpoints on persistent computers", () => {
     ).rejects.toThrow("disk failed");
   });
   it("retains portable checkpoints when the provider cannot persist in place", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "rakazo-task-checkpoint-"));
+    const root = await mkdtemp(path.join(tmpdir(), "cadre-task-checkpoint-"));
     roots.push(root);
     const home = new LocalAgentHomeStore(root);
     const provider = new FakeSandboxProvider();

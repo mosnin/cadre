@@ -1,10 +1,10 @@
-import type { AvatarStyle } from "@rakazo/contracts";
+import type { AvatarStyle } from "@cadre/contracts";
 import {
   ACTIVE_RUN_STATUSES,
   avatarIdentitySeed,
   orbGradientStops,
   organicAvatarPath,
-} from "@rakazo/core";
+} from "@cadre/core";
 import { memo, useEffect } from "react";
 import { View } from "react-native";
 import Animated, {

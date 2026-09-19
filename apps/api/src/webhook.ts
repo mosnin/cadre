@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
-import type { JobPublisher } from "@rakazo/adapter-kit";
-import { runContinueJob } from "@rakazo/adapter-kit";
-import type { EncryptedSecretStore } from "@rakazo/adapters";
-import { hasValidBearerToken } from "@rakazo/core";
-import type { PrismaClient } from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+import type { JobPublisher } from "@cadre/adapter-kit";
+import { runContinueJob } from "@cadre/adapter-kit";
+import type { EncryptedSecretStore } from "@cadre/adapters";
+import { hasValidBearerToken } from "@cadre/core";
+import type { PrismaClient } from "@cadre/db";
+import { getLogger } from "@cadre/logging";
 import type { Hono } from "hono";
 import { readBoundedBody } from "./http-body.js";
 

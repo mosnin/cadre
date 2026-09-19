@@ -1,7 +1,7 @@
+import { acquireComputerExecutionLease } from "@cadre/adapters";
+import type { Actor } from "@cadre/contracts";
+import type { PrismaClient } from "@cadre/db";
 import { RPCHandler } from "@orpc/server/fetch";
-import { acquireComputerExecutionLease } from "@rakazo/adapters";
-import type { Actor } from "@rakazo/contracts";
-import type { PrismaClient } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
 import { createRouter, type RouterDeps } from "./router.js";
 

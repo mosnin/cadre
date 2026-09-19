@@ -16,10 +16,10 @@ export function activeBotId(page: Page) {
 }
 
 export async function rpc<T>(page: Page, procedure: string, body?: unknown): Promise<T> {
-  const spaceId = await page.evaluate(() => localStorage.getItem("rakazo:space-id"));
+  const spaceId = await page.evaluate(() => localStorage.getItem("cadre:space-id"));
   const response = await page.request.post(`/rpc/${procedure}`, {
     data: { json: body },
-    headers: spaceId ? { "x-rakazo-space-id": spaceId } : {},
+    headers: spaceId ? { "x-cadre-space-id": spaceId } : {},
   });
   const parsed = (await response.json()) as { json?: T; error?: { message?: string } };
   if (!response.ok() || parsed.error) {

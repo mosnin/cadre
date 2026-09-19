@@ -1,5 +1,3 @@
-import { t } from "@lingui/core/macro";
-import { Trans, useLingui } from "@lingui/react/macro";
 import {
   CRON_FREQS,
   type CronFreq,
@@ -9,8 +7,10 @@ import {
   clockTo24h,
   cronFromPreset,
   ordinalDay,
-} from "@rakazo/core";
-import { Input, NativeSelect, NativeSelectOption } from "@rakazo/ui-web";
+} from "@cadre/core";
+import { Input, NativeSelect, NativeSelectOption } from "@cadre/ui-web";
+import { t } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Clock } from "lucide-react";
 
 const UNITS: CronUnit[] = ["minutes", "hours", "days"];

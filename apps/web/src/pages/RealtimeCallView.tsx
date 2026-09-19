@@ -1,6 +1,6 @@
+import { speechFromBlocks, spokenDecision } from "@cadre/core";
+import { Button } from "@cadre/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { speechFromBlocks, spokenDecision } from "@rakazo/core";
-import { Button } from "@rakazo/ui-web";
 import { useEffect, useRef, useState } from "react";
 import { OpenAIRealtimeCall, type RealtimePhase } from "../lib/adapters/openai-realtime";
 import { hasWorkingRun, latestAskId, pendingSecretAsk } from "../lib/call-task";

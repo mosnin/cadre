@@ -1,1 +1,1 @@
-export * from "@rakazo/core/node/screen-proxy";
+export * from "@cadre/core/node/screen-proxy";

@@ -60,28 +60,28 @@ importers:
       '@orpc/server':
         specifier: ^1.15.0
         version: 1.15.0(@opentelemetry/api@1.9.1)(crossws@0.3.5)(ws@8.21.3)
-      '@rakazo/adapter-kit':
+      '@cadre/adapter-kit':
         specifier: workspace:*
         version: link:../../packages/adapter-kit
-      '@rakazo/adapters':
+      '@cadre/adapters':
         specifier: workspace:*
         version: link:../../packages/adapters
-      '@rakazo/auth':
+      '@cadre/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@rakazo/contracts':
+      '@cadre/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@rakazo/core':
+      '@cadre/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@rakazo/db':
+      '@cadre/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@rakazo/logging':
+      '@cadre/logging':
         specifier: workspace:*
         version: link:../../packages/logging
-      '@rakazo/memory':
+      '@cadre/memory':
         specifier: workspace:*
         version: link:../../packages/memory
       hono:
@@ -100,7 +100,7 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@rakazo/contracts':
+      '@cadre/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       electron-updater:
@@ -110,7 +110,7 @@ importers:
       '@playwright/test':
         specifier: ^1.55.0
         version: 1.62.1
-      '@rakazo/ui-tokens':
+      '@cadre/ui-tokens':
         specifier: workspace:*
         version: link:../../packages/ui-tokens
       electron:
@@ -131,16 +131,16 @@ importers:
       '@expo/metro-runtime':
         specifier: ~57.0.16
         version: 57.0.16(@expo/log-box@57.0.4)(expo@57.0.24)(react-dom@19.2.3(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7)(@react-native/metro-config@0.86.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)
-      '@rakazo/chat-ui':
+      '@cadre/chat-ui':
         specifier: workspace:*
         version: link:../../packages/chat-ui
-      '@rakazo/contracts':
+      '@cadre/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@rakazo/core':
+      '@cadre/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@rakazo/ui-tokens':
+      '@cadre/ui-tokens':
         specifier: workspace:*
         version: link:../../packages/ui-tokens
       '@react-native-community/datetimepicker':
@@ -276,19 +276,19 @@ importers:
       '@orpc/contract':
         specifier: ^1.15.0
         version: 1.15.0(@opentelemetry/api@1.9.1)
-      '@rakazo/chat-ui':
+      '@cadre/chat-ui':
         specifier: workspace:*
         version: link:../../packages/chat-ui
-      '@rakazo/contracts':
+      '@cadre/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@rakazo/core':
+      '@cadre/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@rakazo/ui-tokens':
+      '@cadre/ui-tokens':
         specifier: workspace:*
         version: link:../../packages/ui-tokens
-      '@rakazo/ui-web':
+      '@cadre/ui-web':
         specifier: workspace:*
         version: link:../../packages/ui-web
       better-auth:
@@ -361,25 +361,25 @@ importers:
 
   apps/worker:
     dependencies:
-      '@rakazo/adapter-kit':
+      '@cadre/adapter-kit':
         specifier: workspace:*
         version: link:../../packages/adapter-kit
-      '@rakazo/adapters':
+      '@cadre/adapters':
         specifier: workspace:*
         version: link:../../packages/adapters
-      '@rakazo/auth':
+      '@cadre/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@rakazo/core':
+      '@cadre/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@rakazo/db':
+      '@cadre/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@rakazo/logging':
+      '@cadre/logging':
         specifier: workspace:*
         version: link:../../packages/logging
-      '@rakazo/memory':
+      '@cadre/memory':
         specifier: workspace:*
         version: link:../../packages/memory
     devDependencies:
@@ -398,7 +398,7 @@ importers:
       '@astrojs/sitemap':
         specifier: 3.7.3
         version: 3.7.3
-      '@rakazo/ui-web':
+      '@cadre/ui-web':
         specifier: workspace:*
         version: link:../../packages/ui-web
       '@vercel/functions':
@@ -459,10 +459,10 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.1
         version: 1.19.17(hono@4.13.1)
-      '@rakazo/core':
+      '@cadre/core':
         specifier: workspace:*
         version: link:../../../packages/core
-      '@rakazo/logging':
+      '@cadre/logging':
         specifier: workspace:*
         version: link:../../../packages/logging
       dockerode:
@@ -493,13 +493,13 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.1
         version: 1.19.17(hono@4.13.1)
-      '@rakazo/contracts':
+      '@cadre/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@rakazo/core':
+      '@cadre/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@rakazo/logging':
+      '@cadre/logging':
         specifier: workspace:*
         version: link:../../packages/logging
       hono:
@@ -521,7 +521,7 @@ importers:
 
   packages/adapter-kit:
     dependencies:
-      '@rakazo/contracts':
+      '@cadre/contracts':
         specifier: workspace:*
         version: link:../contracts
       zod:
@@ -579,21 +579,24 @@ importers:
       '@observablehq/plot':
         specifier: ^0.6.17
         version: 0.6.17
-      '@rakazo/adapter-kit':
+      '@cadre/adapter-kit':
         specifier: workspace:*
         version: link:../adapter-kit
-      '@rakazo/contracts':
+      '@cadre/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@rakazo/core':
+      '@cadre/core':
         specifier: workspace:*
         version: link:../core
-      '@rakazo/db':
+      '@cadre/db':
         specifier: workspace:*
         version: link:../db
-      '@rakazo/logging':
+      '@cadre/logging':
         specifier: workspace:*
         version: link:../logging
+      '@typesafe-ai/sdk':
+        specifier: ^0.6.0
+        version: 0.6.0
       chat:
         specifier: 4.39.0
         version: 4.39.0(zod@4.4.3)
@@ -661,13 +664,13 @@ importers:
 
   packages/auth:
     dependencies:
-      '@rakazo/adapter-kit':
+      '@cadre/adapter-kit':
         specifier: workspace:*
         version: link:../adapter-kit
-      '@rakazo/core':
+      '@cadre/core':
         specifier: workspace:*
         version: link:../core
-      '@rakazo/db':
+      '@cadre/db':
         specifier: workspace:*
         version: link:../db
       better-auth:
@@ -683,10 +686,10 @@ importers:
 
   packages/chat-ui:
     dependencies:
-      '@rakazo/ui-tokens':
+      '@cadre/ui-tokens':
         specifier: workspace:*
         version: link:../ui-tokens
-      '@rakazo/ui-web':
+      '@cadre/ui-web':
         specifier: workspace:*
         version: link:../ui-web
       '@ronradtke/react-native-markdown-display':
@@ -736,7 +739,7 @@ importers:
       '@observablehq/plot':
         specifier: ^0.6.17
         version: 0.6.17
-      '@rakazo/contracts':
+      '@cadre/contracts':
         specifier: workspace:*
         version: link:../contracts
       croner:
@@ -770,16 +773,16 @@ importers:
       '@prisma/client':
         specifier: ^7.9.1
         version: 7.9.1(prisma@7.9.1(@types/node@24.13.3)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(magicast@0.5.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3))(typescript@5.9.3)
-      '@rakazo/adapter-kit':
+      '@cadre/adapter-kit':
         specifier: workspace:*
         version: link:../adapter-kit
-      '@rakazo/contracts':
+      '@cadre/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@rakazo/core':
+      '@cadre/core':
         specifier: workspace:*
         version: link:../core
-      '@rakazo/logging':
+      '@cadre/logging':
         specifier: workspace:*
         version: link:../logging
       dotenv:
@@ -820,10 +823,10 @@ importers:
 
   packages/memory:
     dependencies:
-      '@rakazo/adapter-kit':
+      '@cadre/adapter-kit':
         specifier: workspace:*
         version: link:../adapter-kit
-      '@rakazo/db':
+      '@cadre/db':
         specifier: workspace:*
         version: link:../db
     devDependencies:
@@ -839,22 +842,22 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.1
         version: 1.19.17(hono@4.13.1)
-      '@rakazo/adapter-kit':
+      '@cadre/adapter-kit':
         specifier: workspace:*
         version: link:../adapter-kit
-      '@rakazo/adapters':
+      '@cadre/adapters':
         specifier: workspace:*
         version: link:../adapters
-      '@rakazo/auth':
+      '@cadre/auth':
         specifier: workspace:*
         version: link:../auth
-      '@rakazo/contracts':
+      '@cadre/contracts':
         specifier: workspace:*
         version: link:../contracts
-      '@rakazo/core':
+      '@cadre/core':
         specifier: workspace:*
         version: link:../core
-      '@rakazo/db':
+      '@cadre/db':
         specifier: workspace:*
         version: link:../db
       '@testcontainers/postgresql':
@@ -891,10 +894,10 @@ importers:
       '@base-ui/react':
         specifier: ^1.7.0
         version: 1.7.0(@types/react@19.2.18)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@rakazo/core':
+      '@cadre/core':
         specifier: workspace:*
         version: link:../core
-      '@rakazo/ui-tokens':
+      '@cadre/ui-tokens':
         specifier: workspace:*
         version: link:../ui-tokens
       '@tanstack/react-virtual':
@@ -4556,6 +4559,10 @@ packages:
 
   '@types/yargs@17.0.35':
     resolution: {integrity: sha512-qUHkeCyQFxMXg79wQfTtfndEC+N9ZZg76HJftDJp+qH2tV7Gj4OJi7l+PiWwJ+pWtW8GwSmqsDj/oymhrTWXjg==}
+
+  '@typesafe-ai/sdk@0.6.0':
+    resolution: {integrity: sha512-IddX+Q0XM+VagOUZFeP7wZjaO4SHMdvnh2zEBdrZZnXedWI3BNK1lKhMx3ayrkFWvVLbVcUHJy6AVZlY+e6Jaw==}
+    engines: {node: '>=20'}
 
   '@ungap/structured-clone@1.3.3':
     resolution: {integrity: sha512-60YRaenCQcVjYEKOcG824+DRGGIQ3VKErcBoAEDJZz5bKIs2ZG+X/H9Nk+Q6EVkwJk5QNApxbrc5QtBSwtrXAg==}
@@ -14573,6 +14580,8 @@ snapshots:
   '@types/yargs@17.0.35':
     dependencies:
       '@types/yargs-parser': 21.0.3
+
+  '@typesafe-ai/sdk@0.6.0': {}
 
   '@ungap/structured-clone@1.3.3': {}
 

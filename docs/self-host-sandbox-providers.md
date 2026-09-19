@@ -24,7 +24,7 @@ Published-images `infra/compose/.env.images.example` defaults to **`docker`**.
 
 Compose starts a **sandbox supervisor** (from the app image) on the internal
 network (port `7091` in published-images). It creates sibling **computer**
-containers from `RAKAZO_COMPUTER_IMAGE` + `RAKAZO_COMPUTER_IMAGE_TAG`.
+containers from `CADRE_COMPUTER_IMAGE` + `CADRE_COMPUTER_IMAGE_TAG`.
 
 Requirements:
 

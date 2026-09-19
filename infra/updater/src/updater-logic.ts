@@ -8,7 +8,7 @@ import {
   PREVIOUS_IMAGE_TAG_ENV,
   resolveComposeProjectName,
   resolveUpdaterToken,
-} from "@rakazo/core";
+} from "@cadre/core";
 
 export const DEFAULT_UPDATER_PORT = 7092;
 export const DEFAULT_COMPOSE_FILE = "infra/compose/docker-compose.prod.yml";
@@ -34,20 +34,19 @@ export interface UpdaterConfig {
  * `docker compose -p` stack is the one that is updated.
  */
 export function resolveUpdaterConfig(env: NodeJS.ProcessEnv): UpdaterConfig {
-  const deployDir = env.RAKAZO_DEPLOY_DIR?.trim() ?? "";
+  const deployDir = env.CADRE_DEPLOY_DIR?.trim() ?? "";
   if (deployDir === "" || !path.posix.isAbsolute(deployDir)) {
-    throw new Error("Set RAKAZO_DEPLOY_DIR to the absolute path of the deployment directory.");
+    throw new Error("Set CADRE_DEPLOY_DIR to the absolute path of the deployment directory.");
   }
-  const image = env.RAKAZO_IMAGE?.trim() || OFFICIAL_SERVER_IMAGE;
-  if (!isValidImageName(image))
-    throw new Error(`RAKAZO_IMAGE is not a usable image name: ${image}`);
-  const composeFile = env.RAKAZO_COMPOSE_FILE?.trim() || DEFAULT_COMPOSE_FILE;
+  const image = env.CADRE_IMAGE?.trim() || OFFICIAL_SERVER_IMAGE;
+  if (!isValidImageName(image)) throw new Error(`CADRE_IMAGE is not a usable image name: ${image}`);
+  const composeFile = env.CADRE_COMPOSE_FILE?.trim() || DEFAULT_COMPOSE_FILE;
   if (path.posix.isAbsolute(composeFile) || composeFile.split("/").includes("..")) {
-    throw new Error("RAKAZO_COMPOSE_FILE must be a path inside the deployment directory.");
+    throw new Error("CADRE_COMPOSE_FILE must be a path inside the deployment directory.");
   }
-  const port = Number(env.RAKAZO_UPDATER_PORT ?? DEFAULT_UPDATER_PORT);
+  const port = Number(env.CADRE_UPDATER_PORT ?? DEFAULT_UPDATER_PORT);
   if (!Number.isInteger(port) || port <= 0 || port > 65_535) {
-    throw new Error("RAKAZO_UPDATER_PORT is not a port number.");
+    throw new Error("CADRE_UPDATER_PORT is not a port number.");
   }
   return {
     deployDir,
@@ -56,7 +55,7 @@ export function resolveUpdaterConfig(env: NodeJS.ProcessEnv): UpdaterConfig {
     projectName: resolveComposeProjectName(env),
     image,
     token: resolveUpdaterToken(env),
-    host: env.RAKAZO_UPDATER_HOST?.trim() || "127.0.0.1",
+    host: env.CADRE_UPDATER_HOST?.trim() || "127.0.0.1",
     port,
   };
 }

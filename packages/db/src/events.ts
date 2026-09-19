@@ -1,16 +1,16 @@
-import type { RealtimeFanout } from "@rakazo/adapter-kit";
+import type { RealtimeFanout } from "@cadre/adapter-kit";
 import {
   type MessageBlock,
   MessageBlock as MessageBlockSchema,
   type ProductEvent,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   blocksToAgentHistoryText,
   isApprovalAskBlock,
   isSecretAskBlock,
   sanitizeJsonValue,
-} from "@rakazo/core";
-import { getLogger } from "@rakazo/logging";
+} from "@cadre/core";
+import { getLogger } from "@cadre/logging";
 import type { Prisma, PrismaClient } from "./client.js";
 import { expireComputerExecutionLeases } from "./computers.js";
 import {

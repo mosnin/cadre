@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import http from "node:http";
 import net from "node:net";
-import { resolveSupervisorToken } from "@rakazo/core";
+import { resolveSupervisorToken } from "@cadre/core";
 import { describe, expect, it } from "vitest";
 import { resolveDockerSocketPath, supervisorApp, waitForScreenReady } from "./index.js";
 import {
@@ -163,8 +163,8 @@ describe("sandbox supervisor HTTP boundary", () => {
       headers: {
         authorization: `Bearer ${token}`,
         "content-type": "application/json",
-        "x-rakazo-bot-id": "other-bot",
-        "x-rakazo-space-id": "workspace",
+        "x-cadre-bot-id": "other-bot",
+        "x-cadre-space-id": "workspace",
       },
       body: JSON.stringify({
         botId: "bot",
@@ -201,11 +201,11 @@ describe("sandbox supervisor input containment", () => {
 
   it("accepts the legacy workspace label without weakening container identity", () => {
     expect(
-      hasComputerIdentity({ "rakazo.botId": "bot", "rakazo.workspaceId": "space" }, "bot", "space"),
+      hasComputerIdentity({ "cadre.botId": "bot", "cadre.workspaceId": "space" }, "bot", "space"),
     ).toBe(true);
     expect(
       hasComputerIdentity(
-        { "rakazo.botId": "bot", "rakazo.workspaceId": "other-space" },
+        { "cadre.botId": "bot", "cadre.workspaceId": "other-space" },
         "bot",
         "space",
       ),
@@ -213,9 +213,9 @@ describe("sandbox supervisor input containment", () => {
     expect(
       hasComputerIdentity(
         {
-          "rakazo.botId": "bot",
-          "rakazo.spaceId": "space",
-          "rakazo.workspaceId": "other-space",
+          "cadre.botId": "bot",
+          "cadre.spaceId": "space",
+          "cadre.workspaceId": "other-space",
         },
         "bot",
         "space",
@@ -236,7 +236,7 @@ describe("sandbox supervisor input containment", () => {
       expect(
         containerActionStep({ kind: "launch", application, uri: "https://example.com" }, ":2"),
       ).toEqual({
-        argv: ["env", "DISPLAY=:2", "rakazo-browser", "https://example.com"],
+        argv: ["env", "DISPLAY=:2", "cadre-browser", "https://example.com"],
       });
     }
     expect(containerActionStep({ kind: "launch", application: "xterm" }, ":3")).toEqual({
@@ -252,18 +252,27 @@ describe("sandbox supervisor input containment", () => {
       expect(
         containerActionStep({ kind: "launch", application, uri: "https://example.com" }, ":2"),
       ).toEqual({
-        argv: ["env", "DISPLAY=:2", "rakazo-browser", "https://example.com"],
+        argv: ["env", "DISPLAY=:2", "cadre-browser", "https://example.com"],
       });
     }
     expect(containerActionStep({ kind: "launch", application: "XTerm" }, ":3")).toEqual({
-      argv: ["env", "DISPLAY=:3", "XTerm"],
+      argv: ["env", "DISPLAY=:3", "xterm"],
     });
+    expect(() =>
+      containerActionStep({ kind: "launch", application: "/bin/sh", uri: "-c" }, ":2"),
+    ).toThrow();
+    expect(() =>
+      containerActionStep(
+        { kind: "launch", application: "chromium", uri: "--gpu-launcher=sh -c id" },
+        ":2",
+      ),
+    ).toThrow();
   });
 
   it("keeps browser routing argv identical for control and Docker exec fallback", () => {
     const action = { kind: "launch" as const, application: "chromium", uri: "https://example.com" };
     expect(containerActionSteps([action], ":2")).toEqual([
-      { argv: ["env", "DISPLAY=:2", "rakazo-browser", "https://example.com"] },
+      { argv: ["env", "DISPLAY=:2", "cadre-browser", "https://example.com"] },
     ]);
   });
 
@@ -519,7 +528,7 @@ describe("sandbox supervisor input containment", () => {
 
   it("on cancel, stops primary Chromium without tearing down the desktop", () => {
     const stop = stopExtraScreenCommand(0, { cancelRunWork: true });
-    expect(stop).toContain("--user-data-dir=/home/rakazo/.browser-profiles/chromium$");
+    expect(stop).toContain("--user-data-dir=/home/cadre/.browser-profiles/chromium$");
     expect(stop).not.toContain("Xvfb");
     expect(stop).not.toContain("fluxbox");
   });
@@ -538,7 +547,7 @@ describe("sandbox supervisor input containment", () => {
       hasRegistry: false,
       cancelRunWork: true,
     });
-    expect(orphanCancelStop).toContain("--user-data-dir=/home/rakazo/.browser-profiles/chromium$");
+    expect(orphanCancelStop).toContain("--user-data-dir=/home/cadre/.browser-profiles/chromium$");
     expect(orphanCancelStop).not.toContain("Xvfb");
   });
 

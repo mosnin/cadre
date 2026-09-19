@@ -3,14 +3,14 @@ import type {
   ConnectorCall,
   ConnectorEvent,
   ConnectorTool,
-} from "@rakazo/adapter-kit";
+} from "@cadre/adapter-kit";
 import {
   type ComposioCatalogItem,
   type ComposioProvider,
   filterCatalog,
 } from "./composio-connector.js";
 import {
-  DEFAULT_RAKAZO_EMULATED_RELEASES,
+  DEFAULT_CADRE_EMULATED_RELEASES,
   type EmulatedGithubRelease,
   RELEASE_WATCH_GITHUB_TOOL_NAMES,
 } from "./release-watch.js";
@@ -27,7 +27,7 @@ const DEFAULT_CATALOG: ReadonlyArray<Omit<ComposioCatalogItem, "connected">> = [
 /** Deterministic, offline Composio catalog and connection emulator for product tests. */
 export class ComposioEmulator implements ComposioProvider {
   private readonly connectedByUser = new Map<string, Set<string>>();
-  private githubReleases: EmulatedGithubRelease[] = [...DEFAULT_RAKAZO_EMULATED_RELEASES];
+  private githubReleases: EmulatedGithubRelease[] = [...DEFAULT_CADRE_EMULATED_RELEASES];
   readonly executions: Array<{
     userId: string;
     botId?: string;
@@ -147,8 +147,8 @@ export class ComposioEmulator implements ComposioProvider {
   }
 
   private executeGithub(tool: string, args: Record<string, unknown>): Record<string, unknown> {
-    const owner = String(args.owner ?? args.owner_name ?? "elie222");
-    const repo = String(args.repo ?? args.repository ?? "rakazo");
+    const owner = String(args.owner ?? args.owner_name ?? "mosnin");
+    const repo = String(args.repo ?? args.repository ?? "cadre");
     const matched = this.githubReleases.filter(
       (release) =>
         release.owner.toLowerCase() === owner.toLowerCase() &&
@@ -193,8 +193,8 @@ function githubReleaseTools(): ConnectorTool[] {
       inputSchema: {
         type: "object",
         properties: {
-          owner: { type: "string", description: "Repository owner, e.g. elie222" },
-          repo: { type: "string", description: "Repository name, e.g. rakazo" },
+          owner: { type: "string", description: "Repository owner, e.g. mosnin" },
+          repo: { type: "string", description: "Repository name, e.g. cadre" },
         },
         required: ["owner", "repo"],
       },

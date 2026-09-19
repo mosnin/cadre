@@ -1,4 +1,4 @@
-import type { ConnectionCatalogItem, SandboxKind } from "@rakazo/contracts";
+import type { ConnectionCatalogItem, SandboxKind } from "@cadre/contracts";
 
 export interface AdapterContext {
   operationId: string;
@@ -181,6 +181,7 @@ export interface BrowserRequest {
     | "fill_protected"
     | "press"
     | "scroll"
+    | "select"
     | "tabs"
     | "select_tab";
   snapshotId?: string;
@@ -190,11 +191,17 @@ export interface BrowserRequest {
   key?: string;
   direction?: string;
   tabId?: string;
+  /** For `select`: one of the options the snapshot listed for that control. */
+  option?: string;
   /**
    * Value for `fill_protected`. Providers pass it to the browser out of band (never on a
    * command line) and no result echoes it.
    */
   secretText?: string;
+  /** Host the credential belongs to. The browser refuses to type it into any other page. */
+  secretHost?: string;
+  /** Which half of the saved login is being typed, so the browser can require a password field. */
+  secretField?: "username" | "password";
 }
 
 export interface SandboxCapabilities {

@@ -1,5 +1,4 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { implement, ORPCError } from "@orpc/server";
 import {
   type AdapterContext,
   type AgentHomeStore,
@@ -15,7 +14,7 @@ import {
   runContinueJob,
   runJobKey,
   type SandboxProvider,
-} from "@rakazo/adapter-kit";
+} from "@cadre/adapter-kit";
 import {
   acquireComputerExecutionLease,
   applyTeachingDesktopInput,
@@ -78,8 +77,8 @@ import {
   touchRunningComputer,
   verifyMcpInstall,
   waitForComputerReady,
-} from "@rakazo/adapters";
-import type { Auth } from "@rakazo/auth";
+} from "@cadre/adapters";
+import type { Auth } from "@cadre/auth";
 import {
   type Actor,
   AvatarStyleSchema,
@@ -89,7 +88,7 @@ import {
   type Me,
   OPENAI_COMPATIBLE_PROVIDER_ID,
   type SpaceNavigation,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   ACTIVE_RUN_STATUSES,
   AttachmentValidationError,
@@ -102,7 +101,7 @@ import {
   nextCronDateAcrossStrict,
   PLUGIN_BUNDLE_MAX_BYTES,
   validatePluginBundle,
-} from "@rakazo/core";
+} from "@cadre/core";
 import {
   appendEventInTransaction,
   createGroupRepos,
@@ -129,8 +128,9 @@ import {
   selectSpaceVoicePreference,
   type ThreadEvents,
   touchGroupUpdatedAt,
-} from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+} from "@cadre/db";
+import { getLogger } from "@cadre/logging";
+import { implement, ORPCError } from "@orpc/server";
 import { type AdminConfig, createAdminRouter } from "./admin.js";
 import { createAgentSkillsService } from "./agent-skills.js";
 import { createOwnedArtifact, getOwnedArtifact, getSpaceArtifact } from "./artifacts.js";
@@ -3521,7 +3521,9 @@ export function createRouter(deps: RouterDeps) {
     siteLogins: {
       list: authed.siteLogins.list.handler(async ({ context }) => {
         const rows = await deps.prisma.siteLogin.findMany({
-          where: { spaceId: context.actor.spaceId },
+          // A saved credential belongs to the person who saved it: other members of the space
+          // never see it, use it, or delete it.
+          where: { spaceId: context.actor.spaceId, userId: context.actor.userId },
           orderBy: [{ host: "asc" }, { username: "asc" }],
         });
         return rows.map(siteLoginDto);
@@ -3546,8 +3548,9 @@ export function createRouter(deps: RouterDeps) {
           });
           const existing = await tx.siteLogin.findUnique({
             where: {
-              spaceId_host_username: {
+              spaceId_userId_host_username: {
                 spaceId: context.actor.spaceId,
+                userId: context.actor.userId,
                 host: input.host,
                 username: input.username,
               },
@@ -3575,7 +3578,7 @@ export function createRouter(deps: RouterDeps) {
       }),
       remove: authed.siteLogins.remove.handler(async ({ context, input }) => {
         const login = await deps.prisma.siteLogin.findFirst({
-          where: { id: input.id, spaceId: context.actor.spaceId },
+          where: { id: input.id, spaceId: context.actor.spaceId, userId: context.actor.userId },
         });
         if (!login) throw new ORPCError("NOT_FOUND", { message: "Login not found." });
         // The secret row owns the login row, so removing it removes both.

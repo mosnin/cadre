@@ -4,9 +4,9 @@ import {
   type SearchHit,
   type SpaceBot,
   type SpaceGroup,
-} from "@rakazo/contracts";
-import { groupBotsForSidebar } from "@rakazo/core";
-import { botColors } from "@rakazo/ui-tokens";
+} from "@cadre/contracts";
+import { groupBotsForSidebar } from "@cadre/core";
+import { botColors } from "@cadre/ui-tokens";
 import { Redirect, useFocusEffect, useRouter } from "expo-router";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {

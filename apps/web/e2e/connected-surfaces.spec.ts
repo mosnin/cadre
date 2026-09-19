@@ -9,11 +9,11 @@ for (const width of [320, 390, 768, 1440]) {
     // At and above md the rail is part of the layout and is simply there; below
     // it is a drawer that opens over the conversation.
     const railIsPermanent = width >= 768;
-    await page.addInitScript(() => localStorage.setItem("rakazo.uiAppearance", "system"));
+    await page.addInitScript(() => localStorage.setItem("cadre.uiAppearance", "system"));
     await page.emulateMedia({ colorScheme: "light" });
     await signup(
       page,
-      `surfaces-${width}-${Date.now()}@rakazo.test`,
+      `surfaces-${width}-${Date.now()}@cadre.test`,
       "password12",
       "Workspace Owner",
     );

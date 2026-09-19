@@ -1,12 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { ORPCError } from "@orpc/server";
-import type { AgentHomeStore, JobPublisher, SandboxProvider } from "@rakazo/adapter-kit";
+import type { AgentHomeStore, JobPublisher, SandboxProvider } from "@cadre/adapter-kit";
 import {
   type AdapterContext,
   runContinueJob,
   skillTeachingExpireJob,
   skillTeachingExpireJobKey,
-} from "@rakazo/adapter-kit";
+} from "@cadre/adapter-kit";
 import {
   acquireComputerExecutionLease,
   appendRecordingEvent,
@@ -28,8 +27,8 @@ import {
   screenLeaseIdForRun,
   type TeachComputerInput,
   teachingControlLeaseExpiresAt,
-} from "@rakazo/adapters";
-import type { Actor, MessageBlock, TaughtSkill } from "@rakazo/contracts";
+} from "@cadre/adapters";
+import type { Actor, MessageBlock, TaughtSkill } from "@cadre/contracts";
 import {
   ACTIVE_RUN_STATUSES,
   buildPlaybookFromRecording,
@@ -37,13 +36,14 @@ import {
   type SkillPlaybook,
   type TeachRecordingEvent,
   teachRecordingTtlMs,
-} from "@rakazo/core";
+} from "@cadre/core";
 import {
   expireComputerExecutionLeases,
   IsolationError,
   type PrismaClient,
   type ThreadEvents,
-} from "@rakazo/db";
+} from "@cadre/db";
+import { ORPCError } from "@orpc/server";
 
 type TaughtSkillRow = {
   id: string;
@@ -133,7 +133,7 @@ async function cancelActiveRuns(
 async function ensureGraphicalComputer(
   deps: TaughtSkillsDeps,
   actor: Actor,
-  bot: Awaited<ReturnType<ReturnType<typeof import("@rakazo/db").createRepos>["getBot"]>>,
+  bot: Awaited<ReturnType<ReturnType<typeof import("@cadre/db").createRepos>["getBot"]>>,
 ) {
   if (bot.computer?.kind === "desktop") {
     throw new ORPCError("BAD_REQUEST", {
@@ -176,7 +176,7 @@ async function ensureGraphicalComputer(
 async function grantTakeover(
   deps: TaughtSkillsDeps,
   actor: Actor,
-  bot: Awaited<ReturnType<ReturnType<typeof import("@rakazo/db").createRepos>["getBot"]>>,
+  bot: Awaited<ReturnType<ReturnType<typeof import("@cadre/db").createRepos>["getBot"]>>,
   until: Date,
 ): Promise<{ bot: typeof bot; leaseId: string }> {
   if (!bot.computer) throw new IsolationError();

@@ -4,11 +4,11 @@ import type {
   ConnectorEvent,
   ConnectorProvider,
   ConnectorTool,
-} from "@rakazo/adapter-kit";
-import { isLocalMcpHost } from "@rakazo/contracts";
-import { connectorToolNamesMutation } from "@rakazo/core";
-import type { McpServer, PrismaClient } from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+} from "@cadre/adapter-kit";
+import { isLocalMcpHost } from "@cadre/contracts";
+import { connectorHintCanClaimReadOnly } from "@cadre/core";
+import type { McpServer, PrismaClient } from "@cadre/db";
+import { getLogger } from "@cadre/logging";
 import { sanitizeConnectorError } from "./connector-safety.js";
 import {
   CATALOG_EXECUTE,
@@ -166,8 +166,7 @@ export class McpConnector implements ConnectorProvider {
               name: `mcp__${assignment.server.slug}__${tool.name}`,
               description: tool.description ?? tool.name,
               inputSchema: tool.inputSchema as Record<string, unknown>,
-              readOnly:
-                tool.annotations?.readOnlyHint === true && !connectorToolNamesMutation(tool.name),
+              readOnly: connectorHintCanClaimReadOnly(tool.name, tool.annotations?.readOnlyHint),
               route: {
                 connectorId: "mcp",
                 resourceId: assignment.serverId,
@@ -295,7 +294,7 @@ export class McpConnector implements ConnectorProvider {
   }
 
   private async connectSession(server: McpServer, context: AdapterContext): Promise<McpSession> {
-    const session = new McpSession({ name: `rakazo-${server.slug}` });
+    const session = new McpSession({ name: `cadre-${server.slug}` });
     try {
       const secret = server.secretId
         ? await this.prisma.secret.findFirst({

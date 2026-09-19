@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
-import type { ComputerAction, ComputerObservation, ComputerRef } from "@rakazo/adapter-kit";
-import type { ComputerMode } from "@rakazo/contracts";
+import type { ComputerAction, ComputerObservation, ComputerRef } from "@cadre/adapter-kit";
+import type { ComputerMode } from "@cadre/contracts";
 
 export function toComputerRef(computer: {
   homeKey: string;

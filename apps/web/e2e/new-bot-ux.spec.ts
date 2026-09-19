@@ -10,7 +10,7 @@ import {
 test("creating an agent returns to work and the rail keeps its state", async ({
   page,
 }, testInfo) => {
-  await signup(page, `new-bot-ux-${Date.now()}@rakazo.test`, "password12", "New Bot UX");
+  await signup(page, `new-bot-ux-${Date.now()}@cadre.test`, "password12", "New Bot UX");
   await completeOnboarding(page);
   await createBotFromPicker(page);
   await expect(page.getByPlaceholder("Message New Bot")).toBeVisible();
@@ -37,7 +37,7 @@ test("creating an agent returns to work and the rail keeps its state", async ({
 
 test("later bot waits before showing the focus card; sending cancels it", async ({ page }) => {
   const stamp = Date.now();
-  await signup(page, `focus-delay-${stamp}@rakazo.test`, "password12", "Focus Delay");
+  await signup(page, `focus-delay-${stamp}@cadre.test`, "password12", "Focus Delay");
   await completeOnboarding(page);
   // First bot from onboarding shows the focus card immediately.
   await expect(page.getByText("What do you want me on first?", { exact: true })).toBeVisible();

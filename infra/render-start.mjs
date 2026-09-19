@@ -5,11 +5,11 @@ process.env.GIT_SHA = process.env.RENDER_GIT_COMMIT ?? process.env.GIT_SHA;
 // One Render service can host both long-lived processes for a small deployment.
 // The same worker entrypoint can also run as an independent Render worker.
 const children = [
-  spawn("pnpm", ["--filter", "@rakazo/api", "start"], {
+  spawn("pnpm", ["--filter", "@cadre/api", "start"], {
     stdio: "inherit",
     env: { ...process.env, API_HOST: "0.0.0.0", API_PORT: process.env.PORT ?? "3100" },
   }),
-  spawn("pnpm", ["--filter", "@rakazo/worker", "start"], { stdio: "inherit", env: process.env }),
+  spawn("pnpm", ["--filter", "@cadre/worker", "start"], { stdio: "inherit", env: process.env }),
 ];
 let stopping = false;
 function stop(code = 0) {

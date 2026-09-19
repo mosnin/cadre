@@ -141,7 +141,7 @@ already work → it's yours → it's free.
 | --- | --- | --- |
 | Hero | *none* | The demo directly below is the aha. Art here would compete with it. |
 | Below hero | existing `ProductDemo` | A real thread beats any illustration. Left alone. |
-| "Any model, your key" | `model-mesh` | Six providers around a Rakazo instance you run. |
+| "Any model, your key" | `model-mesh` | Six providers around a Cadre instance you run. |
 | "Readable routines" | `timeline` | Named routines on a weekly schedule with a live playhead. |
 | "Approvals that hold" | `handoffmenu` → approvals list | Routine work done alone; consequential work held for you. |
 | "It works where your work already lives" | `integrationwall` | The tools a bot signs in to, monochrome. |
@@ -164,7 +164,7 @@ same clash with any other vendored Tailwind component dropped inside a themed co
 
 Most of the catalog. Recording why, so it does not get relitigated:
 
-- `revenuechart`, `trendlines`, `metricschart`, `speedgauge`, `bankcard` — Rakazo is not an
+- `revenuechart`, `trendlines`, `metricschart`, `speedgauge`, `bankcard` — Cadre is not an
   analytics or fintech product. Charts here would be invented numbers, which is both dishonest and
   off-message.
 - `spaminbox` — Inbox Manager is one bot of eight. Leading with mail narrows the product.
@@ -223,7 +223,7 @@ Every vendored file was then adapted rather than dropped in as-is:
 - All Tailwind `neutral-*` values and `dark:` variants were replaced with the site's own tokens,
   bridged into Tailwind's namespace by an `@theme inline` block in `global.css`. Zero raw neutrals
   remain in the four files.
-- The T3 Chat logo at the centre of `model-mesh` was replaced with the Rakazo coordinator mark, and
+- The T3 Chat logo at the centre of `model-mesh` was replaced with the Cadre coordinator mark, and
   the glow retuned from Tailwind blue to `--blue-top`.
 - `timeline` lost its Gantt placeholder rows for named routines on a weekday ruler, with roster bot
   colours and a blue "now" playhead instead of an orange one.

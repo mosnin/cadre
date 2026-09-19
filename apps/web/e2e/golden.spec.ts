@@ -25,11 +25,11 @@ test("two users are isolated and a bot completes durable work", async ({ browser
   const pageB = await b.newPage();
 
   const stamp = Date.now();
-  await signup(pageA, `ada-${stamp}@rakazo.test`, "password12", "Ada", testInfo);
+  await signup(pageA, `ada-${stamp}@cadre.test`, "password12", "Ada", testInfo);
   await completeOnboarding(pageA, testInfo);
   await expect(pageA.getByTestId("bot-settings-trigger")).toBeVisible();
 
-  await signup(pageB, `bob-${stamp}@rakazo.test`, "password12", "Bob");
+  await signup(pageB, `bob-${stamp}@cadre.test`, "password12", "Bob");
   await completeOnboarding(pageB);
   await expect(pageB.getByTestId("bot-settings-trigger")).toBeVisible();
   await expect(pageB.getByText("Ada", { exact: true })).toHaveCount(0);
@@ -61,7 +61,7 @@ test("two users are isolated and a bot completes durable work", async ({ browser
 
 test("takeover, routine, plugins, and export are reachable", async ({ page }, testInfo) => {
   const stamp = Date.now();
-  await signup(page, `flow-${stamp}@rakazo.test`, "password12", "Flow");
+  await signup(page, `flow-${stamp}@cadre.test`, "password12", "Flow");
   await completeOnboarding(page);
 
   const composer = page.getByPlaceholder(/Message/);
@@ -284,7 +284,7 @@ test("sign-in, spawn, and stop work in the shell", async ({ page }, testInfo) =>
     );
   });
   const stamp = Date.now();
-  const email = `shell-${stamp}@rakazo.test`;
+  const email = `shell-${stamp}@cadre.test`;
   await signup(page, email, "password12", "Shell");
   await completeOnboarding(page);
   await page.evaluate(() => {
@@ -379,7 +379,7 @@ test("bot context menu pins, duplicates, edits, and confirms deletion", async ({
   page,
 }, testInfo) => {
   const stamp = Date.now();
-  await signup(page, `menu-${stamp}@rakazo.test`, "password12", "Menu");
+  await signup(page, `menu-${stamp}@cadre.test`, "password12", "Menu");
   await completeOnboarding(page);
 
   await openNavigation(page);

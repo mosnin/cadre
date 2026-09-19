@@ -1,7 +1,7 @@
+import type { Bot } from "@cadre/contracts";
+import { conversationPreview } from "@cadre/core";
+import { BotAvatar } from "@cadre/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { Bot } from "@rakazo/contracts";
-import { conversationPreview } from "@rakazo/core";
-import { BotAvatar } from "@rakazo/ui-web";
 import { ArrowUp, CalendarClock, CircleDashed, Globe, Monitor, Plus, Zap } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { type ReactNode, useState } from "react";

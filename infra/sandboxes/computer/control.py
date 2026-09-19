@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Token-auth desktop control for the Rakazo supervisor."""
+"""Token-auth desktop control for the Cadre supervisor."""
 
 import base64
 import ctypes
@@ -12,13 +12,13 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-TOKEN = os.environ.get("RAKAZO_COMPUTER_CONTROL_TOKEN", "")
+TOKEN = os.environ.get("CADRE_COMPUTER_CONTROL_TOKEN", "")
 MAX_BODY_BYTES = 256 * 1024
 MAX_ARGV = 32
 MAX_ARG_LEN = 16_384
 KNOWN_LAUNCH = frozenset(
     {
-        "rakazo-browser",
+        "cadre-browser",
         "xterm",
     }
 )
@@ -43,28 +43,28 @@ class NativeCapture:
     """Persistent MIT-SHM frame source with native lossless PNG encoding."""
 
     def __init__(self, display):
-        library = ctypes.CDLL("/usr/local/lib/librakazo-xcapture.so")
-        library.rakazo_xcapture_open.argtypes = [ctypes.c_char_p]
-        library.rakazo_xcapture_open.restype = ctypes.c_void_p
-        library.rakazo_xcapture_png.argtypes = [
+        library = ctypes.CDLL("/usr/local/lib/libcadre-xcapture.so")
+        library.cadre_xcapture_open.argtypes = [ctypes.c_char_p]
+        library.cadre_xcapture_open.restype = ctypes.c_void_p
+        library.cadre_xcapture_png.argtypes = [
             ctypes.c_void_p,
             ctypes.POINTER(ctypes.POINTER(ctypes.c_ubyte)),
             ctypes.POINTER(ctypes.c_size_t),
             ctypes.POINTER(ctypes.c_int),
             ctypes.POINTER(ctypes.c_int),
         ]
-        library.rakazo_xcapture_png.restype = ctypes.c_int
-        library.rakazo_xcapture_damage.argtypes = [
+        library.cadre_xcapture_png.restype = ctypes.c_int
+        library.cadre_xcapture_damage.argtypes = [
             ctypes.c_void_p,
             ctypes.POINTER(ctypes.c_int),
             ctypes.POINTER(ctypes.c_int),
             ctypes.POINTER(ctypes.c_int),
             ctypes.POINTER(ctypes.c_int),
         ]
-        library.rakazo_xcapture_damage.restype = ctypes.c_int
-        library.rakazo_xinput_argv.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_char_p)]
-        library.rakazo_xinput_argv.restype = ctypes.c_int
-        context = library.rakazo_xcapture_open(display.encode("utf-8"))
+        library.cadre_xcapture_damage.restype = ctypes.c_int
+        library.cadre_xinput_argv.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(ctypes.c_char_p)]
+        library.cadre_xinput_argv.restype = ctypes.c_int
+        context = library.cadre_xcapture_open(display.encode("utf-8"))
         if not context:
             raise RuntimeError("MIT-SHM capture is unavailable")
         self.library = library
@@ -74,12 +74,12 @@ class NativeCapture:
         png = ctypes.POINTER(ctypes.c_ubyte)()
         png_size = ctypes.c_size_t()
         width, height = ctypes.c_int(), ctypes.c_int()
-        if self.library.rakazo_xcapture_png(
+        if self.library.cadre_xcapture_png(
             self.context, ctypes.byref(png), ctypes.byref(png_size), ctypes.byref(width), ctypes.byref(height)
         ):
             raise RuntimeError("MIT-SHM screen capture failed")
         damage = (ctypes.c_int(), ctypes.c_int(), ctypes.c_int(), ctypes.c_int())
-        changed = self.library.rakazo_xcapture_damage(
+        changed = self.library.cadre_xcapture_damage(
             self.context, *(ctypes.byref(value) for value in damage)
         )
         return (
@@ -92,7 +92,7 @@ class NativeCapture:
 
     def act(self, argv):
         encoded = (ctypes.c_char_p * len(argv))(*(value.encode("utf-8") for value in argv))
-        return self.library.rakazo_xinput_argv(self.context, len(argv), encoded)
+        return self.library.cadre_xinput_argv(self.context, len(argv), encoded)
 
 
 def native_capture(display):
@@ -123,7 +123,7 @@ def allowed_xdotool_argv(argv):
         return False
     op = argv[3]
     if op == "key":
-        return len(argv) == 6 and argv[4] == "--clearmodifiers" and argv[5] != ""
+        return len(argv) == 6 and argv[4] == "--clearmodifiers" and argv[5] != "" and not argv[5].startswith("-")
     if op == "mousemove":
         if len(argv) == 7 and argv[4] == "--" and _is_int_string(argv[5]) and _is_int_string(argv[6]):
             return True
@@ -164,6 +164,10 @@ def allowed_control_argv(argv, display):
     if command == "xdg-open":
         return len(argv) == 4
     if "/" in command or command not in KNOWN_LAUNCH:
+        return False
+    # A launch argument is a URI. An option would be passed through to the program, and
+    # Chromium has options (--gpu-launcher, --renderer-cmd-prefix) that run a command.
+    if len(argv) == 4 and argv[3].startswith("-"):
         return False
     return len(argv) in (3, 4)
 

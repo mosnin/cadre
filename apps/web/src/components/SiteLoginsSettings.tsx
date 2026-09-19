@@ -1,7 +1,7 @@
+import type { SiteLogin } from "@cadre/contracts";
+import { Button, Input, Label } from "@cadre/ui-web";
+import { Disclosure } from "@cadre/ui-web/components/ui/disclosure";
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { SiteLogin } from "@rakazo/contracts";
-import { Button, Input, Label } from "@rakazo/ui-web";
-import { Disclosure } from "@rakazo/ui-web/components/ui/disclosure";
 import { useEffect, useId, useState } from "react";
 import { rpc } from "../lib/rpc";
 

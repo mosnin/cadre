@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { ModelOAuthBegin, ModelOAuthSignInMode } from "@cadre/contracts";
 import type {
   AuthInteraction,
   Credential,
@@ -6,7 +7,6 @@ import type {
   OAuthCredential,
 } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
-import type { ModelOAuthBegin, ModelOAuthSignInMode } from "@rakazo/contracts";
 import { createManualAnthropicOAuthLogin } from "./pi-anthropic-oauth.js";
 
 export const CHATGPT_OAUTH_PROVIDER = "openai-codex";

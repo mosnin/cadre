@@ -1,12 +1,11 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import type { CapabilityInstall, ConnectionCatalogItem } from "@rakazo/contracts";
+import type { CapabilityInstall, ConnectionCatalogItem } from "@cadre/contracts";
 import {
   abortableDelay,
   buildFeaturedConnectorTiles,
   CONNECTION_CATALOG_PAGE_SIZE,
   EMPTY_PLUGIN_CATALOG_MESSAGE,
   filterConnectionCatalogItems,
-} from "@rakazo/core";
+} from "@cadre/core";
 import {
   Button,
   Card,
@@ -21,7 +20,8 @@ import {
   Input,
   NativeSelect,
   NativeSelectOption,
-} from "@rakazo/ui-web";
+} from "@cadre/ui-web";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { reserveAuthorizationWindow } from "../lib/authorization-window";

@@ -1,5 +1,5 @@
-import type { ComputerMode, ComputerReleaseReason } from "@rakazo/contracts";
-import { waitForComputerStartup } from "@rakazo/core";
+import type { ComputerMode, ComputerReleaseReason } from "@cadre/contracts";
+import { waitForComputerStartup } from "@cadre/core";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Modal, Pressable, Text, View } from "react-native";

@@ -38,7 +38,7 @@ it("reuses product RPC and forwards explicit space for its membership check", as
   app.post("/rpc/me", async (c) =>
     c.json({
       json: {
-        spaceId: c.req.header("x-rakazo-space-id"),
+        spaceId: c.req.header("x-cadre-space-id"),
         body: await c.req.json(),
         authorizationPresent: c.req.header("authorization") === "Bearer cdr_at_fixture",
       },

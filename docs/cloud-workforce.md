@@ -1,6 +1,6 @@
 # Cadre cloud workforce
 
-Cadre is a cloud deployment of Rakazo with managed computers and a Company OS workforce connection. The upstream local, desktop, mobile, and other provider paths remain available. Cloud configuration is optional.
+Cadre is a cloud deployment of Cadre with managed computers and a Company OS workforce connection. The upstream local, desktop, mobile, and other provider paths remain available. Cloud configuration is optional.
 
 ## Deployment
 

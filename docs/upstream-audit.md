@@ -4,7 +4,7 @@ Baseline: `elie222/rakazo` commit `f17887a2724d6cd457abe406a17c4c8721d0c013`. Th
 
 ## Corrections
 
-The public domain previously served a different Hermes application. It now points to this Rakazo fork. Making Company OS the only hosted login was an unjustified first-run dependency; production now uses the original email/password account flow (`AUTH_PROVIDER=local`). Company OS credentials do not activate an integration when that mode is selected, and its Workforce entry is hidden. Those optional modules remain dormant to preserve prior work; they are not prerequisites for a bot, model, computer, or task. No Company OS development is included in this correction.
+The public domain previously served a different Hermes application. It now points to this Cadre fork. Making Company OS the only hosted login was an unjustified first-run dependency; production now uses the original email/password account flow (`AUTH_PROVIDER=local`). Company OS credentials do not activate an integration when that mode is selected, and its Workforce entry is hidden. Those optional modules remain dormant to preserve prior work; they are not prerequisites for a bot, model, computer, or task. No Company OS development is included in this correction.
 
 On hosted installations, a configured deployment model skips provider setup. The user names a first bot and sends a message using the existing composer. Cloudflare, Modal, model credentials, job dispatch, and workspace persistence are service configuration. The customer does not deploy an external agent, assemble a fleet, or supply a model key.
 
@@ -124,7 +124,7 @@ The continuity update adds optional native filesystem snapshot caches backed by 
 | `infra/sandboxes/computer/fluxbox.init` | Linux desktop applications and mobile viewer controls |
 | `infra/sandboxes/computer/fluxbox.menu` | Linux desktop applications and mobile viewer controls |
 | `infra/sandboxes/computer/start.sh` | Linux desktop applications and mobile viewer controls |
-| `infra/sandboxes/computer/rakazo-browser.desktop` | Linux desktop applications and mobile viewer controls |
+| `infra/sandboxes/computer/cadre-browser.desktop` | Linux desktop applications and mobile viewer controls |
 | `infra/sandboxes/computer/mobile-controls.js` | Linux desktop applications and mobile viewer controls |
 | `infra/sandboxes/computer/tint2rc` | Linux desktop applications and mobile viewer controls |
 | `infra/sandboxes/supervisor/src/index.ts` | Linux desktop applications and mobile viewer controls |
@@ -136,7 +136,7 @@ The continuity update adds optional native filesystem snapshot caches backed by 
 | `packages/adapters/src/pi-runtime-tool-dispatch.test.ts` | Computer continuity and regression verification |
 | `docs/computer-runtime.md` | Computer continuity and regression verification |
 | `docs/upstream-audit.md` | Computer continuity and regression verification |
-| `infra/sandboxes/computer/rakazo-browser` | Computer continuity and regression verification |
+| `infra/sandboxes/computer/cadre-browser` | Computer continuity and regression verification |
 | `packages/adapter-kit/src/interfaces.ts` | Computer continuity and regression verification |
 | `packages/adapter-kit/src/types.ts` | Computer continuity and regression verification |
 | `packages/adapters/src/computer-lifecycle.ts` | Computer continuity and regression verification |

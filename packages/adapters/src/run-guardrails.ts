@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { type PrismaClient, withTransactionRetry } from "@rakazo/db";
+import { type PrismaClient, withTransactionRetry } from "@cadre/db";
 
 export function boundedLimit(raw: string | undefined, fallback: number, maximum: number): number {
   const value = Number(raw);
@@ -154,7 +154,14 @@ function isArgumentless(canonicalArgs: unknown): boolean {
 }
 
 /**
- * Start a new budget segment: the tool count restarts while loop history and automation
+ * How much loop history a new segment inherits. Carrying the whole window would let a segment
+ * trip the loop detector on its very first call; carrying none would let a run loop forever by
+ * segmenting. A short tail catches a run that resumes straight back into the same repetition.
+ */
+const CARRIED_LOOP_DIGESTS = 3;
+
+/**
+ * Start a new budget segment: the tool count restarts while recent loop history and automation
  * fan-out limits carry over, so a continued run cannot create more bots or schedules than
  * a single run could.
  */
@@ -172,7 +179,7 @@ export async function resetRunToolBudget(
       const previous = (current?.guardrailState ?? null) as GuardrailState | null;
       const state: GuardrailState = {
         count: 0,
-        recent: Array.isArray(previous?.recent) ? previous.recent : [],
+        recent: Array.isArray(previous?.recent) ? previous.recent.slice(-CARRIED_LOOP_DIGESTS) : [],
         automation:
           previous?.automation && typeof previous.automation === "object"
             ? previous.automation

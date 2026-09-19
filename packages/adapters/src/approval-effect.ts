@@ -1,4 +1,4 @@
-import type { AgentToolExecutionResult } from "@rakazo/adapter-kit";
+import type { AgentToolExecutionResult } from "@cadre/adapter-kit";
 
 export type ApprovalPausedToolResult = AgentToolExecutionResult & { terminate: true };
 
@@ -379,6 +379,21 @@ export function isFailedEffectResult(result: unknown): boolean {
   return (typeof record.error === "string" && record.error.length > 0) || record.isError === true;
 }
 
+/**
+ * An error that does not say whether the call reached the other side. A timeout or a dropped
+ * connection can mean the mutation landed and only the answer was lost, so the effect is
+ * recorded as uncertain and never replayed. A refused connection or an unresolved host never
+ * reached anything, so those stay retryable.
+ */
+const AMBIGUOUS_EFFECT_ERROR =
+  /\btimed? ?out\b|\btimeout\b|\baborted?\b|etimedout|econnreset|epipe|socket hang up|connection (closed|reset|lost)|fetch failed|\bnetwork error\b|\b50[234]\b|bad gateway|service unavailable|gateway timeout/i;
+
+export function isAmbiguousEffectError(result: unknown): boolean {
+  if (!result || typeof result !== "object") return false;
+  const { error } = result as { error?: unknown };
+  return typeof error === "string" && AMBIGUOUS_EFFECT_ERROR.test(error);
+}
+
 export async function claimFailedEffect(
   store: ExternalEffectStore,
   effectId: string,
@@ -463,11 +478,15 @@ export async function completeExternalEffect(
   result: unknown,
 ): Promise<boolean> {
   // An error result is not a completed side effect. Caching it as "completed" would hand the
-  // same stale error back on every retry for the rest of the run.
-  const status = isFailedEffectResult(result) ? "failed" : "completed";
+  // same stale error back on every retry for the rest of the run. An error that cannot say
+  // whether the call landed is uncertain rather than failed, so it is never replayed.
+  const failed = isFailedEffectResult(result);
+  const ambiguous = failed && isAmbiguousEffectError(result);
+  const status = !failed ? "completed" : ambiguous ? "uncertain" : "failed";
+  const stored = ambiguous ? { ...(result as object), uncertain: true } : result;
   const completed = await store.externalEffect.updateMany({
     where: { id: effectId, status: expectedStatus },
-    data: { status, result: result as never },
+    data: { status, result: stored as never },
   });
   return completed.count === 1;
 }

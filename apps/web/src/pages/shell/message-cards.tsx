@@ -1,7 +1,7 @@
+import type { MessageBlock } from "@cadre/contracts";
+import { abortableDelay } from "@cadre/core";
+import { Button, Dialog, DialogClose, DialogContent, DialogTitle } from "@cadre/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { MessageBlock } from "@rakazo/contracts";
-import { abortableDelay } from "@rakazo/core";
-import { Button, Dialog, DialogClose, DialogContent, DialogTitle } from "@rakazo/ui-web";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BuiCard, SuccessStatus } from "../../components/ai/primitives";
@@ -227,7 +227,7 @@ function ChartCanvas({
     // Plot loads lazily so threads without charts never pay for the library.
     void (async () => {
       try {
-        const { buildPlotParts } = await import("@rakazo/core/plot");
+        const { buildPlotParts } = await import("@cadre/core/plot");
         if (cancelled || !ref.current) return;
         // Hover inspection by default: give the first mark a tooltip unless
         // the spec already asks for one somewhere.

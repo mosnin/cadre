@@ -1,11 +1,11 @@
-import type { CapabilityInstall, Connection, ConnectionCatalogItem } from "@rakazo/contracts";
+import type { CapabilityInstall, Connection, ConnectionCatalogItem } from "@cadre/contracts";
 import {
   abortableDelay,
   buildFeaturedConnectorTiles,
   CONNECTION_CATALOG_PAGE_SIZE,
   EMPTY_PLUGIN_CATALOG_MESSAGE,
   filterConnectionCatalogItems,
-} from "@rakazo/core";
+} from "@cadre/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,

@@ -1,12 +1,12 @@
-import { resolveDeploymentModel, resolveSandboxProvider } from "@rakazo/adapters";
+import { resolveDeploymentModel, resolveSandboxProvider } from "@cadre/adapters";
 import {
   resolveAuthSecret,
   resolveEncryptionKey,
   resolveScreenProxySecret,
   resolveSupervisorToken,
-} from "@rakazo/core";
+} from "@cadre/core";
 
-export { resolveSandboxProvider } from "@rakazo/adapters";
+export { resolveSandboxProvider } from "@cadre/adapters";
 
 export interface AppEnv {
   adminEmails: string;
@@ -79,8 +79,8 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
   const authSecret = resolveAuthSecret(source);
   const sandboxProvider = resolveSandboxProvider(source);
   const deploymentModel = resolveDeploymentModel(source);
-  const updaterUrl = optional(source.RAKAZO_UPDATER_URL);
-  const updaterToken = optional(source.RAKAZO_UPDATER_TOKEN);
+  const updaterUrl = optional(source.CADRE_UPDATER_URL);
+  const updaterToken = optional(source.CADRE_UPDATER_TOKEN);
   return {
     adminEmails: source.CADRE_ADMIN_EMAILS ?? "",
     adminBootstrapTokenHash: optional(source.CADRE_ADMIN_BOOTSTRAP_TOKEN_HASH),
@@ -144,10 +144,10 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
       .map((value) => value.trim())
       .filter(Boolean),
     port: Number(source.API_PORT ?? 3100),
-    gitSha: optional(source.GIT_SHA) ?? optional(source.RAKAZO_GIT_SHA),
+    gitSha: optional(source.GIT_SHA) ?? optional(source.CADRE_GIT_SHA),
     updaterUrl,
     updaterToken,
-    imageTag: optional(source.RAKAZO_IMAGE_TAG),
+    imageTag: optional(source.CADRE_IMAGE_TAG),
   };
 }
 

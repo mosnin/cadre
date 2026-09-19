@@ -5,8 +5,8 @@ import {
   type BotSection,
   type MessageBlock,
   type SpaceBot,
-} from "@rakazo/contracts";
-import { isUserFacingPeerCallback, userVisibleMessages } from "@rakazo/core";
+} from "@cadre/contracts";
+import { isUserFacingPeerCallback, userVisibleMessages } from "@cadre/core";
 import type { PrismaClient } from "./client.js";
 import { type ComputerMode, ensureComputerRecord, parseComputerMode } from "./computers.js";
 import { createThreadMessageInTransaction } from "./messages.js";

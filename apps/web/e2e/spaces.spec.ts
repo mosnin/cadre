@@ -11,7 +11,7 @@ import {
 test("workspace menu creates and switches isolated conversation contexts", async ({
   page,
 }, testInfo) => {
-  await signup(page, `spaces-${Date.now()}@rakazo.test`, "password12", "Space Owner");
+  await signup(page, `spaces-${Date.now()}@cadre.test`, "password12", "Space Owner");
   await completeOnboarding(page);
   await openNavigation(page);
   const sidebar = page.locator("aside").first();
@@ -31,7 +31,7 @@ test("workspace menu creates and switches isolated conversation contexts", async
   await dialog.getByRole("button", { name: "Continue", exact: true }).click();
   await page.waitForURL(/\/onboarding/);
   await completeOnboarding(page);
-  const supportId = await page.evaluate(() => localStorage.getItem("rakazo:space-id"));
+  const supportId = await page.evaluate(() => localStorage.getItem("cadre:space-id"));
   await openNavigation(page);
   await expect(switcher).toContainText("Customer support");
   await expect(sidebar.getByRole("button", { name: /^Chief/ })).toHaveCount(1);
@@ -39,7 +39,7 @@ test("workspace menu creates and switches isolated conversation contexts", async
   await page.getByRole("button", { name: "Personal", exact: true }).click();
   await openNavigation(page);
   await expect(switcher).toContainText("Personal");
-  expect(await page.evaluate(() => localStorage.getItem("rakazo:space-id"))).not.toBe(supportId);
+  expect(await page.evaluate(() => localStorage.getItem("cadre:space-id"))).not.toBe(supportId);
   await expect(sidebar.getByRole("button", { name: /^Chief/ })).toHaveCount(1);
   await switcher.click();
   await page
@@ -54,7 +54,7 @@ test("workspace menu creates and switches isolated conversation contexts", async
 });
 
 test("account settings exposes company connection and onboarding", async ({ page }, testInfo) => {
-  await signup(page, `company-settings-${Date.now()}@rakazo.test`, "password12", "Company Owner");
+  await signup(page, `company-settings-${Date.now()}@cadre.test`, "password12", "Company Owner");
   await completeOnboarding(page);
   // This verifies the configured UI; protocol and tenant boundaries use the real database suite.
   await page.route("**/api/v1/company-workspaces", (route) =>
@@ -77,7 +77,7 @@ test("account settings exposes company connection and onboarding", async ({ page
 });
 
 test("agent workspace creation still requires user approval", async ({ page }) => {
-  await signup(page, `space-approval-${Date.now()}@rakazo.test`, "password12", "Space Owner");
+  await signup(page, `space-approval-${Date.now()}@cadre.test`, "password12", "Space Owner");
   await completeOnboarding(page);
   const composer = page.getByRole("combobox", { name: "Message Chief" });
   await composer.fill("Create a space named Customer support");
@@ -101,7 +101,7 @@ for (const phone of [false, true]) {
     );
     await signup(
       page,
-      `company-identity-${phone}-${Date.now()}@rakazo.test`,
+      `company-identity-${phone}-${Date.now()}@cadre.test`,
       "password12",
       "Company Owner",
     );
@@ -197,7 +197,7 @@ test("Company OS controls recover when a cached page is restored", async ({ page
   await page.route("**/api/v1/company-workspaces", (route) =>
     route.fulfill({ json: { available: true, connections: [] } }),
   );
-  await signup(page, `company-back-${Date.now()}@rakazo.test`, "password12", "Company Owner");
+  await signup(page, `company-back-${Date.now()}@cadre.test`, "password12", "Company Owner");
   await completeOnboarding(page);
   await page.route("**/api/v1/company-workspaces/connect", (route) =>
     route.fulfill({ json: { url: `${page.url().split("#")[0]}#provider` } }),

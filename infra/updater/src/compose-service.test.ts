@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { RECREATED_SERVICES } from "@rakazo/core";
+import { RECREATED_SERVICES } from "@cadre/core";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
 
@@ -67,13 +67,13 @@ describe("the updater compose service", () => {
   });
 
   it("is bind-mounted at the same path it has on the host", () => {
-    const mount = (updater.volumes ?? []).find((volume) => volume.includes("RAKAZO_DEPLOY_DIR"));
+    const mount = (updater.volumes ?? []).find((volume) => volume.includes("CADRE_DEPLOY_DIR"));
     // biome-ignore lint/suspicious/noTemplateCurlyInString: this is the literal Compose expression
-    const deployDir = "${RAKAZO_DEPLOY_DIR:-/srv/rakazo}";
+    const deployDir = "${CADRE_DEPLOY_DIR:-/srv/cadre}";
     const separatorIndex = mount?.indexOf("}:${") ?? -1;
     const source = separatorIndex < 0 ? undefined : mount?.slice(0, separatorIndex + 1);
     const destination = separatorIndex < 0 ? undefined : mount?.slice(separatorIndex + 2);
-    expect(updater.environment?.RAKAZO_DEPLOY_DIR).toBe(deployDir);
+    expect(updater.environment?.CADRE_DEPLOY_DIR).toBe(deployDir);
     expect(mount).toBe(`${deployDir}:${deployDir}`);
     expect(source).toBe(destination);
   });
@@ -86,33 +86,33 @@ describe("the updater compose service", () => {
   });
 
   it("pins its own image tag separately from the application image", () => {
-    expect(updater.image).toContain("RAKAZO_UPDATER_IMAGE_TAG");
+    expect(updater.image).toContain("CADRE_UPDATER_IMAGE_TAG");
     for (const service of RECREATED_SERVICES) {
-      expect(compose.services[service]?.image).toContain("RAKAZO_IMAGE_TAG");
+      expect(compose.services[service]?.image).toContain("CADRE_IMAGE_TAG");
     }
   });
 
   it("uses the official registry namespace and digest-pins third-party runtime images", () => {
-    expect(updater.image).toContain("ghcr.io/elie222/rakazo/updater");
-    expect(compose.services.api?.image).toContain("ghcr.io/elie222/rakazo/app");
+    expect(updater.image).toContain("ghcr.io/mosnin/cadre/updater");
+    expect(compose.services.api?.image).toContain("ghcr.io/mosnin/cadre/app");
     expect(compose.services.postgres?.image).toMatch(/^postgres:16@sha256:[0-9a-f]{64}$/);
     expect(compose.services.caddy?.image).toMatch(/^caddy:2@sha256:[0-9a-f]{64}$/);
   });
 
   it("injects the actual Compose project name into the updater container", () => {
     // biome-ignore lint/suspicious/noTemplateCurlyInString: this is the literal Compose expression
-    expect(updater.environment?.COMPOSE_PROJECT_NAME).toBe("${COMPOSE_PROJECT_NAME:-rakazo-prod}");
+    expect(updater.environment?.COMPOSE_PROJECT_NAME).toBe("${COMPOSE_PROJECT_NAME:-cadre-prod}");
   });
 
   it("does not load the application env_file into the root-equivalent process", () => {
     expect(updater.env_file).toBeUndefined();
     // biome-ignore lint/suspicious/noTemplateCurlyInString: this is the literal Compose expression
-    expect(updater.environment?.RAKAZO_UPDATER_TOKEN).toBe("${RAKAZO_UPDATER_TOKEN:-}");
+    expect(updater.environment?.CADRE_UPDATER_TOKEN).toBe("${CADRE_UPDATER_TOKEN:-}");
   });
 
   it("does not let the api container reach the Docker socket to update itself", () => {
     expect(compose.services.api?.volumes ?? []).not.toContain("/var/run/docker.sock");
-    expect(compose.services.api?.environment?.RAKAZO_UPDATER_URL).toBe("http://updater:7092");
+    expect(compose.services.api?.environment?.CADRE_UPDATER_URL).toBe("http://updater:7092");
   });
 
   it("passes logging configuration without using env_file", () => {

@@ -1,5 +1,5 @@
 {
-  "name": "@rakazo/testkit",
+  "name": "@cadre/testkit",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "type": "module",
@@ -12,14 +12,14 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.1",
-    "@rakazo/adapter-kit": "workspace:*",
-    "@rakazo/adapters": "workspace:*",
-    "@rakazo/contracts": "workspace:*",
-    "@rakazo/core": "workspace:*",
-    "@rakazo/db": "workspace:*",
+    "@cadre/adapter-kit": "workspace:*",
+    "@cadre/adapters": "workspace:*",
+    "@cadre/contracts": "workspace:*",
+    "@cadre/core": "workspace:*",
+    "@cadre/db": "workspace:*",
     "@testcontainers/postgresql": "^11.5.1",
     "pngjs": "7.0.0",
-    "@rakazo/auth": "workspace:*"
+    "@cadre/auth": "workspace:*"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",

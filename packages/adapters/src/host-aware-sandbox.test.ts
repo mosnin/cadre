@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { SandboxProvider } from "@rakazo/adapter-kit";
+import type { SandboxProvider } from "@cadre/adapter-kit";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { DesktopSandboxProvider } from "./desktop-sandbox.js";
 import { FakeSandboxProvider } from "./fake-sandbox.js";
@@ -30,7 +30,7 @@ describe("host-aware sandbox", () => {
     expect(policy).toHaveBeenCalledExactlyOnceWith({ kind: "fake" });
   });
 
-  const hostRoot = mkdtempSync(path.join(tmpdir(), "rakazo-host-root-"));
+  const hostRoot = mkdtempSync(path.join(tmpdir(), "cadre-host-root-"));
 
   afterAll(() => {
     rmSync(hostRoot, { recursive: true, force: true });
@@ -93,7 +93,7 @@ describe("host-aware sandbox", () => {
     let code = 1;
     for await (const event of desktop.execute(
       computer,
-      { argv: ["echo", "ok"], cwd: "/home/rakazo" },
+      { argv: ["echo", "ok"], cwd: "/home/cadre" },
       ctx,
     )) {
       if (event.type === "exit") code = event.code;

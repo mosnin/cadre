@@ -1,5 +1,5 @@
-import type { BackgroundJob, JobPublisher } from "@rakazo/adapter-kit";
-import type { Pool, PrismaClient, ThreadEvents } from "@rakazo/db";
+import type { BackgroundJob, JobPublisher } from "@cadre/adapter-kit";
+import type { Pool, PrismaClient, ThreadEvents } from "@cadre/db";
 import { describe, expect, it, vi } from "vitest";
 import { returnBotMessageOutcome } from "./bot-messages.js";
 import {

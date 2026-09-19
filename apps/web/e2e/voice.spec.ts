@@ -4,7 +4,7 @@ import { completeOnboarding, openUserMenu, rpc, signup } from "./helpers";
 test("voice settings configure spoken replies without call mode", async ({ page }) => {
   const stamp = Date.now();
   const userName = `Voice ${stamp}`;
-  await signup(page, `voice-${stamp}@rakazo.test`, "password12", userName);
+  await signup(page, `voice-${stamp}@cadre.test`, "password12", userName);
   await completeOnboarding(page);
 
   const preparedOff = await rpc<{ ready: boolean }>(page, "voice/prepare", {
