@@ -5,6 +5,7 @@ import {
   type Provider,
 } from "@earendil-works/pi-ai";
 import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completions.lazy";
+import { tokenLimit } from "./env-limits.js";
 
 /**
  * Local OpenAI-compatible model server (Ollama, LM Studio, llama.cpp, MLX).
@@ -32,23 +33,6 @@ export function localBaseUrl(): string {
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new Error("RAKAZO_LOCAL_MODELS_URL must be an absolute HTTP(S) URL");
-  }
-  return value;
-}
-
-/**
- * A token count from the environment, or the default when unset.
- *
- * Token limits are only meaningful as finite positive integers, so anything
- * else is a configuration mistake. Throwing beats `Number(x) || default`, which
- * would accept a negative window and silently swallow a typo as the default.
- */
-function tokenLimit(name: string, fallback: number): number {
-  const raw = process.env[name]?.trim();
-  if (!raw) return fallback;
-  const value = Number(raw);
-  if (!Number.isSafeInteger(value) || value <= 0) {
-    throw new Error(`${name} must be a positive integer, received "${raw}"`);
   }
   return value;
 }

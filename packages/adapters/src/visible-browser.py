@@ -207,8 +207,17 @@ class VisibleBrowser:
     def visible_page(self):
         # Observe the tab the human sees. Reading a snapshot must never activate
         # the agent's remembered tab or steal focus from a human-selected tab.
+        #
+        # Asking costs an attach and an evaluation per tab, on every action, and
+        # the answer is nearly always the tab this browser was last acting on.
+        # Asking that one first ends the loop on its first pass; the order is
+        # all that changes, so a human who moved to another tab is still found.
+        remembered = self.state.get('target')
+        pages = self.pages
+        if remembered:
+            pages = sorted(pages, key=lambda page: page['targetId'] != remembered)
         visible = []
-        for page in self.pages:
+        for page in pages:
             self.page = page
             try:
                 self.attach()
