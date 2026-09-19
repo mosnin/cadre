@@ -442,7 +442,8 @@ export async function planBrowserAction(
 }
 
 /** How many actions one pursue call may take before handing control back to the agent. */
-export const MAX_PURSUIT_STEPS = 8;
+export const MAX_PURSUIT_STEPS = 20;
+export const MAX_PURSUIT_HARD_CAP = 24;
 /** How long a wait step gives the page, and how many waits a pursuit may spend. */
 const WAIT_MS = 150;
 const MAX_WAITS = 2;
@@ -515,7 +516,7 @@ export async function pursueBrowserGoal(
 ): Promise<PursuitOutcome> {
   const steps: BrowserStep[] = [];
   let waits = 0;
-  const limit = Math.max(1, Math.min(input.maxSteps ?? MAX_PURSUIT_STEPS, MAX_PURSUIT_STEPS));
+  const limit = Math.max(1, Math.min(input.maxSteps ?? MAX_PURSUIT_STEPS, MAX_PURSUIT_HARD_CAP));
   let snapshot =
     input.snapshot?.snapshotId !== undefined ? input.snapshot : await browser.observe();
   let pending: PlannedBrowserAction | undefined;

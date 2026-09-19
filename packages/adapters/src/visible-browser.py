@@ -6,6 +6,7 @@ one accessibility snapshot and are invalidated after every action/navigation.
 import json
 import os
 from pathlib import Path
+import socket
 import subprocess
 import sys
 import time
@@ -439,17 +440,120 @@ class VisibleBrowser:
 
 
 
-def main(req):
+SOCKET_PATH = os.environ.get('CADRE_BROWSER_SOCKET', '/tmp/cadre-browser-worker.sock')
+
+
+def run_request(req, browser=None):
+    """One action. Reuse the live CDP session when the caller still holds it."""
     bounded_request(req)
     profile = Path(os.environ.get('CADRE_BROWSER_PROFILE', ''))
     if not profile.is_absolute() or not (profile / 'DevToolsActivePort').is_file():
         raise ValueError('Structured browser control is unavailable. Use the visible desktop tools.')
-    browser = VisibleBrowser(profile)
-    try: return browser.act(req)
+    live = browser
+    if live is None:
+        live = VisibleBrowser(profile)
+    try:
+        return live.act(req), live
+    except ValueError:
+        raise
+    except Exception:
+        try: live.cdp.close()
+        except Exception: pass
+        raise
+
+
+def main(req):
+    result, browser = run_request(req)
+    try: return result
     finally: browser.cdp.close()
 
 
+def _read_json_line(conn):
+    data = b''
+    while not data.endswith(b'\n'):
+        chunk = conn.recv(65536)
+        if not chunk:
+            break
+        data += chunk
+        if len(data) > 200000:
+            raise ValueError('Browser request exceeded its size limit.')
+    if not data:
+        raise ValueError('Empty browser request')
+    return json.loads(data.decode())
+
+
+def call_worker(req, path=None):
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.settimeout(20)
+    sock.connect(path or SOCKET_PATH)
+    try:
+        sock.sendall((json.dumps(req) + '\n').encode())
+        return _read_json_line(sock)
+    finally:
+        sock.close()
+
+
+def serve(path=None):
+    """Keep one CDP session and answer JSON-line requests over a unix socket."""
+    target = path or SOCKET_PATH
+    try: os.unlink(target)
+    except FileNotFoundError: pass
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.bind(target)
+    os.chmod(target, 0o600)
+    sock.listen(8)
+    browser = None
+    while True:
+        conn, _unused = sock.accept()
+        try:
+            req = _read_json_line(conn)
+            if req.get('op') == 'ping':
+                conn.sendall(b'{"ok":true}\n')
+                continue
+            secret = req.pop('secretText', None)
+            if isinstance(secret, str) and secret:
+                os.environ['CADRE_PROTECTED_TEXT'] = secret
+            elif 'CADRE_PROTECTED_TEXT' in os.environ and req.get('action') != 'fill_protected':
+                os.environ.pop('CADRE_PROTECTED_TEXT', None)
+            try:
+                result, browser = run_request(req, browser)
+            except ValueError as error:
+                result = {'error': str(error)}
+            except Exception:
+                browser = None
+                result = {'error': 'Browser action could not finish. Take a fresh snapshot or use the visible desktop.'}
+            conn.sendall((json.dumps(result) + '\n').encode())
+        except Exception:
+            try: conn.sendall(b'{"error":"Browser action could not finish. Take a fresh snapshot or use the visible desktop."}\n')
+            except Exception: pass
+        finally:
+            conn.close()
+
+
+def daemonize_and_serve(path=None):
+    pid = os.fork()
+    if pid > 0:
+        socket_path = path or SOCKET_PATH
+        for _ in range(50):
+            if os.path.exists(socket_path):
+                break
+            time.sleep(0.04)
+        os._exit(0)
+    os.setsid()
+    try:
+        sys.stdin.close()
+    except Exception:
+        pass
+    serve(path)
+
+
 if __name__ == '__main__':
-    try: print(json.dumps(main(json.loads(sys.argv[1]))))
+    try:
+        if len(sys.argv) > 1 and sys.argv[1] == '--serve':
+            daemonize_and_serve()
+        elif len(sys.argv) > 1 and sys.argv[1] == '--call':
+            print(json.dumps(call_worker(json.loads(sys.argv[2]))))
+        else:
+            print(json.dumps(main(json.loads(sys.argv[1]))))
     except ValueError as error: print(json.dumps({'error': str(error)}))
     except Exception: print(json.dumps({'error': 'Browser action could not finish. Take a fresh snapshot or use the visible desktop.'}))

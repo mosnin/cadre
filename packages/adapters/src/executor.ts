@@ -173,6 +173,7 @@ import { routerCandidates } from "./decision-routing.js";
 import {
   decideRunStart,
   needsComputerBeforeFirstGeneration,
+  shouldPursueAtStart,
   skillsImpliedByStart,
   toolNeedsComputer,
 } from "./decision-start.js";
@@ -1356,7 +1357,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
           ctx: AdapterContext,
         ): ReturnType<typeof prefetchBrowseStart> => {
           if (browseInFlight) return browseInFlight;
-          if (startDecision.first !== "browse" || !provisionPromise || !filesOnComputer) {
+          if (
+            !shouldPursueAtStart(startDecision, task.prompt) ||
+            !provisionPromise ||
+            !filesOnComputer
+          ) {
             return Promise.resolve(undefined);
           }
           browseInFlight = provisionPromise
@@ -1640,7 +1645,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             screenRelease = { computer: ready, context };
           })
           .catch(() => undefined);
-        if (needsComputerBeforeFirstGeneration(start.first, hasFileAttachments)) {
+        if (needsComputerBeforeFirstGeneration(start.first, hasFileAttachments, task.prompt)) {
           await ensureComputer();
         }
         scheduleComputerSleep(deps.jobs, storedComputer.id);
@@ -1648,7 +1653,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (!computer) return Promise.resolve();
           return checkpointAfterComputerWork(deps, storedComputer, computer, context);
         });
-        if (start.first === "browse") workspaceCheckpoint.markDirty();
+        if (shouldPursueAtStart(start, task.prompt)) workspaceCheckpoint.markDirty();
         /**
          * End this attempt without ending the run: persist a progress note, reset the tool
          * budget and requeue, so the next attempt continues with a fresh budget instead of
@@ -1719,7 +1724,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           throw error;
         }
         filesOnComputer = true;
-        if (start.first === "browse") {
+        if (shouldPursueAtStart(start, task.prompt)) {
           browsePromise = browseWhenReady(start, context);
         }
         const attachedFilesPrompt = currentTurnFilesInstruction(currentTurnFiles);
@@ -2576,10 +2581,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                       deps.sandbox.browser!(computer, request as BrowserRequest, context),
                   },
                 );
-              return computerScreenToolResult(
-                async () => labelBrowserToolResult(await run(), decisions, runId, context.signal),
-                finish,
-              );
+              return computerScreenToolResult(async () => run(), finish);
             }
             let browserRequest: BrowserRequest =
               name === "browser_observe"
@@ -4562,7 +4564,7 @@ async function prefetchBrowseStart(input: {
   spaceId: string;
   botId: string;
 }) {
-  if (input.start.first !== "browse" || !input.browser) return undefined;
+  if (!shouldPursueAtStart(input.start, input.goal) || !input.browser) return undefined;
   if (await getActiveTeachingSession(input.prisma, input.spaceId, input.botId)) return undefined;
   const liveComputer = await input.prisma.computer.findUnique({
     where: { id: input.computer.id },

@@ -47,12 +47,19 @@ export const FIRST_ACTIONS = {
 
 export type FirstAction = keyof typeof FIRST_ACTIONS;
 
+/** Start-path Jev should drive the live browser instead of waiting for a chat turn. */
+export function shouldPursueAtStart(start: { first?: string }, task: string): boolean {
+  if (start.first === "browse") return true;
+  return start.first === "computer" && extractTaskUrls(task).length > 0;
+}
+
 /** The first generation can start without the machine unless this step needs it now. */
 export function needsComputerBeforeFirstGeneration(
   first: FirstAction | undefined,
   hasFileAttachments: boolean,
+  task = "",
 ): boolean {
-  return hasFileAttachments || first === "browse";
+  return hasFileAttachments || shouldPursueAtStart({ first }, task);
 }
 
 const WORKSPACE_TOOLS = new Set([

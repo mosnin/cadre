@@ -5,6 +5,7 @@ import {
   extractTaskUrls,
   needsComputerBeforeFirstGeneration,
   searchQueryForStart,
+  shouldPursueAtStart,
   skillsImpliedByStart,
   toolNeedsComputer,
 } from "./decision-start.js";
@@ -230,7 +231,14 @@ describe("what a start decision already paid for", () => {
     expect(needsComputerBeforeFirstGeneration(undefined, false)).toBe(false);
     expect(needsComputerBeforeFirstGeneration("browse", false)).toBe(true);
     expect(needsComputerBeforeFirstGeneration("computer", false)).toBe(false);
+    expect(
+      needsComputerBeforeFirstGeneration("computer", false, "open https://flights.example"),
+    ).toBe(true);
     expect(needsComputerBeforeFirstGeneration("answer", true)).toBe(true);
+    expect(shouldPursueAtStart({ first: "browse" }, "click Search")).toBe(true);
+    expect(shouldPursueAtStart({ first: "computer" }, "open https://flights.example")).toBe(true);
+    expect(shouldPursueAtStart({ first: "computer" }, "open a file")).toBe(false);
+    expect(shouldPursueAtStart({ first: "answer" }, "https://flights.example")).toBe(false);
   });
 
   it("waits for the computer only on tools that touch the workspace", () => {

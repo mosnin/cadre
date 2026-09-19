@@ -5,6 +5,7 @@ import {
   browserActionSpace,
   entitiesFromTask,
   formatPursuedStartPrompt,
+  MAX_PURSUIT_HARD_CAP,
   MAX_PURSUIT_STEPS,
   planBrowserAction,
   pursueBrowserGoal,
@@ -314,7 +315,7 @@ describe("pursuing a goal over several steps", () => {
     };
     const io = browser([ELEMENTS]);
     const outcome = await pursueBrowserGoal(provider, { goal: "g", maxSteps: 500 }, io);
-    expect(outcome.steps).toHaveLength(MAX_PURSUIT_STEPS);
+    expect(outcome.steps).toHaveLength(MAX_PURSUIT_HARD_CAP);
   });
 
   it("takes no step at all without a provider", async () => {

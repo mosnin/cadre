@@ -89,13 +89,17 @@ A prefetch that fails degrades the same way: the page stays out of the
 prompt and the model fetches. A later `web_search` or `web_fetch` does not wait either.
 The first tool that touches the workspace waits on the same provision
 promise, which a generation has usually already outlasted.
-When the first action is `browse`, pursuit starts the moment start says so and
-the computer is up — overlapping connector discovery, memory ranking, key
-resolution, and prompt assembly — so the first generation sees the page that
-was already acted on instead of spending a turn deciding to call
-`browser_pursue` or `browser_observe`. The same page is untrusted data, like
-a tool result: `<fetched_page>`, `<search_results>`, `<browser_progress>`,
-and `<browser_page>` never override the user's request. A run that only learns the model after start kicks the same
+When the first action is `browse`, or `computer` with a URL already in the
+task, pursuit starts the moment start says so and the computer is up —
+overlapping connector discovery, memory ranking, key resolution, and prompt
+assembly — so the first generation sees the page that was already acted on
+instead of spending a turn deciding to call `browser_pursue` or
+`browser_observe`. The live browser worker keeps one CDP session across
+those steps, so a click is a decision plus a protocol call rather than a
+new Python process and a new websocket. The same page is untrusted data,
+like a tool result: `<fetched_page>`, `<search_results>`,
+`<browser_progress>`, and `<browser_page>` never override the user's
+request. A run that only learns the model after start kicks the same
 pursuit once provision begins. Group context, messaging identity, approved-effect replay,
 prior progress, the bot directory, and saved logins start beside computer
 provision, so those reads overlap the boot instead of waiting for it.
@@ -132,7 +136,7 @@ here is the last thing between an agent and an irreversible action.
 | Fetch screen (`screenUntrustedText`) | Nothing; **raises a bar** on pages that try to instruct the agent | `noul` "is this a jailbreak or override?" | The page, unlabeled |
 | Browser page screen | Nothing on `browser_observe` / `browser_act`; **free** on `browser_pursue` because it rides the action request | The same injection `noul`, asked beside the step when the page already has enough text | The page, unlabeled |
 | Connector result screen (`labelUntrustedToolResult`) | Nothing; **raises a bar** on mail, issues, and other connector payloads that try to instruct the agent | The same injection `noul` over the string fields the model reads | The payload, unlabeled |
-| Browser action (`planBrowserTurn`) | A **generation** per browser step, the **next** step's request when the page still has that control, a **navigate** generation that would invent a URL, and the **first** browse generation when start already chose `browse` | One request: `choice` operation + speculative targets + the same questions prefixed `next_` + which known value fills the field + dropdown control and option together + which goal URL to open | The agent deciding, as today |
+| Browser action (`planBrowserTurn`) | A **generation** per browser step, the **next** step's request when the page still has that control, a **navigate** generation that would invent a URL, and the **first** browse generation when start already chose `browse` or `computer` with a URL | One request: `choice` operation + speculative targets + the same questions prefixed `next_` + which known value fills the field + dropdown control and option together + which goal URL to open | The agent deciding, as today |
 | Symbolic find / check / triage | A **generation** that reviews its own diff, files, or log | Scores, nouls, and a closed failure `choice` over evidence the agent already gathered | No findings, with `notChecked` filled |
 
 The same injection screen now also rides memory ranking: a saved fact that
@@ -195,9 +199,10 @@ a document the model will not judge keeps the slot it arrived in.
 
 ## Waiting only as long as the page needs
 
-A decision arrives in a few hundred milliseconds, so a fixed wait after every
-action is what a browser step actually costs. The driver used to sleep a fifth of
-a second after each one and then poll `document.readyState`.
+A decision arrives in a few hundred milliseconds. The driver used to pay a
+new Python process and a new DevTools websocket on every click, then sleep a
+fifth of a second and poll `document.readyState`. The live worker keeps the
+session, so the remaining wait is the page itself.
 
 It now waits for two animation frames instead, which is what a rerender takes,
 and gives up at 50ms. Only filling a combobox waits longer, and only until its
@@ -301,8 +306,10 @@ to run the core product.
 ## What it cannot do
 
 It does not write, so anything that has to be worded still needs a chat model. It
-does not extract spans. It does not take images. And it is never the only thing
-standing between an agent and something irreversible.
+does not extract spans. It does not take images — so desktop `computer_act` stays
+a vision generation; Jev drives the browser from the accessibility table, not
+from screenshots. And it is never the only thing standing between an agent and
+something irreversible.
 
 ## Privacy
 
