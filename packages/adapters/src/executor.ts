@@ -1245,6 +1245,61 @@ export function createRunExecutor(deps: ExecutorDeps) {
           connectedConnections: [],
           connectedProviders: [],
         };
+        const memoryScope = configuredMemory
+          ? effectiveMemoryScope(bot.memoryScope, configuredMemory.defaultScope)
+          : null;
+        const semanticMemory: SemanticMemoryProvider | null = configuredMemory?.provider ?? null;
+        const turnBlocks = userTurnBlocksForRun(
+          run.trigger,
+          runId,
+          messages.map((message) => ({
+            id: message.id,
+            role: message.role,
+            runId: message.runId,
+            blocks: message.blocks as MessageBlock[],
+          })),
+          run.sourceMessageId,
+        );
+        const threadContext = threadContextForRun(run.trigger, {
+          messages: [...messages].reverse().map((m) => ({
+            id: m.id,
+            seq: m.seq,
+            role: (m.role === "user" ? "user" : m.role === "system" ? "system" : "assistant") as
+              | "user"
+              | "assistant"
+              | "system",
+            content: blocksToAgentHistoryText(m.blocks as MessageBlock[]),
+          })),
+          summary: thread.historyCompactionSummary,
+          historyCompactedUpToSeq: thread.historyCompactedUpToSeq,
+        });
+        // Memory, scratchpad, images, and recall do not read connectors.
+        // Start them beside start, provision, and plugin sync.
+        const memoryPromise = loadAgentMemoryContext(deps.memory, bot.id, bootContext, {
+          decisions,
+          task: task.prompt,
+        });
+        const scratchpadPromise = loadAgentScratchpadContext(deps, {
+          spaceId: run.spaceId,
+          botId: bot.id,
+        });
+        const imagesPromise = loadCurrentTurnImages(deps, turnBlocks, bootContext);
+        const recallPromise =
+          threadContext.includeSemanticRecall &&
+          semanticMemory &&
+          memoryScope &&
+          thread.historyCompactedUpToSeq != null
+            ? semanticMemory.recall(
+                {
+                  query: task.prompt,
+                  scope: memoryScope,
+                  botId: bot.id,
+                  historyGeneration: thread.historyCompactionGeneration,
+                  limit: MAX_RECALLED_MEMORIES,
+                },
+                bootContext,
+              )
+            : Promise.resolve(null);
         // Boot does not read connectors. Start it beside credential lookup
         // and plugin sync once a model is already named without that work.
         let provisionPromise =
@@ -1321,10 +1376,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
           })),
           connectedProviders: connectedComposio.map((row) => row.provider),
         };
-        const memoryScope = configuredMemory
-          ? effectiveMemoryScope(bot.memoryScope, configuredMemory.defaultScope)
-          : null;
-        const semanticMemory: SemanticMemoryProvider | null = configuredMemory?.provider ?? null;
         const runModelProvider =
           (useModelOverride ? bot.modelProvider : null) ??
           credential?.provider ??
@@ -1357,7 +1408,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             )
           : undefined;
 
-        await deps.events.append({
+        const startedPromise = deps.events.append({
           spaceId: run.spaceId,
           threadId: thread.id,
           botId: bot.id,
@@ -1365,23 +1416,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
           runId,
           payload: { trigger: run.trigger, routineId: run.routineId },
         });
-
         const discoveredPromise = deps.connector
           ? deps.connector.discoverTools(context)
           : Promise.resolve([]);
-        const threadContext = threadContextForRun(run.trigger, {
-          messages: [...messages].reverse().map((m) => ({
-            id: m.id,
-            seq: m.seq,
-            role: (m.role === "user" ? "user" : m.role === "system" ? "system" : "assistant") as
-              | "user"
-              | "assistant"
-              | "system",
-            content: blocksToAgentHistoryText(m.blocks as MessageBlock[]),
-          })),
-          summary: thread.historyCompactionSummary,
-          historyCompactedUpToSeq: thread.historyCompactedUpToSeq,
-        });
         const compactedHistory = selectCompactedHistory({
           messages: threadContext.messages,
           summary: threadContext.summary,
@@ -1392,17 +1429,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
           role,
           content,
         }));
-        const turnBlocks = userTurnBlocksForRun(
-          run.trigger,
-          runId,
-          messages.map((message) => ({
-            id: message.id,
-            role: message.role,
-            runId: message.runId,
-            blocks: message.blocks as MessageBlock[],
-          })),
-          run.sourceMessageId,
-        );
         const allowSilentPeerMessage = botMessageAllowsSilence(
           peerMessage?.intent,
           peerMessage?.repliesToRequest,
@@ -1417,36 +1443,15 @@ export function createRunExecutor(deps: ExecutorDeps) {
           : run.trigger === "routine"
             ? "Finished without a written report."
             : undefined;
-        const recallPromise =
-          threadContext.includeSemanticRecall &&
-          semanticMemory &&
-          memoryScope &&
-          thread.historyCompactedUpToSeq != null
-            ? semanticMemory.recall(
-                {
-                  query: task.prompt,
-                  scope: memoryScope,
-                  botId: bot.id,
-                  historyGeneration: thread.historyCompactionGeneration,
-                  limit: MAX_RECALLED_MEMORIES,
-                },
-                context,
-              )
-            : Promise.resolve(null);
         const [discovered, currentTurnImages, memoryContext, scratchpadContext, recalled, start] =
           await Promise.all([
             discoveredPromise,
-            loadCurrentTurnImages(deps, turnBlocks, context),
-            loadAgentMemoryContext(deps.memory, bot.id, context, {
-              decisions,
-              task: task.prompt,
-            }),
-            loadAgentScratchpadContext(deps, {
-              spaceId: run.spaceId,
-              botId: bot.id,
-            }),
+            imagesPromise,
+            memoryPromise,
+            scratchpadPromise,
             recallPromise,
             startPromise,
+            startedPromise,
           ]);
         const semanticMemoryEnabled = Boolean(semanticMemory);
         let recalledMemory = "";

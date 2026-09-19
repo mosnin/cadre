@@ -60,7 +60,10 @@ so a Composio listing no longer sits in front of the API key. A run with
 no model never starts either.
 The start request begins beside credential lookup and plugin sync — it only
 needs the task, the skill list, and whether anyone already named a model —
-so those waits no longer stack in front of it.
+so those waits no longer stack in front of it. Durable memory ranking, the
+scratchpad, current-turn images, and semantic recall start on the same
+beat: none of them read connectors, so a Composio listing no longer sits
+in front of the memory request either.
 The first generation starts as soon as credentials resolve unless the first
 action is `browse` or the user attached files — those need the machine now.
 Answer, search, fetch, skill, company, code, and computer generate while
