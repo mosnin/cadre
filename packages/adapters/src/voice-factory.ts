@@ -6,15 +6,15 @@ import { SCRIPTED_VOICE_CATALOG_ENTRY, ScriptedVoiceProvider } from "./scripted-
 
 export const VOICE_CATALOG = [
   {
-    id: "elevenlabs",
-    name: "ElevenLabs",
-    description: "Highest quality and cloning. Flash v2.5 for conversational calls.",
-    transcribe: true,
-  },
-  {
     id: "openai",
     name: "OpenAI",
     description: "Simple TTS plus Whisper-class transcription. Reuse an OpenAI key.",
+    transcribe: true,
+  },
+  {
+    id: "elevenlabs",
+    name: "ElevenLabs",
+    description: "Highest quality and cloning. Flash v2.5 for conversational calls.",
     transcribe: true,
   },
   {

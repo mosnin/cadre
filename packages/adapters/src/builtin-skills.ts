@@ -67,4 +67,22 @@ For dispatcher-assigned workforce tasks, the dispatcher owns claims and completi
 If permissions or records are missing, report the specific gap. Never use another workspace's credentials or merge private context across companies.
 `,
   },
+  {
+    name: "symbolic",
+    description:
+      "Use when judging code: finding files for a task, checking a diff, or triaging test failures. Read this before calling symbolic_find, symbolic_check, or symbolic_triage.",
+    content: `# Symbolic
+
+Use the symbolic_* tools for judgment. They do not write code, run tests, or approve a change.
+
+1. Gather evidence yourself with the computer tools: list or read files, take \`git diff\`, save a test log.
+2. Call one tool with that evidence:
+   - symbolic_find — rank file paths and short excerpts against the user's task.
+   - symbolic_check — check a unified diff against the user's original task. Read every finding. An empty list is not approval.
+   - symbolic_triage — classify failures from a log. Do not rerun anything from the report.
+3. Fix the code or tell the user why each finding is fine. Never say a symbolic tool passed the change.
+
+Exact checks (skipped tests, removed assertions, lockfile edits) run in code before the decision model. Findings are prompts to inspect, not proof of a defect.
+`,
+  },
 ];

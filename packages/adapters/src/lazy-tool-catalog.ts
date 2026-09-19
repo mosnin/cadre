@@ -288,9 +288,16 @@ export async function* executeLazyCatalogControl(
   call: ConnectorCall,
   entries: CatalogEntry[],
   executeResolved: (resolved: ConnectorCall) => AsyncIterable<ConnectorEvent>,
+  rank?: (query: string, hits: CatalogSearchHit[]) => Promise<CatalogSearchHit[]>,
 ): AsyncIterable<ConnectorEvent> {
   if (call.route?.toolName === CATALOG_SEARCH) {
-    yield { type: "result", data: searchCatalog(entries, call.args) };
+    const data = searchCatalog(entries, call.args);
+    const query = String(call.args.query ?? "").trim();
+    if (rank && query && "tools" in data && data.tools.length > 1) {
+      yield { type: "result", data: { ...data, tools: await rank(query, data.tools) } };
+      return;
+    }
+    yield { type: "result", data };
     return;
   }
   if (call.route?.toolName === CATALOG_LOAD) {

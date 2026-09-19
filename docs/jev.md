@@ -67,11 +67,16 @@ here is the last thing between an agent and an irreversible action.
 | Decision | Replaces | Question | Falls back to |
 | --- | --- | --- | --- |
 | Tool call (`decideToolCall`) | A full judge **generation** per consequential call, and **closes a gap** in the name regex | One request: `noul` "does this change anything outside this workspace?", plus a speculative `choice` pass/ask and `choice` of concern category | The generative judge, and the name check's own verdict |
-| Stuck run (`runIsStuck`) | Nothing; **catches what the hash guard cannot** | `noul` "is this repeating work that already failed?" | Continuing into the next segment |
-| Run model routing (`routeRunModel`) | Nothing; **avoids** paying frontier prices for simple turns | `choice` over the configured pool | The deployment default |
+| Run floor (`assessRunFloor`) | Nothing; **catches what the hash guard cannot**, in the Foreman shape | One request: `noul` stuck, off-track, and needs-a-person | Continuing into the next segment |
+| Run model routing (`routeRunModel`) | Nothing; **avoids** paying a strong Qwen for simple turns | `choice` over the Qwen pool (or `JEV_ROUTER_MODELS`) | The deployment default (`qwen/qwen3-235b-a22b`) |
+| Skill suggestion (`suggestSkill`) | Extra `skill_read` **generations** on a large catalog | One request: `noul` "is a skill needed?" plus speculative `choice` of skill | The catalog line, unread |
+| Company focus (`suggestCompanyFocus`) | A **generation** that guesses which Company OS records to pull | `choice` over overview, goals, customers, product, constraints, decisions, department | The company-context skill's own order |
 | Search ranking (`rankWebSearchHits`) | Nothing; **avoids** fetches and context on results that answer nothing | One `score` per result, one request | The engine's own order |
+| Catalog ranking (`rankCatalogHits`) | Loading the **wrong connector tool** | One `score` per shortlisted tool, one request | The keyword order |
 | Memory order (`rankMemoryDocuments`) | A **recency sort** that decided which saved facts a run would never see | One `score` per document, one request | The recency order, unchanged |
+| Fetch screen (`screenUntrustedText`) | Nothing; **raises a bar** on pages that try to instruct the agent | `noul` "is this a jailbreak or override?" | The page, unlabeled |
 | Browser action (`planBrowserAction`) | A **generation** per browser step | `choice` operation + speculative `choice` per operation's targets + `choice` of which known value fills the field + `choice` of dropdown control and option together | The agent deciding, as today |
+| Symbolic find / check / triage | A **generation** that reviews its own diff, files, or log | Scores, nouls, and a closed failure `choice` over evidence the agent already gathered | No findings, with `notChecked` filled |
 
 The consequence question is the one that is purely additive on latency, and it is
 deliberately narrow: it is asked **only** for connector calls the name check
@@ -210,7 +215,7 @@ JEV_MODEL=typesafe/jev-1.13 # the decision model
 TYPESAFE_API_KEY=           # TypeSafe directly; preferred when set
 JEV_API_KEY=                # OpenRouter, if not OPENROUTER_API_KEY
 JEV_TIMEOUT_MS=6000         # per request; 500 to 30000
-JEV_ROUTER_MODELS='[...]'   # the model pool; empty means no routing
+JEV_ROUTER_MODELS='[...]'   # the model pool; unset uses Qwen 8b + 235b; [] or 0 turns routing off
 ```
 
 With no key, every caller keeps the behaviour it had before the decision layer
@@ -227,7 +232,9 @@ standing between an agent and something irreversible.
 
 A decision sends the state its question is about to a third party: the arguments
 of a tool call, a search query and its result snippets, the text and control names
-of a page, the newest user message when routing, or **an excerpt of each durable
+of a page, a fetched page when screening it, file excerpts or a diff when judging
+code, skill names and descriptions when suggesting one, the newest user message
+when routing or choosing a company-records starting point, or **an excerpt of each durable
 memory document** when ordering them. That last one is the most sensitive on the
 list, because durable memory is whatever the user chose to keep. Leave it off for
 workloads that cannot share that context; with no key every caller keeps the

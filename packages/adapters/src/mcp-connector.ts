@@ -10,6 +10,8 @@ import { connectorHintCanClaimReadOnly } from "@cadre/core";
 import type { McpServer, PrismaClient } from "@cadre/db";
 import { getLogger } from "@cadre/logging";
 import { sanitizeConnectorError } from "./connector-safety.js";
+import { rankCatalogHits } from "./decision-catalog.js";
+import { decisionProvider } from "./jev-decisions.js";
 import {
   CATALOG_EXECUTE,
   catalogEntries,
@@ -215,6 +217,11 @@ export class McpConnector implements ConnectorProvider {
           call,
           catalogEntries(await this.authorizedTools(context)),
           (resolved) => this.execute(resolved, context),
+          (query, hits) =>
+            rankCatalogHits(decisionProvider(), query, hits, {
+              sessionId: context.runId,
+              signal: context.signal,
+            }),
         );
       } catch (error) {
         yield { type: "error", message: sanitizeConnectorError(error) };

@@ -6,7 +6,7 @@ describe("resolveDeploymentModel", () => {
     const both = { OPENROUTER_API_KEY: "or-key", ANTHROPIC_API_KEY: "sk-ant-key" };
     expect(resolveDeploymentModel(both)).toEqual({
       provider: "openrouter",
-      model: "deepseek/deepseek-v4-flash-0731",
+      model: "qwen/qwen3-235b-a22b",
       key: "or-key",
     });
     // The whole point: switching the provider switches the key with it.
