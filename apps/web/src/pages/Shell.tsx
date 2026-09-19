@@ -43,6 +43,7 @@ import {
   isToolActivityBlock,
   latestAnswerableAskMessageId,
   mentionChipKey,
+  paintGroupMembers,
   reorderBotTo,
   resolveComposerSendPlan,
   resolveMentionPickerKey,
@@ -3367,11 +3368,12 @@ export function ShellPage() {
                                 />
                               ) : (
                                 <GroupAvatar
-                                  members={
+                                  members={paintGroupMembers(
                                     item.chat.id === activeSnapshot?.groupId
                                       ? (activeSnapshot.members ?? item.chat.members)
-                                      : item.chat.members
-                                  }
+                                      : item.chat.members,
+                                    bots,
+                                  )}
                                   size={pinnedShelf ? 82 : desktopLayout ? 28 : 46}
                                 />
                               )}
@@ -3530,7 +3532,7 @@ export function ShellPage() {
                           key={group.id}
                           className="flex items-center gap-2 rounded-lg px-2.5 py-2"
                         >
-                          <GroupAvatar members={group.members} size={28} />
+                          <GroupAvatar members={paintGroupMembers(group.members, bots)} size={28} />
                           <span
                             className="min-w-0 flex-1 truncate text-[14px] text-foreground/75"
                             dir="auto"
@@ -3627,7 +3629,10 @@ export function ShellPage() {
             >
               {inGroup ? (
                 <GroupAvatar
-                  members={activeSnapshot?.members ?? activeGroup?.members ?? []}
+                  members={paintGroupMembers(
+                    activeSnapshot?.members ?? activeGroup?.members ?? [],
+                    bots,
+                  )}
                   size={26}
                 />
               ) : active ? (

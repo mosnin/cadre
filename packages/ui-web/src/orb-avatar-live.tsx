@@ -37,7 +37,7 @@ export function LiveOrb({
   const hostRef = useRef<HTMLDivElement>(null);
   const volumeRef = useRef(volume);
   volumeRef.current = volume;
-  const [onScreen, setOnScreen] = useState(false);
+  const [onScreen, setOnScreen] = useState(true);
   const [hasBudget, setHasBudget] = useState(false);
 
   useEffect(() => {

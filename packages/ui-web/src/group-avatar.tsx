@@ -1,3 +1,4 @@
+import { groupAvatarMiniSize } from "@cadre/core";
 import { type CSSProperties, memo } from "react";
 import { BotAvatar } from "./bot-avatar.js";
 import { cn } from "./lib/utils.js";
@@ -63,7 +64,7 @@ export const GroupAvatar = memo(function GroupAvatar({
   }
 
   const pair = members.length === 2;
-  const miniSize = Math.round(size * (pair ? 0.65 : 0.54));
+  const miniSize = groupAvatarMiniSize(size, members.length);
   const positions: CSSProperties[] = pair
     ? [
         { top: 0, left: 0 },
