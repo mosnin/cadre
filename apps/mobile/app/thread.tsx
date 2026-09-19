@@ -53,6 +53,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppConnectCard } from "../components/AppConnectCard";
 import { AskActions } from "../components/AskActions";
 import { BotAvatar } from "../components/bot-avatar";
+import { GroupAvatar } from "../components/group-avatar";
 import {
   MarkdownArtifactPreview,
   type MarkdownArtifactPreviewTarget,
@@ -504,7 +505,14 @@ function Thread() {
             maxWidth: 220,
           }}
         >
-          {!inGroup && currentBot ? (
+          {inGroup ? (
+            <GroupAvatar
+              members={
+                snap?.members ?? mentionGroups.find((group) => group.id === groupId)?.members ?? []
+              }
+              size={34}
+            />
+          ) : currentBot ? (
             <BotAvatar
               color={currentBot.color}
               identity={currentBot.id}
@@ -582,9 +590,11 @@ function Thread() {
     currentBotStatus,
     groupId,
     inGroup,
+    mentionGroups,
     name,
     nameSweep,
     navigation,
+    snap?.members,
     router,
     t,
     tokens,

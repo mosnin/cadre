@@ -7,7 +7,8 @@ describe("BotAvatar", () => {
     const html = renderToString(<BotAvatar color="#3380FF" identity="maya" />);
     expect(html).toContain("cadre-orb");
     expect(html).toContain("pointer-events-none");
-    expect(html).toContain("#3380ff");
+    expect(html).toContain("radial-gradient");
+    expect(html).toContain("rgb(51, 128, 255)");
   });
 
   it("gives two agents two different orbs", () => {

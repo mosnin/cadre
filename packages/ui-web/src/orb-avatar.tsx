@@ -4,9 +4,9 @@
  * The live visual is ElevenLabs' Orb (`npx @elevenlabs/cli@latest components add orb`),
  * filling the whole circle. Colour comes from the agent. A browser allows only
  * a handful of WebGL contexts, so off-screen orbs wait their turn; the fill
- * underneath is the agent's colour, not a second invented orb.
+ * underneath is the agent's colour gradient, not a second invented orb.
  */
-import { orbColors } from "@cadre/core";
+import { orbGradientStops } from "@cadre/core";
 import { lazy, memo, Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { cn } from "./lib/utils.js";
 import "./styles.css";
@@ -65,7 +65,7 @@ export const OrbAvatar = memo(function OrbAvatar({
     setHydrated(true);
   }, []);
   const wantsLive = hydrated && size >= LIVE_ORB_MIN_SIZE && !reducedMotion;
-  const [, mid] = orbColors(color);
+  const [light, mid, dark] = orbGradientStops(color);
 
   return (
     <span
@@ -80,7 +80,7 @@ export const OrbAvatar = memo(function OrbAvatar({
       style={{
         width: size,
         height: size,
-        backgroundColor: mid,
+        background: `radial-gradient(circle at 38% 32%, ${light} 0%, ${mid} 52%, ${dark} 100%)`,
         contain: "strict",
       }}
     >

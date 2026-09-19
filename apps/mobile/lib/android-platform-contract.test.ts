@@ -173,6 +173,7 @@ describe("Android mobile platform contract", () => {
     expect(thread).toContain("{name} is thinking");
     expect(thread).toContain("nameSweep");
     expect(thread).toContain("once");
+    expect(thread).toContain("GroupAvatar");
   });
 
   it("keeps send and stop separate while steering active work", () => {

@@ -22,12 +22,12 @@ describe("orb palette", () => {
     expect(parseHex("")).toEqual(parseHex(DEFAULT_ORB_COLOR));
   });
 
-  it("puts the light stop above the colour and the dark stop below it", () => {
+  it("puts the pastel stop brighter than the colour and the shade darker", () => {
+    const luma = ([r, g, b]: readonly [number, number, number]) =>
+      0.2126 * r + 0.7152 * g + 0.0722 * b;
     const [mid, light, dark] = orbStops("#3380FF");
-    for (let channel = 0; channel < 3; channel += 1) {
-      expect(light[channel]).toBeGreaterThanOrEqual(mid[channel]!);
-      expect(dark[channel]).toBeLessThanOrEqual(mid[channel]!);
-    }
+    expect(luma(light)).toBeGreaterThan(luma(mid));
+    expect(luma(dark)).toBeLessThan(luma(mid));
   });
 
   it("stays inside the shader's 0..1 range at both ends", () => {
@@ -48,14 +48,14 @@ describe("orb palette", () => {
 
   it("writes CSS the still orb and React Native can both take", () => {
     expect(orbGradientStops("#000000")).toEqual([
-      "rgb(82, 82, 82)",
+      "rgb(81, 81, 81)",
       "rgb(0, 0, 0)",
-      "rgb(0, 0, 0)",
+      "rgb(11, 11, 11)",
     ]);
   });
 
-  it("hands the ElevenLabs Orb a light/mid pair from the agent's colour", () => {
-    expect(orbColors("#3380FF")).toEqual(["#74a9ff", "#3380ff"]);
+  it("hands the ElevenLabs Orb a dark/mid pair from the agent's colour", () => {
+    expect(orbColors("#3380FF")).toEqual(["#3069c7", "#3380ff"]);
     expect(orbSeed("#3380FF")).toBe(orbSeed("#3380FF"));
     expect(orbSeed("#3380FF")).not.toBe(orbSeed("#26BF8C"));
   });

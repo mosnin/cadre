@@ -61,6 +61,13 @@ export const GroupAvatar = memo(function GroupAvatar({
       ];
   const visibleMembers = members.slice(0, pair || members.length === 3 ? members.length : 2);
 
+  const ring = {
+    borderRadius: miniSize / 2,
+    borderWidth: 1.5,
+    borderColor: native.page,
+    overflow: "hidden" as const,
+  };
+
   return (
     <View style={{ width: size, height: size, position: "relative" }}>
       {visibleMembers.map((member, index) => (
@@ -70,6 +77,7 @@ export const GroupAvatar = memo(function GroupAvatar({
             position: "absolute",
             ...positions[index],
             zIndex: index + 1,
+            ...ring,
           }}
         >
           <BotAvatar
@@ -89,7 +97,7 @@ export const GroupAvatar = memo(function GroupAvatar({
             zIndex: 3,
             width: miniSize,
             height: miniSize,
-            borderRadius: miniSize / 2,
+            ...ring,
             backgroundColor: native.fillPressed,
             alignItems: "center",
             justifyContent: "center",

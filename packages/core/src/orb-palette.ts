@@ -69,16 +69,16 @@ function mix(channel: number, towards: number, amount: number): number {
 }
 
 /**
- * Three stops from one colour: the colour itself, a lift towards white and a
- * drop towards black. The amounts are the distance the upstream variants keep
- * between their own stops, so a derived palette reads like a designed one.
+ * Three stops from one colour: the colour itself, a pastel lift, and a deep
+ * shade. Mix toward off-white and ink, not pure white/black, so the orb reads
+ * as a colour gradient instead of a bright disc on a black rim.
  */
 export function orbStops(color: string): OrbStops {
   const [r, g, b] = parseHex(color);
   return [
     [r, g, b],
-    [mix(r, 1, 0.32), mix(g, 1, 0.32), mix(b, 1, 0.32)],
-    [mix(r, 0, 0.38), mix(g, 0, 0.38), mix(b, 0, 0.38)],
+    [mix(r, 0.88, 0.36), mix(g, 0.88, 0.36), mix(b, 0.88, 0.36)],
+    [mix(r, 0.16, 0.26), mix(g, 0.16, 0.26), mix(b, 0.16, 0.26)],
   ];
 }
 
@@ -101,12 +101,13 @@ function hexStop([r, g, b]: Rgb): string {
 }
 
 /**
- * The two colours the ElevenLabs Orb takes. Light first, then the agent's
- * own colour, which is the same pairing the still gradient uses.
+ * The two colours the ElevenLabs Orb takes. Dark first (the shader's "darker"
+ * stop, which sits next to black), then the agent's own colour, so the live
+ * ramp is a hue gradient instead of a bright flash against black.
  */
 export function orbColors(color: string): [string, string] {
-  const [mid, light] = orbStops(color);
-  return [hexStop(light), hexStop(mid)];
+  const [mid, , dark] = orbStops(color);
+  return [hexStop(dark), hexStop(mid)];
 }
 
 /** A stable seed so the same agent colour keeps the same swirl. */
