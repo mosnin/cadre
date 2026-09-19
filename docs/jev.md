@@ -68,6 +68,8 @@ beat: none of them read connectors, so a Composio listing no longer sits
 in front of the memory request either.
 Fetch and search start the moment start returns, so they no longer wait
 for discovery or memory either.
+Attached-file bytes start downloading beside start — they do not need the
+computer — and are written to the workspace once the machine is up.
 The first generation starts as soon as credentials resolve unless the first
 action is `browse` or the user attached files — those need the machine now.
 Answer, search, fetch, skill, company, code, and computer generate while
