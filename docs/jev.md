@@ -73,7 +73,9 @@ computer — and are written to the workspace once the machine is up.
 The first generation starts as soon as credentials resolve unless the first
 action is `browse` or the user attached files — those need the machine now.
 Answer, search, fetch, skill, company, code, and computer generate while
-the boot continues. A later `web_search` or `web_fetch` does not wait either.
+the boot continues. A company-first start injects company-context and
+connected-workspace together, so Operate, Stored, and Company OS do not
+each cost a `skill_read` generation. A later `web_search` or `web_fetch` does not wait either.
 The first tool that touches the workspace waits on the same provision
 promise, which a generation has usually already outlasted.
 When the first action is `browse`, pursuit starts the moment start says so and

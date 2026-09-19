@@ -1229,6 +1229,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           runDeployment?.model ??
           runtimeFallback?.id;
         const bootContext = {
+          workspaceIntegrations: undefined as AdapterContext["workspaceIntegrations"],
           companyWorkspace: undefined as AdapterContext["companyWorkspace"],
           operationId: runId,
           traceId: runId,
@@ -3629,6 +3630,20 @@ export function createRunExecutor(deps: ExecutorDeps) {
           .filter((skill): skill is NonNullable<typeof skill> => Boolean(skill));
         const agentSkillsLine = formatSkillsCatalogInstruction(agentSkills);
         const companySkillLoaded = startSkills.some((skill) => skill.name === "company-context");
+        const workspaceSkillLoaded = startSkills.some(
+          (skill) => skill.name === "connected-workspace",
+        );
+        const workspaceSkillLine = [
+          workspaceSkillLoaded
+            ? undefined
+            : "Before using Operate or Stored, read connected-workspace.",
+          companySkillLoaded
+            ? undefined
+            : "Before using Company OS, read the company-context skill.",
+          "Before saving Company OS deliverables, also read company-deliverables. Use only this workspace's authorized connector and context; never combine private context across workspaces.",
+        ]
+          .filter(Boolean)
+          .join(" ");
         const missingImagesInstruction = missingTurnImagesInstruction(
           turnBlocks,
           currentTurnImages,
@@ -3765,9 +3780,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 `Verified workspace connections for this run: ${JSON.stringify(context.workspaceIntegrations ?? {})}. Use Operate for projects and recurring task definitions, and its scheduled_task_history tool for actual completion. Never infer completion from a scheduled date. Use scalar-workspace tools for customer records, pipelines and outreach. Use stored-workspace tools for organizational memory and this bot's stored-agent connector for private memory. Save agent observations privately unless the user explicitly asks to share them. Include source identity and timestamps. Read get_context_pack before tasks and save durable facts through the appropriate connector after verified work. Never copy another workspace or another agent's private memory. Search the MCP catalog for exact tool names before claiming a connector is unavailable.`,
                 agentSkillsLine,
                 "For a coding task, use symbolic_find, symbolic_check, and symbolic_triage to judge files, diffs, and failures. They do not write code or approve a change.",
-                companySkillLoaded
-                  ? "Before using Operate or Stored, read connected-workspace. Before saving Company OS deliverables, also read company-deliverables. Use only this workspace's authorized connector and context; never combine private context across workspaces."
-                  : "Before using Operate or Stored, read connected-workspace. Before using Company OS, read the company-context skill. Before saving Company OS deliverables, also read company-deliverables. Use only this workspace's authorized connector and context; never combine private context across workspaces.",
+                workspaceSkillLine,
                 "Write clear, direct sentences with normal capitalization. Lead with the useful result or the next necessary action. For a short request, give one useful reply. Perform routine checks silently; do not send an acknowledgment and then restate it as another message. Use message_user only for a meaningful update during sustained work, and do not repeat it in your final answer. Never echo internal routing envelopes, bot IDs, wake prompts, or coordination instructions into user-facing replies. Refer to teammates by name when relevant. Do not say work is done without a verified result or promise background work unless it is actually running. Never use em dashes in your messages to the user. Use periods, commas, or parentheses instead. Avoid decorative symbols.",
                 taughtSkillsLine,
                 'For charts and data visualization, use the render_plot tool: it renders bar, line, scatter, histogram, heatmap, faceted and many more chart types from a JSON spec and attaches the PNG to the chat. Call render_plot with {"help": true} before your first chart to read the full guide.',
