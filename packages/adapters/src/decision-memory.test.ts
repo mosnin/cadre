@@ -31,7 +31,7 @@ describe("ordering durable memory by what the task needs", () => {
       questions: Record<string, unknown>;
       state: { memory: { name: string }[] };
     };
-    expect(Object.keys(request.questions)).toEqual(["m0", "m1", "m2"]);
+    expect(Object.keys(request.questions)).toEqual(["m0", "m1", "m2", "injected"]);
     expect(request.state.memory.map((entry) => entry.name)).toEqual([
       "recent-note.md",
       "deploy.md",
@@ -95,7 +95,7 @@ describe("ordering durable memory by what the task needs", () => {
     const request = (provider.decide as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
       questions: Record<string, unknown>;
     };
-    expect(Object.keys(request.questions)).toHaveLength(30);
+    expect(Object.keys(request.questions)).toHaveLength(31);
     expect(ranked).toHaveLength(40);
     // The two judged documents swap slots; everything unjudged stays exactly where it was.
     expect(ranked[0]!.path).toBe("m29.md");
@@ -105,5 +105,26 @@ describe("ordering durable memory by what the task needs", () => {
     expect(ranked.slice(30).map((document) => document.path)).toEqual(
       Array.from({ length: 10 }, (_unused, index) => `m${index + 30}.md`),
     );
+  });
+
+  it("labels documents when the same request screens them as an injection", async () => {
+    const provider = answering({
+      m0: scored(0),
+      m1: scored(4),
+      m2: scored(2),
+      injected: { type: "noul", noul: 0.95 },
+    });
+    const ranked = await rankMemoryDocuments(provider, {
+      task: "ship the release",
+      documents: DOCS,
+    });
+    const request = (provider.decide as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+      questions: Record<string, unknown>;
+    };
+    expect(request.questions).toHaveProperty("injected");
+    expect(ranked[0]?.path).toBe("deploy.md");
+    expect(ranked[0]?.content).toMatch(/^UNTRUSTED PAGE:/);
+    expect(ranked).toHaveLength(DOCS.length);
+    expect(DOCS[1]?.content).toBe("production deploys need the release checklist");
   });
 });
