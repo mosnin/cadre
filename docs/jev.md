@@ -74,10 +74,12 @@ Answer, search, fetch, skill, company, code, and computer generate while
 the boot continues. A later `web_search` or `web_fetch` does not wait either.
 The first tool that touches the workspace waits on the same provision
 promise, which a generation has usually already outlasted.
-When the first action is `browse`, pursuit starts the moment the computer is
-up — overlapping the rest of prompt assembly — so the first generation sees the
-page that was already acted on instead of spending a turn deciding to call
-`browser_pursue`. Group context, messaging identity, approved-effect replay,
+When the first action is `browse`, pursuit starts the moment start says so and
+the computer is up — overlapping connector discovery, memory ranking, key
+resolution, and prompt assembly — so the first generation sees the page that
+was already acted on instead of spending a turn deciding to call
+`browser_pursue`. A run that only learns the model after start kicks the same
+pursuit once provision begins. Group context, messaging identity, approved-effect replay,
 prior progress, the bot directory, and saved logins start beside computer
 provision, so those reads overlap the boot instead of waiting for it.
 Helper routing starts before the helper waits for a slot, so a queued delegate

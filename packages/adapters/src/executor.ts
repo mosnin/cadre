@@ -1309,6 +1309,40 @@ export function createRunExecutor(deps: ExecutorDeps) {
           storedComputer && fallbackProvider && fallbackModelId
             ? provisionComputer(deps, storedComputer.id, bootContext, "bot")
             : undefined;
+        // Pursuit starts as soon as start says browse and the machine is up,
+        // overlapping discovery, memory, and key resolution. A second kick
+        // after start.model covers a run that only then has a model to boot.
+        let browseInFlight: ReturnType<typeof prefetchBrowseStart> | undefined;
+        const browseWhenReady = (
+          startDecision: { first?: string },
+          ctx: AdapterContext,
+        ): ReturnType<typeof prefetchBrowseStart> => {
+          if (browseInFlight) return browseInFlight;
+          if (startDecision.first !== "browse" || !provisionPromise) {
+            return Promise.resolve(undefined);
+          }
+          browseInFlight = provisionPromise
+            .then((ready) =>
+              prefetchBrowseStart({
+                start: startDecision,
+                goal: task.prompt,
+                decisions,
+                runId,
+                context: ctx,
+                computer: ready,
+                browser: deps.sandbox.browser,
+                prisma: deps.prisma,
+                spaceId: run.spaceId,
+                botId: run.botId,
+              }),
+            )
+            .catch(() => undefined);
+          return browseInFlight;
+        };
+        let browsePromise = startPromise.then((startDecision) =>
+          browseWhenReady(startDecision, bootContext),
+        );
+        void browsePromise.catch(() => undefined);
         let runReads =
           storedComputer && fallbackProvider && fallbackModelId
             ? startIndependentRunReads(deps, { run, thread, bot })
@@ -1482,6 +1516,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             provisionPromise?.catch(() => undefined),
             resolvePromise?.catch(() => undefined),
             prefetchPromise.catch(() => undefined),
+            browsePromise.catch(() => undefined),
           ]);
           const failed = await deps.events.finalizeRun({
             spaceId: run.spaceId,
@@ -1523,6 +1558,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
         }
         if (!storedComputer) throw new Error("Bot has no computer");
         provisionPromise ??= provisionComputer(deps, storedComputer.id, context, "bot");
+        browsePromise = browseWhenReady(start, context);
         runReads ??= startIndependentRunReads(deps, { run, thread, bot });
         const reads = runReads;
         const computerMode = parseComputerMode(storedComputer.scope);
@@ -1567,20 +1603,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
           if (!computer) return Promise.resolve();
           return checkpointAfterComputerWork(deps, storedComputer, computer, context);
         });
-        const browsePromise = computer
-          ? prefetchBrowseStart({
-              start,
-              goal: task.prompt,
-              decisions,
-              runId,
-              context,
-              computer,
-              browser: deps.sandbox.browser,
-              prisma: deps.prisma,
-              spaceId: run.spaceId,
-              botId: run.botId,
-            })
-          : Promise.resolve(undefined);
         if (start.first === "browse") workspaceCheckpoint.markDirty();
         /**
          * End this attempt without ending the run: persist a progress note, reset the tool
