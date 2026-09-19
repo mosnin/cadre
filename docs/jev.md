@@ -83,6 +83,7 @@ here is the last thing between an agent and an irreversible action.
 | Catalog ranking (`rankCatalogHits`) | Loading the **wrong connector tool** | One `score` per shortlisted tool, one request | The keyword order |
 | Memory order (`rankMemoryDocuments`) | A **recency sort** that decided which saved facts a run would never see | One `score` per document, one request | The recency order, unchanged |
 | Fetch screen (`screenUntrustedText`) | Nothing; **raises a bar** on pages that try to instruct the agent | `noul` "is this a jailbreak or override?" | The page, unlabeled |
+| Browser page screen | Nothing on `browser_observe` / `browser_act`; **free** on `browser_pursue` because it rides the action request | The same injection `noul`, asked beside the step when the page already has enough text | The page, unlabeled |
 | Browser action (`planBrowserTurn`) | A **generation** per browser step, the **next** step's request when the page still has that control, a **navigate** generation that would invent a URL, and the **first** browse generation when start already chose `browse` | One request: `choice` operation + speculative targets + the same questions prefixed `next_` + which known value fills the field + dropdown control and option together + which goal URL to open | The agent deciding, as today |
 | Symbolic find / check / triage | A **generation** that reviews its own diff, files, or log | Scores, nouls, and a closed failure `choice` over evidence the agent already gathered | No findings, with `notChecked` filled |
 

@@ -35,5 +35,8 @@ describe("screening untrusted text", () => {
   it("labels the page without dropping it", () => {
     expect(markUntrustedFetchText("hello")).toContain("hello");
     expect(markUntrustedFetchText("hello")).toMatch(/^UNTRUSTED PAGE:/);
+    expect(markUntrustedFetchText(markUntrustedFetchText("hello"))).toBe(
+      markUntrustedFetchText("hello"),
+    );
   });
 });
