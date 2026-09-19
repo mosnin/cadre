@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { type StyleProp, type TextStyle } from "react-native";
+import type { StyleProp, TextStyle } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -14,13 +14,7 @@ import Animated, {
  * Native stand-in for ElevenLabs shimmering-text (`components add shimmering-text`).
  * The official component is Motion/CSS; phones get the same sweep via opacity.
  */
-export function ShimmeringText({
-  text,
-  style,
-}: {
-  text: string;
-  style?: StyleProp<TextStyle>;
-}) {
+export function ShimmeringText({ text, style }: { text: string; style?: StyleProp<TextStyle> }) {
   const reduce = useReducedMotion();
   const progress = useSharedValue(reduce ? 1 : 0);
 
