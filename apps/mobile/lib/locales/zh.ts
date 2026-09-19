@@ -315,6 +315,7 @@ export const ZH_MESSAGES: Record<string, string> = {
   "OpenAI-compatible server URL": "OpenAI 兼容服务器地址",
   Optional: "可选",
   "Or connect an API key": "或连接 API 密钥",
+  Orb: "光球",
   Organic: "有机",
   "Other model…": "其他模型…",
   Password: "密码",
