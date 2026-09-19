@@ -68,17 +68,23 @@ function mix(channel: number, towards: number, amount: number): number {
   return Math.min(1, Math.max(0, channel + (towards - channel) * amount));
 }
 
+/** Hue-preserving shade. Multiply keeps the colour; a floor avoids a black rim. */
+function shade(channel: number): number {
+  return Math.max(channel * 0.55, 0.07);
+}
+
 /**
  * Three stops from one colour: the colour itself, a pastel lift, and a deep
- * shade. Mix toward off-white and ink, not pure white/black, so the orb reads
- * as a colour gradient instead of a bright disc on a black rim.
+ * shade of the same hue. The official shader still bookends black and white;
+ * these stops have to span a real lightness range or the swirl reads as a
+ * bright disc on black.
  */
 export function orbStops(color: string): OrbStops {
   const [r, g, b] = parseHex(color);
   return [
     [r, g, b],
-    [mix(r, 0.88, 0.36), mix(g, 0.88, 0.36), mix(b, 0.88, 0.36)],
-    [mix(r, 0.16, 0.26), mix(g, 0.16, 0.26), mix(b, 0.16, 0.26)],
+    [mix(r, 0.94, 0.4), mix(g, 0.94, 0.4), mix(b, 0.94, 0.4)],
+    [shade(r), shade(g), shade(b)],
   ];
 }
 
@@ -102,12 +108,12 @@ function hexStop([r, g, b]: Rgb): string {
 
 /**
  * The two colours the ElevenLabs Orb takes. Dark first (the shader's "darker"
- * stop, which sits next to black), then the agent's own colour, so the live
- * ramp is a hue gradient instead of a bright flash against black.
+ * stop, next to black), then the pastel lift (next to white), so the official
+ * black→uColor1→uColor2→white ramp is a hue gradient instead of neon on ink.
  */
 export function orbColors(color: string): [string, string] {
-  const [mid, , dark] = orbStops(color);
-  return [hexStop(dark), hexStop(mid)];
+  const [, light, dark] = orbStops(color);
+  return [hexStop(dark), hexStop(light)];
 }
 
 /** A stable seed so the same agent colour keeps the same swirl. */

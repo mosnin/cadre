@@ -48,15 +48,26 @@ describe("orb palette", () => {
 
   it("writes CSS the still orb and React Native can both take", () => {
     expect(orbGradientStops("#000000")).toEqual([
-      "rgb(81, 81, 81)",
+      "rgb(96, 96, 96)",
       "rgb(0, 0, 0)",
-      "rgb(11, 11, 11)",
+      "rgb(18, 18, 18)",
     ]);
   });
 
-  it("hands the ElevenLabs Orb a dark/mid pair from the agent's colour", () => {
-    expect(orbColors("#3380FF")).toEqual(["#3069c7", "#3380ff"]);
+  it("hands the ElevenLabs Orb a dark/light pair from the agent's colour", () => {
+    expect(orbColors("#3380FF")).toEqual(["#1c468c", "#7eadf9"]);
     expect(orbSeed("#3380FF")).toBe(orbSeed("#3380FF"));
     expect(orbSeed("#3380FF")).not.toBe(orbSeed("#26BF8C"));
+  });
+
+  it("keeps the shader pair in the hue and apart so the swirl is a gradient", () => {
+    const luma = ([r, g, b]: readonly [number, number, number]) =>
+      0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const [dark, light] = orbColors("#26BF8C").map((hex) => parseHex(hex));
+    expect(luma(light) - luma(dark)).toBeGreaterThan(0.2);
+    expect(luma(dark)).toBeGreaterThan(0.15);
+    expect(luma(light)).toBeLessThan(0.9);
+    expect(dark[1]).toBeGreaterThan(dark[0]);
+    expect(light[1]).toBeGreaterThan(light[0]);
   });
 });
