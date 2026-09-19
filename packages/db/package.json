@@ -25,11 +25,11 @@
     "@cadre/core": "workspace:*",
     "@cadre/logging": "workspace:*",
     "pg": "^8.16.3",
-    "dotenv": "^17.2.1"
+    "dotenv": "^17.2.1",
+    "prisma": "^7.9.1"
   },
   "devDependencies": {
     "@types/pg": "^8.15.5",
-    "prisma": "^7.9.1",
     "typescript": "^5.9.2",
     "vitest": "^4.1.10"
   }
