@@ -25,6 +25,9 @@ describe("GroupAvatar", () => {
     const count = (html.match(/data-working=/g) || []).length;
     expect(count).toBe(2);
     expect(html).toContain('data-working="false"');
+    expect(html).toContain("bg-background");
+    expect(html).not.toContain("box-shadow");
+    expect(html).not.toContain("var(--accent)");
   });
 
   it("renders a working member inside a group avatar", () => {

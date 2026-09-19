@@ -1,3 +1,4 @@
+import { groupAvatarLayout } from "@cadre/core";
 import { type CSSProperties, memo } from "react";
 import { BotAvatar } from "./bot-avatar.js";
 import { cn } from "./lib/utils.js";
@@ -62,53 +63,44 @@ export const GroupAvatar = memo(function GroupAvatar({
     );
   }
 
-  const pair = members.length === 2;
-  const miniSize = Math.round(size * (pair ? 0.65 : 0.54));
-  const positions: CSSProperties[] = pair
-    ? [
-        { top: 0, left: 0 },
-        { right: 0, bottom: 0 },
-      ]
-    : [
-        { top: 0, left: (size - miniSize) / 2 },
-        { bottom: 0, left: 0 },
-        { right: 0, bottom: 0 },
-      ];
-  const visibleMembers = members.slice(0, pair || members.length === 3 ? members.length : 2);
+  const layout = groupAvatarLayout(size, members.length);
+  const visibleMembers = members.slice(0, layout.visibleCount);
 
   return (
     <div
-      className={cn("cadre-group-avatar relative rounded-full select-none", className)}
+      className={cn("cadre-group-avatar relative select-none", className)}
       style={{ width: size, height: size, flex: "none" }}
     >
       {visibleMembers.map((member, index) => (
         <div
           key={member.botId ?? index}
-          className="absolute rounded-full"
-          style={{
-            ...positions[index],
-            zIndex: index + 1,
-            boxShadow: "0 0 0 1.5px var(--accent)",
-          }}
+          className="absolute flex items-center justify-center overflow-hidden rounded-full bg-background"
+          style={
+            {
+              width: layout.slot,
+              height: layout.slot,
+              zIndex: index + 1,
+              ...layout.positions[index],
+            } as CSSProperties
+          }
         >
           <BotAvatar
             color={member.color}
             identity={member.botId ?? member.name}
-            size={miniSize}
+            size={layout.miniSize}
             status={member.status}
           />
         </div>
       ))}
-      {members.length > 3 ? (
+      {layout.showOverflow && layout.overflowLabel ? (
         <div
-          className="absolute right-0 bottom-0 z-[3] flex items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-foreground"
+          className="absolute right-0 bottom-0 z-[3] flex items-center justify-center overflow-hidden rounded-full bg-accent text-[10px] font-semibold text-foreground"
           style={{
-            width: miniSize,
-            height: miniSize,
-            boxShadow: "0 0 0 1.5px var(--accent)",
+            width: layout.slot,
+            height: layout.slot,
           }}
         >
-          {`+${members.length - 2}`}
+          {layout.overflowLabel}
         </div>
       ) : null}
     </div>
