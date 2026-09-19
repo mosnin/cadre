@@ -2,30 +2,16 @@
  * The agent orb.
  *
  * The live visual is ElevenLabs' Orb (`npx @elevenlabs/cli@latest components add orb`),
- * filling the circle. What is ours is the colour and the budget:
- *
- * - **Colour** comes from the agent's own `color`, through `orbColors`.
- * - **Budget.** A browser allows a handful of live WebGL contexts. A rail can
- *   show twenty agents, so only orbs on screen, with motion allowed, take a
- *   context. Everything else draws the same pair as a still gradient.
+ * filling the whole circle. Colour comes from the agent. A browser allows only
+ * a handful of WebGL contexts, so off-screen orbs wait their turn; the fill
+ * underneath is the agent's colour, not a second invented orb.
  */
-import { orbGradientStops } from "@cadre/core";
-import {
-  type CSSProperties,
-  lazy,
-  memo,
-  Suspense,
-  useEffect,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { orbColors } from "@cadre/core";
+import { lazy, memo, Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { cn } from "./lib/utils.js";
 import "./styles.css";
 
 export type OrbState = "idle" | "connecting" | "listening" | "speaking" | "muted";
-
-/** Below this the motion is not readable, so it is not worth a context. */
-const LIVE_ORB_MIN_SIZE = 24;
 
 const LiveOrb = lazy(async () => {
   const module = await import("./orb-avatar-live.js");
@@ -75,8 +61,8 @@ export const OrbAvatar = memo(function OrbAvatar({
   useEffect(() => {
     setHydrated(true);
   }, []);
-  const wantsLive = hydrated && size >= LIVE_ORB_MIN_SIZE && !reducedMotion;
-  const [light, mid, dark] = orbGradientStops(color);
+  const wantsLive = hydrated && !reducedMotion;
+  const [, mid] = orbColors(color);
 
   return (
     <span
@@ -88,20 +74,8 @@ export const OrbAvatar = memo(function OrbAvatar({
         "cadre-orb relative inline-block shrink-0 overflow-hidden rounded-full",
         className,
       )}
-      style={
-        {
-          width: size,
-          height: size,
-          "--cadre-orb-halo": `color-mix(in oklab, ${mid} 45%, transparent)`,
-        } as CSSProperties
-      }
+      style={{ width: size, height: size, backgroundColor: mid }}
     >
-      <span
-        className="absolute inset-0 rounded-full"
-        style={{
-          background: `radial-gradient(circle at 38% 32%, ${light} 0%, ${mid} 52%, ${dark} 100%)`,
-        }}
-      />
       {wantsLive ? (
         <Suspense fallback={null}>
           <LiveOrb color={color} state={state} volume={volume} />

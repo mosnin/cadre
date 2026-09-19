@@ -96,15 +96,12 @@ test("create group from + and see two bots in one transcript", async ({ page }, 
     .getByRole("button", { name: /^Draft team/ })
     .locator(".cadre-group-avatar");
   await expect(groupAvatar).toBeVisible();
-  // An agent is an orb now, so a group is two of them. The run in flight is
-  // still marked the same way — `data-working` — but a mini avatar in a
-  // group is well under the size that earns a live WebGL context, so it
-  // shows the still orb's fallback: a halo that breathes.
+  // An agent is an orb now, so a group is two of them. The run in flight
+  // is marked on the official orb.
   await expect(groupAvatar.locator(".cadre-orb")).toHaveCount(2);
   const workingAvatar = groupAvatar.locator('[data-working="true"]');
   await expect(workingAvatar).toHaveCount(1);
-  await expect(workingAvatar).toHaveAttribute("data-halo", "true");
-  await expect(workingAvatar).toHaveCSS("animation-name", "cadre-orb-working");
+  await expect(workingAvatar).toHaveAttribute("data-orb-state", "speaking");
   await captureScreenshot(page, testInfo, "group-avatar-active");
   await page.unroute("**/rpc/groups/list");
   await page.unroute("**/rpc/threads/get");

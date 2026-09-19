@@ -1,4 +1,5 @@
 import { cn } from "@cadre/ui-web";
+import { ShimmeringText } from "@cadre/ui-web/components/ui/shimmering-text";
 import { Loader } from "@cadre/ui-web/directory/loader";
 import { type ReactNode, useEffect, useState } from "react";
 
@@ -25,7 +26,7 @@ function Elapsed({ startedAt }: { startedAt: number }) {
 }
 export function LoadingState({
   indicator,
-  label = "Working",
+  label = "Thinking",
   startedAt,
 }: {
   indicator?: ReactNode;
@@ -35,19 +36,14 @@ export function LoadingState({
   return (
     <span role="status" className="flex w-fit items-center gap-2.5">
       {indicator ? (
-        <>
-          <span className="sr-only">{label}</span>
-          {indicator}
-        </>
+        indicator
       ) : (
-        <>
-          <span aria-hidden="true">
-            <Loader size={18} label={label} />
-          </span>
-          <span className="text-sm text-muted-foreground">{label}</span>
-          {startedAt !== undefined ? <Elapsed startedAt={startedAt} /> : null}
-        </>
+        <span aria-hidden="true">
+          <Loader size={18} label={label} />
+        </span>
       )}
+      <ShimmeringText text={label} startOnView={false} className="text-sm" />
+      {startedAt !== undefined ? <Elapsed startedAt={startedAt} /> : null}
     </span>
   );
 }

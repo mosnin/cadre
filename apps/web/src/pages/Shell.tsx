@@ -50,6 +50,7 @@ import {
   type SlashActionId,
   searchHitThreadTarget,
   serializeComposerPrompt,
+  shouldShowMessageDaySeparator,
   speechFromBlocks,
   truncateSlashDescription,
   userVisibleMessages,
@@ -110,6 +111,7 @@ import {
 } from "lucide-react";
 import {
   type DragEvent,
+  Fragment,
   lazy,
   type MutableRefObject,
   memo,
@@ -134,6 +136,7 @@ import {
   ComputersUnavailableHint,
   computersAreUnavailable,
 } from "../components/ComputersUnavailableHint";
+import { MessageDayStamp } from "../components/MessageDayStamp";
 import { MessageHoverMetadata } from "../components/MessageHoverMetadata";
 import { SkillDraftCard } from "../components/teach/SkillDraftCard";
 import { TeachCaptureOverlay } from "../components/teach/TeachCaptureOverlay";
@@ -2902,7 +2905,7 @@ export function ShellPage() {
             }
             navigation={
               <>
-                <nav aria-label={t`Workspace`} className="flex w-full flex-col">
+                <nav aria-label={t`Workspace`} className="flex w-full flex-col gap-1">
                   <RailNavRow
                     testId="rail-new-chat"
                     icon={<MessageSquarePlus size={RAIL.navIconSize} />}
@@ -2956,7 +2959,7 @@ export function ShellPage() {
                 </nav>
                 <InputGroup
                   data-testid="sidebar-search"
-                  className="w-full h-11 rounded-xl bg-background md:h-8 md:rounded-lg"
+                  className="mt-1 h-11 w-full rounded-xl bg-background md:h-8 md:rounded-lg"
                 >
                   <InputGroupAddon>
                     <Search size={15} aria-hidden="true" />
@@ -2972,6 +2975,7 @@ export function ShellPage() {
                 <Tabs
                   id="workspace-views"
                   variant="underline"
+                  className="mt-2"
                   value={activityMode ? "activity" : "conversations"}
                   onValueChange={(value) => {
                     if ((value === "activity") !== activityMode) toggleActivityMode();
@@ -3821,7 +3825,7 @@ export function ShellPage() {
       <aside
         data-testid="side-panel"
         data-panel={panel ?? "closed"}
-        className={`absolute inset-y-0 end-0 z-40 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background md:rounded-2xl lg:relative lg:z-20 ${
+        className={`absolute inset-y-0 end-0 z-40 flex min-h-0 shrink-0 flex-col overflow-hidden bg-card md:rounded-2xl lg:relative lg:z-20 ${
           panel && (active || activeGroup || panel === "create" || panel === "create-group")
             ? "w-full max-w-[384px] border-s border-sidebar-border md:inset-y-3 md:end-3 md:border-0 lg:inset-auto lg:w-[384px] lg:max-w-none"
             : "pointer-events-none w-0"
@@ -4747,8 +4751,8 @@ const Transcript = memo(function Transcript({
   const workingBotName = workingBots.length === 1 ? workingBots[0]?.name : undefined;
   const workingLabel =
     workingBotName != null && workingBotName !== ""
-      ? t`${workingBotName} is working`
-      : t`Bots are working`;
+      ? t`${workingBotName} is thinking`
+      : t`Thinking`;
   const snapToEnd = useCallback(() => {
     const element = scrollRef.current;
     if (!element) return;
@@ -4873,59 +4877,75 @@ const Transcript = memo(function Transcript({
             {loadingOlder ? t`Loading…` : t`Load earlier messages`}
           </button>
         ) : null}
-        {messages.map((message) => {
+        {messages.map((message, index) => {
           if (!message.blocks.some((block) => !isToolActivityBlock(block))) return null;
           const peerReceipt = isPeerReceiptBlocks(message.blocks);
+          let previousVisible: ThreadMessage | undefined;
+          for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
+            const candidate = messages[cursor];
+            if (candidate?.blocks.some((block) => !isToolActivityBlock(block))) {
+              previousVisible = candidate;
+              break;
+            }
+          }
+          const showDay = shouldShowMessageDaySeparator(
+            previousVisible?.createdAt,
+            message.createdAt,
+          );
           return (
-            <div
-              key={message.id}
-              data-message-id={message.id}
-              className={peerReceipt ? "relative py-0.5" : "group/message relative pt-9 hover:z-20"}
-            >
-              {peerReceipt ? null : (
-                <MessageHoverActions message={message} onReply={onReply} onReact={onReact} />
-              )}
-              <MessageView
-                artifactTarget={artifactTarget}
-                message={message}
-                canAnswer={message.id === answerableAskMessageId}
-                onOpenBot={onOpenBot}
-                onOpenPeerMessages={onOpenPeerMessages}
-                onAnswer={onAnswer}
-                speakerName={
-                  peerReceipt
-                    ? undefined
-                    : message.role === "bot"
-                      ? memberName?.(message.botId)
-                      : undefined
+            <Fragment key={message.id}>
+              {showDay ? <MessageDayStamp createdAt={message.createdAt} /> : null}
+              <div
+                data-message-id={message.id}
+                className={
+                  peerReceipt ? "relative py-0.5" : "group/message relative pt-9 hover:z-20"
                 }
-                memberName={memberName}
-                peerBot={peerBot}
-                replyPreview={
-                  message.replyToMessageId ? messageById.get(message.replyToMessageId) : undefined
-                }
-                replyToMessageId={message.replyToMessageId}
-                onJumpToMessage={onJumpToMessage}
-                onRefresh={onRefresh}
-                onBotChanged={onBotChanged}
-                onAddRoutine={onAddRoutine}
-                voiceReady={voiceReady}
-                speaking={speakingMessageId === message.id}
-                onSpeak={() => onSpeak(message)}
-              />
-              {!peerReceipt && message.thumbsUp ? (
-                <button
-                  type="button"
-                  aria-label={t`Remove thumbs-up`}
-                  onClick={() => void onReact(message)}
-                  className={`mt-1 rounded-full border border-border bg-muted px-2 py-0.5 text-xs ${
-                    message.role === "user" ? "ml-auto block" : ""
-                  }`}
-                >
-                  👍
-                </button>
-              ) : null}
-            </div>
+              >
+                {peerReceipt ? null : (
+                  <MessageHoverActions message={message} onReply={onReply} onReact={onReact} />
+                )}
+                <MessageView
+                  artifactTarget={artifactTarget}
+                  message={message}
+                  canAnswer={message.id === answerableAskMessageId}
+                  onOpenBot={onOpenBot}
+                  onOpenPeerMessages={onOpenPeerMessages}
+                  onAnswer={onAnswer}
+                  speakerName={
+                    peerReceipt
+                      ? undefined
+                      : message.role === "bot"
+                        ? memberName?.(message.botId)
+                        : undefined
+                  }
+                  memberName={memberName}
+                  peerBot={peerBot}
+                  replyPreview={
+                    message.replyToMessageId ? messageById.get(message.replyToMessageId) : undefined
+                  }
+                  replyToMessageId={message.replyToMessageId}
+                  onJumpToMessage={onJumpToMessage}
+                  onRefresh={onRefresh}
+                  onBotChanged={onBotChanged}
+                  onAddRoutine={onAddRoutine}
+                  voiceReady={voiceReady}
+                  speaking={speakingMessageId === message.id}
+                  onSpeak={() => onSpeak(message)}
+                />
+                {!peerReceipt && message.thumbsUp ? (
+                  <button
+                    type="button"
+                    aria-label={t`Remove thumbs-up`}
+                    onClick={() => void onReact(message)}
+                    className={`mt-1 rounded-full border border-border bg-muted px-2 py-0.5 text-xs ${
+                      message.role === "user" ? "ml-auto block" : ""
+                    }`}
+                  >
+                    👍
+                  </button>
+                ) : null}
+              </div>
+            </Fragment>
           );
         })}
         {running &&
@@ -5905,13 +5925,14 @@ const MessageView = memo(function MessageView({
           );
         }
         if (block.kind === "channel_message") {
+          const label = `${block.fromLabel}: ${block.text}`;
           return (
-            <div
-              key={i}
-              className="flex items-center justify-center gap-2 py-1 text-[13.5px] text-muted-foreground"
-            >
-              <span>
-                {providerLabel(block.provider)} · {block.fromLabel}: {block.text}
+            <div key={i} className="flex justify-start">
+              <span
+                className="inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] text-muted-foreground"
+                dir="auto"
+              >
+                {providerLabel(block.provider)} · {label}
               </span>
             </div>
           );

@@ -7,7 +7,7 @@ import {
 
 describe("usage banner dismiss preference", () => {
   it("builds a per-user storage key", () => {
-    expect(usageBannerDismissedStorageKey(null)).toBeNull();
+    expect(usageBannerDismissedStorageKey(null)).toBe("cadre:usage-banner-dismissed:local");
     expect(usageBannerDismissedStorageKey("user-1")).toBe("cadre:usage-banner-dismissed:user-1");
   });
 

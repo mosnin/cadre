@@ -33,7 +33,7 @@ export function AppSidebar({
     <Sidebar collapsible="none" {...props}>
       {/* Insets measured off the reference: 12px at the head, 8px down the
           list, 12px in the footer. The app had 20/12/16. */}
-      <SidebarHeader className="gap-3 px-3 pb-2 pt-3 md:gap-2">
+      <SidebarHeader className="gap-4 px-3 pb-3 pt-3">
         <SidebarHeaderContent closeLabel={closeLabel} actions={headerActions} title={headerTitle} />
         {navigation}
       </SidebarHeader>

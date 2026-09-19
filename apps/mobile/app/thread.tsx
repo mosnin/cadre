@@ -1440,7 +1440,7 @@ function Thread() {
           status={currentBotStatus}
         />
         <Text style={{ color: tokens.mutedForeground, fontSize: 13.5 }}>
-          {t("{name} is working", { name: currentBot.name })}
+          {t("{name} is thinking", { name: currentBot.name })}
         </Text>
       </View>
     ) : inGroup && workingGroupBots.length > 0 ? (
@@ -1468,8 +1468,8 @@ function Thread() {
         </View>
         <Text style={{ color: tokens.mutedForeground, fontSize: 13.5, flexShrink: 1 }}>
           {workingGroupBots.length === 1
-            ? t("{name} is working", { name: workingGroupBots[0]?.name ?? t("Agent") })
-            : t("{count} agents working", { count: workingGroupBots.length })}
+            ? t("{name} is thinking", { name: workingGroupBots[0]?.name ?? t("Agent") })
+            : t("{count} agents thinking", { count: workingGroupBots.length })}
         </Text>
       </View>
     ) : null;

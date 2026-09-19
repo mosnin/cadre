@@ -71,7 +71,7 @@ export function RailUsage({
         onClick={onDismiss}
         aria-label={t`Dismiss usage`}
         data-testid="rail-usage-dismiss"
-        className="absolute top-2 end-2 grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+        className="absolute top-1.5 end-1.5 grid size-8 place-items-center rounded-md text-foreground/75 hover:bg-accent hover:text-foreground"
       >
         <X size={15} strokeWidth={1.75} />
       </button>

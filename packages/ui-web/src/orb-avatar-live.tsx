@@ -4,7 +4,7 @@ import type { AgentState } from "./components/ui/orb.js";
 import { Orb } from "./components/ui/orb.js";
 import type { OrbState } from "./orb-avatar.js";
 
-const LIVE_ORB_BUDGET = 6;
+const LIVE_ORB_BUDGET = 16;
 
 let liveOrbs = 0;
 const budgetListeners = new Set<() => void>();
@@ -80,10 +80,7 @@ export function LiveOrb({
   }, [onScreen, budgetEpoch]);
 
   return (
-    <div
-      ref={hostRef}
-      className="pointer-events-none absolute inset-0 overflow-hidden rounded-full"
-    >
+    <div ref={hostRef} className="pointer-events-none absolute inset-0 h-full w-full">
       {hasBudget ? (
         <Orb
           className="h-full w-full"
