@@ -1215,6 +1215,40 @@ export function createRunExecutor(deps: ExecutorDeps) {
           sessionId: runId,
           signal: runAbortController.signal,
         });
+        const storedComputer = bot.computer;
+        const fallbackProvider =
+          defaultCredential?.provider ??
+          settings?.defaultModelProvider ??
+          runDeployment?.provider ??
+          runtimeFallback?.provider;
+        const fallbackModelId =
+          defaultCredential?.defaultModel ??
+          settings?.defaultModelId ??
+          runDeployment?.model ??
+          runtimeFallback?.id;
+        const bootContext = {
+          companyWorkspace: undefined as AdapterContext["companyWorkspace"],
+          operationId: runId,
+          traceId: runId,
+          spaceId: run.spaceId,
+          userId: run.userId,
+          botId: bot.id,
+          runId,
+          screenLeaseId: screenLeaseIdForRun(computerLease, runId, fence),
+          signal: runAbortController.signal,
+          connectedConnections: [],
+          connectedProviders: [],
+        };
+        // Boot does not read connectors. Start it beside credential lookup
+        // and plugin sync once a model is already named without that work.
+        let provisionPromise =
+          storedComputer && fallbackProvider && fallbackModelId
+            ? provisionComputer(deps, storedComputer.id, bootContext, "bot")
+            : undefined;
+        let runReads =
+          storedComputer && fallbackProvider && fallbackModelId
+            ? startIndependentRunReads(deps, { run, thread, bot })
+            : undefined;
         const overrideCredential =
           hasModelOverride && bot.modelProvider
             ? await findModelCredential(deps.prisma, run, bot.modelProvider)
@@ -1266,7 +1300,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
           })),
           connectedProviders: connectedComposio.map((row) => row.provider),
         };
-        const storedComputer = bot.computer;
         const memoryScope = configuredMemory
           ? effectiveMemoryScope(bot.memoryScope, configuredMemory.defaultScope)
           : null;
@@ -1282,14 +1315,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
           credential?.defaultModel ??
           settings?.defaultModelId;
         let runModelId = chosenModelId ?? runDeployment?.model ?? runtimeFallback?.id;
-        // Boot and resolve credentials beside start/discover/memory only when
-        // this run already has a model. Starting a computer with no model
-        // rejected on the missing-model path (no dataDir) and wasted a boot.
-        let provisionPromise =
+        // If the model was only knowable after override-credential lookup, boot now.
+        provisionPromise ??=
           storedComputer && runModelProvider && runModelId
             ? provisionComputer(deps, storedComputer.id, context, "bot")
             : undefined;
-        let runReads =
+        runReads ??=
           storedComputer && runModelProvider && runModelId
             ? startIndependentRunReads(deps, { run, thread, bot })
             : undefined;
