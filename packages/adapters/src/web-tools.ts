@@ -1,4 +1,5 @@
 import type { AdapterContext, WebFetchProvider, WebSearchProvider } from "@cadre/adapter-kit";
+import { markUntrustedFetchText, screenUntrustedText } from "./decision-guardrails.js";
 import { rankWebSearchHits } from "./decision-search.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 import { clampMaxChars, clampMaxResults } from "./web-limits.js";
@@ -36,6 +37,7 @@ export async function webFetchFromTool(
   fetchProvider: WebFetchProvider,
   context: AdapterContext,
   args: Record<string, unknown>,
+  decisions?: { provider?: DecisionProvider; sessionId?: string },
 ) {
   const url = String(args.url ?? "").trim();
   if (!url) return { error: "url is required" };
@@ -48,7 +50,14 @@ export async function webFetchFromTool(
       },
       context,
     );
-    return result;
+    const screen = await screenUntrustedText(decisions?.provider, {
+      source: result.url,
+      text: result.text,
+      sessionId: decisions?.sessionId,
+      signal: context.signal,
+    });
+    if (!screen.injected) return result;
+    return { ...result, text: markUntrustedFetchText(result.text), injected: true };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { runIsStuck } from "./decision-guards.js";
+import { assessRunFloor, runIsStuck } from "./decision-guards.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 function answering(answers: Record<string, unknown>): DecisionProvider {
@@ -36,5 +36,36 @@ describe("detecting a run that is not getting anywhere", () => {
 
   it("lets the run continue when the provider is unavailable", async () => {
     await expect(runIsStuck(unavailable, { goal: "g", evidence: TRAIL })).resolves.toBe(false);
+  });
+});
+
+describe("the factory floor at a segment boundary", () => {
+  it("asks the stuck, off-track, and needs-human questions together", async () => {
+    const provider = answering({
+      stuck: { type: "noul", noul: 0.1 },
+      off_track: { type: "noul", noul: 0.1 },
+      needs_human: { type: "noul", noul: 0.95 },
+    });
+    await expect(assessRunFloor(provider, { goal: "g", evidence: TRAIL })).resolves.toEqual({
+      stop: true,
+      reason: "needs_human",
+    });
+    const request = (provider.decide as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+      questions: Record<string, unknown>;
+    };
+    expect(Object.keys(request.questions)).toEqual(["stuck", "off_track", "needs_human"]);
+  });
+
+  it("never stops on a hedge", async () => {
+    await expect(
+      assessRunFloor(
+        answering({
+          stuck: { type: "noul", noul: 0.7 },
+          off_track: { type: "noul", noul: 0.7 },
+          needs_human: { type: "noul", noul: 0.7 },
+        }),
+        { goal: "g", evidence: TRAIL },
+      ),
+    ).resolves.toEqual({ stop: false });
   });
 });

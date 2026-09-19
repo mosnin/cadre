@@ -159,8 +159,11 @@ import { observationToolResult, parseComputerActions } from "./computer-tools.js
 import { checkpointAfterComputerWork } from "./computer-workspace.js";
 import { sanitizeConnectorError } from "./connector-safety.js";
 import { type BrowserSnapshot, pursueBrowserGoal } from "./decision-browser.js";
-import { runIsStuck } from "./decision-guards.js";
+import { suggestCompanyFocus } from "./decision-company.js";
+import { assessRunFloor } from "./decision-guards.js";
 import { routeRunModel, routerCandidates } from "./decision-routing.js";
+import { suggestSkill } from "./decision-skills.js";
+import { symbolicFromTool } from "./decision-symbolic.js";
 import { decideToolCall } from "./decision-turn.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
 import { isSandboxGoneError } from "./e2b-sandbox.js";
@@ -286,6 +289,9 @@ const READ_ONLY_AGENT_TOOLS = new Set([
   "schedule_list",
   "scratchpad_list",
   "skill_read",
+  "symbolic_find",
+  "symbolic_check",
+  "symbolic_triage",
   "web_search",
   "web_fetch",
 ]);
@@ -2684,7 +2690,21 @@ export function createRunExecutor(deps: ExecutorDeps) {
             );
           }
           if (name === "web_fetch") {
-            return finish(await webFetchFromTool(web, context, args));
+            return finish(
+              await webFetchFromTool(web, context, args, {
+                provider: deps.decisions ?? defaultDecisions,
+                sessionId: runId,
+              }),
+            );
+          }
+          if (name === "symbolic_find" || name === "symbolic_check" || name === "symbolic_triage") {
+            return finish(
+              await symbolicFromTool(
+                deps.decisions ?? defaultDecisions,
+                { ...args, workflow: name.replace("symbolic_", "") },
+                { sessionId: runId, signal: context.signal },
+              ),
+            );
           }
           if (name === "scratchpad_list") {
             return listScratchpadItemsFromTool(deps, {
@@ -3356,7 +3376,31 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   "\n",
                 )}\nWhen the user asks to run a taught skill by name, follow that skill's playbook exactly. The full playbook is included in the user task when they invoke it.`
             : undefined;
+        const decisions = deps.decisions ?? defaultDecisions;
+        const shouldSuggestSkill =
+          agentSkills.some((skill) => skill.source === "user" || skill.source === "plugin") ||
+          agentSkills.length > 4;
+        const [suggestedSkill, companyFocus] = await Promise.all([
+          shouldSuggestSkill
+            ? suggestSkill(decisions, {
+                task: task.prompt,
+                skills: agentSkills,
+                sessionId: runId,
+                signal: runAbortController?.signal,
+              })
+            : Promise.resolve(undefined),
+          context.companyWorkspace
+            ? suggestCompanyFocus(decisions, {
+                task: task.prompt,
+                sessionId: runId,
+                signal: runAbortController?.signal,
+              })
+            : Promise.resolve(undefined),
+        ]);
         const agentSkillsLine = formatSkillsCatalogInstruction(agentSkills);
+        const suggestedSkillLine = suggestedSkill
+          ? `A typed decision selected "${suggestedSkill}" as the catalog skill for this request. Call skill_read for that name first if it still fits; skip it if it does not.`
+          : undefined;
         const missingImagesInstruction = missingTurnImagesInstruction(
           turnBlocks,
           currentTurnImages,
@@ -3492,10 +3536,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 pluginLine,
                 localeLine,
                 context.companyWorkspace
-                  ? `Verified Company OS connection for this run: ${JSON.stringify(context.companyWorkspace)}. This workspace OAuth identity was checked now. For company context, call mcp__company-os-context__config_pull when available, or search mcp_search_tools for config_pull and use the returned exact tool ID. A catalog lookup failure is not evidence of missing authorization. Report the actual tool error; request reconnection only after an explicit expired or revoked credential error. Never tell the user to connect an already verified workspace merely because an app-account plugin list omits MCP.`
+                  ? `Verified Company OS connection for this run: ${JSON.stringify(context.companyWorkspace)}. This workspace OAuth identity was checked now. For company context, call mcp__company-os-context__config_pull when available, or search mcp_search_tools for config_pull and use the returned exact tool ID. A catalog lookup failure is not evidence of missing authorization. Report the actual tool error; request reconnection only after an explicit expired or revoked credential error. Never tell the user to connect an already verified workspace merely because an app-account plugin list omits MCP.${companyFocus ? ` Start with the ${companyFocus} records.` : ""}`
                   : "No Company OS workspace identity was verified for this run. Check available connector tools before making claims about access.",
                 `Verified workspace connections for this run: ${JSON.stringify(context.workspaceIntegrations ?? {})}. Use Operate for projects and recurring task definitions, and its scheduled_task_history tool for actual completion. Never infer completion from a scheduled date. Use scalar-workspace tools for customer records, pipelines and outreach. Use stored-workspace tools for organizational memory and this bot's stored-agent connector for private memory. Save agent observations privately unless the user explicitly asks to share them. Include source identity and timestamps. Read get_context_pack before tasks and save durable facts through the appropriate connector after verified work. Never copy another workspace or another agent's private memory. Search the MCP catalog for exact tool names before claiming a connector is unavailable.`,
                 agentSkillsLine,
+                suggestedSkillLine,
+                "For a coding task, use symbolic_find, symbolic_check, and symbolic_triage to judge files, diffs, and failures. They do not write code or approve a change.",
                 "Before using Operate or Stored, read connected-workspace. Before using Company OS, read the company-context skill. Before saving Company OS deliverables, also read company-deliverables. Use only this workspace's authorized connector and context; never combine private context across workspaces.",
                 "Write clear, direct sentences with normal capitalization. Lead with the useful result or the next necessary action. For a short request, give one useful reply. Perform routine checks silently; do not send an acknowledgment and then restate it as another message. Use message_user only for a meaningful update during sustained work, and do not repeat it in your final answer. Never echo internal routing envelopes, bot IDs, wake prompts, or coordination instructions into user-facing replies. Refer to teammates by name when relevant. Do not say work is done without a verified result or promise background work unless it is actually running. Never use em dashes in your messages to the user. Use periods, commas, or parentheses instead. Avoid decorative symbols.",
                 taughtSkillsLine,
@@ -3832,17 +3878,20 @@ export function createRunExecutor(deps: ExecutorDeps) {
             // retrying the same broken thing with slightly different arguments, and
             // that is exactly what burns an unattended run's budget. Asked once per
             // segment, so it costs nothing on the hot path.
-            const stuck = await runIsStuck(deps.decisions ?? defaultDecisions, {
+            const floor = await assessRunFloor(deps.decisions ?? defaultDecisions, {
               goal: task.prompt,
               evidence: segmentPending.note,
               runId,
               signal: runAbortController?.signal,
             });
-            if (stuck) {
-              throw new RunGuardrailError(
-                "Stopped: this run kept repeating work that was not making progress. Review what it tried before starting it again.",
-                "loop",
-              );
+            if (floor.stop) {
+              const message =
+                floor.reason === "needs_human"
+                  ? "Stopped: this run needs a person before it can continue. Review what it tried."
+                  : floor.reason === "off_track"
+                    ? "Stopped: this run drifted off the task. Review what it tried before starting it again."
+                    : "Stopped: this run kept repeating work that was not making progress. Review what it tried before starting it again.";
+              throw new RunGuardrailError(message, "loop");
             }
             await continueInNewSegment(segmentPending.reason, segmentPending.note);
             return;

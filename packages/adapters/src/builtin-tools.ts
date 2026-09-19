@@ -593,6 +593,59 @@ export const builtinAgentTools: ConnectorTool[] = [
     },
   },
   {
+    name: "symbolic_find",
+    description:
+      "Rank supplied files against a coding task. Pass paths and short excerpts; returns which files are involved. Does not read the computer itself.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task: { type: "string", description: "The user's original coding task." },
+        files: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              path: { type: "string" },
+              excerpt: { type: "string" },
+            },
+            required: ["path"],
+          },
+        },
+      },
+      required: ["task", "files"],
+    },
+    readOnly: true,
+  },
+  {
+    name: "symbolic_check",
+    description:
+      "Check a unified diff against the user's task. Flags unrelated hunks, weakened tests, and lockfile edits. An empty findings list is not approval.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task: { type: "string", description: "The user's original coding task, word for word." },
+        diff: { type: "string", description: "Unified diff to check." },
+      },
+      required: ["task", "diff"],
+    },
+    readOnly: true,
+  },
+  {
+    name: "symbolic_triage",
+    description:
+      "Classify failures from a test or CI log. Optionally pass the current diff. Does not rerun tests.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task: { type: "string" },
+        log: { type: "string", description: "Test or CI log to split and classify." },
+        diff: { type: "string", description: "Optional unified diff for context." },
+      },
+      required: ["log"],
+    },
+    readOnly: true,
+  },
+  {
     name: "skill_create",
     description:
       "Save a reusable skill or sequential workflow in the current workspace library, available to this user’s agents in this workspace. Use when the user asks to save instructions or repeat a process. Use schedule tools separately when the user requests automatic execution.",

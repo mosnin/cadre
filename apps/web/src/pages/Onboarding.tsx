@@ -57,7 +57,7 @@ export function OnboardingPage() {
   const [query, setQuery] = useState("");
   const [showAllProviders, setShowAllProviders] = useState(false);
   const [provider, setProvider] = useState("openrouter");
-  const [modelId, setModelId] = useState("deepseek/deepseek-v4-flash-0731");
+  const [modelId, setModelId] = useState("qwen/qwen3-235b-a22b");
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [probeModels, setProbeModels] = useState<string[]>([]);
