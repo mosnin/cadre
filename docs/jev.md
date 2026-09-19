@@ -46,8 +46,8 @@ This is the whole shape of `packages/adapters/src/decision-turn.ts` and
 `decision-start.ts`. Tool-call review used to be two requests about the same
 call; start used to be routing, then skill, then company, each about the same
 task. They now travel together. Speculative questions — the review verdict, the
-skill name, the URL to fetch, the browser step after this one — ride on the
-request that was being made anyway.
+skill name, the URL to fetch, the browser step after this one, the injection
+screen on a ranking request — ride on the request that was being made anyway.
 They are never the reason for a request of their own. The start request also
 runs beside credential lookup, plugin sync, and connector discovery, so its
 70–500ms is not added to the critical path. When the first action is a fetch or a short search, that tool runs while
@@ -102,12 +102,16 @@ here is the last thing between an agent and an irreversible action.
 | Run start (`decideRunStart`) | Two extra start-of-run **requests**, a `skill_read` **generation**, and the first `web_fetch` / `web_search` **generation** | One request: `choice` first action, speculative `choice` of model / skill / company area / URL, `noul` "is a skill needed?" | Each field unset: the deployment default, the catalog unread, the skill's own order, the agent deciding |
 | Search ranking (`rankWebSearchHits`) | Extra **fetches** on a shortlist that already answers | One request: a `score` per result plus `noul` "already answered?" and the injection `noul` | The engine's own order, and the agent fetching |
 | Catalog ranking (`rankCatalogHits`) | Loading the **wrong connector tool** | One request: a `score` per shortlisted tool plus the injection `noul` over their descriptions | The keyword order |
-| Memory order (`rankMemoryDocuments`) | A **recency sort** that decided which saved facts a run would never see | One `score` per document, one request | The recency order, unchanged |
+| Memory order (`rankMemoryDocuments`) | A **recency sort** that decided which saved facts a run would never see | One request: a `score` per document plus the injection `noul` | The recency order, unlabeled |
 | Fetch screen (`screenUntrustedText`) | Nothing; **raises a bar** on pages that try to instruct the agent | `noul` "is this a jailbreak or override?" | The page, unlabeled |
 | Browser page screen | Nothing on `browser_observe` / `browser_act`; **free** on `browser_pursue` because it rides the action request | The same injection `noul`, asked beside the step when the page already has enough text | The page, unlabeled |
 | Connector result screen (`labelUntrustedToolResult`) | Nothing; **raises a bar** on mail, issues, and other connector payloads that try to instruct the agent | The same injection `noul` over the string fields the model reads | The payload, unlabeled |
 | Browser action (`planBrowserTurn`) | A **generation** per browser step, the **next** step's request when the page still has that control, a **navigate** generation that would invent a URL, and the **first** browse generation when start already chose `browse` | One request: `choice` operation + speculative targets + the same questions prefixed `next_` + which known value fills the field + dropdown control and option together + which goal URL to open | The agent deciding, as today |
 | Symbolic find / check / triage | A **generation** that reviews its own diff, files, or log | Scores, nouls, and a closed failure `choice` over evidence the agent already gathered | No findings, with `notChecked` filled |
+
+The same injection screen now also rides memory ranking: a saved fact that
+tries to instruct the agent is labelled, and still kept. A low score is still
+not a reason to hide one.
 
 The consequence question is the one that is purely additive on latency, and it is
 deliberately narrow: it is asked **only** for connector calls the name check
