@@ -2,8 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import {
   decideRunStart,
   extractTaskUrls,
+  needsComputerBeforeFirstGeneration,
   searchQueryForStart,
   skillsImpliedByStart,
+  toolNeedsComputer,
 } from "./decision-start.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 
@@ -116,5 +118,30 @@ describe("what a start decision already paid for", () => {
     expect(skillsImpliedByStart({ first: "company" })).toEqual(["company-context"]);
     expect(skillsImpliedByStart({ companyFocus: "goals" })).toEqual(["company-context"]);
     expect(skillsImpliedByStart({ first: "answer" })).toEqual([]);
+  });
+
+  it("waits for the computer only when the first step needs the machine now", () => {
+    expect(needsComputerBeforeFirstGeneration("answer", false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration("search", false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration("fetch", false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration("skill", false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration("company", false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration("code", false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration(undefined, false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration("browse", false)).toBe(true);
+    expect(needsComputerBeforeFirstGeneration("computer", false)).toBe(true);
+    expect(needsComputerBeforeFirstGeneration("answer", true)).toBe(true);
+  });
+
+  it("waits for the computer only on tools that touch the workspace", () => {
+    expect(toolNeedsComputer("web_search")).toBe(false);
+    expect(toolNeedsComputer("web_fetch")).toBe(false);
+    expect(toolNeedsComputer("message_user")).toBe(false);
+    expect(toolNeedsComputer("skill_read")).toBe(false);
+    expect(toolNeedsComputer("render_plot", { help: true })).toBe(false);
+    expect(toolNeedsComputer("render_plot", { spec: { marks: [] } })).toBe(true);
+    expect(toolNeedsComputer("shell")).toBe(true);
+    expect(toolNeedsComputer("browser_pursue")).toBe(true);
+    expect(toolNeedsComputer("read_file")).toBe(true);
   });
 });

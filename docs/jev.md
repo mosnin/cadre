@@ -55,6 +55,12 @@ the computer provisions, and the result is already in the task. Computer
 provision and model-credential resolution start beside start, discovery and
 memory once the run already has a model, so a warm machine is not paid for
 after those return. A run with no model never starts either.
+The first generation starts as soon as credentials resolve unless the first
+action is `browse` or `computer`, or the user attached files — those need the
+machine now. Answer, search, fetch, skill, company, and code generate while
+the boot continues. A later `web_search` or `web_fetch` does not wait either.
+The first tool that touches the workspace waits on the same provision
+promise, which a generation has usually already outlasted.
 When the first action is `browse`, pursuit starts the moment the computer is
 up — overlapping the rest of prompt assembly — so the first generation sees the
 page that was already acted on instead of spending a turn deciding to call
