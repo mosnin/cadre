@@ -283,7 +283,10 @@ export function searchQueryForStart(task: string): string | undefined {
 export function skillsImpliedByStart(start: RunStartDecision): string[] {
   const names: string[] = [];
   if (start.skill) names.push(start.skill);
-  if (start.first === "company" || start.companyFocus) names.push("company-context");
+  if (start.first === "company" || start.companyFocus) {
+    names.push("company-context");
+    names.push("connected-workspace");
+  }
   if (start.first === "code") names.push("symbolic");
   return [...new Set(names)];
 }

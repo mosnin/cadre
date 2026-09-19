@@ -115,8 +115,14 @@ describe("what a start decision already paid for", () => {
 
   it("names the skill bodies that should be injected instead of read", () => {
     expect(skillsImpliedByStart({ skill: "symbolic", first: "code" })).toEqual(["symbolic"]);
-    expect(skillsImpliedByStart({ first: "company" })).toEqual(["company-context"]);
-    expect(skillsImpliedByStart({ companyFocus: "goals" })).toEqual(["company-context"]);
+    expect(skillsImpliedByStart({ first: "company" })).toEqual([
+      "company-context",
+      "connected-workspace",
+    ]);
+    expect(skillsImpliedByStart({ companyFocus: "goals" })).toEqual([
+      "company-context",
+      "connected-workspace",
+    ]);
     expect(skillsImpliedByStart({ first: "answer" })).toEqual([]);
   });
 
