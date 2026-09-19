@@ -52,8 +52,8 @@ They are never the reason for a request of their own. The start request also
 runs beside credential lookup, plugin sync, and connector discovery, so its
 70–500ms is not added to the critical path. When the first action is a fetch or a short search, that tool runs while
 the computer provisions, and the result is already in the task. Computer
-provision and model-credential resolution start beside start, discovery and
-memory once the run already has a model, so a warm machine is not paid for
+provision starts beside start, credential lookup and plugin sync once a
+model is already named without that work, so a warm machine is not paid for
 after those return. A run with no model never starts either.
 The start request begins beside credential lookup and plugin sync — it only
 needs the task, the skill list, and whether anyone already named a model —
