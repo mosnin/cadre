@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  consumeRunStart,
   decideRunStart,
   extractTaskUrls,
   needsComputerBeforeFirstGeneration,
@@ -179,15 +180,44 @@ describe("what a start decision already paid for", () => {
 
   it("names the skill bodies that should be injected instead of read", () => {
     expect(skillsImpliedByStart({ skill: "symbolic", first: "code" })).toEqual(["symbolic"]);
-    expect(skillsImpliedByStart({ first: "company" })).toEqual([
+    expect(skillsImpliedByStart({ first: "company" })).toEqual([]);
+    expect(skillsImpliedByStart({ first: "company" }, { companyWorkspace: true })).toEqual([
       "company-context",
       "connected-workspace",
     ]);
-    expect(skillsImpliedByStart({ companyFocus: "goals" })).toEqual([
+    expect(skillsImpliedByStart({ companyFocus: "goals" })).toEqual([]);
+    expect(skillsImpliedByStart({ companyFocus: "goals" }, { companyWorkspace: true })).toEqual([
       "company-context",
       "connected-workspace",
     ]);
     expect(skillsImpliedByStart({ first: "answer" })).toEqual([]);
+  });
+
+  it("keeps only the first step the harness can actually run", () => {
+    expect(consumeRunStart({ first: "browse" }, { task: "open the tab", urls: [] })).toEqual({
+      first: "browse",
+    });
+    expect(
+      consumeRunStart(
+        { first: "fetch", fetchUrl: "https://a.test" },
+        { task: "Read https://a.test", urls: ["https://a.test"] },
+      ),
+    ).toEqual({ first: "fetch", fetchUrl: "https://a.test" });
+    expect(
+      consumeRunStart(
+        { first: "fetch" },
+        { task: "Read https://a.test", urls: ["https://a.test"] },
+      ),
+    ).toEqual({ first: "fetch", fetchUrl: "https://a.test" });
+    expect(
+      consumeRunStart(
+        { first: "skill" },
+        { task: "Judge this", urls: [], skillChoice: "symbolic" },
+      ),
+    ).toEqual({ first: "skill", skill: "symbolic" });
+    expect(consumeRunStart({ first: "skill" }, { task: "Judge this", urls: [] })).toEqual({});
+    expect(consumeRunStart({ first: "search" }, { task: "x".repeat(401), urls: [] })).toEqual({});
+    expect(consumeRunStart({ first: "fetch" }, { task: "no url", urls: [] })).toEqual({});
   });
 
   it("waits for the computer only when the first step needs the machine now", () => {

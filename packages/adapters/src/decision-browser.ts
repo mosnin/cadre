@@ -20,6 +20,7 @@ import {
   type ChoiceAnswer,
   choice,
   DECISION_CONFIDENCE,
+  escapePromptData,
   type noul,
 } from "@cadre/core";
 import {
@@ -627,7 +628,9 @@ export function entitiesFromTask(task: string): BrowserEntity[] {
   return found.map((value, index) => ({ label: `quoted ${index + 1}`, value }));
 }
 
-/** Compact trace the start path injects so the first generation does not repeat the same clicks. */
+const MAX_PURSUED_PAGE_CHARS = 6_000;
+
+/** Compact trace plus the page already paid for, so the first generation does not observe it again. */
 export function formatPursuedStartPrompt(outcome: PursuitOutcome): string {
   const steps = outcome.steps
     .map((step) => {
@@ -638,5 +641,9 @@ export function formatPursuedStartPrompt(outcome: PursuitOutcome): string {
   const page = outcome.snapshot?.url ? ` Now on ${outcome.snapshot.url}.` : "";
   const awaiting = outcome.awaiting ? ` Waiting for a value in ${outcome.awaiting.name}.` : "";
   const error = outcome.error ? ` ${outcome.error}` : "";
-  return `<browser_progress status="${outcome.status}">${steps || "observed the open page"}</browser_progress>\nThe live browser already took these steps.${page}${awaiting}${error} Continue from this page; do not repeat them.`;
+  const text = outcome.snapshot?.text?.trim();
+  const pageBlock = text
+    ? `\n<browser_page${outcome.snapshot?.url ? ` url="${escapePromptData(outcome.snapshot.url)}"` : ""}>\n${escapePromptData(text.slice(0, MAX_PURSUED_PAGE_CHARS))}\n</browser_page>\nThe page above is already on screen. Use it; do not observe or repeat these steps.`
+    : " Continue from this page; do not repeat them.";
+  return `<browser_progress status="${outcome.status}">${steps || "observed the open page"}</browser_progress>\nThe live browser already took these steps.${page}${awaiting}${error}${pageBlock}`;
 }

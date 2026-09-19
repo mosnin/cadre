@@ -307,12 +307,17 @@ export function searchQueryForStart(task: string): string | undefined {
 
 /**
  * Skills whose bodies are already in memory and should be injected instead of
- * waiting for a skill_read generation.
+ * waiting for a skill_read generation. Company skills only when this run
+ * actually has a workspace identity — otherwise the bodies tell the agent
+ * to use connectors that are not there.
  */
-export function skillsImpliedByStart(start: RunStartDecision): string[] {
+export function skillsImpliedByStart(
+  start: RunStartDecision,
+  input?: { companyWorkspace?: boolean },
+): string[] {
   const names: string[] = [];
   if (start.skill) names.push(start.skill);
-  if (start.first === "company" || start.companyFocus) {
+  if (input?.companyWorkspace && (start.first === "company" || start.companyFocus)) {
     names.push("company-context");
     names.push("connected-workspace");
   }

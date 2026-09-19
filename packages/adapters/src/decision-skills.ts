@@ -3,8 +3,9 @@
  *
  * The agent otherwise browses the catalog with skill_read until something fits. That is a
  * generation per miss. One request asks whether a skill is needed at all and, speculatively,
- * which one — the same shape as TypeSafe's skill-suggestion cookbook. The name is a hint:
- * the agent still has to read the skill, and a hedged answer leaves the catalog alone.
+ * which one — the same shape as TypeSafe's skill-suggestion cookbook. A named skill is
+ * injected on the start path so the first generation does not spend a `skill_read`; a
+ * hedged answer leaves the catalog alone.
  */
 
 import { decideRunStart } from "./decision-start.js";
