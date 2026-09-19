@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { computerObservation } from "./computer-support.js";
-import { observationToolResult, parseComputerActions } from "./computer-tools.js";
+import {
+  computerActSettleMs,
+  observationToolResult,
+  parseComputerActions,
+} from "./computer-tools.js";
 
 describe("computer tool bridge", () => {
   it("normalizes a bounded batch into provider-neutral actions", () => {
@@ -36,6 +40,12 @@ describe("computer tool bridge", () => {
       expect.objectContaining({ type: "text" }),
       { type: "image", data: "AQID", mimeType: "image/png" },
     ]);
+  });
+
+  it("waits less after a batch that is not returning a screenshot", () => {
+    expect(computerActSettleMs({})).toBe(150);
+    expect(computerActSettleMs({ observe: false })).toBe(80);
+    expect(computerActSettleMs({ settle_ms: 20, observe: false })).toBe(20);
   });
 
   it("does not resend an unchanged screenshot", () => {

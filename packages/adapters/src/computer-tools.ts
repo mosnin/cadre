@@ -4,6 +4,15 @@ import type {
   ComputerObservation,
 } from "@cadre/adapter-kit";
 
+/** How long the desktop waits after a batch. An explicit settle_ms still wins. */
+export function computerActSettleMs(args: { settle_ms?: unknown; observe?: unknown }): number {
+  if (args.settle_ms !== undefined && args.settle_ms !== null && args.settle_ms !== "") {
+    const requested = Number(args.settle_ms);
+    if (Number.isFinite(requested)) return Math.min(5_000, Math.max(0, Math.round(requested)));
+  }
+  return args.observe === false ? 80 : 150;
+}
+
 export function parseComputerActions(value: unknown): ComputerAction[] {
   if (!Array.isArray(value) || value.length === 0) {
     throw new Error("computer_act requires at least one action");
