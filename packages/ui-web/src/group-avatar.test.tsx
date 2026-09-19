@@ -30,6 +30,20 @@ describe("GroupAvatar", () => {
     expect(html).not.toContain("var(--accent)");
   });
 
+  it("keeps rail-sized pair orbs large enough for the official shader", () => {
+    const html = render(
+      <GroupAvatar
+        size={28}
+        members={[
+          { name: "Sherlock", color: "#8B5CF6" },
+          { name: "Elon", color: "#06B6D4" },
+        ]}
+      />,
+    );
+    expect(html).toContain("width:20px");
+    expect(html).toContain("height:20px");
+  });
+
   it("renders a working member inside a group avatar", () => {
     const html = render(
       <GroupAvatar

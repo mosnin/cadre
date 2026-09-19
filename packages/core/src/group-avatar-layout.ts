@@ -1,3 +1,5 @@
+import { LIVE_ORB_MIN_SIZE } from "./group-member-orbs.js";
+
 export type GroupAvatarSlot = {
   top?: number;
   left?: number;
@@ -39,7 +41,9 @@ export function groupAvatarLayout(size: number, memberCount: number): GroupAvata
   const pair = memberCount === 2;
   const visibleCount = pair || memberCount === 3 ? memberCount : 2;
   const showOverflow = memberCount > 3;
-  const miniSize = Math.round(size * (pair ? 0.6 : 0.5));
+  const raw = Math.round(size * (pair ? 0.6 : 0.5));
+  const miniSize =
+    size < LIVE_ORB_MIN_SIZE ? raw : Math.max(raw, Math.min(size, LIVE_ORB_MIN_SIZE));
   const slot = Math.min(size, miniSize + GROUP_AVATAR_RING * 2);
   const centered = Math.round((size - slot) / 2);
   const positions: GroupAvatarSlot[] = pair

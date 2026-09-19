@@ -34,6 +34,10 @@ describe("groupAvatarLayout", () => {
     });
   });
 
+  it("keeps rail-sized pair orbs large enough for the official shader", () => {
+    expect(groupAvatarLayout(28, 2).miniSize).toBe(20);
+  });
+
   it("shows an overflow count instead of a fourth orb", () => {
     const layout = groupAvatarLayout(54, 5);
     expect(layout.visibleCount).toBe(2);

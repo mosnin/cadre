@@ -16,6 +16,7 @@ export * from "./decisions.js";
 export * from "./events.js";
 export * from "./featured-connectors.js";
 export * from "./group-avatar-layout.js";
+export * from "./group-member-orbs.js";
 export * from "./group-mentions.js";
 export * from "./mcp.js";
 export * from "./message-day.js";

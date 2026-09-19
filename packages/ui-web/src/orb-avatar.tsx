@@ -6,15 +6,12 @@
  * a handful of WebGL contexts, so off-screen orbs wait their turn; the fill
  * underneath is the agent's colour gradient, not a second invented orb.
  */
-import { orbGradientStops } from "@cadre/core";
+import { LIVE_ORB_MIN_SIZE, orbGradientStops } from "@cadre/core";
 import { lazy, memo, Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { cn } from "./lib/utils.js";
 import "./styles.css";
 
 export type OrbState = "idle" | "connecting" | "listening" | "speaking" | "muted";
-
-/** Mentions stay a colour fill; rail-size orbs run the official shader. */
-const LIVE_ORB_MIN_SIZE = 20;
 
 const LiveOrb = lazy(async () => {
   const module = await import("./orb-avatar-live.js");
