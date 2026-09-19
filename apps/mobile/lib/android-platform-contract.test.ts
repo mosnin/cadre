@@ -154,7 +154,7 @@ describe("Android mobile platform contract", () => {
     expect(thread).toContain("workingGroupBots.map");
     expect(thread).toContain("inGroup && workingGroupBots.length > 0 ?");
     expect(thread).toContain("workingGroupBots.length - index");
-    expect(thread).toContain("agents working");
+    expect(thread).toContain("agents thinking");
   });
 
   it("keeps send and stop separate while steering active work", () => {
