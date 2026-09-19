@@ -5,7 +5,7 @@ test("plugin imports are atomic and private to their owner and workspace", async
   page,
   browser,
 }) => {
-  await signup(page, `library-isolation-${Date.now()}@rakazo.test`, "password12", "Library Owner");
+  await signup(page, `library-isolation-${Date.now()}@cadre.test`, "password12", "Library Owner");
   await completeOnboarding(page);
   const config = {
     files: [
@@ -30,7 +30,7 @@ test("plugin imports are atomic and private to their owner and workspace", async
   const skill = catalog.find((entry) => entry.source === "plugin")!;
   expect(skill).toBeDefined();
   const other = await rpc<{ id: string }>(page, "spaces/create", { name: "Other company" });
-  const headers = { "x-rakazo-space-id": other.id };
+  const headers = { "x-cadre-space-id": other.id };
   const isolatedList = await page.request.post("/rpc/agentSkills/list", {
     headers,
     data: { json: {} },
@@ -60,7 +60,7 @@ test("plugin imports are atomic and private to their owner and workspace", async
   const stranger = await browser.newContext();
   try {
     const second = await stranger.newPage();
-    await signup(second, `library-stranger-${Date.now()}@rakazo.test`, "password12", "Other Owner");
+    await signup(second, `library-stranger-${Date.now()}@cadre.test`, "password12", "Other Owner");
     await completeOnboarding(second);
     expect(
       (

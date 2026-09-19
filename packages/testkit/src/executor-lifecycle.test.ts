@@ -1,9 +1,9 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { FakeSandboxProvider, ScriptedAgentRuntime } from "@rakazo/adapters";
-import { approvalEffectKey } from "@rakazo/core/node/approval-effect-key";
-import { createThreadEvents } from "@rakazo/db";
+import { FakeSandboxProvider, ScriptedAgentRuntime } from "@cadre/adapters";
+import { approvalEffectKey } from "@cadre/core/node/approval-effect-key";
+import { createThreadEvents } from "@cadre/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { reserveRunTool } from "../../adapters/src/run-guardrails.js";
 
@@ -16,7 +16,7 @@ const describeIntegration = hasDb ? describe : describe.skip;
 
 describeIntegration("run executor lifecycle", () => {
   let handles: Awaited<ReturnType<typeof import("../../../apps/api/src/app.ts")["createApp"]>>;
-  const dataDir = mkdtempSync(path.join(tmpdir(), "rakazo-executor-lifecycle-"));
+  const dataDir = mkdtempSync(path.join(tmpdir(), "cadre-executor-lifecycle-"));
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   beforeAll(async () => {
@@ -169,10 +169,11 @@ describeIntegration("run executor lifecycle", () => {
     ).rejects.toThrow("no longer owns");
   });
 
-  it.each(["runtime", "repeated-tool"])(
-    "pauses the schedule at a %s safety limit",
+  it.each(["runtime", "repeated-tool", "automation"])(
+    "keeps the schedule active at a %s safety limit and pauses it only for automation abuse",
     async (mode) => {
       const seeded = await seedRun(`routine-guard-${mode}`, "Check progress");
+      const nextRunAt = new Date(Date.now() + 60_000);
       const routine = await handles.prisma.routine.create({
         data: {
           spaceId: seeded.me.spaceId,
@@ -183,7 +184,7 @@ describeIntegration("run executor lifecycle", () => {
           prompt: "Check progress",
           crons: ["* * * * *"],
           active: true,
-          nextRunAt: new Date(Date.now() + 60_000),
+          nextRunAt,
         },
       });
       await handles.prisma.run.update({
@@ -195,6 +196,16 @@ describeIntegration("run executor lifecycle", () => {
         .mockImplementation(async function* () {
           if (mode === "runtime") {
             yield { type: "guardrail", reason: "Run safety limit reached." };
+            return;
+          }
+          if (mode === "automation") {
+            yield {
+              type: "tool",
+              name: "spawn_bot",
+              args: { name: "Helper", title: "Helper", instructions: "help", prompt: "go" },
+              executionId: "spawn-1",
+            };
+            yield { type: "done", text: "This must not finish successfully." };
             return;
           }
           for (let i = 0; i < 6; i++) {
@@ -216,8 +227,10 @@ describeIntegration("run executor lifecycle", () => {
           status: "failed",
           error:
             mode === "runtime"
-              ? "Run safety limit reached."
-              : expect.stringContaining("repeated tool-call loop"),
+              ? expect.stringContaining("Run safety limit reached.")
+              : mode === "automation"
+                ? expect.stringContaining("direct user request")
+                : expect.stringContaining("repeated tool-call loop"),
         });
         if (mode === "repeated-tool") {
           expect(
@@ -225,9 +238,24 @@ describeIntegration("run executor lifecycle", () => {
               .guardrailState,
           ).toMatchObject({ count: 5 });
         }
-        expect(
-          await handles.prisma.routine.findUniqueOrThrow({ where: { id: routine.id } }),
-        ).toMatchObject({ active: false, nextRunAt: null });
+        const after = await handles.prisma.routine.findUniqueOrThrow({ where: { id: routine.id } });
+        if (mode === "automation") {
+          // Automation creating more automation is the one case that pauses a schedule.
+          expect(after).toMatchObject({ active: false, nextRunAt: null });
+          expect(
+            await handles.prisma.event.findFirst({
+              where: { runId: seeded.run.id, type: "routine.paused" },
+            }),
+          ).not.toBeNull();
+        } else {
+          // A budget or loop stop ends the run but the next occurrence still fires.
+          expect(after).toMatchObject({ active: true, nextRunAt });
+          expect(
+            await handles.prisma.event.findFirst({
+              where: { runId: seeded.run.id, type: "routine.paused" },
+            }),
+          ).toBeNull();
+        }
       } finally {
         runtime.mockRestore();
       }
@@ -311,7 +339,7 @@ describeIntegration("run executor lifecycle", () => {
   it("records an uncertain result without replaying an interrupted external effect", async () => {
     const prompt = "write this to the destination crm as a note";
     const seeded = await seedRun("uncertain-effect", prompt);
-    const args = { collection: "notes", title: "Rakazo result", body: prompt };
+    const args = { collection: "notes", title: "Cadre result", body: prompt };
     const executionId = approvalEffectKey(seeded.run.id, "destination.write", args);
     await handles.prisma.externalEffect.create({
       data: {
@@ -349,7 +377,7 @@ describeIntegration("run executor lifecycle", () => {
   it("recreates the approval pause when an intended effect was interrupted before the card", async () => {
     const prompt = "write this to the destination crm as a note";
     const seeded = await seedRun("interrupted-before-approval", prompt);
-    const args = { collection: "notes", title: "Rakazo result", body: prompt };
+    const args = { collection: "notes", title: "Cadre result", body: prompt };
     const executionId = approvalEffectKey(seeded.run.id, "destination.write", args);
     const effect = await handles.prisma.externalEffect.create({
       data: {
@@ -669,7 +697,7 @@ describeIntegration("run executor lifecycle", () => {
 
   it("applies the same no-parallel-run rule to the targeted group member", async () => {
     const cookie = await signup(
-      `executor-group-steering-${stamp}@rakazo.test`,
+      `executor-group-steering-${stamp}@cadre.test`,
       "Executor group steering",
     );
     const me = await rpc<{ userId: string; spaceId: string }>(cookie, "me");
@@ -765,7 +793,7 @@ describeIntegration("run executor lifecycle", () => {
       completedAt?: Date;
     } = {},
   ) {
-    const cookie = await signup(`executor-${label}-${stamp}@rakazo.test`, `Executor ${label}`);
+    const cookie = await signup(`executor-${label}-${stamp}@cadre.test`, `Executor ${label}`);
     const me = await rpc<{ userId: string; spaceId: string }>(cookie, "me");
     const bot = await rpc<{ id: string }>(cookie, "bots/create", {
       name: `Executor ${label}`,

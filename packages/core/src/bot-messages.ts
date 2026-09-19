@@ -2,7 +2,8 @@ import {
   BOT_DESCRIPTION_MAX_LENGTH,
   type BotMessageIntent,
   type MessageBlock,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
+import { escapePromptData } from "./prompt-data.js";
 
 export const BOT_MESSAGE_MAX_LENGTH = 8_000;
 
@@ -133,10 +134,6 @@ export function renderGroupMembersContext(
 }
 
 export const BOT_MESSAGE_WAKE_CUE = "[bot]";
-
-function escapePromptData(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-}
 
 function escapeDirectoryField(value: string): string {
   return escapePromptData(value).replaceAll("\r", "\\r").replaceAll("\n", "\\n");

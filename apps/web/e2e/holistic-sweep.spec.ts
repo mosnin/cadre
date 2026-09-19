@@ -12,7 +12,7 @@ test("workspace surfaces retain charcoal hierarchy and reachable controls", asyn
 }, info) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await signup(page, `sweep-${Date.now()}@rakazo.test`, "password12", "Design Review");
+  await signup(page, `sweep-${Date.now()}@cadre.test`, "password12", "Design Review");
   await completeOnboarding(page);
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });

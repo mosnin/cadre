@@ -1,5 +1,5 @@
+import { Button } from "@cadre/ui-web";
 import { Trans } from "@lingui/react/macro";
-import { Button } from "@rakazo/ui-web";
 
 export function BotCreatePicker({
   onCreateBot,

@@ -1,5 +1,5 @@
-import type { BackgroundJob, JobPublisher } from "@rakazo/adapter-kit";
-import type { Pool, PrismaClient, ThreadEvents } from "@rakazo/db";
+import type { BackgroundJob, JobPublisher } from "@cadre/adapter-kit";
+import type { Pool, PrismaClient, ThreadEvents } from "@cadre/db";
 import { describe, expect, it, vi } from "vitest";
 import { returnBotMessageOutcome } from "./bot-messages.js";
 import {
@@ -651,4 +651,47 @@ it("recovers expired startup intents and caps abandoned retries without provider
       data: expect.objectContaining({ state: "error", startupOperationId: null }),
     }),
   );
+});
+
+describe("unattended waits", () => {
+  it("fails unattended runs that waited too long and notifies the owner", async () => {
+    const prisma = fakePrisma();
+    (prisma as unknown as { run: { findFirst: unknown } }).run.findFirst = vi.fn(async () => ({
+      bot: { notifyOnFinish: true },
+      thread: { groupId: null },
+    }));
+    const expired = {
+      id: "run-9",
+      spaceId: "ws-1",
+      threadId: "thread-1",
+      botId: "bot-1",
+      userId: "user-1",
+    };
+    const expireWaitingRuns = vi.fn(async () => [expired]);
+    const send = vi.fn(async () => undefined);
+    const { jobs } = publisher();
+    await createJobReconciler({
+      prisma,
+      jobs,
+      events: { expireWaitingRuns } as unknown as ThreadEvents,
+      notifications: { send } as never,
+    }).reconcileOnce();
+
+    expect(expireWaitingRuns).toHaveBeenCalledWith(
+      expect.objectContaining({
+        triggers: expect.arrayContaining(["routine", "webhook"]),
+        statuses: ["waiting_input"],
+        olderThan: expect.any(Date),
+      }),
+    );
+    const [call] = (
+      expireWaitingRuns.mock.calls as unknown as Array<[{ olderThan: Date; triggers: string[] }]>
+    )[0]!;
+    expect(call.triggers).not.toContain("user");
+    expect(Date.now() - call.olderThan.getTime()).toBeGreaterThanOrEqual(30 * 60_000 - 1_000);
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "failure", botId: "bot-1", threadId: "thread-1" }),
+      expect.objectContaining({ userId: "user-1", spaceId: "ws-1" }),
+    );
+  });
 });

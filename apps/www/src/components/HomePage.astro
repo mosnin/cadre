@@ -1,10 +1,13 @@
 ---
-import Button from "./Button.astro";
 import Footer from "./Footer.astro";
 import GetStartedDialog from "./GetStartedDialog.astro";
 import Header from "./Header.astro";
 import { ProductDemo } from "./ProductDemo";
 import RosterBotAvatar from "./RosterBotAvatar.astro";
+import ModelMesh from "./forgeui/model-mesh";
+import RoutineTimeline from "./forgeui/timeline";
+import ApprovalList from "./forgeui/handoffmenu";
+import IntegrationWall from "./forgeui/integrationwall";
 import { getHomeCopy } from "../i18n/home";
 import {
   DEFAULT_LOCALE,
@@ -14,15 +17,8 @@ import {
   localeHomePath,
   type Locale,
 } from "../i18n/locales";
-import { fetchGithubStars, formatStarCount } from "../github";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import {
-  DOCS_URL,
-  GITHUB_URL,
-  SETUP_PROMPT_URL,
-  SITE_NAME,
-  SITE_URL,
-} from "../site";
+import { SITE_NAME, SITE_URL } from "../site";
 
 const locale: Locale = isLocale(Astro.currentLocale)
   ? Astro.currentLocale
@@ -34,9 +30,6 @@ const availableLanguages = LOCALES.map((supportedLocale) =>
   getHomeCopy(supportedLocale).availableLanguage
 );
 const homeHref = localeHomePath(locale);
-const stars = await fetchGithubStars();
-const starsLabel = stars === null ? copy.starFallback : formatStarCount(stars);
-const setupAgentPrompt = `Set up Rakazo for me. Follow the setup prompt at ${SETUP_PROMPT_URL}`;
 const pageUrl = `${SITE_URL}${homeHref === "/" ? "/" : homeHref}`;
 
 const structuredData = {
@@ -45,27 +38,17 @@ const structuredData = {
     {
       "@type": "Organization",
       "@id": `${SITE_URL}/#organization`,
-      name: "Inbox Zero Inc.",
-      alternateName: "Rakazo",
+      name: "Cadre",
       url: `${SITE_URL}/`,
-      logo: `${SITE_URL}/brand/rakazo-mark.svg`,
-      email: "hello@rakazo.com",
+      logo: `${SITE_URL}/brand/cadre-mark.svg`,
+      email: "hello@cadre.to",
       contactPoint: {
         "@type": "ContactPoint",
         contactType: "customer support",
-        email: "hello@rakazo.com",
+        email: "hello@cadre.to",
         url: `${SITE_URL}/support/`,
         availableLanguage: availableLanguages,
       },
-      address: {
-        "@type": "PostalAddress",
-        streetAddress: "131 Continental Dr, Suite 305",
-        addressLocality: "Newark",
-        addressRegion: "DE",
-        postalCode: "19713",
-        addressCountry: "US",
-      },
-      sameAs: [GITHUB_URL, "https://www.getinboxzero.com/"],
     },
     {
       "@type": "WebSite",
@@ -96,8 +79,6 @@ const structuredData = {
       applicationSubCategory: "AI agent platform",
       operatingSystem: "Web, macOS, Linux, iOS, Android",
       isAccessibleForFree: true,
-      codeRepository: GITHUB_URL,
-      license: `${GITHUB_URL}/blob/main/LICENSE`,
       provider: { "@id": `${SITE_URL}/#organization` },
       inLanguage: availableLanguages,
       offers: {
@@ -120,7 +101,7 @@ const structuredData = {
   ogImageAlt={copy.ogImageAlt}
 >
   <div class="container">
-    <Header locale={locale} copy={copy.nav} starsLabel={starsLabel} homeHref={homeHref} />
+    <Header locale={locale} copy={copy.nav} homeHref={homeHref} />
 
     <main id="main">
       <GetStartedDialog copy={copy.getStartedDialog} waitlist={copy.waitlist} />
@@ -137,24 +118,6 @@ const structuredData = {
         <div class="hero__actions">
           <button class="button button--primary" type="button" data-get-started-open>
             {copy.hero.getStarted}
-          </button>
-          <Button href={GITHUB_URL} variant="secondary" external>{copy.hero.viewOnGithub}</Button>
-        </div>
-        <div class="hero__agent-setup">
-          <button
-            class="setup-copy"
-            type="button"
-            data-setup-copy={setupAgentPrompt}
-            data-setup-label={copy.hero.setupWithAgent}
-            data-setup-copied={copy.hero.copiedForAgent}
-            data-setup-failed={copy.hero.copyFailed}
-          >
-            <span class="setup-copy__prefix" aria-hidden="true">$</span>
-            <span class="setup-copy__label">{copy.hero.setupWithAgent}</span>
-            <svg class="setup-copy__icon" viewBox="0 0 24 24" aria-hidden="true">
-              <rect x="8" y="8" width="12" height="12" rx="2"></rect>
-              <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path>
-            </svg>
           </button>
         </div>
       </section>
@@ -175,18 +138,52 @@ const structuredData = {
           <button class="button button--primary" type="button" data-get-started-open>
             {copy.hero.getStarted}
           </button>
-          <Button href={GITHUB_URL} variant="secondary" external>{copy.hero.viewOnGithub}</Button>
-          <Button href={DOCS_URL} variant="secondary" external>{copy.openSource.readTheDocs}</Button>
         </div>
         <div class="card-grid-3">
-          {
-            copy.selfHost.features.map((feature) => (
-              <article class="feature-card">
-                <h3>{feature.title}</h3>
-                <p>{feature.body}</p>
-              </article>
-            ))
-          }
+          <article class="feature-card">
+            <div class="feature-card__art" role="img" aria-label={copy.illustrations.models.caption}>
+              <ModelMesh client:visible />
+            </div>
+            <h3>{copy.selfHost.features[0].title}</h3>
+            <p>{copy.selfHost.features[0].body}</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-card__art" role="img" aria-label={copy.illustrations.routines.caption}>
+              <RoutineTimeline
+                rows={copy.illustrations.routines.rows}
+                dayLabels={copy.illustrations.routines.dayLabels}
+                nowLabel={copy.illustrations.routines.nowLabel}
+                client:visible
+              />
+            </div>
+            <h3>{copy.selfHost.features[1].title}</h3>
+            <p>{copy.selfHost.features[1].body}</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-card__art" role="img" aria-label={copy.illustrations.approvals.caption}>
+              <ApprovalList
+                approvals={copy.illustrations.approvals.items}
+                doneLabel={copy.illustrations.approvals.doneLabel}
+                asksLabel={copy.illustrations.approvals.asksLabel}
+                client:visible
+              />
+            </div>
+            <h3>{copy.selfHost.features[2].title}</h3>
+            <p>{copy.selfHost.features[2].body}</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="tools" class="section">
+        <div class="section-intro">
+          <div class="eyebrow">{copy.tools.eyebrow}</div>
+          <h2 class="section-heading">{copy.tools.heading}</h2>
+          <p class="section-copy">
+            {copy.tools.copy}
+          </p>
+        </div>
+        <div class="tool-wall" role="img" aria-label={copy.illustrations.tools.caption}>
+          <IntegrationWall client:visible />
         </div>
       </section>
 
@@ -226,12 +223,6 @@ const structuredData = {
             <div class="comparison-list">
               {copy.openSource.selfHostItems.map((item) => <div>{item}</div>)}
             </div>
-            <div class="comparison-actions">
-              <Button href={GITHUB_URL} size="sm" external>{copy.openSource.starOnGithub}</Button>
-              <Button href={DOCS_URL} variant="secondary" size="sm" external>
-                {copy.openSource.readTheDocs}
-              </Button>
-            </div>
           </article>
           <article class="comparison-card comparison-card--muted">
             <div class="comparison-kicker">
@@ -259,7 +250,6 @@ const structuredData = {
             <button class="button button--primary" type="button" data-get-started-open>
               {copy.cta.getStarted}
             </button>
-            <Button href={GITHUB_URL} variant="secondary" external>{copy.cta.viewOnGithub}</Button>
           </div>
         </div>
         <div class="stats-grid">
@@ -267,13 +257,11 @@ const structuredData = {
             copy.cta.stats.map((stat) => (
               <div>
                 <div class="stat-value">
-                  {stat.value === "stars"
-                    ? starsLabel
-                    : stat.value === "license"
-                      ? "Apache-2.0"
-                      : stat.value === "openSource"
-                        ? copy.cta.openSourceValue
-                        : copy.cta.selfHostValue}
+                  {stat.value === "license"
+                    ? "Apache-2.0"
+                    : stat.value === "openSource"
+                      ? copy.cta.openSourceValue
+                      : copy.cta.selfHostValue}
                 </div>
                 <div class="stat-label">{stat.label}</div>
               </div>
@@ -294,25 +282,3 @@ const structuredData = {
   </div>
 </BaseLayout>
 
-<script>
-  const setupCopy = document.querySelector<HTMLButtonElement>("[data-setup-copy]");
-  const setupCopyLabel = setupCopy?.querySelector<HTMLElement>(".setup-copy__label");
-
-  setupCopy?.addEventListener("click", async () => {
-    const prompt = setupCopy.dataset.setupCopy;
-    const idleLabel = setupCopy.dataset.setupLabel;
-    const copiedLabel = setupCopy.dataset.setupCopied;
-    const failedLabel = setupCopy.dataset.setupFailed;
-    if (!prompt || !setupCopyLabel || !idleLabel || !copiedLabel || !failedLabel) return;
-
-    try {
-      await navigator.clipboard.writeText(prompt);
-      setupCopyLabel.textContent = copiedLabel;
-      window.setTimeout(() => {
-        setupCopyLabel.textContent = idleLabel;
-      }, 2400);
-    } catch {
-      setupCopyLabel.textContent = failedLabel;
-    }
-  });
-</script>

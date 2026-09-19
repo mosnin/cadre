@@ -1,7 +1,7 @@
+import type { AgentSkill, AgentSkillCatalogEntry, CapabilityInstall } from "@cadre/contracts";
+import { buildSkillMd, parseSkillMd, validatePluginBundle } from "@cadre/core";
+import { Button, Input, Textarea } from "@cadre/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { AgentSkill, AgentSkillCatalogEntry, CapabilityInstall } from "@rakazo/contracts";
-import { buildSkillMd, parseSkillMd, validatePluginBundle } from "@rakazo/core";
-import { Button, Input, Textarea } from "@rakazo/ui-web";
 import { useEffect, useId, useRef, useState } from "react";
 import { rpc } from "../lib/rpc";
 

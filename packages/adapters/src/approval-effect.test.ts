@@ -1,4 +1,4 @@
-import { approvalEffectKey } from "@rakazo/core/node/approval-effect-key";
+import { approvalEffectKey } from "@cadre/core/node/approval-effect-key";
 import { describe, expect, it, vi } from "vitest";
 import {
   approvalPausedToolResult,
@@ -10,10 +10,13 @@ import {
   catalogApprovalDetails,
   catalogApprovalRequest,
   claimApprovedEffect,
+  claimFailedEffect,
   claimIntendedEffect,
   completeExternalEffect,
   createApprovedEffectReplayQueue,
+  isAmbiguousEffectError,
   isApprovalPausedResult,
+  isFailedEffectResult,
   isToolPauseResult,
   replaceCompletedExternalEffectResult,
   resolveDuplicateEffectGate,
@@ -58,7 +61,7 @@ describe("approved effect replay", () => {
   });
 
   it("does not treat a direct-tool arg named like the catalog marker as a catalog replay", () => {
-    const marker = "__rakazoCatalogTool";
+    const marker = "__cadreCatalogTool";
     const approved = {
       id: "row-1",
       arguments: { mode: "strict" },
@@ -80,7 +83,7 @@ describe("approved effect replay", () => {
   });
 
   it("still recognizes the full catalog envelope as a catalog replay", () => {
-    const marker = "__rakazoCatalogTool";
+    const marker = "__cadreCatalogTool";
     const approved = catalogApprovalRequest(
       "installed_execute_tool",
       { id: "install-A:notes.write", arguments: { text: "approved" } },
@@ -97,7 +100,7 @@ describe("approved effect replay", () => {
   });
 
   it("does not inject catalog envelope args onto a non-wrapper tool call", () => {
-    const marker = "__rakazoCatalogTool";
+    const marker = "__cadreCatalogTool";
     const catalog = catalogApprovalRequest(
       "installed_execute_tool",
       { id: "install-A:installed_execute_tool", arguments: { text: "approved" } },
@@ -115,7 +118,7 @@ describe("approved effect replay", () => {
   });
 
   it("rejects cross-path replay when a catalog approval is invoked as a direct tool", () => {
-    const marker = "__rakazoCatalogTool";
+    const marker = "__cadreCatalogTool";
     const direct = boundDirectApprovalRequest(
       { connectorId: "installed", resourceId: "install-A", toolName: "notes.write" },
       { text: "approved exactly" },
@@ -181,7 +184,7 @@ describe("approved effect replay", () => {
   });
 
   it("replays a bound direct approval through catalog only on the same resource", () => {
-    const marker = "__rakazoCatalogTool";
+    const marker = "__cadreCatalogTool";
     const approved = boundDirectApprovalRequest(
       {
         connectorId: "installed",
@@ -503,5 +506,69 @@ describe("approvalPausedToolResult", () => {
       details: { approval: "paused" },
     });
     expect(isApprovalPausedResult({ ok: true })).toBe(false);
+  });
+});
+
+describe("failed effect results", () => {
+  it.each([
+    "connection reset",
+    "The request timed out after 30000 ms",
+    "fetch failed",
+    "502 Bad Gateway",
+  ])("records %s as uncertain because the call may have landed", async (error) => {
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    await completeExternalEffect({ externalEffect: { updateMany } }, "effect-1", "executing", {
+      error,
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: "effect-1", status: "executing" },
+      data: { status: "uncertain", result: { error, uncertain: true } },
+    });
+  });
+
+  it("keeps an error that never reached the other side retryable", () => {
+    expect(isAmbiguousEffectError({ error: "connect ECONNREFUSED 127.0.0.1:443" })).toBe(false);
+    expect(isAmbiguousEffectError({ error: "getaddrinfo ENOTFOUND api.example.test" })).toBe(false);
+  });
+
+  it("stores an error result as failed so the same call can run again", async () => {
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    await completeExternalEffect({ externalEffect: { updateMany } }, "effect-1", "executing", {
+      error: "Validation failed: title is required",
+    });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: "effect-1", status: "executing" },
+      data: {
+        status: "failed",
+        result: { error: "Validation failed: title is required" },
+      },
+    });
+    expect(resolveDuplicateEffectGate({ status: "failed" }, "create_record")).toEqual({
+      action: "retry",
+    });
+    const claim = vi.fn(async () => ({ count: 1 }));
+    await expect(
+      claimFailedEffect({ externalEffect: { updateMany: claim } }, "effect-1"),
+    ).resolves.toBe(true);
+    expect(claim).toHaveBeenCalledWith({
+      where: { id: "effect-1", status: "failed" },
+      data: { status: "executing" },
+    });
+  });
+
+  it("keeps successes and uncertain outcomes as completed", async () => {
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    await completeExternalEffect({ externalEffect: { updateMany } }, "effect-1", "executing", {
+      ok: true,
+    });
+    await completeExternalEffect({ externalEffect: { updateMany } }, "effect-2", "executing", {
+      error: "unknown",
+      uncertain: true,
+    });
+    for (const call of updateMany.mock.calls as unknown as Array<[{ data: { status: string } }]>) {
+      expect(call[0].data.status).toBe("completed");
+    }
+    expect(isFailedEffectResult({ error: "x" })).toBe(true);
+    expect(isFailedEffectResult("done")).toBe(false);
   });
 });

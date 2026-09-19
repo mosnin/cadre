@@ -1,10 +1,10 @@
-import type { ModelOAuthBegin } from "@rakazo/contracts";
+import type { ModelOAuthBegin } from "@cadre/contracts";
 import {
   OPENAI_COMPATIBLE_BASE_URL_HINT,
   OPENAI_COMPATIBLE_PROVIDER_ID,
   openAiCompatibleConnectReady,
-} from "@rakazo/contracts";
-import { featuredModelProviders } from "@rakazo/core";
+} from "@cadre/contracts";
+import { featuredModelProviders } from "@cadre/core";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
@@ -768,7 +768,7 @@ export default function Models() {
             {selected.auth === "oauth" && !subscriptionSignIn ? (
               <Text style={styles.secondary}>
                 {t(
-                  "This subscription sign-in is not available in Rakazo yet. Use a deployment credential or choose another provider.",
+                  "This subscription sign-in is not available in Cadre yet. Use a deployment credential or choose another provider.",
                 )}
               </Text>
             ) : null}

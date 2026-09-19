@@ -1,10 +1,20 @@
-import type { Routine } from "@rakazo/contracts";
-import { formatCron, isOneShotRoutineCrons } from "@rakazo/core";
+import type { Routine } from "@cadre/contracts";
+import {
+  type CronFreq,
+  type CronPreset,
+  cronFromPreset,
+  formatCron,
+  isOneShotRoutineCrons,
+  ordinalDay,
+  presetFromCron,
+} from "@cadre/core";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   Switch,
@@ -15,6 +25,25 @@ import {
 import { rpc } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { useMobileTokens } from "../lib/native";
+
+const PICKER_FREQS: CronFreq[] = ["Every day", "Weekdays", "Every week", "Every month"];
+const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
+function presetTimeAsDate(preset: CronPreset): Date {
+  const match = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(preset.time.trim());
+  const date = new Date();
+  let hour = match ? Number(match[1]) % 12 : 9;
+  if (match && match[3]?.toUpperCase() === "PM") hour += 12;
+  date.setHours(hour, match ? Number(match[2]) : 0, 0, 0);
+  return date;
+}
+
+function clockFromDate(date: Date): string {
+  const hour = date.getHours();
+  const period = hour >= 12 ? "PM" : "AM";
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h12}:${String(date.getMinutes()).padStart(2, "0")} ${period}`;
+}
 
 type Draft = {
   routine?: Routine;
@@ -230,12 +259,13 @@ export default function Schedules() {
             onChangeText={(prompt) => setDraft({ ...draft, prompt })}
             style={[fieldStyle, { minHeight: 100, textAlignVertical: "top" }]}
           />
+          <SchedulePicker
+            crons={draft.crons}
+            disabled={busy}
+            onChange={(crons) => setDraft({ ...draft, crons })}
+          />
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {[
-              [t("Hourly"), "0 * * * *"],
-              [t("Daily at 9 AM"), "0 9 * * *"],
-              [t("Weekdays at 9 AM"), "0 9 * * 1-5"],
-            ].map(([label, crons]) => (
+            {[[t("Hourly"), "0 * * * *"]].map(([label, crons]) => (
               <Pressable
                 key={crons}
                 accessibilityRole="button"
@@ -338,5 +368,136 @@ export default function Schedules() {
         </>
       ) : null}
     </ScrollView>
+  );
+}
+
+/** Exact-time schedule picker: frequency, then the day and the native time picker. */
+function SchedulePicker({
+  crons,
+  disabled,
+  onChange,
+}: {
+  crons: string;
+  disabled: boolean;
+  onChange: (crons: string) => void;
+}) {
+  const tokens = useMobileTokens();
+  const { t } = useI18n();
+  const [showTime, setShowTime] = useState(Platform.OS === "ios");
+  const firstLine = crons.split("\n").find((line) => line.trim()) ?? "";
+  const preset = presetFromCron(firstLine);
+  const representable = PICKER_FREQS.includes(preset.freq);
+  const freqLabels: Record<string, string> = {
+    "Every day": t("Every day"),
+    Weekdays: t("Weekdays"),
+    "Every week": t("Every week"),
+    "Every month": t("Every month"),
+  };
+  const weekdayLabels = [t("Sun"), t("Mon"), t("Tue"), t("Wed"), t("Thu"), t("Fri"), t("Sat")];
+  function apply(partial: Partial<CronPreset>) {
+    const base = representable ? preset : { ...preset, freq: "Every day" as CronFreq };
+    onChange(cronFromPreset({ ...base, ...partial }));
+  }
+  const chip = (selected: boolean) => ({
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 11,
+    backgroundColor: selected ? tokens.primary : tokens.muted,
+    opacity: disabled ? 0.5 : 1,
+  });
+  const chipText = (selected: boolean) => ({
+    color: selected ? tokens.primaryForeground : tokens.foreground,
+  });
+  return (
+    <View style={{ gap: 10 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        {PICKER_FREQS.map((freq) => {
+          const selected = representable && preset.freq === freq;
+          return (
+            <Pressable
+              key={freq}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              disabled={disabled}
+              onPress={() => apply({ freq })}
+              style={chip(selected)}
+            >
+              <Text style={chipText(selected)}>{freqLabels[freq]}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      {representable && preset.freq === "Every week" ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {WEEKDAY_ORDER.map((weekday) => {
+            const selected = preset.weekday === weekday;
+            return (
+              <Pressable
+                key={weekday}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                disabled={disabled}
+                onPress={() => apply({ weekday })}
+                style={chip(selected)}
+              >
+                <Text style={chipText(selected)}>{weekdayLabels[weekday]}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+      {representable && preset.freq === "Every month" ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Text style={{ color: tokens.mutedForeground }}>{t("Day of month")}</Text>
+          <TextInput
+            accessibilityLabel={t("Day of month")}
+            inputMode="numeric"
+            editable={!disabled}
+            value={String(preset.day)}
+            onChangeText={(text) => {
+              const day = Number(text);
+              if (Number.isInteger(day) && day >= 1 && day <= 31) apply({ day });
+            }}
+            style={{
+              color: tokens.foreground,
+              backgroundColor: tokens.muted,
+              borderRadius: 11,
+              paddingVertical: 8,
+              paddingHorizontal: 12,
+              fontSize: 16,
+              minWidth: 64,
+            }}
+          />
+          <Text style={{ color: tokens.mutedForeground }}>{ordinalDay(preset.day)}</Text>
+        </View>
+      ) : null}
+      {representable ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Text style={{ color: tokens.mutedForeground }}>{t("Time")}</Text>
+          {Platform.OS === "android" ? (
+            <Pressable
+              accessibilityRole="button"
+              disabled={disabled}
+              onPress={() => setShowTime(true)}
+              style={chip(false)}
+            >
+              <Text style={chipText(false)}>{preset.time}</Text>
+            </Pressable>
+          ) : null}
+          {showTime ? (
+            <DateTimePicker
+              mode="time"
+              value={presetTimeAsDate(preset)}
+              disabled={disabled}
+              onChange={(event, date) => {
+                if (Platform.OS === "android") setShowTime(false);
+                if (event.type === "dismissed" || !date) return;
+                apply({ time: clockFromDate(date) });
+              }}
+            />
+          ) : null}
+        </View>
+      ) : null}
+    </View>
   );
 }

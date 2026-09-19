@@ -1,7 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
-import { ORPCError, onError } from "@orpc/server";
-import { RPCHandler } from "@orpc/server/fetch";
 import type {
   BillingProvider,
   JobPublisher,
@@ -10,7 +8,7 @@ import type {
   RealtimeFanout,
   SandboxProvider,
   TransactionalEmailProvider,
-} from "@rakazo/adapter-kit";
+} from "@cadre/adapter-kit";
 import {
   applyMessagingOutboundStatus,
   ChatSdkMessagingSurface,
@@ -59,21 +57,21 @@ import {
   StripeBillingProvider,
   WorkspaceIntegrations,
   workspaceProviderOverridesFromEnv,
-} from "@rakazo/adapters";
+} from "@cadre/adapters";
 import {
   blockedAuthPaths,
   companyOsOAuthFromEnv,
   createAuth,
   createCompanyOsCredential,
-} from "@rakazo/auth";
-import { signupPolicyFromEnv } from "@rakazo/core";
+} from "@cadre/auth";
+import { signupPolicyFromEnv } from "@cadre/core";
 import {
   createDb,
   createThreadEvents,
   type PrismaClient,
   provisionMessagingIdentity,
   requireMembership,
-} from "@rakazo/db";
+} from "@cadre/db";
 import {
   createServiceLogger,
   enrichLogContext,
@@ -81,9 +79,11 @@ import {
   installLogger,
   type Logger,
   SERVICE_NAMES,
-} from "@rakazo/logging";
-import { requestLogging } from "@rakazo/logging/hono";
-import { MarkdownMemoryStore } from "@rakazo/memory";
+} from "@cadre/logging";
+import { requestLogging } from "@cadre/logging/hono";
+import { MarkdownMemoryStore } from "@cadre/memory";
+import { ORPCError, onError } from "@orpc/server";
+import { RPCHandler } from "@orpc/server/fetch";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { mountCodexMcp } from "./codex-mcp-http.js";
@@ -301,7 +301,7 @@ export async function createApp(
     email,
     onEmailError: (error) => getLogger().error("transactional email delivery failed", error),
     extraOrigins: [
-      "rakazo://",
+      "cadre://",
       "exp://",
       "exp://*",
       "http://localhost:8081",
@@ -546,7 +546,7 @@ export async function createApp(
     }
     const session = bearer ? null : await getSession(sessionHeaders(c.req.raw));
     const userId = delegated?.userId ?? session?.user.id;
-    const requestedSpaceId = c.req.header("x-rakazo-space-id");
+    const requestedSpaceId = c.req.header("x-cadre-space-id");
     const actor = userId
       ? await requireMembership(prisma, userId, requestedSpaceId).catch(() => null)
       : null;
@@ -566,7 +566,7 @@ export async function createApp(
     const actor = await requireMembership(
       prisma,
       session.user.id,
-      c.req.header("x-rakazo-space-id"),
+      c.req.header("x-cadre-space-id"),
     ).catch(() => null);
     if (actor) enrichLogContext({ "user.id": actor.userId, "space.id": actor.spaceId });
     return actor;
@@ -580,7 +580,7 @@ export async function createApp(
       const actor = await requireMembership(
         prisma,
         session.user.id,
-        c.req.header("x-rakazo-space-id"),
+        c.req.header("x-cadre-space-id"),
       ).catch(() => null);
       return actor ? { actor, sessionId: session.session.id } : null;
     },
@@ -595,7 +595,7 @@ export async function createApp(
       const actor = await requireMembership(
         prisma,
         session.user.id,
-        c.req.header("x-rakazo-space-id"),
+        c.req.header("x-cadre-space-id"),
       ).catch(() => null);
       return actor ? { actor, sessionId: session.session.id } : null;
     },
@@ -614,7 +614,7 @@ export async function createApp(
     async (c) => {
       const session = await getSession(sessionHeaders(c.req.raw));
       if (!session?.user) return null;
-      return requireMembership(prisma, session.user.id, c.req.header("x-rakazo-space-id")).catch(
+      return requireMembership(prisma, session.user.id, c.req.header("x-cadre-space-id")).catch(
         () => null,
       );
     },
@@ -700,7 +700,7 @@ export async function createApp(
 function isTrustedOrigin(origin: string, env: AppEnv) {
   if (!origin) return true;
   if (origin === env.webOrigin || origin === env.apiUrl || origin === env.authUrl) return true;
-  if (origin.startsWith("rakazo://") || origin.startsWith("exp://")) return true;
+  if (origin.startsWith("cadre://") || origin.startsWith("exp://")) return true;
   try {
     const host = new URL(origin).hostname;
     return isLoopbackHost(host);

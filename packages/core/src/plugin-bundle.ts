@@ -67,6 +67,37 @@ export function validatePluginBundle(raw: unknown): PluginBundle {
   return bundle;
 }
 
+/**
+ * Read a bundle that validatePluginBundle already accepted at install time.
+ * Only the shape is checked here: the full walk (byte counting, path policy,
+ * every SKILL.md parse) runs once at install, not on every run or skill call.
+ */
+export function readPluginBundle(raw: unknown): PluginBundle {
+  if (
+    !raw ||
+    typeof raw !== "object" ||
+    !("format" in raw) ||
+    raw.format !== "cadre-plugin-v1" ||
+    !("files" in raw) ||
+    !Array.isArray(raw.files)
+  ) {
+    throw new Error("Plugin bundle is not installed.");
+  }
+  const files = raw.files.map((file: unknown): PluginFile => {
+    if (
+      !file ||
+      typeof file !== "object" ||
+      !("path" in file) ||
+      !("content" in file) ||
+      typeof file.path !== "string" ||
+      typeof file.content !== "string"
+    )
+      throw new Error("Invalid plugin file.");
+    return { path: file.path, content: file.content };
+  });
+  return { format: "cadre-plugin-v1", files };
+}
+
 function entrypointFiles(bundle: PluginBundle): PluginFile[] {
   const all = bundle.files.filter(
     (file) => file.path === "SKILL.md" || file.path.endsWith("/SKILL.md"),
@@ -107,11 +138,25 @@ export function pluginSkillRecords(plugin: {
     plugin.config.format !== "cadre-plugin-v1"
   )
     return [];
-  const bundle = validatePluginBundle(plugin.config);
-  const entries = entrypointFiles(bundle).flatMap((file) => {
-    const parsed = parseSkillMd(file.content);
-    return "error" in parsed ? [] : [{ file, parsed }];
-  });
+  let bundle: PluginBundle;
+  try {
+    bundle = readPluginBundle(plugin.config);
+  } catch {
+    return [];
+  }
+  let entries: Array<{
+    file: PluginFile;
+    parsed: Exclude<ReturnType<typeof parseSkillMd>, { error: string }>;
+  }>;
+  try {
+    entries = entrypointFiles(bundle).flatMap((file) => {
+      const parsed = parseSkillMd(file.content);
+      return "error" in parsed ? [] : [{ file, parsed }];
+    });
+  } catch {
+    // A bundle with a malformed manifest never passed install; treat it as empty.
+    return [];
+  }
   const counts = new Map<string, number>();
   for (const { parsed } of entries)
     counts.set(parsed.name.toLowerCase(), (counts.get(parsed.name.toLowerCase()) ?? 0) + 1);

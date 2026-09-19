@@ -33,7 +33,7 @@ describe("BoxSandboxProvider", () => {
         createBoxRequest: {
           ttlSeconds: 7200,
           noEnv: true,
-          env: { RAKAZO_BOT_ID: "bot-a", RAKAZO_SANDBOX: "computer" },
+          env: { CADRE_BOT_ID: "bot-a", CADRE_SANDBOX: "computer" },
         },
       },
       { signal: context.signal },
@@ -42,7 +42,7 @@ describe("BoxSandboxProvider", () => {
     await provider.prepare(computer, context);
     expect(
       fixture.command.mock.calls.some(([request]) =>
-        request.commandRequest.command.includes("rakazo-home/.browser-profiles"),
+        request.commandRequest.command.includes("cadre-home/.browser-profiles"),
       ),
     ).toBe(true);
 
@@ -61,7 +61,7 @@ describe("BoxSandboxProvider", () => {
     const executeRequest = fixture.command.mock.calls.find(([request]) =>
       request.commandRequest.command.includes("TEST_VALUE=works"),
     )?.[0];
-    expect(executeRequest?.commandRequest.cwd).toBe("rakazo-home/notes");
+    expect(executeRequest?.commandRequest.cwd).toBe("cadre-home/notes");
 
     await provider.writeFile(
       computer,
@@ -144,7 +144,7 @@ describe("BoxSandboxProvider", () => {
       const [request, init] = fetchMock.mock.calls[0]!;
       const url = new URL(String(request));
       expect(url.pathname).toBe("/api/box/v1/boxes/bx_testbox2/artifacts");
-      expect(url.searchParams.get("path")).toBe(`/home/user/rakazo-home/${filePath}`);
+      expect(url.searchParams.get("path")).toBe(`/home/user/cadre-home/${filePath}`);
       expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-key");
       expect(init?.signal).toBe(context.signal);
     } finally {
@@ -155,7 +155,7 @@ describe("BoxSandboxProvider", () => {
   it("exports browser profile files over 5 MiB without losing their bytes", async () => {
     const fixture = boxFixture();
     const content = Buffer.alloc(6 * 1024 * 1024, 0xab);
-    fixture.files.set("/home/user/rakazo-home/.browser-profiles/chrome/Default/History", content);
+    fixture.files.set("/home/user/cadre-home/.browser-profiles/chrome/Default/History", content);
     const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
     const exported = [];
@@ -167,7 +167,7 @@ describe("BoxSandboxProvider", () => {
     expect(fixture.artifactRaw).toHaveBeenCalledWith(
       {
         boxId: computer.id,
-        path: "/home/user/rakazo-home/.browser-profiles/chrome/Default/History",
+        path: "/home/user/cadre-home/.browser-profiles/chrome/Default/History",
       },
       { signal: context.signal },
     );
@@ -201,7 +201,7 @@ describe("BoxSandboxProvider", () => {
 
   it("accepts empty files and files exactly at the download limit", async () => {
     const fixture = boxFixture();
-    fixture.files.set("/home/user/rakazo-home/exact.bin", Uint8Array.from([0, 255]));
+    fixture.files.set("/home/user/cadre-home/exact.bin", Uint8Array.from([0, 255]));
     const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
 
@@ -333,19 +333,19 @@ function boxFixture(options: { state?: string } = {}) {
     command: vi.fn(async (request: { commandRequest: { command: string; cwd?: string } }) => {
       const command = request.commandRequest.command;
       if (command.includes("TEST_VALUE=works")) return finished({ stdout: "hello\n" });
-      if (command.includes("find ") && command.includes("rakazo-home/bin")) {
-        const target = "/home/user/rakazo-home/bin/tool";
+      if (command.includes("find ") && command.includes("cadre-home/bin")) {
+        const target = "/home/user/cadre-home/bin/tool";
         return finished({
           stdout: `${Buffer.from(target).toString("base64")}\tfile\t3\t1\n`,
         });
       }
       if (
         command.includes("find ") &&
-        command.includes("rakazo-home") &&
+        command.includes("cadre-home") &&
         command.includes("-type f")
       ) {
         const stdout = [...files.entries()]
-          .filter(([filePath]) => filePath.startsWith("/home/user/rakazo-home/"))
+          .filter(([filePath]) => filePath.startsWith("/home/user/cadre-home/"))
           .map(([filePath, content]) => {
             const executable = filePath.endsWith("/bin/tool") ? "1" : "0";
             return `${Buffer.from(filePath).toString("base64")}\tfile\t${content.byteLength}\t${executable}\n`;
@@ -385,7 +385,7 @@ function boxFixture(options: { state?: string } = {}) {
       },
     ),
     artifactRaw: vi.fn(async ({ path }: { path: string }) => {
-      const content = path.startsWith("/tmp/rakazo-observe-")
+      const content = path.startsWith("/tmp/cadre-observe-")
         ? Uint8Array.from([137, 80, 78, 71])
         : (files.get(path) ?? new Uint8Array());
       return { raw: new Response(Buffer.from(content)) };

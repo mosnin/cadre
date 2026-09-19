@@ -40,8 +40,8 @@ import {
 } from "./compose-update.js";
 
 const target = {
-  composeFile: "/srv/rakazo/infra/compose/docker-compose.prod.yml",
-  envFiles: ["/srv/rakazo/.env"],
+  composeFile: "/srv/cadre/infra/compose/docker-compose.prod.yml",
+  envFiles: ["/srv/cadre/.env"],
 };
 
 describe("image references", () => {
@@ -66,7 +66,7 @@ describe("image references", () => {
   it("accepts registry paths with a host and rejects anything else", () => {
     expect(isValidImageName(OFFICIAL_SERVER_IMAGE)).toBe(true);
     expect(isValidImageName("ghcr.io:5000/owner/app")).toBe(true);
-    expect(isValidImageName("rakazo/app")).toBe(true);
+    expect(isValidImageName("cadre/app")).toBe(true);
     expect(isValidImageName("Ghcr.io/owner/app")).toBe(false);
     expect(isValidImageName("owner/app:tag")).toBe(false);
     expect(isValidImageName("owner/../app")).toBe(false);
@@ -216,7 +216,7 @@ describe("compose argv construction", () => {
         "-p",
         DEFAULT_COMPOSE_PROJECT_NAME,
         "--env-file",
-        "/srv/rakazo/.env",
+        "/srv/cadre/.env",
         "--file",
         target.composeFile,
         "pull",
@@ -240,8 +240,8 @@ describe("compose argv construction", () => {
   });
 
   it("defaults -p to the name pinned in the compose file", () => {
-    expect(DEFAULT_COMPOSE_PROJECT_NAME).toBe("rakazo-prod");
-    expect(composePsArgv(target).args.slice(0, 3)).toEqual(["compose", "-p", "rakazo-prod"]);
+    expect(DEFAULT_COMPOSE_PROJECT_NAME).toBe("cadre-prod");
+    expect(composePsArgv(target).args.slice(0, 3)).toEqual(["compose", "-p", "cadre-prod"]);
   });
 
   it("refuses a project name that could be parsed as another flag or a second argument", () => {
@@ -280,13 +280,13 @@ describe("compose project name resolution", () => {
     expect(
       resolveComposeProjectName({
         COMPOSE_PROJECT_NAME: "live-stack",
-        RAKAZO_COMPOSE_PROJECT_NAME: "manual-stack",
+        CADRE_COMPOSE_PROJECT_NAME: "manual-stack",
       }),
     ).toBe("live-stack");
   });
 
   it("falls back to a dedicated override, then to the name pinned in the compose file", () => {
-    expect(resolveComposeProjectName({ RAKAZO_COMPOSE_PROJECT_NAME: "manual-stack" })).toBe(
+    expect(resolveComposeProjectName({ CADRE_COMPOSE_PROJECT_NAME: "manual-stack" })).toBe(
       "manual-stack",
     );
     expect(resolveComposeProjectName({})).toBe(DEFAULT_COMPOSE_PROJECT_NAME);
@@ -412,7 +412,7 @@ describe("update plans", () => {
     const steps = composeUpdatePlan({
       strategy: "build",
       target,
-      repoUrl: "https://github.com/someone/rakazo",
+      repoUrl: "https://github.com/someone/cadre",
       branch: "trunk",
       repointRemote: true,
     });
@@ -440,7 +440,7 @@ describe("update plans", () => {
   });
 
   it("keeps the repository URL in argv rather than in any compose input", () => {
-    const repoUrl = "https://github.com/someone/rakazo";
+    const repoUrl = "https://github.com/someone/cadre";
     const steps = composeUpdatePlan({
       strategy: "build",
       target,
@@ -480,48 +480,48 @@ describe("managed env assignments", () => {
     const contents = [
       "# deployment",
       "POSTGRES_PASSWORD=secret",
-      "RAKAZO_IMAGE_TAG=v1.0.0",
+      "CADRE_IMAGE_TAG=v1.0.0",
       "",
     ].join("\n");
-    expect(upsertEnvAssignments(contents, { RAKAZO_IMAGE_TAG: "v1.1.0" })).toBe(
-      ["# deployment", "POSTGRES_PASSWORD=secret", "RAKAZO_IMAGE_TAG=v1.1.0", ""].join("\n"),
+    expect(upsertEnvAssignments(contents, { CADRE_IMAGE_TAG: "v1.1.0" })).toBe(
+      ["# deployment", "POSTGRES_PASSWORD=secret", "CADRE_IMAGE_TAG=v1.1.0", ""].join("\n"),
     );
   });
 
   it("appends keys that are not present yet", () => {
     const result = upsertEnvAssignments("POSTGRES_PASSWORD=secret\n", {
-      RAKAZO_IMAGE_TAG: "v1.1.0",
-      RAKAZO_IMAGE_TAG_PREVIOUS: "v1.0.0",
+      CADRE_IMAGE_TAG: "v1.1.0",
+      CADRE_IMAGE_TAG_PREVIOUS: "v1.0.0",
     });
     expect(result.split("\n")).toEqual([
       "POSTGRES_PASSWORD=secret",
       "",
-      "RAKAZO_IMAGE_TAG=v1.1.0",
-      "RAKAZO_IMAGE_TAG_PREVIOUS=v1.0.0",
+      "CADRE_IMAGE_TAG=v1.1.0",
+      "CADRE_IMAGE_TAG_PREVIOUS=v1.0.0",
       "",
     ]);
   });
 
   it("keeps the file's existing line endings", () => {
-    const result = upsertEnvAssignments("A=1\r\nRAKAZO_IMAGE_TAG=v1.0.0\r\n", {
-      RAKAZO_IMAGE_TAG: "v2.0.0",
+    const result = upsertEnvAssignments("A=1\r\nCADRE_IMAGE_TAG=v1.0.0\r\n", {
+      CADRE_IMAGE_TAG: "v2.0.0",
     });
-    expect(result).toBe("A=1\r\nRAKAZO_IMAGE_TAG=v2.0.0\r\n");
+    expect(result).toBe("A=1\r\nCADRE_IMAGE_TAG=v2.0.0\r\n");
   });
 
   it("rewrites every duplicate managed assignment so the last value cannot win", () => {
     const result = upsertEnvAssignments(
-      "RAKAZO_IMAGE_TAG=stale\nA=1\nRAKAZO_IMAGE_TAG=still-stale\n",
-      { RAKAZO_IMAGE_TAG: "sha-0123456789abcdef0123456789abcdef01234567" },
+      "CADRE_IMAGE_TAG=stale\nA=1\nCADRE_IMAGE_TAG=still-stale\n",
+      { CADRE_IMAGE_TAG: "sha-0123456789abcdef0123456789abcdef01234567" },
     );
-    expect(result.match(/RAKAZO_IMAGE_TAG=sha-/g)).toHaveLength(2);
+    expect(result.match(/CADRE_IMAGE_TAG=sha-/g)).toHaveLength(2);
     expect(result).not.toContain("stale");
   });
 
   it("refuses values that would inject a second assignment or a compose expression", () => {
     // biome-ignore lint/suspicious/noTemplateCurlyInString: the literal is the hostile input under test
     for (const value of ["v1\nEVIL=1", "v1 v2", "$(id)", "v1;rm -rf /", "${OTHER}"]) {
-      expect(() => upsertEnvAssignments("", { RAKAZO_IMAGE_TAG: value })).toThrow(/Refusing/);
+      expect(() => upsertEnvAssignments("", { CADRE_IMAGE_TAG: value })).toThrow(/Refusing/);
     }
   });
 
@@ -533,10 +533,10 @@ describe("managed env assignments", () => {
 describe("sidecar boundary validation", () => {
   it("normalizes a request the API already validated", () => {
     expect(
-      validateUpdateRequest({ repoUrl: "https://github.com/elie222/rakazo.git", branch: " main " }),
+      validateUpdateRequest({ repoUrl: "https://github.com/mosnin/cadre.git", branch: " main " }),
     ).toEqual({
       request: {
-        repoUrl: "https://github.com/elie222/rakazo.git",
+        repoUrl: "https://github.com/mosnin/cadre.git",
         branch: "main",
         official: true,
       },
@@ -545,12 +545,12 @@ describe("sidecar boundary validation", () => {
 
   it("marks a fork as unofficial so the sidecar picks the build path", () => {
     const result = validateUpdateRequest({
-      repoUrl: "https://github.com/someone/rakazo",
+      repoUrl: "https://github.com/someone/cadre",
       branch: "main",
     });
     expect(result).toEqual({
       request: {
-        repoUrl: "https://github.com/someone/rakazo",
+        repoUrl: "https://github.com/someone/cadre",
         branch: "main",
         official: false,
       },

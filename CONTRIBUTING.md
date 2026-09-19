@@ -1,6 +1,6 @@
-# Contributing to Rakazo
+# Contributing to Cadre
 
-Thanks for helping improve Rakazo. Keep changes focused and testable.
+Thanks for helping improve Cadre. Keep changes focused and testable.
 
 ## Run locally
 
@@ -56,6 +56,5 @@ capability config, fixtures, logs, or snapshots; use the encrypted secret store 
 
 | Address | Use for |
 | --- | --- |
-| [security@rakazo.com](mailto:security@rakazo.com) | Vulnerabilities only — see [SECURITY.md](SECURITY.md) |
-| [support@rakazo.com](mailto:support@rakazo.com) | User and support questions |
-| [elie@rakazo.com](mailto:elie@rakazo.com) | Maintainer |
+| [Security advisory](https://github.com/mosnin/cadre/security/advisories/new) | Vulnerabilities only — see [SECURITY.md](SECURITY.md) |
+| [support@cadre.to](mailto:support@cadre.to) | User and support questions |

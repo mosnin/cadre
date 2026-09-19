@@ -1,4 +1,5 @@
-import type { PrismaClient } from "@rakazo/db";
+import { escapePromptData } from "@cadre/core";
+import type { PrismaClient } from "@cadre/db";
 import { listScratchpadItems, type ScratchpadToolDeps } from "./scratchpad-tools.js";
 
 const MAX_SCRATCHPAD_CONTEXT_BYTES = 4 * 1024;
@@ -45,10 +46,6 @@ export async function loadAgentScratchpadContext(
   }
 
   return `${preamble}${lines.join("")}${closing}`;
-}
-
-function escapePromptData(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 function byteLength(value: string): number {

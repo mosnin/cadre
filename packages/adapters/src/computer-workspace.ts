@@ -7,10 +7,10 @@ import type {
   ComputerRef,
   PortableFile,
   SandboxProvider,
-} from "@rakazo/adapter-kit";
-import type { ComputerMode } from "@rakazo/contracts";
-import type { PrismaClient } from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+} from "@cadre/adapter-kit";
+import type { ComputerMode } from "@cadre/contracts";
+import type { PrismaClient } from "@cadre/db";
+import { getLogger } from "@cadre/logging";
 import { normalizeWorkspacePath, teamBotWorkspaceDirectory } from "./computer-support.js";
 import { LocalAgentHomeStore } from "./home.js";
 
@@ -29,8 +29,17 @@ export async function cachedWorkspaceSnapshot(
   }
 }
 
-export const PORTABLE_BROWSER_STOP_COMMAND =
-  "pkill -f '[g]oogle-chrome|[c]hromium|[f]irefox' || true";
+const BROWSER_PROCESS_PATTERN = "[g]oogle-chrome|[c]hromium|[f]irefox";
+/**
+ * Ask browsers to quit, then wait for them to exit before the profile is exported.
+ * Reading the cookie database while Chromium is still flushing it produced torn
+ * snapshots and lost logins on the next restore.
+ */
+export const PORTABLE_BROWSER_STOP_COMMAND = [
+  `pkill -f '${BROWSER_PROCESS_PATTERN}' || true`,
+  `for i in $(seq 1 20); do pgrep -f '${BROWSER_PROCESS_PATTERN}' >/dev/null 2>&1 || break; sleep 0.5; done`,
+  `pkill -9 -f '${BROWSER_PROCESS_PATTERN}' >/dev/null 2>&1 || true`,
+].join("; ");
 export const PORTABLE_TRANSFER_BATCH_BYTES = 8 * 1024 * 1024;
 
 const skippedBrowserProfileDirectories = new Set([
@@ -110,7 +119,7 @@ export async function checkpointComputerWorkspace(
   if (computer.kind === "docker" && home instanceof LocalAgentHomeStore) {
     return home.revise(homeKey);
   }
-  const staging = await mkdtemp(path.join(tmpdir(), "rakazo-workspace-"));
+  const staging = await mkdtemp(path.join(tmpdir(), "cadre-workspace-"));
   try {
     for await (const file of sandbox.exportWorkspace(computer, context)) {
       await writePortableFile(staging, file);

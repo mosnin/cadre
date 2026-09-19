@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
-import type { Pool } from "@rakazo/db";
+import type { Pool } from "@cadre/db";
 
 export const CODEX_CLIENT = "cadre-codex-local";
 export const READ_ROUTES = [

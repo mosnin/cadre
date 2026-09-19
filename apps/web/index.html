@@ -20,7 +20,7 @@
     <title>Cadre</title>
     <script>
       (() => {
-        const key = "rakazo.uiAppearance";
+        const key = "cadre.uiAppearance";
         let preference = "dark";
         try {
           const stored = localStorage.getItem(key);
@@ -51,9 +51,20 @@
           document.getElementById("startup-detail").hidden = false;
           document.getElementById("startup-reload").hidden = false;
         };
-        window.addEventListener("error", failed, true);
+        // Only script failures mean the app cannot load; a missing image or font
+        // also fires a capture-phase error event and must not show the failure copy.
+        window.addEventListener(
+          "error",
+          (event) => {
+            const target = event.target;
+            if (target === window || (target instanceof Element && target.tagName === "SCRIPT"))
+              failed();
+          },
+          true,
+        );
         window.addEventListener("unhandledrejection", failed);
-        setTimeout(failed, 15000);
+        // Slow connections are still downloading the bundle well past 15 seconds.
+        setTimeout(failed, 60000);
       })();
     </script>
     <div id="root"></div>

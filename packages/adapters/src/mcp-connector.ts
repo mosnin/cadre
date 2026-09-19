@@ -4,10 +4,11 @@ import type {
   ConnectorEvent,
   ConnectorProvider,
   ConnectorTool,
-} from "@rakazo/adapter-kit";
-import { isLocalMcpHost } from "@rakazo/contracts";
-import type { McpServer, PrismaClient } from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+} from "@cadre/adapter-kit";
+import { isLocalMcpHost } from "@cadre/contracts";
+import { connectorHintCanClaimReadOnly } from "@cadre/core";
+import type { McpServer, PrismaClient } from "@cadre/db";
+import { getLogger } from "@cadre/logging";
 import { sanitizeConnectorError } from "./connector-safety.js";
 import {
   CATALOG_EXECUTE,
@@ -68,6 +69,9 @@ function reportAllowlistDrift(
 export class McpConnector implements ConnectorProvider {
   private readonly sessions = new Map<string, SessionEntry>();
   private readonly connecting = new Map<string, PendingSession>();
+  // One Company OS preparation per run: the executor shares a single context
+  // object across discovery and every tool call it makes.
+  private readonly prepared = new WeakMap<AdapterContext, Promise<void>>();
   constructor(
     private readonly prisma: PrismaClient,
     private readonly secrets: EncryptedSecretStore,
@@ -111,6 +115,27 @@ export class McpConnector implements ConnectorProvider {
     return resolveCatalogCall(call, catalogEntries(await this.authorizedTools(context)));
   }
 
+  /**
+   * Refresh the Company OS context server for this run. A Company OS outage or
+   * revoked grant only disables that one server (prepare does so itself before
+   * rethrowing); it must never hide or fail the bot's other MCP servers.
+   */
+  private prepareCompanyWorkspace(context: AdapterContext): Promise<void> {
+    const prepare = this.options.prepareCompanyWorkspace;
+    if (!prepare) return Promise.resolve();
+    let pending = this.prepared.get(context);
+    if (!pending) {
+      pending = prepare(context).catch((error) => {
+        getLogger().warn("company_workspace.prepare_failed", {
+          error: sanitizeConnectorError(error),
+        });
+      });
+      this.prepared.set(context, pending);
+    }
+    return pending;
+  }
+
+  /** The same isolation for the workspace providers: one provider's outage disables only its own servers. */
   private async prepareWorkspaceIntegrations(context: AdapterContext) {
     try {
       await this.options.prepareWorkspaceIntegrations?.(context);
@@ -124,7 +149,7 @@ export class McpConnector implements ConnectorProvider {
 
   private async authorizedTools(context: AdapterContext): Promise<ConnectorTool[]> {
     if (!context.botId) return [];
-    await this.options.prepareCompanyWorkspace?.(context);
+    await this.prepareCompanyWorkspace(context);
     await this.prepareWorkspaceIntegrations(context);
     const assignments = await this.prisma.botMcpServer.findMany({
       where: {
@@ -156,7 +181,7 @@ export class McpConnector implements ConnectorProvider {
               name: `mcp__${assignment.server.slug}__${tool.name}`,
               description: tool.description ?? tool.name,
               inputSchema: tool.inputSchema as Record<string, unknown>,
-              readOnly: tool.annotations?.readOnlyHint === true,
+              readOnly: connectorHintCanClaimReadOnly(tool.name, tool.annotations?.readOnlyHint),
               route: {
                 connectorId: "mcp",
                 resourceId: assignment.serverId,
@@ -204,7 +229,7 @@ export class McpConnector implements ConnectorProvider {
       yield { type: "error", message: "MCP tools require a bot context" };
       return;
     }
-    await this.options.prepareCompanyWorkspace?.(context);
+    await this.prepareCompanyWorkspace(context);
     await this.prepareWorkspaceIntegrations(context);
     const assignment = await this.prisma.botMcpServer.findFirst({
       where: {
@@ -285,7 +310,7 @@ export class McpConnector implements ConnectorProvider {
   }
 
   private async connectSession(server: McpServer, context: AdapterContext): Promise<McpSession> {
-    const session = new McpSession({ name: `rakazo-${server.slug}` });
+    const session = new McpSession({ name: `cadre-${server.slug}` });
     try {
       const secret = server.secretId
         ? await this.prisma.secret.findFirst({

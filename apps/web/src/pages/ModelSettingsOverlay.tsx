@@ -1,11 +1,10 @@
-import { Plural, Trans, useLingui } from "@lingui/react/macro";
-import type { Me } from "@rakazo/contracts";
+import type { Me } from "@cadre/contracts";
 import {
   OPENAI_COMPATIBLE_PROVIDER_ID,
   openAiCompatibleConnectReady,
   openAiCompatibleProbeSuccessMessage,
-} from "@rakazo/contracts";
-import { modelCatalogEntryMatchesQuery } from "@rakazo/core";
+} from "@cadre/contracts";
+import { modelCatalogEntryMatchesQuery } from "@cadre/core";
 import {
   Button,
   Dialog,
@@ -17,8 +16,8 @@ import {
   Input,
   NativeSelect,
   NativeSelectOption,
-} from "@rakazo/ui-web";
-import { Disclosure } from "@rakazo/ui-web/components/ui/disclosure";
+} from "@cadre/ui-web";
+import { Disclosure } from "@cadre/ui-web/components/ui/disclosure";
 import {
   Combobox,
   ComboboxContent,
@@ -29,7 +28,8 @@ import {
   ComboboxLabel,
   ComboboxList,
   ComboboxTrigger,
-} from "@rakazo/ui-web/directory/combobox";
+} from "@cadre/ui-web/directory/combobox";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChatGptDeviceCodeHelp } from "../components/chatgpt-device-code-help";

@@ -1,5 +1,5 @@
-import type { ThreadSnapshot } from "@rakazo/contracts";
-import { isSecretAskBlock } from "@rakazo/core";
+import type { ThreadSnapshot } from "@cadre/contracts";
+import { isSecretAskBlock } from "@cadre/core";
 
 export function pendingSecretAsk(snapshot: ThreadSnapshot | null) {
   const askId = latestAskId(snapshot);

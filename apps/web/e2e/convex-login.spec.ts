@@ -6,10 +6,7 @@ for (const theme of ["light", "dark"] as const) {
     test(`Convex login and signup ${theme} ${width}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme: theme });
-      await page.addInitScript(
-        (value) => localStorage.setItem("rakazo.uiAppearance", value),
-        theme,
-      );
+      await page.addInitScript((value) => localStorage.setItem("cadre.uiAppearance", value), theme);
       await page.route("**/api/auth/get-session**", (route) => route.fulfill({ json: null }));
       await page.route("**/api/auth/capabilities", (route) =>
         route.fulfill({

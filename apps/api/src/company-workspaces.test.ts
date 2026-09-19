@@ -51,7 +51,7 @@ describe("Company workspace HTTP boundary", () => {
     const { app, service } = fixture();
     const response = await app.request("/api/v1/company-workspaces/connect", {
       method: "POST",
-      headers: { origin: "rakazo://" },
+      headers: { origin: "cadre://" },
     });
     expect(response.status).toBe(200);
     expect(service.start).toHaveBeenCalledTimes(1);

@@ -1,4 +1,4 @@
-import { CodeBlock as DirectoryCodeBlock } from "@rakazo/ui-web/directory/code-block";
+import { CodeBlock as DirectoryCodeBlock } from "@cadre/ui-web/directory/code-block";
 import { Children, isValidElement, memo, type ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";

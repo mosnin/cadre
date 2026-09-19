@@ -1,5 +1,5 @@
+import { Button, Skeleton } from "@cadre/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Button, Skeleton } from "@rakazo/ui-web";
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { LoadingState } from "./components/ai/primitives";
@@ -64,7 +64,7 @@ export function App() {
     ) : (
       <div
         className="grid h-full place-items-center text-muted-foreground/80"
-        data-rakazo-app-state="session-pending"
+        data-cadre-app-state="session-pending"
       >
         <Trans>Loading…</Trans>
       </div>
@@ -73,7 +73,7 @@ export function App() {
 
   const user = session.data?.user;
   return (
-    <div className="h-full" data-rakazo-app-state="ready">
+    <div className="h-full" data-cadre-app-state="ready">
       <Suspense
         fallback={
           <div className="grid h-full place-items-center bg-background">
@@ -327,7 +327,7 @@ function ShellSkeleton() {
   return (
     <div
       className="flex h-full overflow-hidden bg-background"
-      data-rakazo-app-state="session-pending"
+      data-cadre-app-state="session-pending"
     >
       <aside className="hidden w-[316px] shrink-0 border-e border-sidebar-border bg-sidebar px-3.5 pt-16 md:block">
         <Skeleton className="h-10 rounded-xl" />

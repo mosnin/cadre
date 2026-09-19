@@ -17,7 +17,7 @@ const machine = {
   state: "started",
   config: {
     metadata: { cadre_owner: owner },
-    mounts: [{ path: "/home/rakazo", volume: "vol_test" }],
+    mounts: [{ path: "/home/cadre", volume: "vol_test" }],
   },
 };
 const ref = {
@@ -150,7 +150,7 @@ describe("persistent Fly computers", () => {
     expect(disk.compute).toEqual({ cpu_kind: "shared", cpus: 2, memory_mb: 4096 });
     expect(disk.compute).toEqual(vm.config.guest);
     expect(vm.config).toMatchObject({
-      mounts: [{ volume: "vol_test", path: "/home/rakazo" }],
+      mounts: [{ volume: "vol_test", path: "/home/cadre" }],
       restart: { policy: "always" },
       services: [{ autostop: "off", autostart: false }],
     });
@@ -191,7 +191,7 @@ describe("persistent Fly computers", () => {
     );
     expect(result.fresh).toBe(true);
     const vm = JSON.parse(String(request.mock.calls[3]![1]!.body));
-    expect(vm.config.mounts).toEqual([{ volume: "vol_new", path: "/home/rakazo" }]);
+    expect(vm.config.mounts).toEqual([{ volume: "vol_new", path: "/home/cadre" }]);
   });
   it("does not replace an existing disk that is still becoming ready", async () => {
     const request = vi
@@ -331,7 +331,7 @@ it("flushes the mounted home volume before acknowledging task persistence", asyn
   const flush = JSON.parse(String(request.mock.calls[2]![1]!.body));
   expect(flush).toMatchObject({
     op: "exec",
-    argv: ["sync", "-f", "/home/rakazo"],
+    argv: ["sync", "-f", "/home/cadre"],
   });
   expect(flush.screenKey).toBeUndefined();
   expect(flush.screenLease).toBeUndefined();
@@ -484,7 +484,7 @@ it("excludes a disk already scheduled for destruction from replacement allocatio
     context,
   );
   expect(JSON.parse(String(request.mock.calls[3]![1]!.body)).config.mounts).toEqual([
-    { volume: "vol_new", path: "/home/rakazo" },
+    { volume: "vol_new", path: "/home/cadre" },
   ]);
 });
 

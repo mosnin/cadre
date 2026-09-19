@@ -1,7 +1,7 @@
+import type { ThreadMessage, ThreadSnapshot } from "@cadre/contracts";
+import { isSecretAskBlock, speechFromBlocks, spokenDecision } from "@cadre/core";
+import { Button } from "@cadre/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { ThreadMessage, ThreadSnapshot } from "@rakazo/contracts";
-import { isSecretAskBlock, speechFromBlocks, spokenDecision } from "@rakazo/core";
-import { Button } from "@rakazo/ui-web";
 import { useEffect, useRef, useState } from "react";
 import { hasWorkingRun, latestAskId, pendingSecretAsk } from "../lib/call-task";
 import { dictation } from "../lib/dictation";

@@ -1,5 +1,3 @@
-import { t } from "@lingui/core/macro";
-import { Trans, useLingui } from "@lingui/react/macro";
 import type {
   Bot,
   ComputerMode,
@@ -8,12 +6,12 @@ import type {
   ModelCredential,
   ThinkingLevel,
   VoiceInfo,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   BOT_DESCRIPTION_MAX_LENGTH,
   BOT_NAME_MAX_LENGTH,
   BOT_TITLE_MAX_LENGTH,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   BotAvatar,
   Button,
@@ -23,8 +21,10 @@ import {
   Switch,
   Textarea,
   Toggle,
-} from "@rakazo/ui-web";
-import { Disclosure } from "@rakazo/ui-web/components/ui/disclosure";
+} from "@cadre/ui-web";
+import { Disclosure } from "@cadre/ui-web/components/ui/disclosure";
+import { t } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { X } from "lucide-react";
 import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { rpc } from "../../lib/rpc";

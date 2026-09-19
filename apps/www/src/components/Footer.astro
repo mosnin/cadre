@@ -8,7 +8,6 @@ import {
   localeHomePath,
   type Locale,
 } from "../i18n/locales";
-import { CHANGELOG_URL, DOCS_URL, GITHUB_URL, INBOX_ZERO_URL } from "../site";
 import Logo from "./Logo.astro";
 
 type Props = {
@@ -34,7 +33,7 @@ const {
   languagesLabel = "Language",
   navLabel = "Footer",
   homeHref = localeHomePath(currentLocale),
-  homeLabel = "Rakazo home",
+  homeLabel = "Cadre home",
   linkLabels = {
     docs: "Docs",
     changelog: "Changelog",
@@ -49,9 +48,7 @@ const {
   <div class="site-footer__brand">
     <Logo href={homeHref} label={homeLabel} />
     <span class="site-footer__legal">
-      © 2026 ·
-      <a href={INBOX_ZERO_URL} target="_blank" rel="noreferrer">Inbox Zero Inc.</a>
-      · Apache-2.0
+      © 2026 Cadre · Apache-2.0
     </span>
   </div>
   <div class="site-footer__nav">
@@ -69,9 +66,6 @@ const {
       }
     </nav>
     <nav class="site-footer__links" aria-label={navLabel}>
-      <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
-      <a href={DOCS_URL} target="_blank" rel="noreferrer">{linkLabels.docs}</a>
-      <a href={CHANGELOG_URL} target="_blank" rel="noreferrer">{linkLabels.changelog}</a>
       <a href="/about/">{linkLabels.about}</a>
       <a href="/support/">{linkLabels.support}</a>
       <a href="/privacy/">{linkLabels.privacy}</a>

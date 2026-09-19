@@ -1,15 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   type CronPreset,
+  clockFrom24h,
+  clockTo24h,
   cronFromPreset,
   describeCronPreset,
   formatCron,
+  formatSchedule,
   hasMixedOneShotSchedule,
   isOneShotRoutineCrons,
   nextCronDate,
   nextCronDateAcross,
   nextCronDateAcrossStrict,
   ONCE_ROUTINE_CRON,
+  ordinalDay,
   presetFromCron,
   resolveRoutineNextRunAt,
 } from "./cron.js";
@@ -19,6 +23,8 @@ function preset(partial: Partial<CronPreset> & Pick<CronPreset, "freq">): CronPr
     n: 3,
     unit: "minutes",
     time: "9:00 AM",
+    weekday: 1,
+    day: 1,
     cron: "",
     ...partial,
   };
@@ -70,7 +76,7 @@ describe("presetFromCron", () => {
       preset({ freq: "Interval", n: 10, unit: "minutes" }),
       preset({ freq: "Interval", n: 5, unit: "hours" }),
       preset({ freq: "Interval", n: 2, unit: "days" }),
-      preset({ freq: "Advanced", cron: "0 10 15 * *" }),
+      preset({ freq: "Advanced", cron: "0 10 1,15 * *" }),
     ];
     for (const input of cases) {
       const cron = cronFromPreset(input);
@@ -89,11 +95,54 @@ describe("presetFromCron", () => {
     }
   });
 
-  it("falls back to advanced for expressions the picker cannot represent", () => {
-    expect(presetFromCron("0 9 * * 0")).toMatchObject({ freq: "Advanced", cron: "0 9 * * 0" });
+  it("reads any single weekday or day of month with an exact time", () => {
+    expect(presetFromCron("0 9 * * 0")).toMatchObject({
+      freq: "Every week",
+      weekday: 0,
+      time: "9:00 AM",
+    });
+    expect(presetFromCron("0 9 * * 7")).toMatchObject({ freq: "Every week", weekday: 0 });
     expect(presetFromCron("30 14 15 * *")).toMatchObject({
+      freq: "Every month",
+      day: 15,
+      time: "2:30 PM",
+    });
+    expect(cronFromPreset(preset({ freq: "Every week", weekday: 5, time: "6:45 PM" }))).toBe(
+      "45 18 * * 5",
+    );
+    expect(cronFromPreset(preset({ freq: "Every month", day: 31, time: "12:05 AM" }))).toBe(
+      "5 0 31 * *",
+    );
+    expect(cronFromPreset(preset({ freq: "Every month", day: 40 }))).toBe("0 9 1 * *");
+    expect(formatSchedule(preset({ freq: "Every week", weekday: 5, time: "6:45 PM" }))).toBe(
+      "Every Friday at 6:45 PM",
+    );
+    expect(formatSchedule(preset({ freq: "Every month", day: 22, time: "9:00 AM" }))).toBe(
+      "Monthly on the 22nd at 9:00 AM",
+    );
+    expect([1, 2, 3, 4, 11, 12, 13, 21, 23].map(ordinalDay)).toEqual([
+      "1st",
+      "2nd",
+      "3rd",
+      "4th",
+      "11th",
+      "12th",
+      "13th",
+      "21st",
+      "23rd",
+    ]);
+    expect(clockTo24h("9:05 PM")).toBe("21:05");
+    expect(clockTo24h("12:00 AM")).toBe("00:00");
+    expect(clockFrom24h("21:05")).toBe("9:05 PM");
+    expect(clockFrom24h("00:30")).toBe("12:30 AM");
+    expect(clockFrom24h("25:00")).toBeNull();
+  });
+
+  it("falls back to advanced for expressions the picker cannot represent", () => {
+    expect(presetFromCron("0 9 * * 1,3")).toMatchObject({ freq: "Advanced", cron: "0 9 * * 1,3" });
+    expect(presetFromCron("30 14 1,15 * *")).toMatchObject({
       freq: "Advanced",
-      cron: "30 14 15 * *",
+      cron: "30 14 1,15 * *",
     });
     expect(presetFromCron(ONCE_ROUTINE_CRON)).toMatchObject({
       freq: "Advanced",

@@ -1,10 +1,14 @@
-import type { AdapterContext, WebFetchProvider, WebSearchProvider } from "@rakazo/adapter-kit";
+import type { AdapterContext, WebFetchProvider, WebSearchProvider } from "@cadre/adapter-kit";
+import { rankWebSearchHits } from "./decision-search.js";
+import type { DecisionProvider } from "./jev-decisions.js";
 import { clampMaxChars, clampMaxResults } from "./web-limits.js";
 
 export async function webSearchFromTool(
   search: WebSearchProvider,
   context: AdapterContext,
   args: Record<string, unknown>,
+  /** When configured, reorders results by how well they answer the question actually asked. */
+  decisions?: { provider?: DecisionProvider; sessionId?: string },
 ) {
   const query = String(args.query ?? "").trim();
   if (!query) return { error: "query is required" };
@@ -17,7 +21,12 @@ export async function webSearchFromTool(
       },
       context,
     );
-    return { results };
+    return {
+      results: await rankWebSearchHits(decisions?.provider, query, results, {
+        sessionId: decisions?.sessionId,
+        signal: context.signal,
+      }),
+    };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   }

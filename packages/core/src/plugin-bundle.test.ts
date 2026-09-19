@@ -2,12 +2,26 @@ import { describe, expect, it } from "vitest";
 import {
   PLUGIN_BUNDLE_MAX_BYTES,
   pluginSkillRecords,
+  readPluginBundle,
   resolvePluginResource,
   validatePluginBundle,
 } from "./plugin-bundle.js";
 
 const skill = "---\nname: design\ndescription: Design products\n---\nRead ../../kernel/guide.md";
 describe("plugin document bundles", () => {
+  it("reads an installed bundle by shape without re-running install validation", () => {
+    const installed = validatePluginBundle({
+      files: [{ path: "SKILL.md", content: skill }],
+    });
+    expect(readPluginBundle(installed)).toEqual(installed);
+    expect(() => readPluginBundle({ files: [] })).toThrow("not installed");
+    expect(() =>
+      readPluginBundle({ format: "cadre-plugin-v1", files: [{ path: 1, content: "" }] }),
+    ).toThrow("Invalid plugin file");
+    expect(
+      pluginSkillRecords({ id: "x", name: "X", config: { format: "cadre-plugin-v1" } }),
+    ).toEqual([]);
+  });
   it("preserves entrypoints and referenced files without executing configuration", () => {
     const bundle = validatePluginBundle({
       files: [

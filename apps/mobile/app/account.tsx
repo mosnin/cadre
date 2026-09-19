@@ -1,4 +1,4 @@
-import type { AgentSkillCatalogEntry, CapabilityInstall } from "@rakazo/contracts";
+import type { AgentSkillCatalogEntry, CapabilityInstall } from "@cadre/contracts";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet } from "react-native";

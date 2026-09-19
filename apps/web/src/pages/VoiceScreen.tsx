@@ -1,5 +1,5 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@rakazo/ui-web";
-import FluidOrb from "@rakazo/ui-web/components/ui/fluid-orb";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@cadre/ui-web";
+import FluidOrb from "@cadre/ui-web/components/ui/fluid-orb";
 import type { ReactNode } from "react";
 
 export function VoiceScreen({

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { bootstrapUserSpace, createDb, createSpaceForMember, requireMembership } from "@rakazo/db";
+import { bootstrapUserSpace, createDb, createSpaceForMember, requireMembership } from "@cadre/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { EncryptedSecretStore } from "./secrets.js";
 import { WorkspaceIntegrations, type WorkspaceProvider } from "./workspace-integrations.js";

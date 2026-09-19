@@ -19,6 +19,7 @@ export type HomeCopy = {
     openSource: string;
     docs: string;
     viewOnGithub: string;
+    getStarted: string;
   };
   hero: {
     badge: string;
@@ -36,6 +37,27 @@ export type HomeCopy = {
     heading: string;
     copy: string;
     features: Array<{ title: string; body: string }>;
+  };
+  tools: {
+    eyebrow: string;
+    heading: string;
+    copy: string;
+  };
+  illustrations: {
+    models: { caption: string };
+    routines: {
+      rows: Array<{ title: string; range: string }>;
+      dayLabels: string[];
+      nowLabel: string;
+      caption: string;
+    };
+    approvals: {
+      items: Array<{ label: string; asks?: boolean }>;
+      doneLabel: string;
+      asksLabel: string;
+      caption: string;
+    };
+    tools: { caption: string };
   };
   roster: {
     eyebrow: string;
@@ -65,7 +87,7 @@ export type HomeCopy = {
     viewOnGithub: string;
     openSourceValue: string;
     selfHostValue: string;
-    stats: Array<{ value: "stars" | "license" | "openSource" | "selfHost"; label: string }>;
+    stats: Array<{ value: "license" | "openSource" | "selfHost"; label: string }>;
   };
   getStartedDialog: {
     closeLabel: string;
@@ -110,49 +132,49 @@ const DE_ROSTER: RosterBot[] = [
   {
     name: "Sales Outbound",
     color: "#F5A03C",
-    slug: "rakazo/sales-outbound",
+    slug: "cadre/sales-outbound",
     desc: "Recherchiert nachts Accounts, bewertet Intent, entwirft in deinem Ton und hinterlässt eine Review-Liste.",
   },
   {
     name: "Inbox Manager",
     color: "#6A6BF5",
-    slug: "rakazo/inbox-manager",
+    slug: "cadre/inbox-manager",
     desc: "Archiviert den Lärm, antwortet auf Routine-Threads und parkt Entwürfe, die du lesen solltest.",
   },
   {
     name: "Talent Scout",
     color: "#3B82F6",
-    slug: "rakazo/talent-scout",
+    slug: "cadre/talent-scout",
     desc: "Liest jede Bewerbung, shortlistet nach deiner Latte und schreibt die Intro-Mails.",
   },
   {
     name: "Expense Manager",
     color: "#F2622A",
-    slug: "rakazo/expense-manager",
+    slug: "cadre/expense-manager",
     desc: "Ordnet Belege den Buchungen zu, reicht den Report ein und fragt nach, statt zu raten.",
   },
   {
     name: "Bug Triage",
     color: "#D9508A",
-    slug: "rakazo/bug-triage",
+    slug: "cadre/bug-triage",
     desc: "Reproduziert Reports in einem echten Browser und hängt die Schritte an das Issue.",
   },
   {
     name: "Account Manager",
     color: "#9B5CF6",
-    slug: "rakazo/account-manager",
+    slug: "cadre/account-manager",
     desc: "Hält Renewal-Kontext, beantwortet bekannte Fragen und eskaliert den Rest.",
   },
   {
     name: "Paid Media",
     color: "#3EC5A8",
-    slug: "rakazo/paid-media",
+    slug: "cadre/paid-media",
     desc: "Überwacht den Spend täglich, pausiert, was nicht konvertiert, und meldet, was sich geändert hat.",
   },
   {
     name: "Chief of Staff",
     color: "#8B93A8",
-    slug: "rakazo/chief-of-staff",
+    slug: "cadre/chief-of-staff",
     desc: "Führt die Woche: Briefings, Buchungen und Übergaben zwischen deinen anderen Bots.",
   },
 ];
@@ -161,49 +183,49 @@ const KO_ROSTER: RosterBot[] = [
   {
     name: "Sales Outbound",
     color: "#F5A03C",
-    slug: "rakazo/sales-outbound",
+    slug: "cadre/sales-outbound",
     desc: "밤새 계정을 조사하고 의도를 점수한 뒤, 당신 말투로 초안을 써 검토 목록을 남깁니다.",
   },
   {
     name: "Inbox Manager",
     color: "#6A6BF5",
-    slug: "rakazo/inbox-manager",
+    slug: "cadre/inbox-manager",
     desc: "잡음을 보관처리하고, 루틴 스레드에 답하며, 확인이 필요한 초안은 보류합니다.",
   },
   {
     name: "Talent Scout",
     color: "#3B82F6",
-    slug: "rakazo/talent-scout",
+    slug: "cadre/talent-scout",
     desc: "지원서를 모두 읽고 기준에 맞게 숏리스트한 뒤 소개 메일을 작성합니다.",
   },
   {
     name: "Expense Manager",
     color: "#F2622A",
-    slug: "rakazo/expense-manager",
+    slug: "cadre/expense-manager",
     desc: "영수증과 결제를 맞추고 리포트를 제출하며, 추측하기 전에 묻습니다.",
   },
   {
     name: "Bug Triage",
     color: "#D9508A",
-    slug: "rakazo/bug-triage",
+    slug: "cadre/bug-triage",
     desc: "실제 브라우저에서 리포트를 재현하고 이슈에 재현 절차를 붙입니다.",
   },
   {
     name: "Account Manager",
     color: "#9B5CF6",
-    slug: "rakazo/account-manager",
+    slug: "cadre/account-manager",
     desc: "갱신 맥락을 유지하고 알려진 질문에 답하며, 나머지는 에스컬레이션합니다.",
   },
   {
     name: "Paid Media",
     color: "#3EC5A8",
-    slug: "rakazo/paid-media",
+    slug: "cadre/paid-media",
     desc: "매일 지출을 지켜보고 전환되지 않는 건 일시정지한 뒤, 바뀐 점을 보고합니다.",
   },
   {
     name: "Chief of Staff",
     color: "#8B93A8",
-    slug: "rakazo/chief-of-staff",
+    slug: "cadre/chief-of-staff",
     desc: "한 주를 운영합니다: 브리핑, 예약, 다른 봇 사이의 핸드오프.",
   },
 ];
@@ -212,64 +234,64 @@ const ZH_ROSTER: RosterBot[] = [
   {
     name: "Sales Outbound",
     color: "#F5A03C",
-    slug: "rakazo/sales-outbound",
+    slug: "cadre/sales-outbound",
     desc: "夜间调研客户、评估意向，用你的语气起草跟进，并留下待审清单。",
   },
   {
     name: "Inbox Manager",
     color: "#6A6BF5",
-    slug: "rakazo/inbox-manager",
+    slug: "cadre/inbox-manager",
     desc: "归档杂音、回复例行邮件，把需要你过目的草稿先搁置起来。",
   },
   {
     name: "Talent Scout",
     color: "#3B82F6",
-    slug: "rakazo/talent-scout",
+    slug: "cadre/talent-scout",
     desc: "通读每份简历，按你的标准筛出候选名单，并写好介绍邮件。",
   },
   {
     name: "Expense Manager",
     color: "#F2622A",
-    slug: "rakazo/expense-manager",
+    slug: "cadre/expense-manager",
     desc: "核对票据与账目、提交报销，拿不准时先问而不是猜。",
   },
   {
     name: "Bug Triage",
     color: "#D9508A",
-    slug: "rakazo/bug-triage",
+    slug: "cadre/bug-triage",
     desc: "在真实浏览器里复现报告，并把复现步骤附到工单上。",
   },
   {
     name: "Account Manager",
     color: "#9B5CF6",
-    slug: "rakazo/account-manager",
+    slug: "cadre/account-manager",
     desc: "掌握续约背景，回答常见问题，其余的自动升级给你。",
   },
   {
     name: "Paid Media",
     color: "#3EC5A8",
-    slug: "rakazo/paid-media",
+    slug: "cadre/paid-media",
     desc: "每天盯投放，暂停没有转化的广告，并汇报发生了什么变化。",
   },
   {
     name: "Chief of Staff",
     color: "#8B93A8",
-    slug: "rakazo/chief-of-staff",
+    slug: "cadre/chief-of-staff",
     desc: "统筹整周：准备简报、安排日程，并协调其他 Bot 之间的交接。",
   },
 ];
 
 const HOME_COPY: Record<Locale, HomeCopy> = {
   en: {
-    title: "Rakazo | Open source Grok Bot alternative",
+    title: "Cadre | Open source Grok Bot alternative",
     description: SITE_DESCRIPTION,
     ogImageAlt:
-      "Rakazo. AI teammates you actually own. Your keys, your model, your machine.",
+      "Cadre. AI teammates you actually own. Your keys, your model, your machine.",
     availableLanguage: "English",
     skipToContent: "Skip to content",
     starFallback: "Star",
     nav: {
-      home: "Rakazo home",
+      home: "Cadre home",
       primary: "Primary",
       menu: "Menu",
       product: "Product",
@@ -278,12 +300,13 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSource: "Open source",
       docs: "Docs",
       viewOnGithub: "View on GitHub",
+      getStarted: "Get started",
     },
     hero: {
       badge: "Apache-2.0",
       pill: "Self-hosted",
       heading: "AI teammates you actually own",
-      lead: "Rakazo is an open source Grok Bot alternative. Give a bot real work. It signs in to your tools, uses them the way you do, and comes back when it needs you.",
+      lead: "Cadre is an open source Grok Bot alternative. Give a bot real work. It signs in to your tools, uses them the way you do, and comes back when it needs you.",
       getStarted: "Get started",
       viewOnGithub: "View on GitHub",
       setupWithAgent: "Set up with your agent",
@@ -293,7 +316,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     selfHost: {
       eyebrow: "Self-hosted",
       heading: "The computer is yours",
-      copy: "Run Rakazo on your machine. Your keys, your model, your data.",
+      copy: "Run Cadre on your machine. Your keys, your model, your data.",
       features: [
         {
           title: "Any model, your key",
@@ -309,6 +332,41 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         },
       ],
     },
+    tools: {
+      eyebrow: "Connected",
+      heading: "It works where your work already lives",
+      copy: "A bot signs in to the tools you already pay for and uses them the way you would.",
+    },
+    illustrations: {
+      models: {
+        caption: "Six model providers connected to one Cadre instance that you run.",
+      },
+      routines: {
+        rows: [
+          { title: "Triage the inbox", range: "Every weekday \u00b7 07:00" },
+          { title: "Research new accounts", range: "Nightly \u00b7 02:00" },
+          { title: "Watch ad spend", range: "Daily \u00b7 09:00" },
+        ],
+        dayLabels: ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"],
+        nowLabel: "NOW",
+        caption: "Three saved routines running across a week, with a marker on the current time.",
+      },
+      approvals: {
+        items: [
+          { label: "Archived 214 newsletters" },
+          { label: "Replied to 6 routine threads" },
+          { label: "Booked Tuesday's standup" },
+          { label: "Refund $2,400 to Northwind", asks: true },
+          { label: "Send the signed contract", asks: true },
+        ],
+        doneLabel: "Done",
+        asksLabel: "Asks you",
+        caption: "Routine actions completed on their own; consequential ones held for approval.",
+      },
+      tools: {
+        caption: "A wall of apps a bot can sign in to and operate.",
+      },
+    },
     roster: {
       eyebrow: "Bot Templates",
       heading: "Give each bot a job",
@@ -318,7 +376,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     openSource: {
       eyebrow: "Open source",
       heading: "No pricing page. Just the repo.",
-      copy: "Rakazo is Apache-2.0 licensed and runs on your own machine with your own model keys. Nothing is gated, nothing phones home.",
+      copy: "Cadre is Apache-2.0 licensed and runs on your own machine with your own model keys. Nothing is gated, nothing phones home.",
       selfHostTitle: "Self-host",
       selfHostMeta: "Available today",
       selfHostItems: [
@@ -326,7 +384,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         "Bring your own model keys",
         "Routines, memory, and audit log",
         "Unlimited bots, no seats, no limits",
-        "Community support on GitHub",
+        "Community support by email",
       ],
       starOnGithub: "Star on GitHub",
       readTheDocs: "Read the docs",
@@ -342,13 +400,12 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
     cta: {
       heading: "Meet your first bot",
-      copy: "Give Rakazo something you have been putting off and let it handle the follow-through.",
+      copy: "Give Cadre something you have been putting off and let it handle the follow-through.",
       getStarted: "Get started",
       viewOnGithub: "View on GitHub",
       openSourceValue: "Open source",
       selfHostValue: "Self-host",
       stats: [
-        { value: "stars", label: "GitHub stars" },
         { value: "license", label: "License" },
         { value: "openSource", label: "No seats, no gates" },
         { value: "selfHost", label: "Your machine" },
@@ -362,11 +419,11 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       selfHostNow: "Self-host now",
       selfHostHint: "Install steps are in the docs.",
       cloudWaitlist: "Cloud waitlist",
-      cloudHint: "Hosted Rakazo is coming. Leave your email.",
+      cloudHint: "Hosted Cadre is coming. Leave your email.",
       back: "Back",
       successTitle: "You're in.",
       successCopy:
-        "We'll email you when hosted Rakazo is ready. Want to start today? Jump to Self-host on this page.",
+        "We'll email you when hosted Cadre is ready. Want to start today? Jump to Self-host on this page.",
       done: "Done",
       viewOnGithub: "View on GitHub",
     },
@@ -392,16 +449,16 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
   },
   de: {
-    title: "Rakazo | Open-Source-Alternative zu Grok Bot",
+    title: "Cadre | Open-Source-Alternative zu Grok Bot",
     description:
-      "Rakazo ist eine Open-Source-Alternative zu Grok Bot für persistente KI-Teamkollegen, die echte Arbeit erledigen. Deine Keys, dein Modell, deine Maschine.",
+      "Cadre ist eine Open-Source-Alternative zu Grok Bot für persistente KI-Teamkollegen, die echte Arbeit erledigen. Deine Keys, dein Modell, deine Maschine.",
     ogImageAlt:
-      "Rakazo. KI-Teamkollegen, die dir wirklich gehören. Deine Keys, dein Modell, deine Maschine.",
+      "Cadre. KI-Teamkollegen, die dir wirklich gehören. Deine Keys, dein Modell, deine Maschine.",
     availableLanguage: "German",
     skipToContent: "Zum Inhalt springen",
     starFallback: "Star",
     nav: {
-      home: "Rakazo-Startseite",
+      home: "Cadre-Startseite",
       primary: "Hauptnavigation",
       menu: "Menü",
       product: "Produkt",
@@ -410,12 +467,13 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSource: "Open Source",
       docs: "Docs",
       viewOnGithub: "Auf GitHub ansehen",
+      getStarted: "Loslegen",
     },
     hero: {
       badge: "Apache-2.0",
       pill: "Self-hosted",
       heading: "KI-Teamkollegen, die dir wirklich gehören",
-      lead: "Rakazo ist eine Open-Source-Alternative zu Grok Bot. Gib einem Bot echte Arbeit. Er meldet sich in deinen Tools an, nutzt sie wie du — und kommt zurück, wenn er dich braucht.",
+      lead: "Cadre ist eine Open-Source-Alternative zu Grok Bot. Gib einem Bot echte Arbeit. Er meldet sich in deinen Tools an, nutzt sie wie du — und kommt zurück, wenn er dich braucht.",
       getStarted: "Loslegen",
       viewOnGithub: "Auf GitHub ansehen",
       setupWithAgent: "Mit deinem Agenten einrichten",
@@ -425,7 +483,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     selfHost: {
       eyebrow: "Self-hosted",
       heading: "Der Computer gehört dir",
-      copy: "Betreibe Rakazo auf deiner Maschine. Deine Keys, dein Modell, deine Daten.",
+      copy: "Betreibe Cadre auf deiner Maschine. Deine Keys, dein Modell, deine Daten.",
       features: [
         {
           title: "Beliebiges Modell, dein Key",
@@ -441,6 +499,41 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         },
       ],
     },
+    tools: {
+      eyebrow: "Verbunden",
+      heading: "Er arbeitet dort, wo deine Arbeit schon liegt",
+      copy: "Ein Bot meldet sich in den Tools an, die du ohnehin bezahlst, und nutzt sie wie du.",
+    },
+    illustrations: {
+      models: {
+        caption: "Sechs Modellanbieter, verbunden mit einer Cadre-Instanz, die du betreibst.",
+      },
+      routines: {
+        rows: [
+          { title: "Postfach triagieren", range: "Jeden Werktag \u00b7 07:00" },
+          { title: "Neue Accounts recherchieren", range: "N\u00e4chtlich \u00b7 02:00" },
+          { title: "Ad-Spend pr\u00fcfen", range: "T\u00e4glich \u00b7 09:00" },
+        ],
+        dayLabels: ["MO", "DI", "MI", "DO", "FR", "SA", "SO"],
+        nowLabel: "JETZT",
+        caption: "Drei gespeicherte Routinen \u00fcber eine Woche, mit Markierung auf der aktuellen Zeit.",
+      },
+      approvals: {
+        items: [
+          { label: "214 Newsletter archiviert" },
+          { label: "6 Routine-Threads beantwortet" },
+          { label: "Dienstags-Standup gebucht" },
+          { label: "2.400 $ an Northwind erstatten", asks: true },
+          { label: "Unterschriebenen Vertrag senden", asks: true },
+        ],
+        doneLabel: "Erledigt",
+        asksLabel: "Fragt dich",
+        caption: "Routineaktionen laufen allein; folgenreiche warten auf deine Freigabe.",
+      },
+      tools: {
+        caption: "Eine Wand aus Apps, in denen ein Bot sich anmelden und arbeiten kann.",
+      },
+    },
     roster: {
       eyebrow: "Bot-Vorlagen",
       heading: "Gib jedem Bot eine Aufgabe",
@@ -450,7 +543,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     openSource: {
       eyebrow: "Open Source",
       heading: "Keine Preisseite. Nur das Repo.",
-      copy: "Rakazo ist Apache-2.0-lizenziert und läuft auf deiner Maschine mit deinen Model-Keys. Nichts ist freigeschaltet, nichts telefoniert nach Hause.",
+      copy: "Cadre ist Apache-2.0-lizenziert und läuft auf deiner Maschine mit deinen Model-Keys. Nichts ist freigeschaltet, nichts telefoniert nach Hause.",
       selfHostTitle: "Self-host",
       selfHostMeta: "Heute verfügbar",
       selfHostItems: [
@@ -458,7 +551,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         "Eigene Model-Keys mitbringen",
         "Routinen, Memory und Audit-Log",
         "Unbegrenzte Bots, keine Seats, keine Limits",
-        "Community-Support auf GitHub",
+        "Community-Support per E-Mail",
       ],
       starOnGithub: "Auf GitHub mit Stern markieren",
       readTheDocs: "Docs lesen",
@@ -474,13 +567,12 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
     cta: {
       heading: "Triff deinen ersten Bot",
-      copy: "Gib Rakazo etwas, das du aufgeschoben hast — und lass es den Follow-through übernehmen.",
+      copy: "Gib Cadre etwas, das du aufgeschoben hast — und lass es den Follow-through übernehmen.",
       getStarted: "Loslegen",
       viewOnGithub: "Auf GitHub ansehen",
       openSourceValue: "Open Source",
       selfHostValue: "Self-host",
       stats: [
-        { value: "stars", label: "GitHub Stars" },
         { value: "license", label: "Lizenz" },
         { value: "openSource", label: "Keine Seats, keine Gates" },
         { value: "selfHost", label: "Deine Maschine" },
@@ -494,11 +586,11 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       selfHostNow: "Jetzt self-hosten",
       selfHostHint: "Installationsschritte stehen in den Docs.",
       cloudWaitlist: "Cloud-Warteliste",
-      cloudHint: "Gehostetes Rakazo kommt. Hinterlasse deine E-Mail.",
+      cloudHint: "Gehostetes Cadre kommt. Hinterlasse deine E-Mail.",
       back: "Zurück",
       successTitle: "Du bist dabei.",
       successCopy:
-        "Wir mailen dir, wenn gehostetes Rakazo bereit ist. Heute starten? Zum Self-host-Abschnitt auf dieser Seite.",
+        "Wir mailen dir, wenn gehostetes Cadre bereit ist. Heute starten? Zum Self-host-Abschnitt auf dieser Seite.",
       done: "Fertig",
       viewOnGithub: "Auf GitHub ansehen",
     },
@@ -524,15 +616,15 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
   },
   ko: {
-    title: "Rakazo | 오픈소스 Grok Bot 대안",
+    title: "Cadre | 오픈소스 Grok Bot 대안",
     description:
-      "Rakazo는 실제 업무를 수행하는 지속형 AI 팀원을 위한 오픈소스 Grok Bot 대안입니다. 키, 모델, 머신, 모두 당신 것.",
-    ogImageAlt: "Rakazo. 진짜로 내 것인 AI 팀원. 키, 모델, 머신, 모두 당신 것.",
+      "Cadre는 실제 업무를 수행하는 지속형 AI 팀원을 위한 오픈소스 Grok Bot 대안입니다. 키, 모델, 머신, 모두 당신 것.",
+    ogImageAlt: "Cadre. 진짜로 내 것인 AI 팀원. 키, 모델, 머신, 모두 당신 것.",
     availableLanguage: "Korean",
     skipToContent: "본문으로 건너뛰기",
     starFallback: "Star",
     nav: {
-      home: "Rakazo 홈",
+      home: "Cadre 홈",
       primary: "주 메뉴",
       menu: "메뉴",
       product: "제품",
@@ -541,12 +633,13 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSource: "오픈소스",
       docs: "Docs",
       viewOnGithub: "GitHub에서 보기",
+      getStarted: "시작하기",
     },
     hero: {
       badge: "Apache-2.0",
       pill: "셀프 호스트",
       heading: "진짜로 내 것인 AI 팀원",
-      lead: "Rakazo는 오픈소스 Grok Bot 대안입니다. 봇에게 실제 업무를 맡기세요. 봇이 도구에 로그인하고, 당신처럼 사용하며, 필요할 때 돌아와 묻습니다.",
+      lead: "Cadre는 오픈소스 Grok Bot 대안입니다. 봇에게 실제 업무를 맡기세요. 봇이 도구에 로그인하고, 당신처럼 사용하며, 필요할 때 돌아와 묻습니다.",
       getStarted: "시작하기",
       viewOnGithub: "GitHub에서 보기",
       setupWithAgent: "에이전트로 설정하기",
@@ -556,7 +649,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     selfHost: {
       eyebrow: "셀프 호스트",
       heading: "컴퓨터는 당신 것",
-      copy: "당신 머신에서 Rakazo를 실행하세요. 키, 모델, 데이터는 모두 당신 것.",
+      copy: "당신 머신에서 Cadre를 실행하세요. 키, 모델, 데이터는 모두 당신 것.",
       features: [
         {
           title: "어떤 모델이든, 키는 당신 것",
@@ -572,6 +665,41 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         },
       ],
     },
+    tools: {
+      eyebrow: "\uc5f0\uacb0",
+      heading: "\uc77c\uc774 \uc774\ubbf8 \uc788\ub294 \uacf3\uc5d0\uc11c \uc77c\ud569\ub2c8\ub2e4",
+      copy: "\ubd07\uc740 \ub2f9\uc2e0\uc774 \uc774\ubbf8 \uc4f0\ub294 \ub3c4\uad6c\uc5d0 \ub85c\uadf8\uc778\ud574 \ub2f9\uc2e0\ucc98\ub7fc \uc0ac\uc6a9\ud569\ub2c8\ub2e4.",
+    },
+    illustrations: {
+      models: {
+        caption: "\uc9c1\uc811 \uc6b4\uc601\ud558\ub294 Cadre \uc778\uc2a4\ud134\uc2a4 \ud558\ub098\uc5d0 \uc5f0\uacb0\ub41c \uc5ec\uc12f \uac1c\uc758 \ubaa8\ub378 \uacf5\uae09\uc0ac.",
+      },
+      routines: {
+        rows: [
+          { title: "\uc218\uc2e0\ud568 \uc815\ub9ac", range: "\ud3c9\uc77c\ub9c8\ub2e4 \u00b7 07:00" },
+          { title: "\uc2e0\uaddc \uacc4\uc815 \uc870\uc0ac", range: "\ub9e4\uc77c \ubc24 \u00b7 02:00" },
+          { title: "\uad11\uace0 \uc9c0\ucd9c \uc810\uac80", range: "\ub9e4\uc77c \u00b7 09:00" },
+        ],
+        dayLabels: ["\uc6d4", "\ud654", "\uc218", "\ubaa9", "\uae08", "\ud1a0", "\uc77c"],
+        nowLabel: "\uc9c0\uae08",
+        caption: "\ud55c \uc8fc \ub3d9\uc548 \uc2e4\ud589\ub418\ub294 \ub8e8\ud2f4 \uc138 \uac1c\uc640 \ud604\uc7ac \uc2dc\uac01 \ud45c\uc2dc.",
+      },
+      approvals: {
+        items: [
+          { label: "\ub274\uc2a4\ub808\ud130 214\uac1c \ubcf4\uad00" },
+          { label: "\ub8e8\ud2f4 \uc2a4\ub808\ub4dc 6\uac1c \ud68c\uc2e0" },
+          { label: "\ud654\uc694\uc77c \uc2a4\ud0e0\ub4dc\uc5c5 \uc608\uc57d" },
+          { label: "Northwind\uc5d0 $2,400 \ud658\ubd88", asks: true },
+          { label: "\uc11c\uba85\ub41c \uacc4\uc57d\uc11c \ubc1c\uc1a1", asks: true },
+        ],
+        doneLabel: "\uc644\ub8cc",
+        asksLabel: "\ud655\uc778 \uc694\uccad",
+        caption: "\ub8e8\ud2f4 \uc791\uc5c5\uc740 \uc2a4\uc2a4\ub85c \ub05d\ub0b4\uace0, \uc911\uc694\ud55c \uc791\uc5c5\uc740 \uc2b9\uc778\uc744 \uae30\ub2e4\ub9bd\ub2c8\ub2e4.",
+      },
+      tools: {
+        caption: "\ubd07\uc774 \ub85c\uadf8\uc778\ud574 \uc870\uc791\ud560 \uc218 \uc788\ub294 \uc571\ub4e4.",
+      },
+    },
     roster: {
       eyebrow: "봇 템플릿",
       heading: "봇마다 역할을 주세요",
@@ -581,7 +709,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     openSource: {
       eyebrow: "오픈소스",
       heading: "가격 페이지 없음. 리포만.",
-      copy: "Rakazo는 Apache-2.0 라이선스이며, 당신 머신에서 당신 모델 키로 실행됩니다. 잠긴 기능도, 외부로 연락하는 것도 없습니다.",
+      copy: "Cadre는 Apache-2.0 라이선스이며, 당신 머신에서 당신 모델 키로 실행됩니다. 잠긴 기능도, 외부로 연락하는 것도 없습니다.",
       selfHostTitle: "셀프 호스트",
       selfHostMeta: "지금 사용 가능",
       selfHostItems: [
@@ -589,7 +717,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         "모델 키는 직접 가져오기",
         "루틴, 메모리, 감사 로그",
         "봇 무제한, 시트·한도 없음",
-        "GitHub 커뮤니티 지원",
+        "이메일 커뮤니티 지원",
       ],
       starOnGithub: "GitHub에서 Star",
       readTheDocs: "문서 읽기",
@@ -605,13 +733,12 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
     cta: {
       heading: "첫 봇을 만나보세요",
-      copy: "미뤄 두었던 일을 Rakazo에 맡기고, 후속까지 맡기세요.",
+      copy: "미뤄 두었던 일을 Cadre에 맡기고, 후속까지 맡기세요.",
       getStarted: "시작하기",
       viewOnGithub: "GitHub에서 보기",
       openSourceValue: "오픈소스",
       selfHostValue: "셀프 호스트",
       stats: [
-        { value: "stars", label: "GitHub 스타" },
         { value: "license", label: "라이선스" },
         { value: "openSource", label: "시트·게이트 없음" },
         { value: "selfHost", label: "당신 머신" },
@@ -625,11 +752,11 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       selfHostNow: "지금 셀프 호스트",
       selfHostHint: "설치 단계는 문서에 있습니다.",
       cloudWaitlist: "Cloud 대기열",
-      cloudHint: "호스팅 Rakazo가 곧 옵니다. 이메일을 남겨 주세요.",
+      cloudHint: "호스팅 Cadre가 곧 옵니다. 이메일을 남겨 주세요.",
       back: "뒤로",
       successTitle: "등록되었습니다.",
       successCopy:
-        "호스팅 Rakazo가 준비되면 메일로 알려 드립니다. 오늘 시작하려면 이 페이지의 셀프 호스트 섹션으로 이동하세요.",
+        "호스팅 Cadre가 준비되면 메일로 알려 드립니다. 오늘 시작하려면 이 페이지의 셀프 호스트 섹션으로 이동하세요.",
       done: "완료",
       viewOnGithub: "GitHub에서 보기",
     },
@@ -655,15 +782,15 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
   },
   zh: {
-    title: "Rakazo | 开源 Grok Bot 替代品",
+    title: "Cadre | 开源 Grok Bot 替代品",
     description:
-      "Rakazo 是一个开源 Grok Bot 替代品，用于运行真正干活的持久化 AI 队友。密钥、模型、机器，都归你所有。",
-    ogImageAlt: "Rakazo：真正属于你的 AI 队友。密钥、模型、机器，都归你所有。",
+      "Cadre 是一个开源 Grok Bot 替代品，用于运行真正干活的持久化 AI 队友。密钥、模型、机器，都归你所有。",
+    ogImageAlt: "Cadre：真正属于你的 AI 队友。密钥、模型、机器，都归你所有。",
     availableLanguage: "Chinese",
     skipToContent: "跳到主要内容",
     starFallback: "加星",
     nav: {
-      home: "Rakazo 首页",
+      home: "Cadre 首页",
       primary: "主导航",
       menu: "菜单",
       product: "产品",
@@ -672,12 +799,13 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       openSource: "开源",
       docs: "文档",
       viewOnGithub: "在 GitHub 上查看",
+      getStarted: "开始使用",
     },
     hero: {
       badge: "Apache-2.0",
       pill: "自托管",
       heading: "真正属于你的 AI 队友",
-      lead: "Rakazo 是一个开源 Grok Bot 替代品。把真正的工作交给 Bot：它会登录你的工具，像你一样使用它们，并在需要你时回来询问。",
+      lead: "Cadre 是一个开源 Grok Bot 替代品。把真正的工作交给 Bot：它会登录你的工具，像你一样使用它们，并在需要你时回来询问。",
       getStarted: "开始使用",
       viewOnGithub: "在 GitHub 上查看",
       setupWithAgent: "用你的智能体安装",
@@ -687,7 +815,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     selfHost: {
       eyebrow: "自托管",
       heading: "电脑归你所有",
-      copy: "在你自己的机器上运行 Rakazo。密钥、模型、数据，都归你所有。",
+      copy: "在你自己的机器上运行 Cadre。密钥、模型、数据，都归你所有。",
       features: [
         {
           title: "任意模型，密钥归你",
@@ -703,6 +831,41 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         },
       ],
     },
+    tools: {
+      eyebrow: "\u5df2\u8fde\u63a5",
+      heading: "\u5b83\u5728\u4f60\u5de5\u4f5c\u7684\u5730\u65b9\u5e72\u6d3b",
+      copy: "Bot \u4f1a\u767b\u5f55\u4f60\u672c\u6765\u5c31\u5728\u4ed8\u8d39\u7684\u5de5\u5177\uff0c\u50cf\u4f60\u4e00\u6837\u53bb\u7528\u3002",
+    },
+    illustrations: {
+      models: {
+        caption: "\u516d\u5bb6\u6a21\u578b\u4f9b\u5e94\u5546\u8fde\u5230\u4f60\u81ea\u5df1\u8fd0\u884c\u7684\u4e00\u4e2a Cadre \u5b9e\u4f8b\u3002",
+      },
+      routines: {
+        rows: [
+          { title: "\u6574\u7406\u6536\u4ef6\u7bb1", range: "\u6bcf\u4e2a\u5de5\u4f5c\u65e5 \u00b7 07:00" },
+          { title: "\u8c03\u7814\u65b0\u5ba2\u6237", range: "\u6bcf\u665a \u00b7 02:00" },
+          { title: "\u76ef\u4f4f\u6295\u653e\u82b1\u8d39", range: "\u6bcf\u5929 \u00b7 09:00" },
+        ],
+        dayLabels: ["\u4e00", "\u4e8c", "\u4e09", "\u56db", "\u4e94", "\u516d", "\u65e5"],
+        nowLabel: "\u73b0\u5728",
+        caption: "\u4e09\u4e2a\u4f8b\u884c\u4efb\u52a1\u8de8\u8d8a\u4e00\u5468\u8fd0\u884c\uff0c\u5e76\u6807\u51fa\u5f53\u524d\u65f6\u95f4\u3002",
+      },
+      approvals: {
+        items: [
+          { label: "\u5f52\u6863 214 \u5c01\u5468\u62a5" },
+          { label: "\u56de\u590d 6 \u4e2a\u4f8b\u884c\u4f1a\u8bdd" },
+          { label: "\u5b89\u6392\u5468\u4e8c\u7ad9\u4f1a" },
+          { label: "\u5411 Northwind \u9000\u6b3e $2,400", asks: true },
+          { label: "\u53d1\u9001\u5df2\u7b7e\u7f72\u7684\u5408\u540c", asks: true },
+        ],
+        doneLabel: "\u5df2\u5b8c\u6210",
+        asksLabel: "\u5f85\u4f60\u786e\u8ba4",
+        caption: "\u4f8b\u884c\u64cd\u4f5c\u81ea\u5df1\u5b8c\u6210\uff1b\u6709\u540e\u679c\u7684\u64cd\u4f5c\u7b49\u4f60\u6279\u51c6\u3002",
+      },
+      tools: {
+        caption: "\u4e00\u9762\u5e94\u7528\u5899\uff0cBot \u53ef\u4ee5\u767b\u5f55\u5e76\u64cd\u4f5c\u5b83\u4eec\u3002",
+      },
+    },
     roster: {
       eyebrow: "Bot 模板",
       heading: "给每个 Bot 分配一份工作",
@@ -712,7 +875,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     openSource: {
       eyebrow: "开源",
       heading: "没有定价页，只有代码仓库。",
-      copy: "Rakazo 采用 Apache-2.0 许可证，在你自己的机器上用你自己的模型密钥运行。没有功能墙，也不会偷偷外联。",
+      copy: "Cadre 采用 Apache-2.0 许可证，在你自己的机器上用你自己的模型密钥运行。没有功能墙，也不会偷偷外联。",
       selfHostTitle: "自托管",
       selfHostMeta: "现已可用",
       selfHostItems: [
@@ -720,7 +883,7 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
         "自带模型密钥",
         "例行任务、记忆和审计日志",
         "Bot 数量不限，无席位、无额度限制",
-        "GitHub 社区支持",
+        "邮件社区支持",
       ],
       starOnGithub: "在 GitHub 上点星",
       readTheDocs: "阅读文档",
@@ -736,13 +899,12 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
     },
     cta: {
       heading: "认识你的第一个 Bot",
-      copy: "把一件你一直拖延的事交给 Rakazo，让它负责跟进到底。",
+      copy: "把一件你一直拖延的事交给 Cadre，让它负责跟进到底。",
       getStarted: "开始使用",
       viewOnGithub: "在 GitHub 上查看",
       openSourceValue: "开源",
       selfHostValue: "自托管",
       stats: [
-        { value: "stars", label: "GitHub 星标" },
         { value: "license", label: "许可证" },
         { value: "openSource", label: "无席位、无门槛" },
         { value: "selfHost", label: "你的机器" },
@@ -756,11 +918,11 @@ const HOME_COPY: Record<Locale, HomeCopy> = {
       selfHostNow: "立即自托管",
       selfHostHint: "安装步骤见文档。",
       cloudWaitlist: "云端候补名单",
-      cloudHint: "托管版 Rakazo 即将推出。留下你的邮箱。",
+      cloudHint: "托管版 Cadre 即将推出。留下你的邮箱。",
       back: "返回",
       successTitle: "登记成功。",
       successCopy:
-        "托管版 Rakazo 就绪时我们会邮件通知你。想今天就上手？跳到本页的自托管部分。",
+        "托管版 Cadre 就绪时我们会邮件通知你。想今天就上手？跳到本页的自托管部分。",
       done: "完成",
       viewOnGithub: "在 GitHub 上查看",
     },

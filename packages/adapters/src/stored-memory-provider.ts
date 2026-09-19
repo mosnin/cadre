@@ -5,7 +5,7 @@ import type {
   SemanticMemoryResponse,
   SemanticMemoryResult,
   SemanticMemorySaveRequest,
-} from "@rakazo/adapter-kit";
+} from "@cadre/adapter-kit";
 import { z } from "zod";
 import type { MemoryProviderResolver } from "./memory-provider-factory.js";
 import type { WorkspaceIntegrations } from "./workspace-integrations.js";

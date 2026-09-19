@@ -1,5 +1,5 @@
-import type { createCompanyOsWorkforce } from "@rakazo/adapters";
-import type { Actor } from "@rakazo/contracts";
+import type { createCompanyOsWorkforce } from "@cadre/adapters";
+import type { Actor } from "@cadre/contracts";
 import type { Context, Hono } from "hono";
 import { readBoundedBody } from "./http-body.js";
 

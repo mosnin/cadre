@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import type { AdapterContext } from "@rakazo/adapter-kit";
-import { IsolationError, type Pool, type PrismaClient, requireMembership } from "@rakazo/db";
+import type { AdapterContext } from "@cadre/adapter-kit";
+import { IsolationError, type Pool, type PrismaClient, requireMembership } from "@cadre/db";
 import * as z from "zod";
 import type { EncryptedSecretStore } from "./secrets.js";
 

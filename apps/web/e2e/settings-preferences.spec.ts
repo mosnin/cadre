@@ -10,7 +10,7 @@ async function openSettings(page: Parameters<typeof openUserMenu>[0]) {
 }
 
 test("region and time zone choices persist across reloads", async ({ page }, testInfo) => {
-  await signup(page, `preferences-${Date.now()}@rakazo.test`, "password12", "Preference Owner");
+  await signup(page, `preferences-${Date.now()}@cadre.test`, "password12", "Preference Owner");
   await completeOnboarding(page);
 
   let settings = await openSettings(page);

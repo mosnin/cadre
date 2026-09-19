@@ -6,7 +6,7 @@ for (const width of [375, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await signup(
       page,
-      `connections-${width}-${Date.now()}@rakazo.test`,
+      `connections-${width}-${Date.now()}@cadre.test`,
       "password12",
       "Workspace owner",
     );

@@ -13,9 +13,9 @@ import type {
   SandboxProvider,
   ScreenRequest,
   ScreenSession,
-} from "@rakazo/adapter-kit";
-import { boundedSandboxCommandTimeoutMs, resolveSupervisorToken } from "@rakazo/core";
-import { outgoingCorrelationHeaders } from "@rakazo/logging";
+} from "@cadre/adapter-kit";
+import { boundedSandboxCommandTimeoutMs, resolveSupervisorToken } from "@cadre/core";
+import { outgoingCorrelationHeaders } from "@cadre/logging";
 import {
   boundedComputerActions,
   clampRounded,
@@ -83,8 +83,8 @@ export class DockerSandboxProvider implements SandboxProvider {
     return `${this.supervisorUrl.replace(/\/$/, "")}${path}`;
   }
 
-  // No x-rakazo-screen-id here: the supervisor keys a screen off
-  // x-rakazo-bot-id alone (the ComputerRef's homeKey — shared across every
+  // No x-cadre-screen-id here: the supervisor keys a screen off
+  // x-cadre-bot-id alone (the ComputerRef's homeKey — shared across every
   // bot on a Team Computer, distinct per bot on a dedicated one). Keying it
   // off the calling bot's own id instead would give each bot on a shared
   // Team Computer its own Xvfb/Chromium/x11vnc stack — several times the RAM
@@ -97,11 +97,11 @@ export class DockerSandboxProvider implements SandboxProvider {
   private headers(context: AdapterContext, botId?: string) {
     return {
       authorization: `Bearer ${this.supervisorToken}`,
-      "x-rakazo-space-id": context.spaceId,
+      "x-cadre-space-id": context.spaceId,
       ...outgoingCorrelationHeaders(),
-      ...(botId ? { "x-rakazo-bot-id": botId } : {}),
-      ...(context.screenLeaseId ? { "x-rakazo-screen-lease-id": context.screenLeaseId } : {}),
-      ...(context.cancelRunWork ? { "x-rakazo-cancel-run-work": "1" } : {}),
+      ...(botId ? { "x-cadre-bot-id": botId } : {}),
+      ...(context.screenLeaseId ? { "x-cadre-screen-lease-id": context.screenLeaseId } : {}),
+      ...(context.cancelRunWork ? { "x-cadre-cancel-run-work": "1" } : {}),
     };
   }
 
@@ -447,9 +447,9 @@ function requestDeadline(timeoutMs: number, message: string) {
 }
 
 function dockerCwd(cwd: string | undefined) {
-  if (!cwd || cwd === "." || cwd === "/" || cwd === "/home/rakazo") return "/home/rakazo";
-  const relative = cwd.startsWith("/home/rakazo/")
-    ? cwd.slice("/home/rakazo/".length)
+  if (!cwd || cwd === "." || cwd === "/" || cwd === "/home/cadre") return "/home/cadre";
+  const relative = cwd.startsWith("/home/cadre/")
+    ? cwd.slice("/home/cadre/".length)
     : normalizeWorkspacePath(cwd);
-  return path.posix.join("/home/rakazo", relative);
+  return path.posix.join("/home/cadre", relative);
 }

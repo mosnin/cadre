@@ -4,7 +4,7 @@ import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from 
 test("shared computers accept input immediately and refresh only their viewer on reconnect", async ({
   page,
 }, testInfo) => {
-  await signup(page, `shared-screen-${Date.now()}@rakazo.test`, "password12", "Shared Screen");
+  await signup(page, `shared-screen-${Date.now()}@cadre.test`, "password12", "Shared Screen");
   await completeOnboarding(page);
   const botId = activeBotId(page);
   await rpc(page, "computer/boot", { botId });
@@ -72,7 +72,7 @@ test("shared computers accept input immediately and refresh only their viewer on
 test("opening a sleeping computer keeps a visible boot status and close action", async ({
   page,
 }, testInfo) => {
-  await signup(page, `boot-screen-${Date.now()}@rakazo.test`, "password12", "Boot Screen");
+  await signup(page, `boot-screen-${Date.now()}@cadre.test`, "password12", "Boot Screen");
   await completeOnboarding(page);
   await page.route("**/rpc/computer/boot", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 3000));

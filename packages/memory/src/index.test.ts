@@ -1,4 +1,4 @@
-import type { AdapterContext } from "@rakazo/adapter-kit";
+import type { AdapterContext } from "@cadre/adapter-kit";
 import { describe, expect, it, vi } from "vitest";
 import { MarkdownMemoryStore } from "./index.js";
 
@@ -45,5 +45,52 @@ describe("memory store contract shape", () => {
       },
       orderBy: [{ updatedAt: "desc" }, { path: "asc" }],
     });
+  });
+});
+
+describe("search scoring", () => {
+  it("ranks by how well a document answers the query rather than giving every hit the same score", async () => {
+    const documents = [
+      {
+        id: "1",
+        path: "notes.md",
+        content: "deploy",
+        revision: 1,
+        updatedAt: new Date(),
+        spaceId: "s",
+        userId: "u",
+        scope: "user",
+        botId: null,
+      },
+      {
+        id: "2",
+        path: "deploy.md",
+        content: "deploy deploy deploy deploy deploy",
+        revision: 1,
+        updatedAt: new Date(),
+        spaceId: "s",
+        userId: "u",
+        scope: "user",
+        botId: null,
+      },
+      {
+        id: "3",
+        path: "other.md",
+        content: "nothing here",
+        revision: 1,
+        updatedAt: new Date(),
+        spaceId: "s",
+        userId: "u",
+        scope: "user",
+        botId: null,
+      },
+    ];
+    const store = new MarkdownMemoryStore({
+      memoryDocument: { findMany: async () => documents },
+    } as never);
+    const results = await store.search({ query: "deploy", scope: "all" }, context);
+    expect(results.map((result) => result.path)).toEqual(["deploy.md", "notes.md"]);
+    expect(results[0]!.score).toBeGreaterThan(results[1]!.score);
+    expect(new Set(results.map((result) => result.score)).size).toBe(2);
   });
 });

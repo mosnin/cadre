@@ -1,13 +1,14 @@
-import type { JobPublisher } from "@rakazo/adapter-kit";
-import { routineJobKey, routineWakeupJob } from "@rakazo/adapter-kit";
+import type { JobPublisher } from "@cadre/adapter-kit";
+import { routineJobKey, routineWakeupJob } from "@cadre/adapter-kit";
+import { isValidTimezone } from "@cadre/contracts";
 import {
   cronFromPreset,
   isOneShotRoutineCron,
   isOneShotRoutineCrons,
   nextCronDate,
   ONCE_ROUTINE_CRON,
-} from "@rakazo/core";
-import type { PrismaClient, ThreadEvents } from "@rakazo/db";
+} from "@cadre/core";
+import type { PrismaClient, ThreadEvents } from "@cadre/db";
 
 export { isOneShotRoutineCron, ONCE_ROUTINE_CRON };
 
@@ -192,6 +193,7 @@ export async function createScheduleFromTool(
   if (!prompt) return { error: "prompt is required." };
 
   const timezone = String(input.timezone ?? "UTC");
+  if (!isValidTimezone(timezone)) return { error: `Unknown time zone: ${timezone}` };
   const resolved = resolveScheduleTiming(input.schedule, timezone);
   if (!resolved.ok) return { error: resolved.error };
 

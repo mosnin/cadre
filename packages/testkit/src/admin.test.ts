@@ -2,8 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { FakeSandboxProvider } from "@rakazo/adapters";
-import type { BillingSnapshot } from "@rakazo/contracts";
+import { FakeSandboxProvider } from "@cadre/adapters";
+import type { BillingSnapshot } from "@cadre/contracts";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { sessionCookieHeader } from "./index.js";
 

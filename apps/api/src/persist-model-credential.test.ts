@@ -1,5 +1,5 @@
-import { listPiCatalog } from "@rakazo/adapters";
-import type { Actor } from "@rakazo/contracts";
+import { listPiCatalog } from "@cadre/adapters";
+import type { Actor } from "@cadre/contracts";
 import { describe, expect, it, vi } from "vitest";
 import { persistModelCredential, type RouterDeps } from "./router.js";
 

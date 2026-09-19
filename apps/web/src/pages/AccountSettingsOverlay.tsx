@@ -1,5 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import type { AvatarStyle, ComputerStatus, Me } from "@rakazo/contracts";
+import type { AvatarStyle, ComputerStatus, Me } from "@cadre/contracts";
 import {
   BotAvatar,
   Button,
@@ -13,9 +12,10 @@ import {
   Label,
   Switch,
   Toggle,
-} from "@rakazo/ui-web";
-import { Disclosure } from "@rakazo/ui-web/components/ui/disclosure";
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@rakazo/ui-web/directory/select";
+} from "@cadre/ui-web";
+import { Disclosure } from "@cadre/ui-web/components/ui/disclosure";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@cadre/ui-web/directory/select";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { ChevronLeft, ChevronRight, XIcon } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -26,6 +26,7 @@ import {
   ComputersUnavailableHint,
   computersAreUnavailable,
 } from "../components/ComputersUnavailableHint";
+import { SiteLoginsSettings } from "../components/SiteLoginsSettings";
 import { SoftwareUpdateSection } from "../components/SoftwareUpdateSection";
 import { authClient } from "../lib/auth";
 import { useAuthCapabilities } from "../lib/auth-capabilities";

@@ -1,5 +1,5 @@
+import { Button } from "@cadre/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Button } from "@rakazo/ui-web";
 import { useEffect, useState } from "react";
 import { withSpaceHeaders } from "../lib/rpc";
 

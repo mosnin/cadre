@@ -1,5 +1,5 @@
-import type { ModelOAuthBegin } from "@rakazo/contracts";
-import { cancelModelOAuthAttempt, finishModelOAuthAttempt } from "@rakazo/core";
+import type { ModelOAuthBegin } from "@cadre/contracts";
+import { cancelModelOAuthAttempt, finishModelOAuthAttempt } from "@cadre/core";
 import { useEffect, useRef, useState } from "react";
 import { oauthStateOf, onDesktopOAuthCallback } from "./desktop";
 import { waitForModelOAuth } from "./model-auth";
@@ -145,7 +145,7 @@ export function useModelOAuthSignIn(options: {
           oauthStateOf(started.verificationUri),
         );
       }
-      window.open(started.verificationUri, "rakazo-model-oauth", "noopener,noreferrer");
+      window.open(started.verificationUri, "cadre-model-oauth", "noopener,noreferrer");
       waitingForCode = started.mode === "auth-url";
       if (!waitingForCode) await finishSubscriptionSignIn(started.loginId, controller);
     } catch (err) {

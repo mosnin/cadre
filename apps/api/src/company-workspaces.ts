@@ -1,5 +1,5 @@
-import type { CompanyWorkspaces } from "@rakazo/adapters";
-import type { Actor } from "@rakazo/contracts";
+import type { CompanyWorkspaces } from "@cadre/adapters";
+import type { Actor } from "@cadre/contracts";
 import type { Context, Hono } from "hono";
 
 export function mountCompanyWorkspaceRoutes(
@@ -63,5 +63,5 @@ export function mountCompanyWorkspaceRoutes(
 function trustedClientOrigin(origin: string | undefined, webOrigin: string): boolean {
   if (!origin) return false;
   if (origin === new URL(webOrigin).origin) return true;
-  return origin.startsWith("rakazo://") || origin.startsWith("exp://");
+  return origin.startsWith("cadre://") || origin.startsWith("exp://");
 }

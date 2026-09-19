@@ -1,6 +1,4 @@
-import { t } from "@lingui/core/macro";
-import { Trans, useLingui } from "@lingui/react/macro";
-import { ChatMarkdown } from "@rakazo/chat-ui/web";
+import { ChatMarkdown } from "@cadre/chat-ui/web";
 import type {
   AgentSkillCatalogEntry,
   Bot,
@@ -21,14 +19,14 @@ import type {
   ThreadMessage,
   ThreadSnapshot,
   VoiceStatus,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   ATTACHMENT_ALLOWED_MIME_TYPES,
   ATTACHMENT_MAX_BYTES,
   ATTACHMENT_MAX_COUNT,
   canReactToThreadMessage,
   normalizeCreateBotProfile,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   abortableDelay,
   attachmentsForThread,
@@ -56,7 +54,7 @@ import {
   truncateSlashDescription,
   userVisibleMessages,
   waitForComputerStartup,
-} from "@rakazo/core";
+} from "@cadre/core";
 import {
   AvatarStyleProvider,
   BotAvatar,
@@ -67,19 +65,22 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
+  modalIsOpen,
   Popover,
   PopoverContent,
   PopoverTrigger,
   Tabs,
   TabsList,
   TabsTrigger,
-} from "@rakazo/ui-web";
-import { AppSidebar } from "@rakazo/ui-web/directory/app-sidebar";
-import { AttachmentUpload } from "@rakazo/ui-web/directory/attachment-upload";
-import { Message, MessageBubble, MessageBubbleContent } from "@rakazo/ui-web/directory/message";
-import { MessageScroller } from "@rakazo/ui-web/directory/message-scroller";
-import { PromptInput } from "@rakazo/ui-web/directory/prompt-input";
-import { SidebarProvider } from "@rakazo/ui-web/directory/sidebar";
+} from "@cadre/ui-web";
+import { AppSidebar } from "@cadre/ui-web/directory/app-sidebar";
+import { AttachmentUpload } from "@cadre/ui-web/directory/attachment-upload";
+import { Message, MessageBubble, MessageBubbleContent } from "@cadre/ui-web/directory/message";
+import { MessageScroller } from "@cadre/ui-web/directory/message-scroller";
+import { PromptInput } from "@cadre/ui-web/directory/prompt-input";
+import { SidebarProvider } from "@cadre/ui-web/directory/sidebar";
+import { t } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
   ArrowDown,
   ArrowUp,
@@ -292,7 +293,7 @@ function threadSnapshotSignal(parent: AbortSignal): AbortSignal {
 
 function collapsedSidebarSectionsStorageKey(userId: string | null | undefined): string | null {
   if (!userId) return null;
-  return `rakazo:collapsed-sidebar-sections:${userId}`;
+  return `cadre:collapsed-sidebar-sections:${userId}`;
 }
 
 function readCollapsedSidebarSections(userId: string | null | undefined): Set<string> {
@@ -551,7 +552,10 @@ export function ShellPage() {
   useEffect(() => {
     if (!navigationOpen) return;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const frame = requestAnimationFrame(() => sidebarSearchRef.current?.focus());
+    const frame = requestAnimationFrame(() => {
+      if (modalIsOpen()) return;
+      sidebarSearchRef.current?.focus();
+    });
     return () => {
       cancelAnimationFrame(frame);
       const active = document.activeElement;
@@ -561,6 +565,10 @@ export function ShellPage() {
           // A user can focus another surface before this frame runs.
           if (current !== document.body && current && !navigatorRef.current?.contains(current))
             return;
+          // Settings collapses the navigator as it opens, so this restoration
+          // is queued behind a dialog that now owns the focus. Handing it back
+          // to the page would take it off the dialog.
+          if (modalIsOpen()) return;
           if (previous?.isConnected && previous !== document.body) previous.focus();
           else if (desktopLayout) showBotsRef.current?.focus();
         });
@@ -635,6 +643,8 @@ export function ShellPage() {
       if (preferred !== getActiveUiLocale()) void setUiLocale(preferred);
     }
   }, [bootstrapMe, updatePreferences]);
+  // The active space survives a failed bootstrap: navigation refreshes report it too.
+  const [currentSpaceId, setCurrentSpaceId] = useState<string>();
   const [routineDraft, setRoutineDraft] = useState<RoutineDraftState>(emptyRoutineDraft());
   const [routineWebhookSecret, setRoutineWebhookSecret] = useState<string | null>(null);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
@@ -882,6 +892,7 @@ export function ShellPage() {
         setBotSections(sections);
         setGroups(groupList);
         setSpaces(navigation.spaces);
+        setCurrentSpaceId(navigation.current.id);
         setInitialBotsLoaded(true);
         botsRefreshApplied.current = request;
         if (
@@ -1099,6 +1110,7 @@ export function ShellPage() {
         if (cancelled) return;
         const groupList = bootstrap.groups;
         setBootstrapMe(bootstrap.me);
+        setCurrentSpaceId(bootstrap.me.spaceId);
         // Skip list/route writes only if a later refreshBots() successfully
         // committed (failed refreshes bump epoch but not botsRefreshApplied).
         const applyBotLists = appliedAtStart === botsRefreshApplied.current;
@@ -1564,14 +1576,14 @@ export function ShellPage() {
     const sidebarSpaces =
       spaces.length > 0
         ? spaces
-            .filter((space) => space.id === bootstrapMe?.spaceId)
+            .filter((space) => space.id === currentSpaceId)
             .map((space) =>
-              space.id === bootstrapMe?.spaceId ? { ...space, bots, groups, botSections } : space,
+              space.id === currentSpaceId ? { ...space, bots, groups, botSections } : space,
             )
-        : bootstrapMe
+        : currentSpaceId
           ? [
               {
-                id: bootstrapMe.spaceId,
+                id: currentSpaceId,
                 name: "Personal",
                 isDefault: true,
                 bots,
@@ -1619,7 +1631,7 @@ export function ShellPage() {
         },
       ];
     });
-  }, [bootstrapMe, botSections, bots, groups, spaces, query]);
+  }, [currentSpaceId, botSections, bots, groups, spaces, query]);
 
   const openSpaceChat = useCallback(
     (spaceId: string, path: string) => {
@@ -1629,7 +1641,7 @@ export function ShellPage() {
       // Persist the active space (including primary) so voice/RPC headers match the chat.
       const selectionStored = selectSpace(spaceId);
       if (!selectionStored) return;
-      const previousEffective = previousSpaceId ?? bootstrapMe?.spaceId;
+      const previousEffective = previousSpaceId ?? currentSpaceId;
       const boundaryChanged = previousEffective !== spaceId;
       // Soft-navigate within the same space; reload only when the auth boundary changes
       // so bootstrapped bots/groups match the request header.
@@ -1639,7 +1651,7 @@ export function ShellPage() {
       }
       navigate(path);
     },
-    [bootstrapMe?.spaceId, navigate],
+    [currentSpaceId, navigate],
   );
   const flushBotOrder = useCallback(async () => {
     if (savingBotOrderRef.current) return;
@@ -2738,6 +2750,9 @@ export function ShellPage() {
         ref={navigatorRef}
         aria-label={t`Workspace navigation`}
         onKeyDown={(event) => {
+          // Portalled overlays (workspace dialogs, popovers) bubble through React but
+          // live outside this node; they own Escape and must not close the navigator.
+          if (!event.currentTarget.contains(event.target as Node)) return;
           if (event.key === "Escape" && !event.defaultPrevented && !createMenuOpen && !menuOpen) {
             event.preventDefault();
             setMobileSidebarOpen(false);
@@ -2810,7 +2825,7 @@ export function ShellPage() {
               <>
                 <WorkspaceSwitcher
                   spaces={spaces}
-                  currentSpaceId={bootstrapMe?.spaceId}
+                  currentSpaceId={currentSpaceId}
                   onSwitch={openSpaceChat}
                   onCreate={() => navigate("/onboarding?new=1")}
                 />
@@ -3116,7 +3131,7 @@ export function ShellPage() {
                                 cancelRosterHold();
                                 if (
                                   event.pointerType === "mouse" ||
-                                  item.chat.spaceId !== bootstrapMe?.spaceId
+                                  item.chat.spaceId !== currentSpaceId
                                 )
                                   return;
                                 const anchor = event.currentTarget,
@@ -3165,7 +3180,7 @@ export function ShellPage() {
                                 );
                               }}
                               onContextMenu={(event) => {
-                                if (item.chat.spaceId !== bootstrapMe?.spaceId) return;
+                                if (item.chat.spaceId !== currentSpaceId) return;
                                 event.preventDefault();
                                 botMenuAnchor.current = event.currentTarget;
                                 setBotMenu({

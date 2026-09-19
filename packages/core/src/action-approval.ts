@@ -1,4 +1,4 @@
-import type { ActionApprovalRule as StoredActionApprovalRule } from "@rakazo/contracts";
+import type { ActionApprovalRule as StoredActionApprovalRule } from "@cadre/contracts";
 
 const APPROVAL_EXEMPT_TOOLS = new Set([
   "computer_observe",
@@ -24,7 +24,7 @@ const EXPLICIT_APPROVAL_BUILTIN_TOOLS = new Set(["create_space"]);
 
 const READ_ONLY_CONNECTOR_PATTERN = /(^|_)(get|list|search|find|read)(_|$)/i;
 const MUTATING_CONNECTOR_PATTERN =
-  /(^|_)(accept|add|approve|archive|assign|buy|cancel|charge|checkout|close|commit|copy|create|delete|deploy|disable|enable|execute|forward|grant|invite|link|mark|merge|modify|move|patch|pay|post|publish|purchase|put|register|reject|remove|rename|replace|reply|reset|revoke|run|schedule|send|set|share|start|stop|submit|subscribe|trigger|unassign|unlink|unsubscribe|update|upload|upsert|write)(_|$)/i;
+  /(^|_)(accept|activate|add|apply|approve|archive|assign|bid|block|book|burn|buy|cancel|charge|checkout|claim|close|commit|confirm|copy|create|deactivate|delete|deploy|deposit|disable|dispatch|enable|execute|follow|forward|grant|import|install|invite|issue|join|leave|link|mark|merge|mint|modify|move|mute|order|patch|pay|place|post|promote|publish|purchase|push|put|redeem|refund|register|reject|release|remove|rename|replace|reply|reset|restore|resume|revoke|rollback|run|schedule|send|set|share|sign|start|stop|submit|subscribe|suspend|swap|sync|transfer|trigger|unassign|unblock|uninstall|unfollow|unlink|unmute|unsubscribe|update|upload|upsert|vote|wire|withdraw|write)(_|$)/i;
 const COMPOUND_CONNECTOR_ACTION_PATTERN = /_(and|or|then)_/i;
 
 const EMAIL_CONNECTOR_SLUGS = new Set(["gmail", "outlook", "microsoft_outlook"]);
@@ -46,10 +46,43 @@ export function connectorKindFromToolName(toolName: string, connectorKinds: stri
   return (segment ?? toolName).toLowerCase();
 }
 
+/**
+ * Tool names arrive in every shape a server author felt like using. The verb patterns match
+ * on underscore boundaries, so camelCase and PascalCase names (`sendEmail`, `CreateIssue`)
+ * would otherwise slip past every check. Split on case and punctuation first.
+ */
+function normalizeConnectorToolName(toolName: string): string {
+  return toolName
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .replace(/[^A-Za-z0-9]+/g, "_");
+}
+
+/**
+ * A tool whose name announces a mutation. A server-supplied read-only hint is
+ * never trusted for these: the hint comes from the tool provider, and honoring
+ * it would let any user-added MCP server bypass approval and the effect ledger.
+ */
+export function connectorToolNamesMutation(toolName: string): boolean {
+  const normalized = normalizeConnectorToolName(toolName);
+  return (
+    MUTATING_CONNECTOR_PATTERN.test(normalized) ||
+    COMPOUND_CONNECTOR_ACTION_PATTERN.test(normalized)
+  );
+}
+
 export function connectorToolRequiresApproval(toolName: string): boolean {
-  if (MUTATING_CONNECTOR_PATTERN.test(toolName)) return true;
-  if (COMPOUND_CONNECTOR_ACTION_PATTERN.test(toolName)) return true;
-  return !READ_ONLY_CONNECTOR_PATTERN.test(toolName);
+  if (connectorToolNamesMutation(toolName)) return true;
+  return !READ_ONLY_CONNECTOR_PATTERN.test(normalizeConnectorToolName(toolName));
+}
+
+/**
+ * Whether a provider's `readOnlyHint` may be honored. The hint is a boolean supplied by
+ * whoever wrote the connector, so it never applies to a name that announces a mutation in
+ * any casing. Only the name decides; the hint can narrow, never widen.
+ */
+export function connectorHintCanClaimReadOnly(toolName: string, readOnlyHint: unknown): boolean {
+  return readOnlyHint === true && !connectorToolNamesMutation(toolName);
 }
 
 export function toolRequiresApproval(toolName: string, viaConnector: boolean): boolean {

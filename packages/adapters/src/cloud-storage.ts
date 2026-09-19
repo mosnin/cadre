@@ -14,7 +14,7 @@ import type {
   ArtifactPut,
   ArtifactStore,
   PortableFile,
-} from "@rakazo/adapter-kit";
+} from "@cadre/adapter-kit";
 import { LocalArtifactStore } from "./artifacts.js";
 import { LocalAgentHomeStore } from "./home.js";
 

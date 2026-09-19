@@ -1,4 +1,4 @@
-import type { ConnectionCatalogItem, SandboxKind } from "@rakazo/contracts";
+import type { ConnectionCatalogItem, SandboxKind } from "@cadre/contracts";
 
 export interface AdapterContext {
   operationId: string;
@@ -176,7 +176,17 @@ export interface SnapshotRef {
 }
 
 export interface BrowserRequest {
-  action: "snapshot" | "navigate" | "click" | "fill" | "press" | "scroll" | "tabs" | "select_tab";
+  action:
+    | "snapshot"
+    | "navigate"
+    | "click"
+    | "fill"
+    | "fill_protected"
+    | "press"
+    | "scroll"
+    | "select"
+    | "tabs"
+    | "select_tab";
   snapshotId?: string;
   ref?: string;
   url?: string;
@@ -184,6 +194,17 @@ export interface BrowserRequest {
   key?: string;
   direction?: string;
   tabId?: string;
+  /** For `select`: one of the options the snapshot listed for that control. */
+  option?: string;
+  /**
+   * Value for `fill_protected`. Providers pass it to the browser out of band (never on a
+   * command line) and no result echoes it.
+   */
+  secretText?: string;
+  /** Host the credential belongs to. The browser refuses to type it into any other page. */
+  secretHost?: string;
+  /** Which half of the saved login is being typed, so the browser can require a password field. */
+  secretField?: "username" | "password";
 }
 
 export interface SandboxCapabilities {
@@ -376,6 +397,12 @@ export interface AgentRunRequest {
     };
   };
   resumeFromCheckpoint?: string;
+  /**
+   * Budget segments: when set and `continueOnLimit` is true, a time, tool or token limit
+   * ends the segment with a `segment` event carrying a progress note instead of failing
+   * the run, so the executor can requeue it with a fresh budget.
+   */
+  budget?: { continueOnLimit: boolean; segment: number; maxSegments: number };
   script?: ScriptedTurn[];
   /**
    * Bot-message wakes may finish with no text and no tools (FYI silence).
@@ -406,6 +433,8 @@ export interface ScriptedTurn {
 
 export type AgentRuntimeEvent =
   | { type: "guardrail"; reason: string }
+  /** A budget segment ended; the run may continue with a fresh budget from `note`. */
+  | { type: "segment"; reason: string; note: string }
   | { type: "text"; text: string }
   | {
       type: "progress";

@@ -14,7 +14,7 @@ import type {
   ProcessEvent,
   SandboxProvider,
   ScreenRequest,
-} from "@rakazo/adapter-kit";
+} from "@cadre/adapter-kit";
 import { screenSessionKey } from "./computer-screens.js";
 import { boundedComputerActions, computerObservation } from "./computer-support.js";
 import { shouldSkipPortableWorkspaceFile } from "./computer-workspace.js";
@@ -113,11 +113,15 @@ export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
   }
   async browser(computer: ComputerRef, request: BrowserRequest, context: AdapterContext) {
     const source = await readFile(new URL("./visible-browser.py", import.meta.url), "utf8");
+    // The secret travels in the environment, not argv: argv is visible to every process in
+    // the sandbox and can land in logs.
+    const { secretText, ...visibleRequest } = request;
     let output = "";
     for await (const event of this.execute(
       computer,
       {
-        argv: ["python3", "-c", source, JSON.stringify(request)],
+        argv: ["python3", "-c", source, JSON.stringify(visibleRequest)],
+        env: secretText !== undefined ? { CADRE_PROTECTED_TEXT: secretText } : undefined,
         timeoutMs: 20000,
       },
       context,

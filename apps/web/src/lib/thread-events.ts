@@ -6,7 +6,7 @@ import type {
   ThreadMessage,
   ThreadMessagePage,
   ThreadSnapshot,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   isActive,
   isRunTerminalEvent,
@@ -17,7 +17,7 @@ import {
   runFailureError,
   subagentBlockFromPayload,
   upsertMessageById,
-} from "@rakazo/core";
+} from "@cadre/core";
 
 const runTriggers = new Set<Run["trigger"]>([
   "user",

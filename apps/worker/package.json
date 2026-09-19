@@ -1,5 +1,5 @@
 {
-  "name": "@rakazo/worker",
+  "name": "@cadre/worker",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "type": "module",
@@ -10,13 +10,13 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@rakazo/adapter-kit": "workspace:*",
-    "@rakazo/adapters": "workspace:*",
-    "@rakazo/core": "workspace:*",
-    "@rakazo/db": "workspace:*",
-    "@rakazo/logging": "workspace:*",
-    "@rakazo/memory": "workspace:*",
-    "@rakazo/auth": "workspace:*"
+    "@cadre/adapter-kit": "workspace:*",
+    "@cadre/adapters": "workspace:*",
+    "@cadre/core": "workspace:*",
+    "@cadre/db": "workspace:*",
+    "@cadre/logging": "workspace:*",
+    "@cadre/memory": "workspace:*",
+    "@cadre/auth": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.2",

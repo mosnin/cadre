@@ -1,5 +1,5 @@
 import { createHash, createHmac } from "node:crypto";
-import type { AdapterContext, ComputerRef, SandboxProvider } from "@rakazo/adapter-kit";
+import type { AdapterContext, ComputerRef, SandboxProvider } from "@cadre/adapter-kit";
 import { LinuxDesktopSandbox } from "./linux-desktop-sandbox.js";
 
 type Machine = {
@@ -240,13 +240,13 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
             image: this.options.image,
             metadata: { cadre_owner: owner, cadre_protocol: "2" },
             env: {
-              HOME: "/home/rakazo",
+              HOME: "/home/cadre",
               DISPLAY: ":1",
               CADRE_SCREEN_VIEW_TOKEN: this.viewToken(req.botId, ctx),
               CADRE_RPC_TOKEN: this.rpcToken(owner),
             },
             guest: computerGuest,
-            mounts: [{ volume: volume.id, path: "/home/rakazo" }],
+            mounts: [{ volume: volume.id, path: "/home/cadre" }],
             restart: { policy: "always" },
             services: [
               {
@@ -284,12 +284,12 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
   }
   async persistWorkspace(computer: ComputerRef, context: AdapterContext) {
     const machine = await this.owned(computer, context);
-    if (!machine.config.mounts?.some((mount) => mount.path === "/home/rakazo" && mount.volume))
+    if (!machine.config.mounts?.some((mount) => mount.path === "/home/cadre" && mount.volume))
       return false;
     let code: number | undefined;
     for await (const event of this.execute(
       computer,
-      { argv: ["sync", "-f", "/home/rakazo"], timeoutMs: 15000 },
+      { argv: ["sync", "-f", "/home/cadre"], timeoutMs: 15000 },
       // Flushing storage must not allocate or restart a paused agent display.
       { ...context, botId: undefined, screenLeaseId: undefined },
     )) {
@@ -301,7 +301,7 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
 
   async snapshot(computer: ComputerRef, ctx: AdapterContext) {
     const machine = await this.owned(computer, ctx);
-    const volume = machine.config.mounts?.find((m) => m.path === "/home/rakazo")?.volume;
+    const volume = machine.config.mounts?.find((m) => m.path === "/home/cadre")?.volume;
     if (!volume) throw new Error("Workspace disk is unavailable");
     const result = await this.api<{ Msg?: { backup?: { graph_id?: string } } }>(
       `/volumes/${volume}/snapshots`,
@@ -350,7 +350,7 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
     const machine = await this.owned(computer, ctx);
     return Boolean(
       machine.state === "stopped" &&
-        machine.config.mounts?.some((mount) => mount.path === "/home/rakazo" && mount.volume),
+        machine.config.mounts?.some((mount) => mount.path === "/home/cadre" && mount.volume),
     );
   }
 
@@ -358,7 +358,7 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
     const machine = await this.owned(computer, ctx);
     if (!machine.instance_id) throw new Error("Computer update version is unavailable");
     const mounts = machine.config.mounts;
-    if (!mounts?.some((mount) => mount.path === "/home/rakazo" && mount.volume))
+    if (!mounts?.some((mount) => mount.path === "/home/cadre" && mount.volume))
       throw new Error("Workspace disk is unavailable");
     // Fly requires the complete config. Preserve every provider setting and
     // capability; changing only the image keeps this VM and home volume intact.
@@ -407,7 +407,7 @@ export class FlySandboxProvider extends LinuxDesktopSandbox<Machine> {
     const machine = await this.owned(computer, ctx);
     await this.stop(computer, ctx);
     await this.api(`/machines/${machine.id}?force=true`, "DELETE", undefined, ctx.signal);
-    const volume = machine.config.mounts?.find((m) => m.path === "/home/rakazo")?.volume;
+    const volume = machine.config.mounts?.find((m) => m.path === "/home/cadre")?.volume;
     if (volume) await this.api(`/volumes/${volume}`, "DELETE", undefined, ctx.signal);
   }
 }

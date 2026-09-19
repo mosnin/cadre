@@ -1,6 +1,6 @@
 import { copyFile, lstat, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import type { DesktopLocalStackState } from "@rakazo/contracts";
+import type { DesktopLocalStackState } from "@cadre/contracts";
 import {
   classifyDockerFailure,
   composeSupportsWaitTimeout,
@@ -69,7 +69,7 @@ const GENERATED_SECRETS: Record<string, number> = {
   SCREEN_PROXY_SECRET: 32,
   SANDBOX_SUPERVISOR_TOKEN: 32,
 };
-const LAUNCH_SUPPLIED = ["RAKAZO_IMAGE_TAG", "RAKAZO_COMPUTER_IMAGE_TAG"];
+const LAUNCH_SUPPLIED = ["CADRE_IMAGE_TAG", "CADRE_COMPUTER_IMAGE_TAG"];
 
 /**
  * Port of install-images.sh `create_env`: fills the empty secret lines with random
@@ -210,8 +210,8 @@ export function stackFailureMessage(
       return "Docker Compose is missing. Install Docker Desktop or the docker-compose-plugin, then retry.";
     case "other":
       return phase === "pulling"
-        ? "Downloading Rakazo images failed. Check the output below, then retry."
-        : "Rakazo services did not start. Check the output below, then retry.";
+        ? "Downloading Cadre images failed. Check the output below, then retry."
+        : "Cadre services did not start. Check the output below, then retry.";
   }
 }
 
@@ -465,11 +465,11 @@ export class LocalStackController {
     return this.deps.run(binary, args, {
       cwd: this.deps.stackDir,
       env: dockerSpawnEnv(this.deps.platform, this.deps.env, binary, {
-        RAKAZO_IMAGE_TAG: this.deps.imageTag,
-        RAKAZO_COMPUTER_IMAGE_TAG: this.deps.imageTag,
+        CADRE_IMAGE_TAG: this.deps.imageTag,
+        CADRE_COMPUTER_IMAGE_TAG: this.deps.imageTag,
         ...(this.currentStackToken === null
           ? {}
-          : { RAKAZO_DESKTOP_STACK_TOKEN: this.currentStackToken }),
+          : { CADRE_DESKTOP_STACK_TOKEN: this.currentStackToken }),
         COMPOSE_PROGRESS: "plain",
       }),
       timeoutMs,

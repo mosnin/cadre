@@ -8,7 +8,7 @@ for (const width of [390, 1365]) {
     await page.setViewportSize({ width, height: 844 });
     await signup(
       page,
-      `voice-removed-${width}-${Date.now()}@rakazo.test`,
+      `voice-removed-${width}-${Date.now()}@cadre.test`,
       "password12",
       "Voice Removal",
     );

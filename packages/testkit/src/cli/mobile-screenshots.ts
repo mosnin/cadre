@@ -2,14 +2,14 @@ import { execFileSync } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { serve } from "@hono/node-server";
 import {
   ComposioEmulator,
   EmailEmulator,
   PipedreamConnector,
   ThirdPartyConnectorEmulator,
-} from "@rakazo/adapters";
-import { createThreadMessage, type PrismaClient } from "@rakazo/db";
+} from "@cadre/adapters";
+import { createThreadMessage, type PrismaClient } from "@cadre/db";
+import { serve } from "@hono/node-server";
 import { sessionCookieHeader } from "../index.js";
 import { runProcess } from "./process.js";
 
@@ -33,7 +33,7 @@ async function main() {
   await mkdir(REPORT_DIR, { recursive: true });
   await mkdir(DATA_DIR, { recursive: true });
 
-  execFileSync("pnpm", ["--filter", "@rakazo/db", "exec", "prisma", "migrate", "deploy"], {
+  execFileSync("pnpm", ["--filter", "@cadre/db", "exec", "prisma", "migrate", "deploy"], {
     cwd: path.join(ROOT, "packages", "db"),
     env: process.env,
     stdio: "inherit",
@@ -88,15 +88,15 @@ async function main() {
         "--output",
         path.join(REPORT_DIR, "report.html"),
         "-e",
-        `RAKAZO_SCREENSHOT_EMAIL=${EMAIL}`,
+        `CADRE_SCREENSHOT_EMAIL=${EMAIL}`,
         "-e",
-        `RAKAZO_SCREENSHOT_PASSWORD=${PASSWORD}`,
+        `CADRE_SCREENSHOT_PASSWORD=${PASSWORD}`,
         "-e",
-        `RAKAZO_SCREENSHOT_BOT_ID=${fixture.botId}`,
+        `CADRE_SCREENSHOT_BOT_ID=${fixture.botId}`,
         "-e",
-        `RAKAZO_SCREENSHOT_GROUP_ID=${fixture.groupId}`,
+        `CADRE_SCREENSHOT_GROUP_ID=${fixture.groupId}`,
         "-e",
-        `RAKAZO_SCREENSHOT_ROUTINE_ID=${fixture.routineId}`,
+        `CADRE_SCREENSHOT_ROUTINE_ID=${fixture.routineId}`,
         FLOW,
       ],
       process.env,

@@ -1,5 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import type { WorkforceStatus } from "@rakazo/contracts";
+import type { WorkforceStatus } from "@cadre/contracts";
 import {
   Button,
   Dialog,
@@ -9,7 +8,8 @@ import {
   DialogTitle,
   Input,
   Textarea,
-} from "@rakazo/ui-web";
+} from "@cadre/ui-web";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";

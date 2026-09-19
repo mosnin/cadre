@@ -40,7 +40,12 @@ export type CronPreset = {
   freq: CronFreq;
   n: number;
   unit: CronUnit;
+  /** Clock time for the timed presets, in "h:mm AM" form. */
   time: string;
+  /** Day of week for "Every week": 0 is Sunday, 6 is Saturday. */
+  weekday: number;
+  /** Day of month for "Every month", 1 to 31. */
+  day: number;
   cron: string;
 };
 
@@ -49,11 +54,68 @@ export type CronPresetInput = {
   n?: number;
   unit?: CronUnit;
   time?: string;
+  weekday?: number;
+  day?: number;
   cron?: string;
 };
 
+export const WEEKDAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+] as const;
+
 export function defaultCronPreset(): CronPreset {
-  return { freq: "Every day", n: 3, unit: "minutes", time: "9:00 AM", cron: "" };
+  return {
+    freq: "Every day",
+    n: 3,
+    unit: "minutes",
+    time: "9:00 AM",
+    weekday: 1,
+    day: 1,
+    cron: "",
+  };
+}
+
+function boundedWeekday(value: number | undefined): number {
+  return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 6
+    ? (value as number)
+    : 1;
+}
+
+function boundedMonthDay(value: number | undefined): number {
+  return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= 31
+    ? (value as number)
+    : 1;
+}
+
+/** "1st", "2nd", "3rd", "11th", "22nd" for schedule descriptions. */
+export function ordinalDay(day: number): string {
+  const mod100 = day % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${day}th`;
+  const mod10 = day % 10;
+  return `${day}${mod10 === 1 ? "st" : mod10 === 2 ? "nd" : mod10 === 3 ? "rd" : "th"}`;
+}
+
+/** "9:00 AM" to "09:00" for a native time input; empty when the value cannot be read. */
+export function clockTo24h(time: string): string {
+  const { hour, minute } = parseClock(time);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return "";
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+/** "09:05" or "21:30" from a native time input to the preset's "h:mm AM" form. */
+export function clockFrom24h(value: string): string | null {
+  const match = /^(\d{1,2}):(\d{2})/.exec(value.trim());
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return formatClock(hour, minute);
 }
 
 export function cronFromPreset(input: CronPresetInput): string {
@@ -71,8 +133,8 @@ export function cronFromPreset(input: CronPresetInput): string {
   }
   const { hour, minute } = parseClock(input.time ?? "9:00 AM");
   if (input.freq === "Weekdays") return `${minute} ${hour} * * ${WEEKDAYS}`;
-  if (input.freq === "Every week") return `${minute} ${hour} * * 1`;
-  if (input.freq === "Every month") return `${minute} ${hour} 1 * *`;
+  if (input.freq === "Every week") return `${minute} ${hour} * * ${boundedWeekday(input.weekday)}`;
+  if (input.freq === "Every month") return `${minute} ${hour} ${boundedMonthDay(input.day)} * *`;
   return `${minute} ${hour} * * *`;
 }
 
@@ -119,11 +181,12 @@ export function presetFromCron(cron: string): CronPreset {
   if (day === "*" && dow === WEEKDAYS) {
     return { ...base, freq: "Weekdays", time };
   }
-  if (day === "*" && dow === "1") {
-    return { ...base, freq: "Every week", time };
+  if (day === "*" && isInt(dow) && Number(dow) >= 0 && Number(dow) <= 7) {
+    // Cron accepts 7 for Sunday as well as 0.
+    return { ...base, freq: "Every week", time, weekday: Number(dow) % 7 };
   }
-  if (day === "1" && dow === "*") {
-    return { ...base, freq: "Every month", time };
+  if (isInt(day) && Number(day) >= 1 && Number(day) <= 31 && dow === "*") {
+    return { ...base, freq: "Every month", time, day: Number(day) };
   }
   if (day === "*" && dow === "*") {
     return { ...base, freq: "Every day", time };
@@ -145,10 +208,16 @@ export function describeCronPreset(preset: CronPreset): { lead: string; detail: 
     return { lead: "Weekdays", detail: `at ${preset.time}` };
   }
   if (preset.freq === "Every week") {
-    return { lead: "Every Monday", detail: `at ${preset.time}` };
+    return {
+      lead: `Every ${WEEKDAY_NAMES[boundedWeekday(preset.weekday)]}`,
+      detail: `at ${preset.time}`,
+    };
   }
   if (preset.freq === "Every month") {
-    return { lead: "Monthly", detail: `on the 1st at ${preset.time}` };
+    return {
+      lead: "Monthly",
+      detail: `on the ${ordinalDay(boundedMonthDay(preset.day))} at ${preset.time}`,
+    };
   }
   return { lead: "Every day", detail: `at ${preset.time}` };
 }

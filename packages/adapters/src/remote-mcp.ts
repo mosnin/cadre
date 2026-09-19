@@ -1,8 +1,9 @@
 import { lookup } from "node:dns/promises";
 import { isIP, type LookupFunction } from "node:net";
+import type { ConnectorTool } from "@cadre/adapter-kit";
+import { connectorHintCanClaimReadOnly } from "@cadre/core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { ConnectorTool } from "@rakazo/adapter-kit";
 import { Agent } from "undici";
 import { combineSignals } from "./connector-safety.js";
 import {
@@ -54,7 +55,7 @@ export async function listRemoteMcpTools(options: RemoteMcpOptions): Promise<Con
           name: tool.name,
           description: tool.description ?? tool.title ?? tool.name,
           inputSchema: tool.inputSchema,
-          readOnly: tool.annotations?.readOnlyHint,
+          readOnly: connectorHintCanClaimReadOnly(tool.name, tool.annotations?.readOnlyHint),
         });
       }
       cursor = result.nextCursor;
@@ -104,7 +105,7 @@ async function withRemoteMcpClient<T>(
     },
     fetch: safeFetch,
   });
-  const client = new Client({ name: "rakazo", version: "0.1.0" }, { capabilities: {} });
+  const client = new Client({ name: "cadre", version: "0.1.0" }, { capabilities: {} });
   try {
     await client.connect(transport, { signal, timeout: MCP_TIMEOUT_MS });
     return await run(client, signal);

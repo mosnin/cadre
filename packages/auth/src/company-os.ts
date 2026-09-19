@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { Pool } from "@rakazo/db";
+import type { Pool } from "@cadre/db";
 import type { Auth } from "./index.js";
 
 export interface CompanyOsOAuthConfig {

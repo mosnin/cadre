@@ -1,4 +1,4 @@
-import type { SearchHit } from "@rakazo/contracts";
+import type { SearchHit } from "@cadre/contracts";
 import { describe, expect, it } from "vitest";
 import { mobileSearchDestination } from "./search-destination.js";
 

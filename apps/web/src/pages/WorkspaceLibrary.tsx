@@ -1,5 +1,5 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@cadre/ui-web";
 import { useLingui } from "@lingui/react/macro";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@rakazo/ui-web";
 import { useState } from "react";
 import {
   WorkspaceLibraryPanel,

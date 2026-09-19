@@ -1,6 +1,6 @@
+import type { ServerUpdateCheck, ServerUpdateStatus } from "@cadre/contracts";
+import { Button } from "@cadre/ui-web";
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { ServerUpdateCheck, ServerUpdateStatus } from "@rakazo/contracts";
-import { Button } from "@rakazo/ui-web";
 import { useEffect, useState } from "react";
 import { rpc } from "../lib/rpc";
 import {
