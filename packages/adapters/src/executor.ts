@@ -167,6 +167,7 @@ import { decideToolCall } from "./decision-turn.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
 import { isSandboxGoneError } from "./e2b-sandbox.js";
 import { handoffToGroupBot, loadGroupContext } from "./group-handoff.js";
+import { createGroupFromTool } from "./group-tools.js";
 import {
   COMPACTION_BATCH_SIZE,
   formatCompactedSummary,
@@ -3164,6 +3165,34 @@ export function createRunExecutor(deps: ExecutorDeps) {
               throw error;
             }
           }
+          if (name === "create_group") {
+            const created = await createGroupFromTool(deps, {
+              spaceId: run.spaceId,
+              userId: run.userId,
+              callerBotId: bot.id,
+              name: String(args.name ?? ""),
+              botIds: args.bot_ids ?? args.botIds,
+              names: args.names,
+            });
+            if ("error" in created) return finish(created);
+            try {
+              await deps.events.append({
+                spaceId: run.spaceId,
+                threadId: thread.id,
+                botId: bot.id,
+                runId: run.id,
+                type: "group.created",
+                payload: {
+                  groupId: created.groupId,
+                  name: created.name,
+                  memberBotIds: created.members.map((member) => member.botId),
+                },
+              });
+            } catch (error) {
+              getLogger().error("created group notification", error);
+            }
+            return finish(created);
+          }
           if (name === "spawn_bot") {
             const spawned = await spawnBot(deps, {
               spawnedBy: {
@@ -3504,6 +3533,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 savedLoginsInstruction,
                 "A bot and a subagent are different. Never use both for the same request.",
                 "create_space proposes a new privacy boundary inside the current organization. Use it when the user asks to create a space or separate data between teams or projects. It always pauses for explicit user approval; never claim the space exists before the tool succeeds.",
+                "create_group makes a shared group chat with 2 to 6 of the user's bots. If the user asked to create a group chat, call create_group once and stop. Include yourself unless they asked for a group you are not in. Use teammate directory ids or exact names. Do not spawn bots just to fill the group.",
                 "spawn_bot creates a lasting regular bot (own chat, computer, memory) that appears in the user's bot list. If the user asked to create a bot, call spawn_bot once and stop. Do not run_subagent to demo it.",
                 "run_subagent is a short helper inside this turn only. It is not a bot, has no thread, and does not show in the list. Give it a bounded task with the relevant user context and acceptance criteria. It inherits your policies and workspace guidance, but not the conversation history. Helpers share your workspace and have no graphical tools; use web_fetch for helper research or a durable peer bot for independent browser work. You own user communication, approvals, delegation, integrations, and schedules. Verify its result and finish the user's task; an empty, failed, or blocked helper is not completed work.",
                 botDirectory,

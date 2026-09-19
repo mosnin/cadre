@@ -520,6 +520,7 @@ export function describeToolActivity(toolName: string, args: unknown): string {
   if (toolName === "computer_act" || toolName === "browser_act") return "Operating the computer";
   if (toolName === "run_subagent") return `Delegating to helper: ${detail(record.name)}`;
   if (toolName === "create_space") return `Creating space: ${detail(record.name)}`;
+  if (toolName === "create_group") return `Creating group: ${detail(record.name)}`;
   if (toolName === "remember") return "Saving a note to memory";
   if (toolName === "web_search") return `Searching the web: ${detail(record.query)}`;
   if (toolName === "web_fetch") return `Reading page: ${detail(redactActivityUrl(record.url))}`;
@@ -718,6 +719,17 @@ function toAgentTool(tool: ConnectorTool, host: ToolHost, exposedName: string): 
       }
       if (tool.name === "create_space") {
         return { name: String(raw.name ?? "") };
+      }
+      if (tool.name === "create_group") {
+        return {
+          name: String(raw.name ?? ""),
+          bot_ids: Array.isArray(raw.bot_ids)
+            ? raw.bot_ids.map((id) => String(id))
+            : Array.isArray(raw.botIds)
+              ? raw.botIds.map((id) => String(id))
+              : [],
+          names: Array.isArray(raw.names) ? raw.names.map((value) => String(value)) : [],
+        };
       }
       if (tool.name === "archive_bot" || tool.name === "delete_bot") {
         return {
@@ -1052,6 +1064,13 @@ function builtinParameters(tool: ConnectorTool) {
   }
   if (tool.name === "create_space") {
     return Type.Object({ name: Type.String({ minLength: 1, maxLength: 60 }) });
+  }
+  if (tool.name === "create_group") {
+    return Type.Object({
+      name: Type.String({ minLength: 1, maxLength: 80 }),
+      bot_ids: Type.Optional(Type.Array(Type.String())),
+      names: Type.Optional(Type.Array(Type.String())),
+    });
   }
   if (tool.name === "archive_bot" || tool.name === "delete_bot") {
     return Type.Object({

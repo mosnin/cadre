@@ -264,6 +264,30 @@ export function inferScript(
     ];
   }
   if (
+    lower.includes("create a group") ||
+    lower.includes("make a group") ||
+    lower.includes("new group chat") ||
+    lower.includes("group chat named")
+  ) {
+    const name = namedGroup(prompt) ?? "Group chat";
+    const names = groupMemberNames(prompt);
+    return [
+      {
+        assistant: "creating that group chat.",
+        toolCalls: [
+          {
+            name: "create_group",
+            args: {
+              name,
+              ...(names.length ? { names } : {}),
+            },
+          },
+        ],
+        complete: true,
+      },
+    ];
+  }
+  if (
     lower.includes("create a space") ||
     lower.includes("create space") ||
     lower.includes("new space named") ||
@@ -437,6 +461,24 @@ function namedSpace(prompt: string) {
     .exec(prompt)?.[1]
     ?.replace(/[.!?]+$/, "")
     .trim();
+}
+
+function namedGroup(prompt: string) {
+  return /group(?:\s+chat)?\s+(?:named|called)\s+["“]?([^"”\n,]{1,80})/i
+    .exec(prompt)?.[1]
+    ?.replace(/\s+(?:with|including)\b.*$/i, "")
+    .replace(/[.!?]+$/, "")
+    .trim();
+}
+
+function groupMemberNames(prompt: string) {
+  const clause = /(?:with|including)\s+(.+)$/i.exec(prompt)?.[1];
+  if (!clause) return [];
+  return clause
+    .replace(/[.!?]+$/, "")
+    .split(/\s*(?:,|and|&)\s*/i)
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0);
 }
 
 function summarize(prompt: string): string {

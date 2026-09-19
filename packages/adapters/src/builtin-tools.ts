@@ -3,6 +3,7 @@ import type { ConnectorTool } from "@cadre/adapter-kit";
 export const DELEGATION_TOOL_NAMES = new Set([
   "run_subagent",
   "spawn_bot",
+  "create_group",
   "archive_bot",
   "delete_bot",
   "handoff_to_bot",
@@ -679,6 +680,33 @@ export const builtinAgentTools: ConnectorTool[] = [
           minLength: 1,
           maxLength: 60,
           description: 'Short display name, e.g. "Customer support".',
+        },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "create_group",
+    description:
+      "Create a group chat with 2 to 6 of the user's bots. If the user asked to make a group chat, call this once. Include your own id when you should be in it. If you name only one other bot, you are added automatically. Use teammate directory ids or exact names. Creating the group is the whole action; do not spawn bots just to fill seats.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          minLength: 1,
+          maxLength: 80,
+          description: 'Short display name, e.g. "Launch".',
+        },
+        bot_ids: {
+          type: "array",
+          items: { type: "string" },
+          description: "Bot ids from the teammate directory or group roster.",
+        },
+        names: {
+          type: "array",
+          items: { type: "string" },
+          description: "Exact bot names when ids are omitted.",
         },
       },
       required: ["name"],

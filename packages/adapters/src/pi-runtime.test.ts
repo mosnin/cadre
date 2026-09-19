@@ -22,6 +22,7 @@ describe("describeToolActivity", () => {
     expect(describeToolActivity("create_space", { name: "Customer support" })).toBe(
       "Creating space: Customer support",
     );
+    expect(describeToolActivity("create_group", { name: "Launch" })).toBe("Creating group: Launch");
     expect(describeToolActivity("web_search", { query: "cadre agents" })).toBe(
       "Searching the web: cadre agents",
     );
