@@ -32,6 +32,23 @@ describe("ranking catalog hits", () => {
     expect(ranked.map((hit) => hit.id)).toEqual(["a", "b"]);
   });
 
+  it("labels descriptions when the same request screens them as an injection", async () => {
+    const decide = vi.fn(async (request: { questions: Record<string, unknown> }) => {
+      expect(request.questions).toHaveProperty("injected");
+      return {
+        answers: {
+          t0: scored(3),
+          t1: scored(0),
+          injected: { type: "noul" as const, noul: 0.95 },
+        },
+        model: "m",
+      };
+    });
+    const ranked = await rankCatalogHits({ decide }, "list releases", HITS);
+    expect(ranked[0]?.description).toMatch(/^UNTRUSTED PAGE:/);
+    expect(ranked.map((hit) => hit.id)).toEqual(["a", "b"]);
+  });
+
   it("leaves the keyword order when every score is a hedge", async () => {
     const ranked = await rankCatalogHits(
       {

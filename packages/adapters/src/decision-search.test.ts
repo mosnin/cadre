@@ -52,7 +52,7 @@ describe("ranking web search results", () => {
       questions: Record<string, unknown>;
       state: { results: unknown[] };
     };
-    expect(Object.keys(request.questions)).toEqual(["r0", "r1", "r2", "answered"]);
+    expect(Object.keys(request.questions)).toEqual(["r0", "r1", "r2", "answered", "injected"]);
     expect(request.state.results).toHaveLength(3);
   });
 
@@ -105,6 +105,21 @@ describe("ranking web search results", () => {
     );
     expect(ranked.hits).toHaveLength(3);
     expect(ranked.hits[0]?.url).toBe("https://c.test");
+  });
+
+  it("labels snippets when the same request screens them as an injection", async () => {
+    const ranked = await rankWebSearchHits(
+      provider({
+        r0: { type: "score", score: 0, confidence: 0.9 },
+        r1: { type: "score", score: 4, confidence: 0.9 },
+        r2: { type: "score", score: 2, confidence: 0.9 },
+        injected: { type: "noul", noul: 0.95 },
+      }),
+      "q",
+      HITS,
+    );
+    expect(ranked.hits.every((hit) => hit.snippet.startsWith("UNTRUSTED PAGE:"))).toBe(true);
+    expect(ranked.hits[0]?.url).toBe("https://b.test");
   });
 
   it("returns the engine's order when the provider is unavailable", async () => {
