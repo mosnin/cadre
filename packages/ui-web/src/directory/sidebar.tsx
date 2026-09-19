@@ -14,7 +14,9 @@ import { cn } from "../lib/utils";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "./sheet";
 import { useIsMobile } from "./use-mobile";
 
-const SIDEBAR_WIDTH = "16rem";
+// 16.75rem = 268px, measured off the reference rail at a 1512px render
+// (docs/design/sana-shell-measurements.md). 16rem/256 was 12px narrow.
+const SIDEBAR_WIDTH = "16.75rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 

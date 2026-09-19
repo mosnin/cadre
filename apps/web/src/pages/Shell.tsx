@@ -196,6 +196,7 @@ import {
   routineNeedsOneShotArm,
 } from "./RoutineEditor";
 import { SpaceSearchResults } from "./SpaceSearch";
+import { BotNameSweep } from "./shell/bot-name-sweep";
 import { BotSettings, CreateBotForm } from "./shell/bot-panel";
 import { BotCreatePicker } from "./shell/bot-picker";
 import { CommandPalette, isCommandPaletteHotkey } from "./shell/command-palette";
@@ -3166,7 +3167,17 @@ export function ShellPage() {
                                       item.chat.unread ? "font-semibold" : "font-medium"
                                     }`}
                                   >
-                                    {item.chat.name}
+                                    {/* Only a bot finishes a run; a group row
+                                        has no run status to sweep on. */}
+                                    {item.kind === "bot" ? (
+                                      <BotNameSweep
+                                        name={item.chat.name}
+                                        status={item.chat.status}
+                                        runKey={item.chat.updatedAt}
+                                      />
+                                    ) : (
+                                      item.chat.name
+                                    )}
                                     {item.chat.unread ? (
                                       <span className="sr-only">
                                         <Trans> (unread)</Trans>

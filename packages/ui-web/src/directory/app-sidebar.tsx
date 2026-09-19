@@ -28,12 +28,14 @@ export function AppSidebar({
 }) {
   return (
     <Sidebar collapsible="none" {...props}>
-      <SidebarHeader className="gap-4 p-5">
+      {/* Insets measured off the reference: 12px at the head, 8px down the
+          list, 12px in the footer. The app had 20/12/16. */}
+      <SidebarHeader className="gap-3 px-3 pb-2 pt-3">
         <SidebarHeaderContent closeLabel={closeLabel} actions={headerActions} />
         {navigation}
       </SidebarHeader>
-      <SidebarContent className="px-3 pb-3">{children}</SidebarContent>
-      <SidebarFooter className="px-4 pb-4">{footer}</SidebarFooter>
+      <SidebarContent className="px-2 pb-3">{children}</SidebarContent>
+      <SidebarFooter className="px-3 pb-3">{footer}</SidebarFooter>
     </Sidebar>
   );
 }
