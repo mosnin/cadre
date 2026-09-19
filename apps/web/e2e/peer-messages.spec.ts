@@ -49,7 +49,11 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
     )
     .toBe(true);
 
-  await expect(page.getByRole("button", { name: "Send" })).toBeVisible({ timeout: 60_000 });
+  // Scope to the composer: the rail is on screen beside it now, and a roster
+  // row whose preview reads "I'll send that" matches a bare name of "Send".
+  await expect(page.getByTestId("composer-bar").getByRole("button", { name: "Send" })).toBeVisible({
+    timeout: 60_000,
+  });
 
   const transcript = page.getByTestId("transcript");
   await expect(

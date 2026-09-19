@@ -111,9 +111,18 @@ export async function captureScreenshot(page: Page, testInfo: TestInfo, name: st
 }
 
 export async function openNavigation(page: Page) {
-  if (!(await page.getByTestId("bots-sidebar").isVisible())) {
-    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-  }
+  const sidebar = page.getByTestId("bots-sidebar");
+  if (await sidebar.isVisible()) return;
+  // The rail is part of the desktop layout and opens with the app, so it is
+  // usually already here. When it is not, either it was closed on desktop —
+  // which is a stored preference that survives a reload — or this is the
+  // phone drawer. Both are reopened by a control named "Open navigation";
+  // only one of the two is rendered at a time, so take whichever is visible
+  // rather than assuming.
+  const open = page.getByRole("button", { name: "Open navigation", exact: true });
+  await open.first().waitFor({ state: "visible", timeout: 15_000 });
+  await open.first().click();
+  await sidebar.waitFor({ state: "visible", timeout: 15_000 });
 }
 
 export async function openUserMenu(page: Page) {
