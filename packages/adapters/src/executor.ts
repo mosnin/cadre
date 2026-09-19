@@ -271,7 +271,9 @@ import { getActiveTeachingSession, parsePlaybook } from "./teaching-session.js";
 import {
   attachWorkspaceFileToThread,
   currentTurnFilesInstruction,
+  loadCurrentTurnFiles,
   materializeCurrentTurnFiles,
+  writeCurrentTurnFiles,
 } from "./thread-artifacts.js";
 import { textContentArg } from "./tool-text.js";
 import {
@@ -1263,6 +1265,16 @@ export function createRunExecutor(deps: ExecutorDeps) {
           })),
           run.sourceMessageId,
         );
+        const hasFileAttachments = Boolean(turnBlocks?.some((block) => block.kind === "file"));
+        const loadFilesPromise =
+          deps.artifacts && hasFileAttachments
+            ? loadCurrentTurnFiles(
+                { prisma: deps.prisma, artifacts: deps.artifacts },
+                turnBlocks,
+                bootContext,
+              )
+            : Promise.resolve([]);
+        void loadFilesPromise.catch(() => undefined);
         const threadContext = threadContextForRun(run.trigger, {
           messages: [...messages].reverse().map((m) => ({
             id: m.id,
@@ -1517,6 +1529,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             resolvePromise?.catch(() => undefined),
             prefetchPromise.catch(() => undefined),
             browsePromise.catch(() => undefined),
+            loadFilesPromise.catch(() => undefined),
           ]);
           const failed = await deps.events.finalizeRun({
             spaceId: run.spaceId,
@@ -1594,7 +1607,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
             screenRelease = { computer: ready, context };
           })
           .catch(() => undefined);
-        const hasFileAttachments = Boolean(turnBlocks?.some((block) => block.kind === "file"));
         if (needsComputerBeforeFirstGeneration(start.first, hasFileAttachments)) {
           await ensureComputer();
         }
@@ -1658,13 +1670,13 @@ export function createRunExecutor(deps: ExecutorDeps) {
           });
           return true;
         };
-        let currentTurnFiles: Awaited<ReturnType<typeof materializeCurrentTurnFiles>>;
+        let currentTurnFiles: Awaited<ReturnType<typeof writeCurrentTurnFiles>>;
         try {
           currentTurnFiles =
             deps.artifacts && computer
-              ? await materializeCurrentTurnFiles(
-                  { prisma: deps.prisma, artifacts: deps.artifacts, sandbox: deps.sandbox },
-                  turnBlocks,
+              ? await writeCurrentTurnFiles(
+                  { sandbox: deps.sandbox },
+                  await loadFilesPromise,
                   {
                     context,
                     computer,

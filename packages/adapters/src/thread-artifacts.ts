@@ -90,6 +90,81 @@ export async function attachWorkspaceFileToThread(
   };
 }
 
+export type LoadedTurnFile = MaterializedThreadFile & { bytes: Uint8Array };
+
+/** Artifact bytes only — no computer. Starts beside start so the download overlaps boot. */
+export async function loadCurrentTurnFiles(
+  deps: {
+    prisma: PrismaClient;
+    artifacts: ArtifactStore;
+  },
+  blocks: MessageBlock[] | undefined,
+  context: AdapterContext,
+): Promise<LoadedTurnFile[]> {
+  const fileBlocks = blocks?.filter(
+    (block): block is Extract<MessageBlock, { kind: "file" }> => block.kind === "file",
+  );
+  if (!fileBlocks?.length) return [];
+
+  const rows = await deps.prisma.artifact.findMany({
+    where: {
+      id: { in: fileBlocks.map((block) => block.artifactId) },
+      spaceId: context.spaceId,
+      userId: context.userId,
+    },
+  });
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const loaded: LoadedTurnFile[] = [];
+
+  for (const block of fileBlocks) {
+    const row = byId.get(block.artifactId);
+    if (!row) throw new Error(`Attached file is unavailable: ${block.name}`);
+    const bytes = await deps.artifacts.get(row.storageKey, context);
+    if (bytes.byteLength > ATTACHMENT_MAX_BYTES) {
+      throw new Error(`Attached file exceeds the 10 MiB limit: ${row.name}`);
+    }
+    loaded.push({
+      name: row.name,
+      mimeType: row.mimeType,
+      size: row.size,
+      path: `attachments/${row.id}${attachmentExtensionForMimeType(row.mimeType)}`,
+      bytes,
+    });
+  }
+  return loaded;
+}
+
+export async function writeCurrentTurnFiles(
+  deps: { sandbox: SandboxProvider },
+  files: readonly LoadedTurnFile[],
+  input: {
+    context: AdapterContext & { botId: string };
+    computer: ComputerRef;
+    computerMode: ComputerMode;
+    markWorkspaceDirty?: () => void;
+  },
+): Promise<MaterializedThreadFile[]> {
+  const materialized: MaterializedThreadFile[] = [];
+  for (const file of files) {
+    input.markWorkspaceDirty?.();
+    await deps.sandbox.writeFile(
+      input.computer,
+      {
+        path: resolveBotWorkspacePath(input.computerMode, input.context.botId, file.path),
+        content: file.bytes,
+      },
+      input.context,
+    );
+    materialized.push({
+      name: file.name,
+      mimeType: file.mimeType,
+      size: file.size,
+      path: file.path,
+    });
+  }
+  return materialized;
+}
+
 export async function materializeCurrentTurnFiles(
   deps: {
     prisma: PrismaClient;
@@ -104,47 +179,8 @@ export async function materializeCurrentTurnFiles(
     markWorkspaceDirty?: () => void;
   },
 ): Promise<MaterializedThreadFile[]> {
-  const fileBlocks = blocks?.filter(
-    (block): block is Extract<MessageBlock, { kind: "file" }> => block.kind === "file",
-  );
-  if (!fileBlocks?.length) return [];
-
-  const rows = await deps.prisma.artifact.findMany({
-    where: {
-      id: { in: fileBlocks.map((block) => block.artifactId) },
-      spaceId: input.context.spaceId,
-      userId: input.context.userId,
-    },
-  });
-  const byId = new Map(rows.map((row) => [row.id, row]));
-  const materialized: MaterializedThreadFile[] = [];
-
-  for (const block of fileBlocks) {
-    const row = byId.get(block.artifactId);
-    if (!row) throw new Error(`Attached file is unavailable: ${block.name}`);
-    const bytes = await deps.artifacts.get(row.storageKey, input.context);
-    if (bytes.byteLength > ATTACHMENT_MAX_BYTES) {
-      throw new Error(`Attached file exceeds the 10 MiB limit: ${row.name}`);
-    }
-    const relativePath = `attachments/${row.id}${attachmentExtensionForMimeType(row.mimeType)}`;
-    input.markWorkspaceDirty?.();
-    await deps.sandbox.writeFile(
-      input.computer,
-      {
-        path: resolveBotWorkspacePath(input.computerMode, input.context.botId, relativePath),
-        content: bytes,
-      },
-      input.context,
-    );
-    materialized.push({
-      name: row.name,
-      mimeType: row.mimeType,
-      size: row.size,
-      path: relativePath,
-    });
-  }
-
-  return materialized;
+  const loaded = await loadCurrentTurnFiles(deps, blocks, input.context);
+  return writeCurrentTurnFiles(deps, loaded, input);
 }
 
 export function currentTurnFilesInstruction(files: readonly MaterializedThreadFile[]): string {
