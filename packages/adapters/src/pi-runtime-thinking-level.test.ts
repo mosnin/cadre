@@ -261,6 +261,9 @@ describe("Pi agent thinking level", () => {
       reasoning: true,
       contextWindow: 16_384,
       maxTokens: 4_096,
+      // Several providers serve the same open model at very different speeds,
+      // and a run pays the slowest one on every turn.
+      samplingParams: { provider: { sort: "throughput" } },
     });
     // Unknown OpenRouter PI_DEFAULT_MODEL must not force thinking off (#114).
     expect(levels).toEqual(["low", "low"]);

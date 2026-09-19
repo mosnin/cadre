@@ -412,7 +412,30 @@ function configuredOpenRouterModel(id: string): Model<"openai-completions"> {
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: tokenLimit("RAKAZO_MODEL_CONTEXT_WINDOW", CONFIGURED_CONTEXT_WINDOW),
     maxTokens: tokenLimit("RAKAZO_MODEL_MAX_TOKENS", CONFIGURED_MAX_TOKENS),
+    ...openRouterRouting(),
   };
+}
+
+/**
+ * How OpenRouter should choose between the providers serving a model.
+ *
+ * Several providers serve the same open model at very different speeds, and
+ * with no preference OpenRouter picks by its own default. A run is a long chain
+ * of turns, so the slowest provider is paid for on every one of them. Asking for
+ * throughput trades price for latency, which is the trade this product wants;
+ * `RAKAZO_OPENROUTER_SORT` sets it to "price" or "latency", and "" leaves the
+ * choice to OpenRouter. It rides in `samplingParams`, which OpenAI-compatible
+ * adapters merge into the request body as-is.
+ */
+function openRouterRouting(): { samplingParams?: Record<string, unknown> } {
+  const sort = process.env.RAKAZO_OPENROUTER_SORT?.trim() ?? "throughput";
+  if (!sort) return {};
+  if (!["throughput", "price", "latency"].includes(sort)) {
+    throw new Error(
+      `RAKAZO_OPENROUTER_SORT must be "throughput", "price" or "latency", received "${sort}"`,
+    );
+  }
+  return { samplingParams: { provider: { sort } } };
 }
 
 export function modelsForRequest(
