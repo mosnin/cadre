@@ -54,7 +54,10 @@ runs beside credential lookup, plugin sync, and connector discovery, so its
 the computer provisions, and the result is already in the task. Computer
 provision starts beside start, credential lookup and plugin sync once a
 model is already named without that work, so a warm machine is not paid for
-after those return. A run with no model never starts either.
+after those return. Override-credential lookup and live plugin sync run
+together; model-key resolution starts as soon as the credential is known,
+so a Composio listing no longer sits in front of the API key. A run with
+no model never starts either.
 The start request begins beside credential lookup and plugin sync — it only
 needs the task, the skill list, and whether anyone already named a model —
 so those waits no longer stack in front of it.

@@ -1249,26 +1249,41 @@ export function createRunExecutor(deps: ExecutorDeps) {
           storedComputer && fallbackProvider && fallbackModelId
             ? startIndependentRunReads(deps, { run, thread, bot })
             : undefined;
-        const overrideCredential =
+        const composioRows = storedConnections.filter(
+          (connection) => connection.connectorId === "composio",
+        );
+        const overrideLookup =
           hasModelOverride && bot.modelProvider
-            ? await findModelCredential(deps.prisma, run, bot.modelProvider)
-            : null;
+            ? findModelCredential(deps.prisma, run, bot.modelProvider)
+            : Promise.resolve(null);
+        const pluginListing = needsLivePluginSync(composioRows)
+          ? loadLivePluginSlugs(deps.listConnectedPluginSlugs, run.userId)
+          : Promise.resolve({ ok: false as const });
+        // Model-key resolution does not read connectors. Start it as soon as
+        // the credential is already known — a bot override still waits.
+        let resolvePromise =
+          !hasModelOverride && fallbackProvider
+            ? resolveModelKey(
+                deps,
+                run.userId,
+                run.spaceId,
+                defaultCredential,
+                fallbackProvider,
+                (values) => runSecrets.push(...values),
+                runAbortController.signal,
+              )
+            : undefined;
+        const [overrideCredential, listing] = await Promise.all([overrideLookup, pluginListing]);
         // Keep provider/model/credential as one unit — never use the Space
         // default secret for a different override provider.
         const useModelOverride = Boolean(hasModelOverride && overrideCredential);
         const credential = useModelOverride ? overrideCredential! : defaultCredential;
-        const composioRows = storedConnections.filter(
-          (connection) => connection.connectorId === "composio",
-        );
         let liveSlugs: string[] = [];
-        if (needsLivePluginSync(composioRows)) {
-          const listing = await loadLivePluginSlugs(deps.listConnectedPluginSlugs, run.userId);
-          if (listing.ok) {
-            liveSlugs = listing.slugs;
-            await persistLivePluginConnections(deps.prisma, run, composioRows, listing.slugs).catch(
-              () => undefined,
-            );
-          }
+        if (listing.ok) {
+          liveSlugs = listing.slugs;
+          await persistLivePluginConnections(deps.prisma, run, composioRows, listing.slugs).catch(
+            () => undefined,
+          );
         }
         const connectedComposio = mergeConnectedPlugins(composioRows, liveSlugs);
         const activeKeys = new Set(
@@ -1324,7 +1339,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           storedComputer && runModelProvider && runModelId
             ? startIndependentRunReads(deps, { run, thread, bot })
             : undefined;
-        const resolvePromise = runModelProvider
+        resolvePromise ??= runModelProvider
           ? resolveModelKey(
               deps,
               run.userId,
