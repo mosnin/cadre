@@ -1,6 +1,17 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 process.env.GIT_SHA = process.env.RENDER_GIT_COMMIT ?? process.env.GIT_SHA;
+
+// Hosted dashboard commands still named the old db package after the rename,
+// so generate/migrate were skipped and the new instance died on a missing
+// Prisma client. Prepare here so start does not depend on those filters.
+for (const script of ["generate", "migrate"]) {
+  const prepared = spawnSync("pnpm", ["--filter", "@cadre/db", script], {
+    stdio: "inherit",
+    env: process.env,
+  });
+  if (prepared.status !== 0) process.exit(prepared.status ?? 1);
+}
 
 // One Render service can host both long-lived processes for a small deployment.
 // The same worker entrypoint can also run as an independent Render worker.

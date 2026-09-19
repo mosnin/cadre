@@ -16,7 +16,8 @@
     "@cadre/db": "workspace:*",
     "@cadre/logging": "workspace:*",
     "@cadre/memory": "workspace:*",
-    "@cadre/auth": "workspace:*"
+    "@cadre/auth": "workspace:*",
+    "tsx": "^4.20.5"
   },
   "devDependencies": {
     "typescript": "^5.9.2",

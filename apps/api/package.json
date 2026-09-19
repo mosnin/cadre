@@ -21,6 +21,7 @@
     "@cadre/logging": "workspace:*",
     "@cadre/memory": "workspace:*",
     "hono": "^4.9.6",
+    "tsx": "^4.20.5",
     "zod": "^4.1.5"
   },
   "devDependencies": {

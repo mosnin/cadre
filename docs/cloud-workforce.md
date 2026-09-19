@@ -5,7 +5,7 @@ Cadre is a cloud deployment of Cadre with managed computers and a Company OS wor
 ## Deployment
 
 - Vercel serves the web app. Set `API_PROXY_TARGET` to the HTTPS origin of the API service; `infra/vercel-build.mjs` generates same-origin API routing without baking account configuration into source.
-- Render runs the API and job worker with PostgreSQL. `render.yaml` describes the resources. Apply migrations before starting the runtime. For a single service, `infra/render-start.mjs` supervises both processes.
+- Render runs the API and job worker with PostgreSQL. `render.yaml` describes the resources. `infra/render-start.mjs` generates the Prisma client, applies migrations, then supervises both processes so a stale dashboard filter cannot skip database setup.
 - Modal runs one isolated Linux desktop per computer. Build with `uv run --with modal python infra/modal/build_image.py` and configure the returned image ID and Modal credentials on the runtime.
 - Cloudflare hosts the screen gateway and R2 object store. Deploy `infra/cloudflare/wrangler.jsonc`, then set `SCREEN_PROXY_SECRET` and `STORAGE_GATEWAY_TOKEN` with Wrangler secrets. Set the same values on the runtime. Configure `SCREEN_GATEWAY_ORIGIN` and `R2_GATEWAY_URL` to the Worker origin and `STORAGE_PROVIDER=r2-gateway`.
 - OpenRouter supplies the models. Users connect their key in Models; optional deployment credentials use `OPENROUTER_API_KEY`, `PI_DEFAULT_PROVIDER=openrouter`, and `PI_DEFAULT_MODEL`.
