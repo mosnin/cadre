@@ -28,6 +28,7 @@
   --sidebar-accent: #242424;
   --sidebar-accent-foreground: #f4f4f4;
   --link: #dedede;
+  --composer: #242424;
   --success: #4ecb71;
   --warning: #e9c46a;
   --overlay: rgba(0, 0, 0, 0.62);
@@ -63,6 +64,7 @@
   --sidebar-accent: #ffffff;
   --sidebar-accent-foreground: #1a1a1a;
   --link: #2563eb;
+  --composer: #f3f3f3;
   --success: #228b3b;
   --warning: #b7791f;
   --overlay: rgba(20, 20, 22, 0.45);

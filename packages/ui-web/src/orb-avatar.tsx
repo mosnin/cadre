@@ -324,12 +324,39 @@ export const OrbAvatar = memo(function OrbAvatar({
         } as CSSProperties
       }
     >
-      {/* The still orb is always drawn: it is what shows before the context is
-          claimed, and what stays when there is none to claim. */}
+      {/* The still orb is always drawn: it is what shows before the context
+          is claimed, and what stays when there is none to claim — which, at
+          the sizes the rail and the transcript use, is EVERYWHERE. So it is
+          the orb, for almost every orb on screen, and it was a single
+          radial gradient. A single radial gradient at 28px is a flat disc.
+
+          Two spheres were tried. Lit-from-outside — bright top-left, dark
+          bottom-right, a hard specular — gives a snooker ball: convincingly
+          round and cheap-looking, because a plastic highlight is the most
+          plastic thing there is. What reads as considered is lit from
+          WITHIN: the colour concentrated in a core, falling to near the
+          ground at the rim, with a thin backlight where the edge catches
+          and a sheen so broad it has no edge of its own. Glass, not
+          snooker.
+
+          Four stacked backgrounds and one paint:
+            1. rim — a hairline of the light stop just inside the edge;
+            2. sheen — wide, low, no hard dot anywhere in it;
+            3. core — the colour, brightest off-centre toward the light;
+            4. seat — the rim darkened opposite the core. */}
       <span
         className="absolute inset-0 rounded-full"
         style={{
-          background: `radial-gradient(circle at 38% 32%, ${light} 0%, ${mid} 52%, ${dark} 100%)`,
+          background: [
+            `radial-gradient(circle at 50% 50%, transparent 56%, color-mix(in oklab, ${light} 45%, transparent) 76%, transparent 96%)`,
+            `radial-gradient(78% 66% at 36% 24%, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.06) 42%, transparent 70%)`,
+            `radial-gradient(circle at 42% 36%, ${light} 0%, ${mid} 38%, ${dark} 76%, color-mix(in oklab, ${dark} 78%, black) 100%)`,
+          ].join(", "),
+          boxShadow: [
+            `inset -1px -2px 7px color-mix(in oklab, ${dark} 62%, black)`,
+            `inset 0 0 0 0.5px color-mix(in oklab, ${dark} 45%, transparent)`,
+            `0 0 10px color-mix(in oklab, ${mid} 18%, transparent)`,
+          ].join(", "),
         }}
       />
       {wantsLive ? <LiveOrb color={color} state={state} volume={volume} /> : null}

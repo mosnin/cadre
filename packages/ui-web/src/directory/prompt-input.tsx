@@ -169,7 +169,14 @@ export function PromptInput({
       onSubmit={submit}
       data-testid={testId}
       className={cn(
-        "relative w-full rounded-2xl border border-border/80 bg-background p-2 transition-colors focus-within:border-foreground/25",
+        // The composer is a FILL, not an outline. Measured off the
+        // reference: `#f3f3f3` on a white pane, no border at all. Drawn as
+        // `border-border/80` on `bg-background` it was a light line on the
+        // same fill as the pane, and the radius spread that line over two
+        // pixels at each corner — so the corners read as a heavier, brighter
+        // stroke than the edges and were the loudest thing on the screen.
+        // Focus keeps a ring, because focus does need an outline.
+        "relative w-full rounded-2xl border border-transparent bg-composer p-2 transition-colors focus-within:border-foreground/20",
         disabled && "opacity-60",
         className,
       )}
