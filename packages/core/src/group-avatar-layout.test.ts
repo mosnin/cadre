@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GROUP_AVATAR_RING, groupAvatarLayout } from "./group-avatar-layout.js";
+import { GROUP_AVATAR_RING, GROUP_STACK_TRAVEL, groupAvatarLayout } from "./group-avatar-layout.js";
 
 describe("groupAvatarLayout", () => {
   it("keeps a single member at the full size", () => {
@@ -34,8 +34,20 @@ describe("groupAvatarLayout", () => {
     });
   });
 
-  it("keeps rail-sized pair orbs large enough for the official shader", () => {
-    expect(groupAvatarLayout(28, 2).miniSize).toBe(20);
+  it("keeps a rail pair stacked instead of one disc", () => {
+    const layout = groupAvatarLayout(36, 2);
+    expect(layout.miniSize).toBe(22);
+    expect(36 - layout.slot).toBeGreaterThanOrEqual(GROUP_STACK_TRAVEL);
+    expect(layout.positions).toEqual([
+      { top: 0, left: 0 },
+      { right: 0, bottom: 0 },
+    ]);
+  });
+
+  it("shrinks a cramped pair so the second orb is visible", () => {
+    const layout = groupAvatarLayout(28, 2);
+    expect(28 - layout.slot).toBeGreaterThanOrEqual(GROUP_STACK_TRAVEL);
+    expect(layout.miniSize).toBeLessThan(20);
   });
 
   it("shows an overflow count instead of a fourth orb", () => {

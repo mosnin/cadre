@@ -70,6 +70,7 @@ export const OrbAvatar = memo(function OrbAvatar({
       data-orb-state={state}
       data-working={state === "speaking" ? "true" : "false"}
       data-halo={!wantsLive && state === "speaking" ? "true" : undefined}
+      data-orb-live={wantsLive ? "true" : "false"}
       className={cn(
         "cadre-orb pointer-events-none relative inline-block shrink-0 overflow-hidden rounded-full",
         className,
@@ -78,7 +79,6 @@ export const OrbAvatar = memo(function OrbAvatar({
         width: size,
         height: size,
         background: `radial-gradient(circle at 38% 32%, ${light} 0%, ${mid} 52%, ${dark} 100%)`,
-        contain: "strict",
       }}
     >
       {wantsLive ? (

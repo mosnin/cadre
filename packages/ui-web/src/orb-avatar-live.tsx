@@ -25,18 +25,8 @@ function agentStateFor(state: OrbState): AgentState {
   return null;
 }
 
-export function LiveOrb({
-  color,
-  state,
-  volume,
-}: {
-  color: string;
-  state: OrbState;
-  volume: number;
-}) {
+export function LiveOrb({ color, state }: { color: string; state: OrbState; volume: number }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const volumeRef = useRef(volume);
-  volumeRef.current = volume;
   const [onScreen, setOnScreen] = useState(true);
   const [hasBudget, setHasBudget] = useState(false);
 
@@ -46,9 +36,21 @@ export function LiveOrb({
       setOnScreen(true);
       return;
     }
+    let seenIntersecting = false;
     const observer = new IntersectionObserver(
-      ([entry]) => setOnScreen(Boolean(entry?.isIntersecting)),
-      { rootMargin: "64px" },
+      ([entry]) => {
+        if (!entry) return;
+        if (entry.isIntersecting) {
+          seenIntersecting = true;
+          setOnScreen(true);
+          return;
+        }
+        // Layout can report a miss before the first paint. Keep the official
+        // orb mounted until a later observation confirms it left the rail.
+        if (!seenIntersecting) return;
+        setOnScreen(false);
+      },
+      { rootMargin: "96px" },
     );
     observer.observe(host);
     return () => observer.disconnect();
@@ -83,6 +85,7 @@ export function LiveOrb({
     <div
       ref={hostRef}
       className="pointer-events-none absolute inset-0 h-full w-full overflow-hidden"
+      data-orb-engine={hasBudget ? "elevenlabs" : undefined}
     >
       {hasBudget ? (
         <Orb
@@ -90,9 +93,7 @@ export function LiveOrb({
           colors={orbColors(color)}
           seed={orbSeed(color)}
           agentState={agentStateFor(state)}
-          volumeMode="manual"
-          getInputVolume={() => (state === "listening" ? volumeRef.current : 0)}
-          getOutputVolume={() => volumeRef.current}
+          volumeMode="auto"
         />
       ) : null}
     </div>

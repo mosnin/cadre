@@ -11,8 +11,49 @@ export function spaceBoundaryChanged(
   currentSpaceId: string | undefined,
   nextSpaceId: string,
 ): boolean {
+  // A click in the space the shell already shows must stay in-app. Stale
+  // localStorage used to force a hard remount and drop the navigation.
+  if (currentSpaceId === nextSpaceId) return false;
   const previous = selectedBefore ?? currentSpaceId;
   return previous !== nextSpaceId || currentSpaceId !== nextSpaceId;
+}
+
+/** Group and bot ids from the path, never leftover params from the other route. */
+export function shellChatFromPath(pathname: string): {
+  botId?: string;
+  groupId?: string;
+} {
+  if (typeof pathname !== "string") {
+    throw new Error("shellChatFromPath requires a pathname");
+  }
+  const group = pathname.match(/^\/app\/g\/([^/]+)\/?$/);
+  if (group?.[1]) return { groupId: group[1] };
+  const bot = pathname.match(/^\/app\/([^/]+)\/?$/);
+  const segment = bot?.[1];
+  if (segment && segment !== "admin") return { botId: segment };
+  return {};
+}
+
+export type SpaceChatNavigation = {
+  nextSpaceId: string | undefined;
+  mode: "soft" | "boundary";
+};
+
+/**
+ * Same-space roster clicks always soft-navigate, even when the chat has no
+ * space id or storage cannot be written. Only a real space change remounts.
+ */
+export function resolveSpaceChatNavigation(
+  chatSpaceId: string | undefined,
+  currentSpaceId: string | undefined,
+  selectedBefore: string | null,
+): SpaceChatNavigation {
+  const nextSpaceId = chatSpaceId || currentSpaceId;
+  if (!nextSpaceId) return { nextSpaceId: undefined, mode: "soft" };
+  if (!spaceBoundaryChanged(selectedBefore, currentSpaceId, nextSpaceId)) {
+    return { nextSpaceId, mode: "soft" };
+  }
+  return { nextSpaceId, mode: "boundary" };
 }
 
 /**

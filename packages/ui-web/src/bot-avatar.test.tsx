@@ -38,6 +38,12 @@ describe("BotAvatar", () => {
     expect(idle).not.toContain('data-working="true"');
   });
 
+  it("does not size-contain the official orb", () => {
+    const html = renderToString(<BotAvatar color="#3380FF" size={36} />);
+    expect(html).toContain('data-orb-live="false"');
+    expect(html).not.toContain("contain:");
+  });
+
   it("falls back rather than handing the shader a colour it cannot read", () => {
     const html = renderToString(<BotAvatar color="not a colour" />);
     expect(html).toContain("cadre-orb");
