@@ -52,8 +52,15 @@ for (const width of [320, 390, 768, 1440]) {
     await expect(page.getByTestId("bots-sidebar")).toBeVisible();
     await page.getByRole("button", { name: "Close navigation", exact: true }).click();
     await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
+    // A workspace with no agent lands on the workspace home, not on the
+    // "Ready when you are" card this used to assert. That card had a
+    // "Continue setup" button and no composer; the home has its own
+    // composer — not the conversation's, so not the "Message composer"
+    // group — and resumes setup from its first row, which is the same
+    // journey through a surface you can actually reach from a route.
     await expect(page.getByRole("group", { name: "Message composer" })).toHaveCount(0);
-    await page.getByRole("button", { name: "Continue setup", exact: true }).click();
+    await expect(page.getByTestId("home-composer")).toBeVisible();
+    await page.getByRole("button", { name: /Start with your first bot/ }).click();
     await expect(page.getByRole("heading", { name: "Connect your company" })).toBeVisible();
     await page.getByRole("button", { name: "Continue without a company" }).click();
     if (await page.getByRole("heading", { name: "Connect a model" }).isVisible()) {

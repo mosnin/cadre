@@ -29,7 +29,12 @@ test("command palette opens with keyboard, filters, and switches bots", async ({
   const dialog = page.getByRole("dialog", { name: "Switch agent" });
   await expect(dialog).toBeVisible();
   await expect(palette).toBeVisible();
-  await expect(page.getByRole("tab")).toHaveCount(0);
+  // The palette lists agents, not tabs. It used to be able to say that of
+  // the whole page, because opening it replaced the rail; the rail is part
+  // of the layout now and keeps its Conversations/Activity tabs on screen
+  // behind the dialog, so the claim is scoped to the dialog, which is where
+  // it was always about.
+  await expect(dialog.getByRole("tab")).toHaveCount(0);
   await expect(page.getByRole("option", { name: /Chief/ })).toBeVisible();
   await expect(page.getByRole("option", { name: /Researcher/ })).toBeVisible();
   await captureScreenshot(page, testInfo, "command-palette-bots");

@@ -1691,8 +1691,12 @@ export function ShellPage() {
 
   const openSpaceChat = useCallback(
     (spaceId: string, path: string) => {
+      // The phone drawer closes because it covers the conversation. The
+      // desktop rail does not: it is in the layout beside the thing it
+      // navigates, so switching workspaces leaves it where it was. This
+      // used to collapse it, which is why creating anything from the rail
+      // made the rail disappear.
       setMobileSidebarOpen(false);
-      setBotsSidebarCollapsed(true);
       const previousSpaceId = selectedSpaceId();
       // Persist the active space (including primary) so voice/RPC headers match the chat.
       const selectionStored = selectSpace(spaceId);
@@ -2865,11 +2869,9 @@ export function ShellPage() {
                         onCreateBot={() => {
                           setCreateMenuOpen(false);
                           setMobileSidebarOpen(false);
-                          setBotsSidebarCollapsed(true);
                           setPanel("create");
                         }}
                         onCreateGroup={() => {
-                          setBotsSidebarCollapsed(true);
                           setCreateMenuOpen(false);
                           setMobileSidebarOpen(false);
                           setPanel("create-group");
@@ -3698,6 +3700,7 @@ export function ShellPage() {
             }}
             onOpenBot={openBot}
             onCreateBot={() => setPanel("create")}
+            onResumeSetup={() => navigate("/onboarding")}
             onOpenIntegrations={() => setPluginsOpen(true)}
             onOpenSchedules={() => {
               const target = bots[0];

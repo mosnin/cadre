@@ -39,6 +39,7 @@ export function SpaceHome({
   onSend,
   onOpenBot,
   onCreateBot,
+  onResumeSetup,
   onOpenIntegrations,
   onOpenSchedules,
   onOpenComputer,
@@ -50,6 +51,8 @@ export function SpaceHome({
   onSend: (text: string) => void;
   onOpenBot: (id: string) => void;
   onCreateBot: () => void;
+  /** Reopens the setup flow. The only way back into it once it is closed. */
+  onResumeSetup: () => void;
   onOpenIntegrations: () => void;
   onOpenSchedules: () => void;
   onOpenComputer: (botId: string) => void;
@@ -109,6 +112,11 @@ export function SpaceHome({
       onSelect: onOpenSchedules,
     });
   } else {
+    // A workspace with no agent is a workspace part-way through setup, so
+    // this row resumes the setup flow rather than opening the bare create
+    // panel. Closing setup used to strand you: the flow had no other
+    // entrance, and the screen that used to offer "Continue setup" is the
+    // one this home replaced.
     rows.push({
       id: "create",
       mark: <Plus size={HOME.suggestionIconSize} className="text-muted-foreground" />,
@@ -117,7 +125,7 @@ export function SpaceHome({
           {t`Start with your`} <Strong>{t`first bot`}</Strong>
         </>
       ),
-      onSelect: onCreateBot,
+      onSelect: onResumeSetup,
     });
   }
 
