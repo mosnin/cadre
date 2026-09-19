@@ -9,8 +9,6 @@ export type ComputerMode = z.infer<typeof ComputerModeSchema>;
 export const MemoryScopeSchema = z.enum(["isolated", "shared"]);
 export type MemoryScopeValue = z.infer<typeof MemoryScopeSchema>;
 
-export const AvatarStyleSchema = z.enum(["robot", "organic"]);
-
 /** BCP 47 language tag such as "en" or "pt-BR". */
 export const UiLocaleTagSchema = z
   .string()
@@ -32,7 +30,6 @@ export const TimeZoneSchema = z
   .regex(/^[A-Za-z0-9_+-]+(\/[A-Za-z0-9_+-]+)*$/, "Use an IANA time zone");
 
 export const UserPreferencesSchema = z.object({
-  avatarStyle: AvatarStyleSchema,
   /** Null follows the device or browser language. */
   locale: UiLocaleTagSchema.nullable(),
   /** Null follows the device or browser region. */
@@ -43,7 +40,6 @@ export const UserPreferencesSchema = z.object({
   timezoneAutomatic: z.boolean(),
 });
 export type UserPreferences = z.infer<typeof UserPreferencesSchema>;
-export type AvatarStyle = z.infer<typeof AvatarStyleSchema>;
 
 export const ThinkingLevelSchema = z.enum([
   "off",
@@ -1032,7 +1028,6 @@ export const MeSchema = z.object({
   computerHost: z.enum(["docker", "this-mac"]).nullable(),
   canChooseHostComputer: z.boolean(),
   sandboxProvider: z.string(),
-  avatarStyle: AvatarStyleSchema,
   locale: UiLocaleTagSchema.nullable(),
   region: RegionCodeSchema.nullable(),
   timezone: TimeZoneSchema.nullable(),

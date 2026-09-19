@@ -49,7 +49,11 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
     )
     .toBe(true);
 
-  await expect(page.getByRole("button", { name: "Send" })).toBeVisible({ timeout: 60_000 });
+  // Scope to the composer: the rail is on screen beside it now, and a roster
+  // row whose preview reads "I'll send that" matches a bare name of "Send".
+  await expect(page.getByTestId("composer-bar").getByRole("button", { name: "Send" })).toBeVisible({
+    timeout: 60_000,
+  });
 
   const transcript = page.getByTestId("transcript");
   await expect(
@@ -66,7 +70,7 @@ test("shows peer chips in transcript and opens view-only peer chat", async ({ pa
   await expect(chip).toBeVisible({ timeout: 30_000 });
   await expect(chip.getByText(/Messaged|Message from/)).toBeVisible();
   await expect(chip).toHaveAccessibleName(/Messaged Researcher|Message from Researcher/);
-  await expect(chip.locator(".cadre-bot-avatar")).toBeVisible();
+  await expect(chip.locator(".cadre-orb")).toBeVisible();
   await expect(chip).not.toContainText("{peer}");
   // User bubble still contains the phrase; peer body must not appear outside the chip.
   await expect(chip).not.toContainText("Please confirm receipt of the launch brief.");

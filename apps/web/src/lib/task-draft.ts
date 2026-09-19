@@ -26,3 +26,12 @@ export function clearTaskDraft() {
     /* Storage may be disabled. */
   }
 }
+
+/** Hand a draft to the conversation about to be opened. Never auto-sent. */
+export function writeTaskDraft(value: string) {
+  try {
+    sessionStorage.setItem(KEY, value.slice(0, MAX_LENGTH));
+  } catch {
+    /* Storage may be disabled. */
+  }
+}

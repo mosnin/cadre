@@ -1,4 +1,4 @@
-import type { AvatarStyle, ComputerStatus, Me } from "@cadre/contracts";
+import type { ComputerStatus, Me } from "@cadre/contracts";
 import {
   BotAvatar,
   Button,
@@ -87,8 +87,6 @@ export function AccountSettingsOverlay({
   notice,
   me,
   onPreferencesChange,
-  avatarStyle,
-  onAvatarStyleChange,
   isDeploymentOwner = false,
   sandboxProvider,
   messagingEnabled = false,
@@ -109,8 +107,6 @@ export function AccountSettingsOverlay({
   notice?: SettingsNotice | null;
   me?: Me | null;
   onPreferencesChange: (patch: PreferencesPatch) => Promise<void>;
-  avatarStyle: AvatarStyle;
-  onAvatarStyleChange: (style: AvatarStyle) => Promise<void>;
   isDeploymentOwner?: boolean;
   sandboxProvider?: string | null;
   messagingEnabled?: boolean;
@@ -149,8 +145,6 @@ export function AccountSettingsOverlay({
   const [appearance, setAppearance] = useState<AppearancePreference>(() =>
     getUiAppearancePreference(),
   );
-  const [avatarPending, setAvatarPending] = useState(false);
-  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [preferencesError, setPreferencesError] = useState<string | null>(null);
 
   async function savePreferences(patch: PreferencesPatch) {
@@ -173,19 +167,6 @@ export function AccountSettingsOverlay({
     });
   }
 
-  async function chooseAvatarStyle(next: AvatarStyle) {
-    if (avatarPending || next === avatarStyle) return;
-    setAvatarPending(true);
-    setAvatarError(null);
-    try {
-      await onAvatarStyleChange(next);
-    } catch {
-      setAvatarError(t`Couldn't update avatars`);
-    } finally {
-      setAvatarPending(false);
-    }
-  }
-
   const sections: { id: SettingsSectionId; label: string; hidden?: boolean }[] = [
     { id: "account", label: t`Account` },
     { id: "plugins", label: t`Plugins`, hidden: !onOpenPlugins && !onOpenLibrary },
@@ -193,7 +174,6 @@ export function AccountSettingsOverlay({
     { id: "company", label: t`Company OS` },
     { id: "connections", label: t`Connections` },
     { id: "appearance", label: t`Appearance` },
-    { id: "avatars", label: t`Avatars` },
     { id: "language", label: t`Language` },
     { id: "region", label: t`Region` },
   ];
@@ -433,37 +413,6 @@ export function AccountSettingsOverlay({
                     setUiAppearance(next);
                   }}
                 />
-              ) : null}
-              {active === "avatars" ? (
-                <div>
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    {(["robot", "organic"] as const).map((style) => (
-                      <Toggle
-                        key={style}
-                        variant="outline"
-                        pressed={style === avatarStyle}
-                        disabled={avatarPending}
-                        onPressedChange={() => void chooseAvatarStyle(style)}
-                        className="h-auto justify-start gap-3 px-3.5 py-3 text-[14px] font-normal"
-                      >
-                        <BotAvatar
-                          color="#D9508A"
-                          identity="avatar-style-preview"
-                          size={32}
-                          variant={style}
-                        />
-                        <span>
-                          {style === "robot" ? <Trans>Robot</Trans> : <Trans>Organic</Trans>}
-                        </span>
-                      </Toggle>
-                    ))}
-                  </div>
-                  {avatarError ? (
-                    <p role="alert" className="mt-3 text-[12.5px] text-destructive">
-                      {avatarError}
-                    </p>
-                  ) : null}
-                </div>
               ) : null}
               {active === "language" ? (
                 <UiLocalePicker value={locale} onChange={chooseLocale} />

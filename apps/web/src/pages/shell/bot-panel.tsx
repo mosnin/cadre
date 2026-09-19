@@ -12,6 +12,7 @@ import {
   BOT_NAME_MAX_LENGTH,
   BOT_TITLE_MAX_LENGTH,
 } from "@cadre/contracts";
+import { ORB_PRESETS } from "@cadre/core";
 import {
   BotAvatar,
   Button,
@@ -25,7 +26,7 @@ import {
 import { Disclosure } from "@cadre/ui-web/components/ui/disclosure";
 import { t } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { rpc } from "../../lib/rpc";
 
@@ -199,6 +200,7 @@ export function BotSettings({
     title?: string;
     description?: string;
     instructions?: string;
+    color?: string;
     computerMode: ComputerMode;
     memoryScope?: "isolated" | "shared" | null;
     autoSpeak?: boolean;
@@ -216,6 +218,7 @@ export function BotSettings({
   const [name, setName] = useState(bot.name);
   const [title, setTitle] = useState(bot.title);
   const [description, setDescription] = useState(bot.description);
+  const [color, setColor] = useState(bot.color);
   const [computerMode, setComputerMode] = useState(bot.computerMode);
   const [memoryScope, setMemoryScope] = useState(bot.memoryScope);
   const [autoSpeak, setAutoSpeak] = useState(bot.autoSpeak);
@@ -332,8 +335,42 @@ export function BotSettings({
   return (
     <div data-testid="bot-settings">
       <div className="flex justify-center">
-        <BotAvatar color={bot.color} identity={bot.id} size={64} status={bot.status} />
+        {/* Draws the colour being chosen, not the saved one, so the swatches
+            below are a preview rather than a promise. */}
+        <BotAvatar color={color} identity={bot.id} size={64} status={bot.status} />
       </div>
+      <fieldset className="mt-4">
+        <legend className="sr-only">
+          <Trans>Colour</Trans>
+        </legend>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {ORB_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              aria-label={preset.id}
+              aria-pressed={preset.color.toLowerCase() === color.toLowerCase()}
+              onClick={() => setColor(preset.color)}
+              data-testid={`bot-color-${preset.id}`}
+              className="size-6 rounded-full ring-offset-2 ring-offset-background aria-pressed:ring-2 aria-pressed:ring-foreground"
+              style={{ background: preset.color }}
+            />
+          ))}
+          <label
+            className="grid size-6 place-items-center rounded-full border border-dashed border-muted-foreground/60 text-muted-foreground"
+            title={t`Custom colour`}
+          >
+            <Plus size={13} aria-hidden="true" />
+            <input
+              type="color"
+              value={color}
+              aria-label={t`Custom colour`}
+              onChange={(event) => setColor(event.target.value)}
+              className="sr-only"
+            />
+          </label>
+        </div>
+      </fieldset>
       <label htmlFor={`${ids}-name`} className="mt-6 block text-[14px] text-muted-foreground">
         <Trans>Name</Trans>
         <Input
@@ -501,6 +538,7 @@ export function BotSettings({
               title: nextTitle,
               description: nextDescription,
               instructions: nextDescription,
+              color,
               computerMode,
               memoryScope,
               autoSpeak,

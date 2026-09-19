@@ -1,20 +1,20 @@
-import { renderToString } from "react-dom/server";
+import { renderToString as render } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { GroupAvatar } from "./group-avatar.js";
 
 describe("GroupAvatar", () => {
   it("renders fallback squad icon when no members provided", () => {
-    const html = renderToString(<GroupAvatar members={[]} />);
+    const html = render(<GroupAvatar members={[]} />);
     expect(html).toContain("<svg");
   });
 
   it("renders single BotAvatar when 1 member", () => {
-    const html = renderToString(<GroupAvatar members={[{ name: "Harry", color: "#8B5CF6" }]} />);
-    expect(html).toContain("cadre-bot-avatar");
+    const html = render(<GroupAvatar members={[{ name: "Harry", color: "#8B5CF6" }]} />);
+    expect(html).toContain("cadre-orb");
   });
 
   it("renders 2 overlapping bot avatars for 2 members", () => {
-    const html = renderToString(
+    const html = render(
       <GroupAvatar
         members={[
           { name: "Sherlock", color: "#8B5CF6" },
@@ -28,7 +28,7 @@ describe("GroupAvatar", () => {
   });
 
   it("renders a working member inside a group avatar", () => {
-    const html = renderToString(
+    const html = render(
       <GroupAvatar
         members={[
           { name: "Sherlock", color: "#8B5CF6", status: "running" },
@@ -37,11 +37,11 @@ describe("GroupAvatar", () => {
       />,
     );
     expect(html).toContain('data-working="true"');
-    expect(html).toContain("cadre-bot-avatar-ring");
+    expect(html).toContain("cadre-orb");
   });
 
   it("renders 3 mini bot avatars for 3 members", () => {
-    const html = renderToString(
+    const html = render(
       <GroupAvatar
         members={[
           { name: "Sherlock", color: "#8B5CF6" },
@@ -55,7 +55,7 @@ describe("GroupAvatar", () => {
   });
 
   it("renders 2 mini avatars + overflow count for 4+ members", () => {
-    const html = renderToString(
+    const html = render(
       <GroupAvatar
         members={[
           { name: "Sherlock", color: "#8B5CF6" },

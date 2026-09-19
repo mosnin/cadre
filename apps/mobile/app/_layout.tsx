@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { AvatarStyleProvider } from "../components/avatar-style";
 import { currentApiBase, loadApiBase, loadSessionToken, selectedSpaceId } from "../lib/api";
 import { loadAppearancePreference, mobileTokens } from "../lib/appearance";
 import { bootstrapI18n, useI18n } from "../lib/i18n";
@@ -56,79 +55,77 @@ export default function Layout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         {ready ? (
-          <AvatarStyleProvider>
-            <ThemeProvider value={navigationTheme}>
-              <StatusBar style={resolved === "light" ? "dark" : "light"} />
-              <Stack
-                screenOptions={{
-                  headerStyle: { backgroundColor: navigationTheme.colors.background },
-                  headerTintColor: navigationTheme.colors.text,
-                  headerShadowVisible: false,
-                  headerBackButtonDisplayMode: "minimal",
-                  contentStyle: { backgroundColor: String(native.page) },
+          <ThemeProvider value={navigationTheme}>
+            <StatusBar style={resolved === "light" ? "dark" : "light"} />
+            <Stack
+              screenOptions={{
+                headerStyle: { backgroundColor: navigationTheme.colors.background },
+                headerTintColor: navigationTheme.colors.text,
+                headerShadowVisible: false,
+                headerBackButtonDisplayMode: "minimal",
+                contentStyle: { backgroundColor: String(native.page) },
+              }}
+            >
+              <Stack.Screen name="index" options={{ headerShown: false, title: "Cadre" }} />
+              <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+              <Stack.Screen name="account" options={{ title: t("Settings") }} />
+              <Stack.Screen name="account-details" options={{ title: t("Account") }} />
+              <Stack.Screen name="plugins" options={{ title: t("Plugins") }} />
+              <Stack.Screen name="time-zone" options={{ title: t("Time zone") }} />
+              <Stack.Screen name="company-os" options={{ title: t("Company OS") }} />
+              <Stack.Screen name="connections" options={{ title: t("Connections") }} />
+              <Stack.Screen name="notifications" options={{ title: t("Notifications") }} />
+              <Stack.Screen name="appearance" options={{ title: t("Appearance") }} />
+              <Stack.Screen name="language" options={{ title: t("Language") }} />
+              <Stack.Screen name="region" options={{ title: t("Region") }} />
+              <Stack.Screen
+                name="change-password"
+                options={{
+                  title: t("Change password"),
+                  presentation: "formSheet",
+                  sheetAllowedDetents: [0.6, 1],
+                  sheetGrabberVisible: true,
                 }}
-              >
-                <Stack.Screen name="index" options={{ headerShown: false, title: "Cadre" }} />
-                <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-                <Stack.Screen name="account" options={{ title: t("Settings") }} />
-                <Stack.Screen name="account-details" options={{ title: t("Account") }} />
-                <Stack.Screen name="plugins" options={{ title: t("Plugins") }} />
-                <Stack.Screen name="time-zone" options={{ title: t("Time zone") }} />
-                <Stack.Screen name="company-os" options={{ title: t("Company OS") }} />
-                <Stack.Screen name="connections" options={{ title: t("Connections") }} />
-                <Stack.Screen name="notifications" options={{ title: t("Notifications") }} />
-                <Stack.Screen name="appearance" options={{ title: t("Appearance") }} />
-                <Stack.Screen name="language" options={{ title: t("Language") }} />
-                <Stack.Screen name="region" options={{ title: t("Region") }} />
-                <Stack.Screen
-                  name="change-password"
-                  options={{
-                    title: t("Change password"),
-                    presentation: "formSheet",
-                    sheetAllowedDetents: [0.6, 1],
-                    sheetGrabberVisible: true,
-                  }}
-                />
-                <Stack.Screen name="models" options={{ title: t("Models") }} />
-                <Stack.Screen name="voice" options={{ title: t("Voice") }} />
-                <Stack.Screen name="integrations" options={{ title: t("Integrations") }} />
-                <Stack.Screen name="library" options={{ title: t("Workspace library") }} />
-                <Stack.Screen
-                  name="new"
-                  options={{
-                    title: t("New bot"),
-                    presentation: "modal",
-                    gestureEnabled: true,
-                    headerBackVisible: false,
-                  }}
-                />
-                <Stack.Screen
-                  name="new-group"
-                  options={{
-                    title: t("New group"),
-                    presentation: "modal",
-                    gestureEnabled: true,
-                  }}
-                />
-                <Stack.Screen
-                  name="new-space"
-                  options={{
-                    title: t("New space"),
-                    presentation: "modal",
-                    gestureEnabled: true,
-                    headerBackVisible: false,
-                  }}
-                />
-                <Stack.Screen name="group-thread" options={{ title: t("Group") }} />
-                <Stack.Screen name="group-settings" options={{ title: t("Group settings") }} />
-                <Stack.Screen name="bot-settings" options={{ title: t("Chat settings") }} />
-                <Stack.Screen name="thread" options={{ title: t("Thread") }} />
-                <Stack.Screen name="schedules" options={{ title: t("Schedules") }} />
-                <Stack.Screen name="routine" options={{ title: t("Routine") }} />
-                <Stack.Screen name="computer" options={{ title: t("Computer") }} />
-              </Stack>
-            </ThemeProvider>
-          </AvatarStyleProvider>
+              />
+              <Stack.Screen name="models" options={{ title: t("Models") }} />
+              <Stack.Screen name="voice" options={{ title: t("Voice") }} />
+              <Stack.Screen name="integrations" options={{ title: t("Integrations") }} />
+              <Stack.Screen name="library" options={{ title: t("Workspace library") }} />
+              <Stack.Screen
+                name="new"
+                options={{
+                  title: t("New bot"),
+                  presentation: "modal",
+                  gestureEnabled: true,
+                  headerBackVisible: false,
+                }}
+              />
+              <Stack.Screen
+                name="new-group"
+                options={{
+                  title: t("New group"),
+                  presentation: "modal",
+                  gestureEnabled: true,
+                }}
+              />
+              <Stack.Screen
+                name="new-space"
+                options={{
+                  title: t("New space"),
+                  presentation: "modal",
+                  gestureEnabled: true,
+                  headerBackVisible: false,
+                }}
+              />
+              <Stack.Screen name="group-thread" options={{ title: t("Group") }} />
+              <Stack.Screen name="group-settings" options={{ title: t("Group settings") }} />
+              <Stack.Screen name="bot-settings" options={{ title: t("Chat settings") }} />
+              <Stack.Screen name="thread" options={{ title: t("Thread") }} />
+              <Stack.Screen name="schedules" options={{ title: t("Schedules") }} />
+              <Stack.Screen name="routine" options={{ title: t("Routine") }} />
+              <Stack.Screen name="computer" options={{ title: t("Computer") }} />
+            </Stack>
+          </ThemeProvider>
         ) : (
           <View style={{ flex: 1, backgroundColor: String(native.page) }} />
         )}

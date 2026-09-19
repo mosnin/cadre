@@ -10,7 +10,6 @@ import {
   AppBootstrapSchema,
   ArtifactSchema,
   ArtifactWithContentSchema,
-  AvatarStyleSchema,
   BotMcpServerSchema,
   BotSchema,
   BotSectionSchema,
@@ -137,7 +136,6 @@ export const appContract = {
     update: oc
       .input(
         z.object({
-          avatarStyle: AvatarStyleSchema.optional(),
           locale: UiLocaleTagSchema.nullable().optional(),
           region: RegionCodeSchema.nullable().optional(),
           timezone: TimeZoneSchema.nullable().optional(),

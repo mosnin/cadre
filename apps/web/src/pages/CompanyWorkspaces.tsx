@@ -312,11 +312,13 @@ export function WorkspaceSwitcher({
         <PopoverTrigger>
           <button
             type="button"
-            className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left text-xl font-medium tracking-tight hover:bg-muted"
+            // 17px over a 48.5px row at 1920 in the reference, which is 13.5
+            // over 38 at the width the rail is built to.
+            className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left text-xl font-medium tracking-tight hover:bg-muted md:min-h-[38px] md:rounded-lg md:px-1.5 md:py-0 md:text-[13.5px]"
             aria-label={t`Switch workspace`}
           >
             <span className="truncate">{current?.name ?? t`Workspace`}</span>
-            <ChevronDown aria-hidden="true" />
+            <ChevronDown aria-hidden="true" className="shrink-0" />
           </button>
         </PopoverTrigger>
         <PopoverContent

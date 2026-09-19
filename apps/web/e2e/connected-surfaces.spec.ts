@@ -6,6 +6,9 @@ for (const width of [320, 390, 768, 1440]) {
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height: width === 320 ? 568 : width === 768 ? 600 : 900 });
+    // At and above md the rail is part of the layout and is simply there; below
+    // it is a drawer that opens over the conversation.
+    const railIsPermanent = width >= 768;
     await page.addInitScript(() => localStorage.setItem("cadre.uiAppearance", "system"));
     await page.emulateMedia({ colorScheme: "light" });
     await signup(
@@ -15,15 +18,22 @@ for (const width of [320, 390, 768, 1440]) {
       "Workspace Owner",
     );
     await completeOnboarding(page);
-    await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
+    // Main's assertions — the Company context button is gone and the
+    // workspace name has a testid — with the rail's visibility keyed on the
+    // width, because at and above md it is part of the layout.
+    await expect(page.getByTestId("bots-sidebar")).toBeVisible({ visible: railIsPermanent });
     await expect(page.getByTestId("workspace-name")).toContainText("Personal");
     await expect(page.getByRole("button", { name: "Company context", exact: true })).toHaveCount(0);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await captureScreenshot(page, testInfo, "conversation-focused");
-    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+    if (!railIsPermanent) {
+      await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+    }
     await expect(page.getByTestId("bots-sidebar")).toBeVisible();
-    await expect(page.getByRole("textbox", { name: "Search conversations" })).toBeFocused();
-    await page.keyboard.press("Escape");
+    await expect(page.getByRole("textbox", { name: "Search conversations" })).toBeVisible();
+    // Escape closes it from inside, wherever it is, and hands focus to the
+    // control that brings it back.
+    await page.getByRole("textbox", { name: "Search conversations" }).press("Escape");
     await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
     await expect(page.getByRole("button", { name: "Open navigation", exact: true })).toBeFocused();
     await page.keyboard.press("Enter");
@@ -41,8 +51,16 @@ for (const width of [320, 390, 768, 1440]) {
     await page.getByRole("button", { name: "Close setup", exact: true }).click();
     await expect(page.getByTestId("bots-sidebar")).toBeVisible();
     await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+    await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
+    // A workspace with no agent lands on the workspace home, not on the
+    // "Ready when you are" card this used to assert. That card had a
+    // "Continue setup" button and no composer; the home has its own
+    // composer — not the conversation's, so not the "Message composer"
+    // group — and resumes setup from its first row, which is the same
+    // journey through a surface you can actually reach from a route.
     await expect(page.getByRole("group", { name: "Message composer" })).toHaveCount(0);
-    await page.getByRole("button", { name: "Continue setup", exact: true }).click();
+    await expect(page.getByTestId("home-composer")).toBeVisible();
+    await page.getByRole("button", { name: /Start with your first bot/ }).click();
     await expect(page.getByRole("heading", { name: "Connect your company" })).toBeVisible();
     await page.getByRole("button", { name: "Continue without a company" }).click();
     if (await page.getByRole("heading", { name: "Connect a model" }).isVisible()) {
@@ -63,7 +81,7 @@ for (const width of [320, 390, 768, 1440]) {
     await captureScreenshot(page, testInfo, "workspace-navigator-dark");
     await page.getByTestId("create-menu-trigger").click();
     await page.getByTestId("create-new-bot").click();
-    await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
+    await expect(page.getByTestId("bots-sidebar")).toBeVisible({ visible: railIsPermanent });
     await page.getByLabel("Name", { exact: true }).fill("Research partner");
     await page.getByLabel("Purpose", { exact: true }).fill("Research questions for the studio");
     await captureScreenshot(page, testInfo, "create-another-agent");

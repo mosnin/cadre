@@ -1,111 +1,46 @@
-import { readFileSync } from "node:fs";
-import { avatarIdentitySeed } from "@cadre/core";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { AvatarStyleProvider } from "./avatar-style.js";
 import { BotAvatar } from "./bot-avatar.js";
 
 describe("BotAvatar", () => {
-  it("renders distinct SVG gradient IDs for concurrent working avatars", () => {
-    const html = renderToString(
-      <div>
-        <BotAvatar color="#8B5CF6" status="running" />
-        <BotAvatar color="#10B981" status="running" />
-      </div>,
-    );
-
-    const gradMatches = [...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1]);
-    expect(gradMatches).toHaveLength(2);
-    expect(gradMatches[0]).toBeTruthy();
-    expect(gradMatches[1]).toBeTruthy();
-    expect(gradMatches[0]).not.toBe(gradMatches[1]);
-
-    expect(html).toContain(`stroke="url(#${gradMatches[0]})"`);
-    expect(html).toContain(`stroke="url(#${gradMatches[1]})"`);
+  it("draws the agent's own colour", () => {
+    const html = renderToString(<BotAvatar color="#3380FF" identity="maya" />);
+    // The mid stop is the colour itself; the other two are derived from it.
+    expect(html).toContain("rgb(51, 128, 255)");
+    expect(html).toContain("cadre-orb");
   });
 
-  it.each(["running", "queued", "leased", "waiting_input", "waiting_takeover"])(
-    "renders active working ring for %s status",
-    (status) => {
-      const html = renderToString(<BotAvatar color="#3B82F6" status={status} />);
-      expect(html).toContain("<svg");
-      expect(html).toContain("cadre-bot-avatar-ring");
-    },
-  );
-
-  it("keeps the working ring mounted when idle so its timeline does not reset", () => {
-    const html = renderToString(<BotAvatar color="#F59E0B" status="idle" />);
-    expect(html).toContain('data-working="false"');
-    expect(html).toContain("cadre-bot-avatar-ring");
+  it("gives two agents two different orbs", () => {
+    const maya = renderToString(<BotAvatar color="#3380FF" identity="maya" />);
+    const github = renderToString(<BotAvatar color="#26BF8C" identity="github" />);
+    expect(maya).not.toBe(github);
   });
 
-  it("generates an organic avatar from the bot color", () => {
-    const html = renderToString(
-      <BotAvatar color="#D9508A" identity="maya" size={28} status="running" variant="organic" />,
-    );
-
-    expect(html).toContain("cadre-organic-avatar");
-    expect(html).toContain('data-working="true"');
-    expect(html).toMatch(/data-shape-family="\d"/);
-    expect(html).toMatch(/data-eye-pattern="[0-3]"/);
-    expect(html).toContain("<animate");
-    expect(html).not.toContain("cadre-bot-avatar-visor");
+  it.each([
+    ["running", "speaking"],
+    ["waiting_takeover", "speaking"],
+    ["waiting_input", "listening"],
+    ["queued", "connecting"],
+    ["leased", "connecting"],
+    ["idle", "idle"],
+    [undefined, "idle"],
+  ])("maps run status %s to the orb's %s", (status, state) => {
+    const html = renderToString(<BotAvatar color="#3380FF" status={status} />);
+    expect(html).toContain(`data-orb-state="${state}"`);
   });
 
-  it("generates distinct organic silhouettes for distinct bot identities", () => {
-    const maya = renderToString(<BotAvatar color="#D9508A" identity="maya" variant="organic" />);
-    const github = renderToString(
-      <BotAvatar color="#D9508A" identity="github" variant="organic" />,
-    );
-
-    expect(maya).not.toEqual(github);
+  it("breathes only while a run is in flight, and only when it is still", () => {
+    // Below the live threshold the orb cannot show the run in its own motion,
+    // so the halo says it instead.
+    const working = renderToString(<BotAvatar color="#3380FF" size={20} status="running" />);
+    const idle = renderToString(<BotAvatar color="#3380FF" size={20} status="idle" />);
+    expect(working).toContain('data-working="true"');
+    expect(idle).not.toContain('data-working="true"');
   });
 
-  it("assigns animation hooks across every organic shape family", () => {
-    const identities = new Map<number, string>();
-    for (let index = 0; index < 500 && identities.size < 10; index++) {
-      const identity = `avatar-${index}`;
-      identities.set(avatarIdentitySeed(identity) % 10, identity);
-    }
-    expect(identities.size).toBe(10);
-
-    for (const [family, identity] of identities) {
-      const html = renderToString(
-        <BotAvatar color="#D9508A" identity={identity} status="running" variant="organic" />,
-      );
-      expect(html).toContain(`data-shape-family="${family}"`);
-      expect(html).toMatch(/data-eye-pattern="[0-3]"/);
-      expect(html).toContain('data-working="true"');
-    }
-  });
-
-  it("uses the account avatar preference when no local variant is provided", () => {
-    const html = renderToString(
-      <AvatarStyleProvider value="organic">
-        <BotAvatar color="#D9508A" identity="maya" />
-      </AvatarStyleProvider>,
-    );
-
-    expect(html).toContain("cadre-organic-avatar");
-  });
-
-  it("keeps the organic morph timeline stable across status updates", () => {
-    const idle = renderToString(
-      <BotAvatar color="#D9508A" identity="maya" status="idle" variant="organic" />,
-    );
-    const working = renderToString(
-      <BotAvatar color="#D9508A" identity="maya" status="running" variant="organic" />,
-    );
-
-    expect(working.match(/<animate[^>]+dur="([^"]+)"/)?.[1]).toBe(
-      idle.match(/<animate[^>]+dur="([^"]+)"/)?.[1],
-    );
-    expect(idle).toContain("cadre-organic-avatar-eyes-idle");
-    expect(idle).toContain("cadre-organic-avatar-eyes-working");
-    expect(idle).toContain("cadre-organic-avatar-body-idle");
-    expect(idle).toContain("cadre-organic-avatar-body-working");
-    expect(readFileSync(new URL("./styles.css", import.meta.url), "utf8")).not.toMatch(
-      /data-working[^}]+animation:/s,
-    );
+  it("falls back rather than handing the shader a colour it cannot read", () => {
+    const html = renderToString(<BotAvatar color="not a colour" />);
+    expect(html).toContain("cadre-orb");
+    expect(html).not.toContain("NaN");
   });
 });

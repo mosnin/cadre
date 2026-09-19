@@ -187,7 +187,11 @@ for (const phone of [false, true]) {
           })),
       );
     expect(glyphs.length).toBeGreaterThan(0);
-    for (const glyph of glyphs) expect(glyph).toEqual({ width: 18, height: 18, stroke: "1.75px" });
+    // One optical weight across the rail: the reference's 15px icon where the
+    // rail is part of the layout, the 18px touch size where it is a drawer.
+    const glyphSize = phone ? 18 : 15;
+    for (const glyph of glyphs)
+      expect(glyph).toEqual({ width: glyphSize, height: glyphSize, stroke: "1.75px" });
     if (phone) {
       await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
       await captureScreenshot(page, testInfo, "connected-company-dark");

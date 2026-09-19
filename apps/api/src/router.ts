@@ -412,7 +412,6 @@ export function createRouter(deps: RouterDeps) {
         await deps.prisma.user.update({
           where: { id: context.actor.userId },
           data: {
-            ...(input.avatarStyle !== undefined ? { avatarStyle: input.avatarStyle } : {}),
             ...(input.locale !== undefined ? { uiLocale: input.locale } : {}),
             ...(input.region !== undefined ? { region: input.region } : {}),
             ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
@@ -4099,7 +4098,6 @@ async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     computerHost: computerHostFor(setup.settings?.computerHost, deps.env.sandboxProvider),
     canChooseHostComputer: actor.isDeploymentOwner && deps.env.sandboxProvider === "docker",
     sandboxProvider: deps.env.sandboxProvider,
-    avatarStyle: user.avatarStyle === "organic" ? "organic" : "robot",
     locale: user.uiLocale ?? null,
     region: user.region ?? null,
     timezone: user.timezone ?? null,

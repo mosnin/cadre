@@ -2,9 +2,11 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ActiveBotGlyph, CollaborationMarker } from "./CollaborationMarker";
 
+const render = renderToString;
+
 describe("collaboration transcript markers", () => {
   it("shows a left-aligned peer event with its avatar and full label", () => {
-    const html = renderToString(
+    const html = render(
       <CollaborationMarker
         ariaLabel="Message from Research"
         color="#14B8A6"
@@ -19,13 +21,13 @@ describe("collaboration transcript markers", () => {
     expect(html).toContain('class="flex justify-start"');
     expect(html).toContain('class="inline-flex max-w-full');
     expect(html).toContain('class="truncate"');
-    expect(html).toContain("cadre-bot-avatar");
+    expect(html).toContain("cadre-orb");
     expect(html).toContain("Message from Research");
     expect(html).not.toContain("{peer}");
   });
 
   it("animates the active bot glyph from its run status", () => {
-    const html = renderToString(
+    const html = render(
       <ActiveBotGlyph
         bots={[{ botId: "research", color: "#14B8A6", status: "running" }]}
         label="Research is working"
@@ -34,6 +36,6 @@ describe("collaboration transcript markers", () => {
 
     expect(html).toContain('role="status"');
     expect(html).toContain('data-working="true"');
-    expect(html).toContain("cadre-bot-avatar-ring");
+    expect(html).toContain("cadre-orb");
   });
 });

@@ -480,7 +480,6 @@ export type MobileMe = Pick<
   | "defaultProvider"
   | "defaultModel"
   | "needsModel"
-  | "avatarStyle"
   | "locale"
   | "region"
   | "timezone"

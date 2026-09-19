@@ -56,7 +56,6 @@ import {
   waitForComputerStartup,
 } from "@cadre/core";
 import {
-  AvatarStyleProvider,
   BotAvatar,
   Button,
   DropdownMenuItem,
@@ -81,6 +80,7 @@ import { PromptInput } from "@cadre/ui-web/directory/prompt-input";
 import { SidebarProvider } from "@cadre/ui-web/directory/sidebar";
 import { t } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
+import NumberFlow from "@number-flow/react";
 import {
   ArrowDown,
   ArrowUp,
@@ -93,8 +93,10 @@ import {
   Lock,
   LogOut,
   Maximize2,
+  MessageSquarePlus,
   Mic,
   Monitor,
+  MoreHorizontal,
   PanelLeftOpen,
   Plus,
   Puzzle,
@@ -157,9 +159,10 @@ import { copyableMessageText } from "../lib/message-text";
 import { providerLabel } from "../lib/messaging";
 import { isFileDrag, revokePendingAttachmentPreviews } from "../lib/pending-attachments";
 import { markAfterPaint, markOnce } from "../lib/performance";
+import { readRailCollapsed, writeRailCollapsed } from "../lib/rail-collapsed";
 import { clearSpaceSelection, rpc, selectedSpaceId, selectSpace } from "../lib/rpc";
 import { readSeenRunErrorIds, rememberSeenRunErrorId } from "../lib/run-error-storage";
-import { clearTaskDraft, readTaskDraft } from "../lib/task-draft";
+import { clearTaskDraft, readTaskDraft, writeTaskDraft } from "../lib/task-draft";
 import {
   activeThreadRuns,
   applyThreadSendReceipt,
@@ -199,6 +202,7 @@ import {
   routineNeedsOneShotArm,
 } from "./RoutineEditor";
 import { SpaceSearchResults } from "./SpaceSearch";
+import { BotNameSweep } from "./shell/bot-name-sweep";
 import { BotSettings, CreateBotForm } from "./shell/bot-panel";
 import { BotCreatePicker } from "./shell/bot-picker";
 import { CommandPalette, isCommandPaletteHotkey } from "./shell/command-palette";
@@ -208,6 +212,7 @@ import {
   DeleteItemDialog,
   NewBotSectionDialog,
 } from "./shell/dialogs";
+import { RAIL } from "./shell/home-tokens";
 import {
   AppConnectCard,
   ArtifactImage,
@@ -215,6 +220,8 @@ import {
   ChoiceCard,
   McpApprovalCard,
 } from "./shell/message-cards";
+import { RailNavRow, RailUsage } from "./shell/rail-nav";
+import { SpaceHome } from "./shell/space-home";
 import { WindowChrome } from "./WindowChrome";
 import { WorkspaceLibrary } from "./WorkspaceLibrary";
 
@@ -347,7 +354,6 @@ export function ShellPage() {
     previousConversationRef.current = { botId, groupId };
     const showNavigator = searchParamsRef.current.has("setup-paused");
     if (showNavigator || previous.botId || previous.groupId) {
-      setBotsSidebarCollapsed(!showNavigator);
       setMobileSidebarOpen(showNavigator);
     }
   }, [botId, groupId]);
@@ -508,9 +514,12 @@ export function ShellPage() {
   const [desktopLayout, setDesktopLayout] = useState(
     () => window.matchMedia("(min-width: 768px)").matches,
   );
+  const [wideLayout, setWideLayout] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches,
+  );
   const [draggedBotId, setDraggedBotId] = useState<string | null>(null);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
-  const [botsSidebarCollapsed, setBotsSidebarCollapsed] = useState(true);
+  const [botsSidebarCollapsed, setBotsSidebarCollapsed] = useState(readRailCollapsed);
   const focusPromptAbortRef = useRef<AbortController | null>(null);
   const focusPromptBotIdRef = useRef<string | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -524,7 +533,6 @@ export function ShellPage() {
       workforceOpen ||
       messagingSettingsOpen
     ) {
-      setBotsSidebarCollapsed(true);
       setMobileSidebarOpen(false);
       setMenuOpen(false);
     }
@@ -548,14 +556,30 @@ export function ShellPage() {
     desktop.addEventListener("change", closeMobileSidebar);
     return () => desktop.removeEventListener("change", closeMobileSidebar);
   }, []);
+  /**
+   * The rail takes 268px and the side panel 384. Below 1024 there is not enough
+   * left for a conversation between them — at 768 it measured 68px — so the
+   * panel floats over the conversation until there is room for both.
+   */
+  useEffect(() => {
+    const wide = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setWideLayout(wide.matches);
+    sync();
+    wide.addEventListener("change", sync);
+    return () => wide.removeEventListener("change", sync);
+  }, []);
   const navigationOpen = desktopLayout ? !botsSidebarCollapsed : mobileSidebarOpen;
   useEffect(() => {
     if (!navigationOpen) return;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const frame = requestAnimationFrame(() => {
-      if (modalIsOpen()) return;
-      sidebarSearchRef.current?.focus();
-    });
+    // A drawer that just opened over the conversation should take the caret; a
+    // rail that is always there must not, or it steals focus on every load.
+    const frame = desktopLayout
+      ? 0
+      : requestAnimationFrame(() => {
+          if (modalIsOpen()) return;
+          sidebarSearchRef.current?.focus();
+        });
     return () => {
       cancelAnimationFrame(frame);
       const active = document.activeElement;
@@ -622,6 +646,12 @@ export function ShellPage() {
   const computerBootRequests = useRef(new Map<string, Promise<unknown>>());
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [initialBotsLoaded, setInitialBotsLoaded] = useState(false);
+  /**
+   * Bootstrap opens the last conversation, so until it has run `/app` is a
+   * conversation about to appear, not the workspace home. After it has run,
+   * `/app` means the home — which is how New chat gets back here.
+   */
+  const [bootstrapRouted, setBootstrapRouted] = useState(false);
   const [bootstrapMe, setBootstrapMe] = useState<Me | null>();
   const updatePreferences = useCallback(
     async (patch: Parameters<typeof rpc.preferences.update>[0]) => {
@@ -691,6 +721,18 @@ export function ShellPage() {
     outputTokens: number;
     runs: number;
   } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void rpc.usage
+      .summary()
+      .then((summary) => {
+        if (!cancelled) setUsage(summary);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const autoBooted = useRef<string | null>(null);
   const routineSavePending = useRef(false);
   const routineSaveRequest = useRef(0);
@@ -719,7 +761,12 @@ export function ShellPage() {
   const autoSpokenBotId = useRef<string | null>(null);
 
   const inGroup = Boolean(groupId);
-  const active = inGroup ? undefined : (bots.find((b) => b.id === botId) ?? bots[0]);
+  const atWorkspaceHome = !botId && !groupId && bootstrapRouted;
+  // The conversation is behind something whenever the drawer is over it, or
+  // the side panel is floating rather than sitting beside it.
+  const mainCovered = (!desktopLayout && mobileSidebarOpen) || (!wideLayout && Boolean(panel));
+  const active =
+    inGroup || atWorkspaceHome ? undefined : (bots.find((b) => b.id === botId) ?? bots[0]);
   const activeGroup = groups.find((group) => group.id === groupId);
   const activePendingAttachments = useMemo(
     () => attachmentsForThread(pendingAttachments, inGroup ? groupId : active?.id),
@@ -730,6 +777,13 @@ export function ShellPage() {
   const recordingSkill = activeTaughtSkills.find((skill) => skill.status === "recording") ?? null;
   const routeBotId = useRef<string | undefined>(botId);
   routeBotId.current = botId;
+  /**
+   * `/app` used to be a route nobody stayed on: every bot refresh bounced it
+   * to the first conversation. It is the workspace home now, so the refresh
+   * has to leave it alone.
+   */
+  const atWorkspaceHomeRef = useRef(false);
+  atWorkspaceHomeRef.current = atWorkspaceHome;
   const routeGroupId = useRef<string | undefined>(groupId);
   routeGroupId.current = groupId;
   const activeBotId = useRef<string | undefined>(inGroup ? undefined : active?.id);
@@ -916,6 +970,7 @@ export function ShellPage() {
         const currentBotId = routeBotId.current;
         if (
           (list.length || groupList.length) &&
+          !atWorkspaceHomeRef.current &&
           (!currentBotId || !list.some((bot) => bot.id === currentBotId))
         ) {
           navigate(firstThreadRoute(list, groupList), { replace: true });
@@ -1153,6 +1208,7 @@ export function ShellPage() {
         if (selectedBotId && selectedBotId !== botId) {
           navigate(`/app/${selectedBotId}`, { replace: true });
         }
+        setBootstrapRouted(true);
       })
       .catch(() => {
         if (cancelled) return;
@@ -1635,8 +1691,12 @@ export function ShellPage() {
 
   const openSpaceChat = useCallback(
     (spaceId: string, path: string) => {
+      // The phone drawer closes because it covers the conversation. The
+      // desktop rail does not: it is in the layout beside the thing it
+      // navigates, so switching workspaces leaves it where it was. This
+      // used to collapse it, which is why creating anything from the rail
+      // made the rail disappear.
       setMobileSidebarOpen(false);
-      setBotsSidebarCollapsed(true);
       const previousSpaceId = selectedSpaceId();
       // Persist the active space (including primary) so voice/RPC headers match the chat.
       const selectionStored = selectSpace(spaceId);
@@ -2426,6 +2486,7 @@ export function ShellPage() {
 
   function setBotsSidebarCollapsedPref(collapsed: boolean) {
     setBotsSidebarCollapsed(collapsed);
+    writeRailCollapsed(collapsed);
   }
 
   async function createBot(input: {
@@ -2756,21 +2817,25 @@ export function ShellPage() {
           if (event.key === "Escape" && !event.defaultPrevented && !createMenuOpen && !menuOpen) {
             event.preventDefault();
             setMobileSidebarOpen(false);
-            setBotsSidebarCollapsed(true);
+            // Closing by Escape is the same choice as closing by the button,
+            // so it is remembered the same way.
+            setBotsSidebarCollapsedPref(true);
           }
         }}
         id="bots-sidebar"
         data-testid="bots-sidebar"
         data-collapsed={botsSidebarCollapsed ? "true" : "false"}
         inert={desktopLayout ? botsSidebarCollapsed : !mobileSidebarOpen}
-        className={`absolute inset-0 z-40 flex w-full min-w-0 flex-col bg-background md:inset-3 md:w-auto md:rounded-2xl md:bg-background ${
-          (desktopLayout ? !botsSidebarCollapsed : mobileSidebarOpen)
-            ? ""
-            : "invisible pointer-events-none"
-        }`}
+        // The rail is in the layout on desktop, not over it: 268px beside the
+        // conversation, which is what makes this read as the reference rather
+        // than as a panel that covers the screen. Below md it is still a
+        // drawer, because 268px of rail leaves nothing for the conversation.
+        className={`absolute inset-0 z-40 flex w-full min-w-0 flex-col bg-background md:relative md:inset-auto md:z-auto md:my-0 md:ms-0 md:rounded-2xl md:bg-sidebar ${
+          mobileSidebarOpen ? "" : "invisible pointer-events-none md:visible md:pointer-events-auto"
+        } ${desktopLayout && botsSidebarCollapsed ? "md:hidden" : "md:w-[268px] md:shrink-0"}`}
       >
         <SidebarProvider
-          className="min-h-0 h-full mx-auto max-w-3xl"
+          className="min-h-0 h-full w-full mx-auto max-w-3xl md:mx-0 md:max-w-none"
           open={!botsSidebarCollapsed}
           onOpenChange={(open) => setBotsSidebarCollapsedPref(!open)}
           mobileOpen={mobileSidebarOpen}
@@ -2784,13 +2849,15 @@ export function ShellPage() {
                 {" "}
                 <Popover open={createMenuOpen} onOpenChange={setCreateMenuOpen}>
                   <PopoverTrigger
-                    className="app-no-drag inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium text-foreground hover:bg-muted"
+                    className="app-no-drag inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium text-foreground hover:bg-muted md:size-7 md:justify-center md:rounded-md md:px-0"
                     title={t`Create`}
                     aria-label={t`Create`}
                     data-testid="create-menu-trigger"
                   >
                     <Plus size={18} strokeWidth={1.8} />
-                    <Trans>Create</Trans>
+                    <span className="md:hidden">
+                      <Trans>Create</Trans>
+                    </span>
                   </PopoverTrigger>
                   {/* Unmount with the state change so the panel it opens never coexists with the menu. */}
                   {createMenuOpen ? (
@@ -2802,11 +2869,9 @@ export function ShellPage() {
                         onCreateBot={() => {
                           setCreateMenuOpen(false);
                           setMobileSidebarOpen(false);
-                          setBotsSidebarCollapsed(true);
                           setPanel("create");
                         }}
                         onCreateGroup={() => {
-                          setBotsSidebarCollapsed(true);
                           setCreateMenuOpen(false);
                           setMobileSidebarOpen(false);
                           setPanel("create-group");
@@ -2821,17 +2886,71 @@ export function ShellPage() {
                 </Popover>
               </div>
             }
+            headerTitle={
+              <WorkspaceSwitcher
+                spaces={spaces}
+                currentSpaceId={currentSpaceId}
+                onSwitch={openSpaceChat}
+                onCreate={() => navigate("/onboarding?new=1")}
+              />
+            }
             navigation={
               <>
-                <WorkspaceSwitcher
-                  spaces={spaces}
-                  currentSpaceId={currentSpaceId}
-                  onSwitch={openSpaceChat}
-                  onCreate={() => navigate("/onboarding?new=1")}
-                />
+                <nav aria-label={t`Workspace`}>
+                  <RailNavRow
+                    testId="rail-new-chat"
+                    icon={<MessageSquarePlus size={RAIL.navIconSize} />}
+                    label={t`New chat`}
+                    active={!botId && !groupId}
+                    onSelect={() => {
+                      setMobileSidebarOpen(false);
+                      navigate("/app");
+                    }}
+                  />
+                  <RailNavRow
+                    testId="rail-schedules"
+                    icon={<Clock size={RAIL.navIconSize} />}
+                    label={t`Schedules`}
+                    active={panel === "schedules"}
+                    onSelect={() => {
+                      setMobileSidebarOpen(false);
+                      if (!active) {
+                        const target = bots[0];
+                        if (!target) return;
+                        openBot(target.id);
+                      }
+                      setPanel("schedules");
+                    }}
+                  />
+                  <RailNavRow
+                    testId="rail-computers"
+                    icon={<Monitor size={RAIL.navIconSize} />}
+                    label={t`Computers`}
+                    active={panel === "computer"}
+                    onSelect={() => {
+                      setMobileSidebarOpen(false);
+                      if (!active) {
+                        const target = bots[0];
+                        if (!target) return;
+                        openBot(target.id);
+                      }
+                      if (desktopLayout) setPanel("computer");
+                      else setComputerOpen(true);
+                    }}
+                  />
+                  <RailNavRow
+                    testId="rail-more"
+                    icon={<MoreHorizontal size={RAIL.navIconSize} />}
+                    label={t`More`}
+                    onSelect={() => {
+                      setMobileSidebarOpen(false);
+                      setCommandPaletteOpen(true);
+                    }}
+                  />
+                </nav>
                 <InputGroup
                   data-testid="sidebar-search"
-                  className="w-full h-11 rounded-xl bg-background"
+                  className="w-full h-11 rounded-xl bg-background md:h-8 md:rounded-lg"
                 >
                   <InputGroupAddon>
                     <Search size={15} aria-hidden="true" />
@@ -2865,9 +2984,19 @@ export function ShellPage() {
             }
             footer={
               <>
+                {usage ? (
+                  <RailUsage
+                    runs={usage.runs}
+                    tokens={usage.inputTokens + usage.outputTokens}
+                    onUpgrade={() => {
+                      setAccountSettingsFocusUsage(true);
+                      setAccountSettingsOpen(true);
+                    }}
+                  />
+                ) : null}
                 <Button
                   variant="ghost"
-                  className="w-full justify-start min-h-11"
+                  className="w-full justify-start min-h-11 md:min-h-[38px] md:text-[13.5px]"
                   onClick={() => {
                     setMobileSidebarOpen(false);
                     setLibraryOpen(true);
@@ -2878,12 +3007,14 @@ export function ShellPage() {
                 <Popover open={menuOpen} onOpenChange={setMenuOpen}>
                   <PopoverTrigger
                     data-testid="user-menu-trigger"
-                    className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-accent"
+                    className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-accent md:min-h-[38px] md:gap-2.5 md:rounded-lg md:px-2.5 md:py-1"
                   >
-                    <span className="grid h-8 w-8 place-items-center rounded-full bg-accent text-[12px] text-foreground/75">
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-accent text-[12px] text-foreground/75 md:h-5 md:w-5 md:text-[9px]">
                       {initials}
                     </span>
-                    <span className="text-[14.5px] text-foreground/90">{userName}</span>
+                    <span className="truncate text-[14.5px] text-foreground/90 md:text-[13.5px]">
+                      {userName}
+                    </span>
                   </PopoverTrigger>
                   {menuOpen ? (
                     <PopoverContent
@@ -2971,9 +3102,13 @@ export function ShellPage() {
                       </Button>
                       {usage ? (
                         <p className="px-2.5 pb-2 text-[12.5px] text-muted-foreground">
-                          <Trans>
-                            {usage.runs} runs · {usage.inputTokens + usage.outputTokens} tokens
-                          </Trans>
+                          <NumberFlow value={usage.runs} className="tabular-nums" />{" "}
+                          <Trans>runs</Trans> ·{" "}
+                          <NumberFlow
+                            value={usage.inputTokens + usage.outputTokens}
+                            className="tabular-nums"
+                          />{" "}
+                          <Trans>tokens</Trans>
                         </p>
                       ) : null}
                       <Button
@@ -2999,7 +3134,7 @@ export function ShellPage() {
               role="tabpanel"
               id={`workspace-views-panel-${activityMode ? "activity" : "conversations"}`}
               aria-labelledby={`workspace-views-tab-${activityMode ? "activity" : "conversations"}`}
-              className="rk-scroll flex flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2"
+              className="rk-scroll flex flex-1 flex-col gap-1 overflow-y-auto pb-2"
             >
               {showSpaceSearch ? (
                 <SpaceSearchResults
@@ -3189,7 +3324,7 @@ export function ShellPage() {
                                   position: { x: event.clientX, y: event.clientY },
                                 });
                               }}
-                              className={`${pinnedShelf ? "flex w-28 shrink-0 flex-col items-center gap-3 rounded-3xl px-2 py-3 text-center" : "flex w-full gap-3 rounded-2xl px-2.5 py-4 text-start md:py-[11px]"} ${
+                              className={`${pinnedShelf ? "flex w-28 shrink-0 flex-col items-center gap-3 rounded-3xl px-2 py-3 text-center" : "flex w-full gap-2.5 rounded-xl px-2.5 py-4 text-start md:py-2"} ${
                                 item.kind === "bot" ? "cursor-grab active:cursor-grabbing" : ""
                               } ${
                                 !pinnedShelf &&
@@ -3213,7 +3348,7 @@ export function ShellPage() {
                                 <BotAvatar
                                   color={item.chat.color}
                                   identity={item.chat.id}
-                                  size={pinnedShelf ? 82 : desktopLayout ? 38 : 46}
+                                  size={pinnedShelf ? 82 : desktopLayout ? 28 : 46}
                                   status={item.chat.status}
                                 />
                               ) : (
@@ -3223,7 +3358,7 @@ export function ShellPage() {
                                       ? (activeSnapshot.members ?? item.chat.members)
                                       : item.chat.members
                                   }
-                                  size={pinnedShelf ? 82 : desktopLayout ? 38 : 46}
+                                  size={pinnedShelf ? 82 : desktopLayout ? 28 : 46}
                                 />
                               )}
                               <div className={pinnedShelf ? "w-full min-w-0" : "min-w-0 flex-1"}>
@@ -3233,18 +3368,28 @@ export function ShellPage() {
                                   <span
                                     dir="auto"
                                     data-roster-bot-name={item.kind === "bot" ? "" : undefined}
-                                    className={`truncate text-[15px] text-foreground ${
+                                    className={`truncate text-[15px] text-foreground md:text-[13.5px] ${
                                       item.chat.unread ? "font-semibold" : "font-medium"
                                     }`}
                                   >
-                                    {item.chat.name}
+                                    {/* Only a bot finishes a run; a group row
+                                        has no run status to sweep on. */}
+                                    {item.kind === "bot" ? (
+                                      <BotNameSweep
+                                        name={item.chat.name}
+                                        status={item.chat.status}
+                                        runKey={item.chat.updatedAt}
+                                      />
+                                    ) : (
+                                      item.chat.name
+                                    )}
                                     {item.chat.unread ? (
                                       <span className="sr-only">
                                         <Trans> (unread)</Trans>
                                       </span>
                                     ) : null}
                                   </span>
-                                  <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] text-muted-foreground/80">
+                                  <span className="flex shrink-0 items-center gap-1.5 text-[12.5px] text-muted-foreground/80 md:text-[11px]">
                                     {desktopLayout &&
                                     item.kind === "bot" &&
                                     item.chat.status !== "idle" ? (
@@ -3274,7 +3419,7 @@ export function ShellPage() {
                                   <>
                                     <div
                                       dir="auto"
-                                      className={`mt-0.5 truncate text-[13.5px] ${
+                                      className={`mt-0.5 truncate text-[13.5px] md:text-[12px] ${
                                         item.chat.unread
                                           ? "font-medium text-foreground/75"
                                           : "text-muted-foreground"
@@ -3285,7 +3430,7 @@ export function ShellPage() {
                                     {item.chat.preview ? (
                                       <div
                                         dir="auto"
-                                        className="truncate text-[12.5px] text-muted-foreground/80"
+                                        className="truncate text-[12.5px] text-muted-foreground/80 md:text-[11.5px]"
                                       >
                                         {conversationPreview(item.chat.preview)}
                                       </div>
@@ -3410,22 +3555,15 @@ export function ShellPage() {
       </aside>
 
       <main
-        aria-hidden={
-          (desktopLayout ? !botsSidebarCollapsed : mobileSidebarOpen) ||
-          (!desktopLayout && Boolean(panel)) ||
-          undefined
-        }
-        inert={
-          (desktopLayout ? !botsSidebarCollapsed : mobileSidebarOpen) ||
-          (!desktopLayout && Boolean(panel))
-        }
+        aria-hidden={mainCovered || undefined}
+        inert={mainCovered}
         className="flex min-w-0 flex-1 flex-col bg-background md:rounded-2xl overflow-hidden"
       >
         <div
           data-testid="conversation-header"
-          className="app-drag flex min-h-20 items-end sm:items-center justify-between gap-3 px-3 py-3 md:px-6"
+          className="app-drag flex min-h-14 items-center justify-between gap-2 px-3 py-2 sm:min-h-20 sm:gap-3 sm:py-3 md:px-6"
         >
-          <div className="grid min-w-0 flex-1 grid-cols-[44px_minmax(0,1fr)] items-center gap-x-2 gap-y-3 sm:flex">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             {desktopBridge() ? <WindowChrome /> : null}
             {botsSidebarCollapsed ? (
               <button
@@ -3454,16 +3592,24 @@ export function ShellPage() {
             </button>
             <span
               data-testid="workspace-name"
-              className="app-no-drag flex min-h-11 min-w-0 w-full sm:w-40 items-center truncate px-2 text-sm font-medium"
+              className="app-no-drag flex min-h-11 min-w-0 shrink items-center truncate px-2 text-sm font-medium sm:w-40 sm:shrink-0"
             >
               {spaces.find((space) => space.id === bootstrapMe?.spaceId)?.name ?? t`Workspace`}
             </span>
             <button
               type="button"
               data-testid="bot-settings-trigger"
-              disabled={!active && !inGroup}
-              onClick={() => setPanel(inGroup ? "group-settings" : "settings")}
-              className="app-no-drag col-span-2 row-start-2 flex min-h-11 min-w-0 items-center gap-3 sm:ms-2"
+              disabled={!active && !inGroup && !atWorkspaceHome}
+              onClick={() => {
+                // At the workspace home there is no conversation to configure,
+                // so the same control is the agent picker the reference draws.
+                if (atWorkspaceHome) {
+                  setCommandPaletteOpen(true);
+                  return;
+                }
+                setPanel(inGroup ? "group-settings" : "settings");
+              }}
+              className="app-no-drag flex min-h-11 min-w-0 flex-1 items-center gap-2 sm:ms-2 sm:gap-3"
             >
               {inGroup ? (
                 <GroupAvatar
@@ -3479,10 +3625,18 @@ export function ShellPage() {
                 />
               ) : null}
               <span className="min-w-0">
-                <span className="block truncate text-[16px] font-medium text-foreground" dir="auto">
+                <span
+                  className="flex items-center gap-1 truncate text-[16px] font-medium text-foreground"
+                  dir="auto"
+                >
                   {inGroup
                     ? (activeGroup?.name ?? activeSnapshot?.groupName ?? t`Group`)
-                    : (active?.name ?? t`Select a bot`)}
+                    : atWorkspaceHome
+                      ? t`All`
+                      : (active?.name ?? t`Select a bot`)}
+                  {atWorkspaceHome ? (
+                    <ChevronDown size={14} className="shrink-0 text-muted-foreground" />
+                  ) : null}
                 </span>
               </span>
             </button>
@@ -3529,14 +3683,37 @@ export function ShellPage() {
           </div>
         </div>
         {!active && !inGroup ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 text-center">
-            <h1 className="text-2xl font-medium">
-              <Trans>Ready when you are</Trans>
-            </h1>
-            <Button onClick={() => navigate("/onboarding")}>
-              <Trans>Continue setup</Trans>
-            </Button>
-          </div>
+          <SpaceHome
+            bots={bots}
+            draftTarget={bots[0]}
+            modelLabel={bootstrapMe?.defaultModel ?? t`Default`}
+            onSend={(text) => {
+              const target = bots[0];
+              if (!target) {
+                setPanel("create");
+                return;
+              }
+              // The app's own way of handing a draft to a conversation: the
+              // Composer seeds from it and nothing is sent without a person.
+              writeTaskDraft(text);
+              openBot(target.id);
+            }}
+            onOpenBot={openBot}
+            onCreateBot={() => setPanel("create")}
+            onResumeSetup={() => navigate("/onboarding")}
+            onOpenIntegrations={() => setPluginsOpen(true)}
+            onOpenSchedules={() => {
+              const target = bots[0];
+              if (!target) return;
+              openBot(target.id);
+              setPanel("schedules");
+            }}
+            onOpenComputer={(botId) => {
+              openBot(botId);
+              if (desktopLayout) setPanel("computer");
+              else setComputerOpen(true);
+            }}
+          />
         ) : (
           <Transcript
             key={activeSnapshot?.threadId}
@@ -3634,14 +3811,14 @@ export function ShellPage() {
       <aside
         data-testid="side-panel"
         data-panel={panel ?? "closed"}
-        className={`absolute inset-y-0 end-0 z-40 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background md:relative md:z-20 ${
+        className={`absolute inset-y-0 end-0 z-40 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background lg:relative lg:z-20 ${
           panel && (active || activeGroup || panel === "create" || panel === "create-group")
-            ? "w-full max-w-[384px] border-s border-sidebar-border md:w-[384px] md:max-w-none"
+            ? "w-full max-w-[384px] border-s border-sidebar-border lg:w-[384px] lg:max-w-none"
             : "pointer-events-none w-0"
         }`}
       >
         {panel && (active || activeGroup || panel === "create" || panel === "create-group") ? (
-          <div className="rk-scroll h-full w-full overflow-y-auto px-5 py-[17px] md:w-[384px]">
+          <div className="rk-scroll h-full w-full overflow-y-auto px-5 py-[17px] lg:w-[384px]">
             {panel !== "routine" &&
             panel !== "create" &&
             panel !== "create-group" &&
@@ -4239,7 +4416,6 @@ export function ShellPage() {
             notice={accountSettingsNotice}
             me={bootstrapMe}
             onPreferencesChange={updatePreferences}
-            avatarStyle={bootstrapMe?.avatarStyle ?? "robot"}
             isDeploymentOwner={bootstrapMe?.isDeploymentOwner === true}
             sandboxProvider={bootstrapMe?.sandboxProvider}
             messagingEnabled={messagingSurfaceEnabled}
@@ -4267,10 +4443,6 @@ export function ShellPage() {
             computer={computer}
             onComputerChanged={async () => {
               if (active) await refreshThread(active.id);
-            }}
-            onAvatarStyleChange={async (avatarStyle) => {
-              const nextMe = await rpc.preferences.update({ avatarStyle });
-              setBootstrapMe(nextMe);
             }}
             onClose={() => {
               setAccountSettingsOpen(false);
@@ -4499,9 +4671,7 @@ export function ShellPage() {
     </div>
   );
 
-  return (
-    <AvatarStyleProvider value={bootstrapMe?.avatarStyle ?? "robot"}>{shell}</AvatarStyleProvider>
-  );
+  return shell;
 }
 
 const Transcript = memo(function Transcript({

@@ -27,7 +27,6 @@ model User {
   adminVerifiedAt             DateTime?
   suspendedAt                 DateTime?
   billingCustomerId           String?                      @unique
-  avatarStyle                 String                       @default("robot")
   uiLocale                    String?
   region                      String?
   timezone                    String?

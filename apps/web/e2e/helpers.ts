@@ -111,9 +111,28 @@ export async function captureScreenshot(page: Page, testInfo: TestInfo, name: st
 }
 
 export async function openNavigation(page: Page) {
-  if (!(await page.getByTestId("bots-sidebar").isVisible())) {
-    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-  }
+  const sidebar = page.getByTestId("bots-sidebar");
+  // The rail is part of the desktop layout and opens with the app, so it is
+  // usually already here — but "usually already here" has to be WAITED for,
+  // not sampled. A single `isVisible()` right after a navigation reads the
+  // frame before the rail has painted, falls through to the branch below,
+  // and then spends fifteen seconds waiting for a control that is not
+  // rendered precisely because the rail is open. Every failure of this
+  // helper looked like that: the rail plainly visible in the screenshot
+  // attached to the timeout.
+  const appeared = await sidebar
+    .waitFor({ state: "visible", timeout: 5_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (appeared) return;
+  // Genuinely closed: either the desktop preference, which survives a
+  // reload, or the phone drawer. Both reopen from a control named "Open
+  // navigation", and only one of the two is rendered at a time, so take
+  // whichever is visible rather than assuming.
+  const open = page.getByRole("button", { name: "Open navigation", exact: true });
+  await open.first().waitFor({ state: "visible", timeout: 15_000 });
+  await open.first().click();
+  await sidebar.waitFor({ state: "visible", timeout: 15_000 });
 }
 
 export async function openUserMenu(page: Page) {
