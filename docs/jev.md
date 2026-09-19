@@ -62,7 +62,10 @@ page that was already acted on instead of spending a turn deciding to call
 prior progress, the bot directory, and saved logins start the moment the
 computer is up too, so those reads are not paid for after files materialize.
 Helper routing starts before the helper waits for a slot, so a queued delegate
-does not pay for the decision after it is already allowed to run.
+does not pay for the decision after it is already allowed to run. A thread
+already over the history window starts compacting at the beginning of the run —
+the same job the end of the run would have queued — so the summarizer overlaps
+this turn instead of sitting on the next one's critical path.
 
 Answers are also remembered. `decision-cache.ts` keys on the model, the state and
 every question with its criteria, so anything that would change an answer changes
