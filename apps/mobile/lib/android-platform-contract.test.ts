@@ -176,6 +176,16 @@ describe("Android mobile platform contract", () => {
     expect(thread).toContain("GroupAvatar");
   });
 
+  it("stacks group icons in a sized page-coloured cutout", () => {
+    const groupAvatar = readFileSync(resolve(mobileRoot, "components/group-avatar.tsx"), "utf8");
+    expect(groupAvatar).toContain("groupAvatarLayout");
+    expect(groupAvatar).toContain("width: layout.slot");
+    expect(groupAvatar).toContain("height: layout.slot");
+    expect(groupAvatar).toContain("backgroundColor: native.page");
+    expect(groupAvatar).not.toContain("borderWidth");
+    expect(groupAvatar).not.toContain("boxShadow");
+  });
+
   it("keeps send and stop separate while steering active work", () => {
     const thread = readFileSync(resolve(mobileRoot, "app/thread.tsx"), "utf8");
     const stopStart = thread.indexOf("async function stop()");

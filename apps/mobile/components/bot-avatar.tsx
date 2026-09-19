@@ -28,7 +28,7 @@ export const BotAvatar = memo(function BotAvatar({
   const [light, mid, dark] = orbGradientStops(color);
   const gradientId = `orb-${color.replace(/[^0-9a-zA-Z]/g, "")}`;
   return (
-    <View style={{ width: size, height: size }}>
+    <View style={{ width: size, height: size, borderRadius: size / 2, overflow: "hidden" }}>
       <Svg width={size} height={size} viewBox="0 0 100 100">
         <Defs>
           <RadialGradient id={gradientId} cx="38%" cy="32%" r="78%">

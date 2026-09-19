@@ -1,5 +1,6 @@
+import { groupAvatarLayout } from "@cadre/core";
 import { memo } from "react";
-import { StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { native, useThemedStyles } from "../lib/native";
 import { BotAvatar } from "./bot-avatar";
 
@@ -47,26 +48,8 @@ export const GroupAvatar = memo(function GroupAvatar({
     );
   }
 
-  const pair = members.length === 2;
-  const miniSize = Math.round(size * (pair ? 0.65 : 0.54));
-  const positions: ViewStyle[] = pair
-    ? [
-        { top: 0, left: 0 },
-        { right: 0, bottom: 0 },
-      ]
-    : [
-        { top: 0, left: (size - miniSize) / 2 },
-        { bottom: 0, left: 0 },
-        { right: 0, bottom: 0 },
-      ];
-  const visibleMembers = members.slice(0, pair || members.length === 3 ? members.length : 2);
-
-  const ring = {
-    borderRadius: miniSize / 2,
-    borderWidth: 1.5,
-    borderColor: native.page,
-    overflow: "hidden" as const,
-  };
+  const layout = groupAvatarLayout(size, members.length);
+  const visibleMembers = members.slice(0, layout.visibleCount);
 
   return (
     <View style={{ width: size, height: size, position: "relative" }}>
@@ -75,36 +58,43 @@ export const GroupAvatar = memo(function GroupAvatar({
           key={member.botId ?? index}
           style={{
             position: "absolute",
-            ...positions[index],
+            width: layout.slot,
+            height: layout.slot,
+            borderRadius: layout.slot / 2,
+            backgroundColor: native.page,
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
             zIndex: index + 1,
-            ...ring,
+            ...layout.positions[index],
           }}
         >
           <BotAvatar
             color={member.color}
             identity={member.botId ?? member.name}
-            size={miniSize}
+            size={layout.miniSize}
             status={member.status}
           />
         </View>
       ))}
-      {members.length > 3 ? (
+      {layout.showOverflow && layout.overflowLabel ? (
         <View
           style={{
             position: "absolute",
             right: 0,
             bottom: 0,
             zIndex: 3,
-            width: miniSize,
-            height: miniSize,
-            ...ring,
+            width: layout.slot,
+            height: layout.slot,
+            borderRadius: layout.slot / 2,
             backgroundColor: native.fillPressed,
             alignItems: "center",
             justifyContent: "center",
+            overflow: "hidden",
           }}
         >
           <Text style={{ color: native.label, fontSize: 10, fontWeight: "600" }}>
-            +{members.length - 2}
+            {layout.overflowLabel}
           </Text>
         </View>
       ) : null}
