@@ -3559,9 +3559,9 @@ export function ShellPage() {
       >
         <div
           data-testid="conversation-header"
-          className="app-drag flex min-h-20 items-end sm:items-center justify-between gap-3 px-3 py-3 md:px-6"
+          className="app-drag flex min-h-14 items-center justify-between gap-2 px-3 py-2 sm:min-h-20 sm:gap-3 sm:py-3 md:px-6"
         >
-          <div className="grid min-w-0 flex-1 grid-cols-[44px_minmax(0,1fr)] items-center gap-x-2 gap-y-3 sm:flex">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             {desktopBridge() ? <WindowChrome /> : null}
             {botsSidebarCollapsed ? (
               <button
@@ -3590,7 +3590,7 @@ export function ShellPage() {
             </button>
             <span
               data-testid="workspace-name"
-              className="app-no-drag flex min-h-11 min-w-0 w-full sm:w-40 items-center truncate px-2 text-sm font-medium"
+              className="app-no-drag flex min-h-11 min-w-0 shrink items-center truncate px-2 text-sm font-medium sm:w-40 sm:shrink-0"
             >
               {spaces.find((space) => space.id === bootstrapMe?.spaceId)?.name ?? t`Workspace`}
             </span>
@@ -3607,7 +3607,7 @@ export function ShellPage() {
                 }
                 setPanel(inGroup ? "group-settings" : "settings");
               }}
-              className="app-no-drag col-span-2 row-start-2 flex min-h-11 min-w-0 items-center gap-3 sm:ms-2"
+              className="app-no-drag flex min-h-11 min-w-0 flex-1 items-center gap-2 sm:ms-2 sm:gap-3"
             >
               {inGroup ? (
                 <GroupAvatar
