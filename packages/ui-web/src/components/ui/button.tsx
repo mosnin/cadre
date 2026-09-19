@@ -48,7 +48,7 @@ function Button({
       data-slot="button"
       className={cn(
         buttonVariants({ variant, size, className }),
-        "min-h-11 min-w-11 touch-manipulation",
+        "min-h-11 min-w-11 touch-manipulation md:min-h-0 md:min-w-0",
       )}
       {...props}
     />

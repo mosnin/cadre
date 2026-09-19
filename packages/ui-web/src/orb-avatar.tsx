@@ -77,7 +77,12 @@ export const OrbAvatar = memo(function OrbAvatar({
         "cadre-orb pointer-events-none relative inline-block shrink-0 overflow-hidden rounded-full",
         className,
       )}
-      style={{ width: size, height: size, backgroundColor: mid }}
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: mid,
+        contain: "strict",
+      }}
     >
       {wantsLive ? (
         <Suspense fallback={null}>

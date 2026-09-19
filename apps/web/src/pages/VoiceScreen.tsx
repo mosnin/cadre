@@ -46,7 +46,7 @@ export function VoiceScreen({
           <div
             data-testid="voice-orb"
             data-audio-level={level.toFixed(2)}
-            className="aspect-square h-full max-h-full w-full max-w-full"
+            className="pointer-events-none aspect-square h-full max-h-full w-full max-w-full overflow-hidden"
           >
             <Orb
               className="h-full w-full"

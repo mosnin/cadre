@@ -52,7 +52,11 @@ export function AttachmentMenu({
           aria-label={t`Attach file`}
           disabled={disabled}
           render={
-            <Button variant="outline" size="icon" className="rounded-full text-foreground/75" />
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full text-foreground/75 md:size-8"
+            />
           }
         >
           <Plus size={17} strokeWidth={1.8} />

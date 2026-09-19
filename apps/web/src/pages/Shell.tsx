@@ -2855,7 +2855,7 @@ export function ShellPage() {
             className="w-full min-w-0 bg-transparent"
             closeLabel={t`Close navigation`}
             headerActions={
-              <div className="app-no-drag flex shrink-0 items-center gap-1">
+              <div className="app-no-drag flex shrink-0 items-center gap-2">
                 <Popover open={createMenuOpen} onOpenChange={setCreateMenuOpen}>
                   <PopoverTrigger
                     className="app-no-drag inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium text-foreground hover:bg-muted md:size-7 md:justify-center md:rounded-md md:px-0"
@@ -2905,7 +2905,7 @@ export function ShellPage() {
             }
             navigation={
               <>
-                <nav aria-label={t`Workspace`} className="flex w-full flex-col gap-1">
+                <nav aria-label={t`Workspace`} className="flex w-full flex-col gap-2">
                   <RailNavRow
                     testId="rail-new-chat"
                     icon={<MessageSquarePlus size={RAIL.navIconSize} />}
@@ -2959,7 +2959,7 @@ export function ShellPage() {
                 </nav>
                 <InputGroup
                   data-testid="sidebar-search"
-                  className="mt-1 h-11 w-full rounded-xl bg-background md:h-8 md:rounded-lg"
+                  className="mt-3 h-11 w-full rounded-xl bg-background md:h-8 md:rounded-lg"
                 >
                   <InputGroupAddon>
                     <Search size={15} aria-hidden="true" />
@@ -2975,7 +2975,7 @@ export function ShellPage() {
                 <Tabs
                   id="workspace-views"
                   variant="underline"
-                  className="mt-2"
+                  className="mt-3"
                   value={activityMode ? "activity" : "conversations"}
                   onValueChange={(value) => {
                     if ((value === "activity") !== activityMode) toggleActivityMode();
@@ -4264,13 +4264,15 @@ export function ShellPage() {
               setBotMenu(null);
             }}
             onDuplicate={() => {
+              const bot = contextBot;
+              const group = contextGroup;
               setBotMenu(null);
-              const request = contextBot
-                ? rpc.bots.duplicate({ botId: contextBot.id })
-                : rpc.groups.duplicate({ groupId: contextGroup!.id });
+              const request = bot
+                ? rpc.bots.duplicate({ botId: bot.id })
+                : rpc.groups.duplicate({ groupId: group!.id });
               void request.then(async (chat) => {
                 await refreshBots();
-                navigate(contextBot ? `/app/${chat.id}` : `/app/g/${chat.id}`);
+                navigate(bot ? `/app/${chat.id}` : `/app/g/${chat.id}`);
               });
             }}
             onClear={() => {
@@ -5553,7 +5555,7 @@ const Composer = memo(function Composer({
                 onDictateStart((text) => setDraft((current) => `${current} ${text}`.trim()));
               }}
               onTouchEnd={onDictateStop}
-              className={`rounded-full ${
+              className={`rounded-full md:size-8 ${
                 dictating
                   ? "border-success bg-success/15 text-success hover:bg-success/15 hover:text-success"
                   : "text-foreground/75"
@@ -5574,7 +5576,7 @@ const Composer = memo(function Composer({
                   aria-label={t`Send`}
                   disabled={sending || !canSend || disabled}
                   onClick={send}
-                  className="ms-auto size-10 rounded-full"
+                  className="ms-auto size-11 rounded-full md:size-8"
                 >
                   <ArrowUp size={18} strokeWidth={2} />
                 </Button>
@@ -5584,7 +5586,7 @@ const Composer = memo(function Composer({
                   aria-label={t`Stop`}
                   disabled={sending}
                   onClick={() => void onStop()}
-                  className="size-10 rounded-full text-foreground/75"
+                  className="size-11 rounded-full text-foreground/75 md:size-8"
                 >
                   <Square size={12} strokeWidth={0} fill="currentColor" />
                 </Button>
@@ -5595,7 +5597,7 @@ const Composer = memo(function Composer({
                 aria-label={t`Send`}
                 disabled={sending || !canSend || disabled}
                 onClick={send}
-                className="ms-auto size-9 rounded-full"
+                className="ms-auto size-11 rounded-full md:size-8"
               >
                 <ArrowUp size={18} strokeWidth={2} />
               </Button>

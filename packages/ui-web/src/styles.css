@@ -523,6 +523,31 @@
   }
 }
 
+.cadre-orb {
+  contain: strict;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.cadre-orb,
+.cadre-orb * {
+  pointer-events: none !important;
+}
+
+.cadre-orb canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 .cadre-orb[data-halo="true"] {
   animation: cadre-orb-working 1.8s ease-in-out infinite;
 }

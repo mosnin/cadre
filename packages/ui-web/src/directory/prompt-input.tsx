@@ -107,15 +107,17 @@ export function PromptInput({
   const resizeTextarea = useCallback(() => {
     const textarea = textareaRef.current;
     const measurement = measurementRef.current;
-    if (!textarea || !measurement || textarea.value !== currentValue) return;
+    if (!textarea || !measurement) return;
 
     const lineHeight = 24;
+    const maxHeight = maxRows * lineHeight;
     const nextHeight = Math.min(
       Math.max(measurement.scrollHeight, minRows * lineHeight),
-      maxRows * lineHeight,
+      maxHeight,
     );
     const height = `${nextHeight}px`;
     if (textarea.style.height !== height) textarea.style.height = height;
+    textarea.style.overflowY = nextHeight >= maxHeight ? "auto" : "hidden";
   }, [currentValue, maxRows, minRows, textareaRef]);
 
   useLayoutEffect(() => {
@@ -192,7 +194,7 @@ export function PromptInput({
         {...textareaProps}
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={handleKeyDown}
-        className="scrollbar-hide block w-full resize-none overflow-y-auto bg-transparent px-2 pt-1.5 text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground/55"
+        className="scrollbar-hide block w-full resize-none overflow-hidden bg-transparent px-2 pt-1.5 text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground/55"
       />
 
       <div className="mt-2 flex min-h-11 items-center gap-2">

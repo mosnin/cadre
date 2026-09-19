@@ -35,10 +35,10 @@ export function RailNavRow({
       data-testid={testId}
       onClick={onSelect}
       aria-current={active ? "page" : undefined}
-      className={`flex h-11 w-full shrink-0 items-center gap-2.5 rounded-lg px-2.5 text-start md:h-[38px] ${
+      className={`flex min-h-11 w-full shrink-0 items-center gap-2.5 rounded-lg px-2.5 text-start md:min-h-0 ${
         active ? "bg-sidebar-accent text-foreground" : "text-foreground/90 hover:bg-accent/60"
       }`}
-      style={{ fontSize: RAIL.navFontSize }}
+      style={{ height: RAIL.navPitch, fontSize: RAIL.navFontSize }}
     >
       <span className="grid shrink-0 place-items-center text-muted-foreground">{icon}</span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
