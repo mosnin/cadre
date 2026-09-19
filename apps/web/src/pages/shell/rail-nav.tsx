@@ -1,10 +1,11 @@
 import { Trans } from "@lingui/react/macro";
 import NumberFlow from "@number-flow/react";
+import { Gauge } from "lucide-react";
 import type { ReactNode } from "react";
 import { RAIL } from "./home-tokens";
 
 /**
- * The rail's primary nav and its footer card.
+ * The rail's primary nav and its footer rows.
  *
  * Both are measured: rows sit on a 38px pitch with a 15px icon and 13.5px
  * label, which is the reference's 48.5/19/17 at 1920 divided by 1.27. The
@@ -46,10 +47,21 @@ export function RailNavRow({
 }
 
 /**
- * The reference's footer block, on Cadre's numbers: what this month has used
- * so far and the way to lift the cap. The counts animate between values
- * because they change while the rail is open — a run finishing is a change,
- * not a repaint.
+ * What this month has used so far, as a nav row.
+ *
+ * It was a card: a decorative conic-gradient dot, a headline, a subtitle and
+ * a full-width white button, which is the shape the reference uses for its
+ * UPGRADE PROMO. Cadre has nothing to promote there, so on a new workspace
+ * it sat at the bottom of every rail saying "0 runs and 0 tokens this
+ * month" inside a block you could not dismiss and that did not do anything
+ * — a permanent advert for a number that is zero. Copying the reference's
+ * geometry into a slot with different content is exactly the mistake the
+ * measuring is supposed to prevent.
+ *
+ * So it is a row now, on the same 38px pitch as every other row in the
+ * footer, and it navigates. The counts still animate between values,
+ * because a run finishing while the rail is open is a change and not a
+ * repaint.
  */
 export function RailUsage({
   runs,
@@ -61,34 +73,26 @@ export function RailUsage({
   onUpgrade: () => void;
 }) {
   return (
-    <div className="rounded-xl bg-sidebar-accent/70 p-3">
-      <span
-        aria-hidden
-        className="mb-2.5 block size-5 rounded-full"
-        style={{
-          background:
-            "conic-gradient(from 180deg, var(--primary), color-mix(in oklab, var(--primary) 30%, transparent), var(--primary))",
-        }}
-      />
-      <p className="text-[11.8px] leading-[1.35] text-foreground">
-        <NumberFlow value={runs} className="font-medium tabular-nums" /> <Trans>runs and</Trans>{" "}
+    <button
+      type="button"
+      onClick={onUpgrade}
+      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 text-start text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      style={{ height: RAIL.navPitch, fontSize: RAIL.navFontSize }}
+    >
+      <span className="grid shrink-0 place-items-center text-muted-foreground">
+        <Gauge size={RAIL.navIconSize} strokeWidth={1.8} aria-hidden="true" />
+      </span>
+      <span className="min-w-0 flex-1 truncate">
+        <NumberFlow value={runs} className="font-medium tabular-nums text-foreground" />{" "}
+        <Trans>runs</Trans>
+        {" \u00b7 "}
         <NumberFlow
           value={tokens}
           format={{ notation: "compact", maximumFractionDigits: 1 }}
-          className="font-medium tabular-nums"
+          className="font-medium tabular-nums text-foreground"
         />{" "}
-        <Trans>tokens this month</Trans>
-      </p>
-      <p className="mt-0.5 text-[10.2px] text-muted-foreground">
-        <Trans>See what your bots have been spending</Trans>
-      </p>
-      <button
-        type="button"
-        onClick={onUpgrade}
-        className="mt-2.5 h-[35px] w-full rounded-full bg-primary text-[12.5px] font-medium text-primary-foreground"
-      >
-        <Trans>See usage</Trans>
-      </button>
-    </div>
+        <Trans>tokens</Trans>
+      </span>
+    </button>
   );
 }

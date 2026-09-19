@@ -37,6 +37,15 @@ export type ColorTokens = {
   sidebarAccent: string;
   sidebarAccentForeground: string;
   link: string;
+  /**
+   * The composer's resting fill. Measured off the reference at `#f3f3f3` on
+   * a white pane: the composer is a FILLED pill, not a bordered box. Drawing
+   * it as a border on the same fill as the pane is what put a hard, light
+   * arc on its corners — a 1px line spread over two pixels by the radius,
+   * which reads as a double-weight stroke and is the first thing the eye
+   * lands on in an otherwise quiet screen.
+   */
+  composer: string;
   success: string;
   warning: string;
   overlay: string;
@@ -70,6 +79,7 @@ export const darkTokens = {
   sidebarAccent: "#242424",
   sidebarAccentForeground: "#F4F4F4",
   link: "#DEDEDE",
+  composer: "#242424",
   success: "#4ECB71",
   warning: "#E9C46A",
   overlay: "rgba(0, 0, 0, 0.62)",
@@ -103,6 +113,7 @@ export const lightTokens = {
   sidebarAccent: "#FFFFFF",
   sidebarAccentForeground: "#1A1A1A",
   link: "#2563EB",
+  composer: "#F3F3F3",
   success: "#228B3B",
   warning: "#B7791F",
   overlay: "rgba(20, 20, 22, 0.45)",
