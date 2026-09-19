@@ -32,38 +32,47 @@ export async function companyWorkspaceRequest(path = "", method = "GET", spaceId
 }
 let companyConnectionsInFlight: Promise<{ connections: Connection[] }> | null = null;
 /**
- * The workspace name and the Company OS row sit in different parts of the
- * rail now, and both need the same answer. Sharing the in-flight request keeps
- * that one call rather than two.
+ * The workspace name and the Company OS row sit in different parts of the rail
+ * now, and both want the same answer at the same moment. This shares the
+ * request they make together — and only that. The promise is dropped as soon
+ * as it settles, so the next mount or the next `company-workspaces-changed`
+ * asks the server again rather than replaying an answer from earlier in the
+ * page's life.
  */
+function requestCompanyConnections(): Promise<{ connections: Connection[] }> {
+  if (!companyConnectionsInFlight) {
+    const request = companyWorkspaceRequest() as Promise<{ connections: Connection[] }>;
+    companyConnectionsInFlight = request;
+    const release = () => {
+      if (companyConnectionsInFlight === request) companyConnectionsInFlight = null;
+    };
+    request.then(release, release);
+  }
+  return companyConnectionsInFlight;
+}
+
 function useCompanyConnections(currentSpaceId?: string) {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   useEffect(() => {
     let alive = true;
-    const refresh = (fresh = false) => {
+    const refresh = () => {
       setState("loading");
-      if (fresh) companyConnectionsInFlight = null;
-      if (!companyConnectionsInFlight) companyConnectionsInFlight = companyWorkspaceRequest();
-      const request = companyConnectionsInFlight;
-      void request
+      void requestCompanyConnections()
         .then((result) => {
           if (!alive) return;
           setConnections(result.connections);
           setState("ready");
         })
         .catch(() => {
-          if (!alive) return;
-          companyConnectionsInFlight = null;
-          setState("error");
+          if (alive) setState("error");
         });
     };
     refresh();
-    const onChanged = () => refresh(true);
-    window.addEventListener("company-workspaces-changed", onChanged);
+    window.addEventListener("company-workspaces-changed", refresh);
     return () => {
       alive = false;
-      window.removeEventListener("company-workspaces-changed", onChanged);
+      window.removeEventListener("company-workspaces-changed", refresh);
     };
   }, [currentSpaceId]);
   return { connections, state };
