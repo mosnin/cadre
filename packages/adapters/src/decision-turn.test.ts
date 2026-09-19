@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { decideToolCall } from "./decision-turn.js";
+import { decideToolCall, shouldAskToolCallReview } from "./decision-turn.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 function answering(answers: Record<string, unknown>): DecisionProvider {
@@ -161,5 +161,37 @@ describe("asking everything about one tool call at once", () => {
     expect(request.state.arguments).not.toContain("<system>");
     expect(request.state.arguments).toContain("&lt;system&gt;");
     expect(request.state.user_task).toBe("&lt;b&gt;go&lt;/b&gt;");
+  });
+});
+
+describe("when a tool call should ask for a review verdict", () => {
+  const base = {
+    askConsequence: false,
+    nameSaysApprove: true,
+    autoReviewEnabled: true,
+    checkerConfigured: true,
+    approvalSource: "default" as const,
+    requiresExplicitApproval: false,
+  };
+
+  it("asks when the name already flagged a mutation on the default judge path", () => {
+    expect(shouldAskToolCallReview(base)).toBe(true);
+  });
+
+  it("asks beside consequence when that request is already happening", () => {
+    expect(shouldAskToolCallReview({ ...base, askConsequence: true, nameSaysApprove: false })).toBe(
+      true,
+    );
+  });
+
+  it("does not open a request rules will never read", () => {
+    expect(shouldAskToolCallReview({ ...base, approvalSource: "always_allow" })).toBe(false);
+    expect(shouldAskToolCallReview({ ...base, approvalSource: "require_approval" })).toBe(false);
+    expect(shouldAskToolCallReview({ ...base, requiresExplicitApproval: true })).toBe(false);
+    expect(shouldAskToolCallReview({ ...base, checkerConfigured: false })).toBe(false);
+    expect(shouldAskToolCallReview({ ...base, autoReviewEnabled: false })).toBe(false);
+    expect(
+      shouldAskToolCallReview({ ...base, askConsequence: false, nameSaysApprove: false }),
+    ).toBe(false);
   });
 });

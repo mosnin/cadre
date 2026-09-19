@@ -5,6 +5,10 @@
  * them can weaken an existing guard: a decision may raise an approval bar, stop
  * a run, or skip an occurrence, and never the reverse. Without a provider, or
  * when the model will not commit, every one returns the caller's own answer.
+ *
+ * The floor assessment is the Foreman pattern: several independent nouls about
+ * the same trail, in one request, with policy in code. A yes may stop the run.
+ * Nothing here may declare the work finished.
  */
 
 import { DECISION_CONFIDENCE, type NoulAnswer, noul } from "@cadre/core";
@@ -18,26 +22,34 @@ function probability(answer: unknown): number | undefined {
     : undefined;
 }
 
+function licensed(answer: unknown): boolean {
+  const value = probability(answer);
+  return value !== undefined && value >= DECISION_CONFIDENCE.consequential;
+}
+
 /** Enough of a trail to tell repetition from ordinary retrying. */
 const MIN_EVIDENCE_CHARS = 200;
 
+export type RunFloorReason = "loop" | "off_track" | "needs_human";
+
+export type RunFloorAssessment = {
+  stop: boolean;
+  reason?: RunFloorReason;
+};
+
 /**
- * Whether a run is repeating work that is not getting anywhere.
+ * Whether a run should be stopped before another segment is spent.
  *
  * The existing loop guard hashes the tool name and arguments and stops at five
- * identical calls. That catches an exact repeat and misses the expensive one: an
- * agent retrying the same broken thing with slightly different arguments, which
- * hashes differently every time and burns an unattended run's whole budget.
- *
- * `evidence` is whatever record of the run the caller has: its narration, or a
- * rendered list of recent actions. Too little of it and this declines to judge,
- * because a short trail looks the same whether the run is stuck or just started.
+ * identical calls. That catches an exact repeat and misses the expensive ones:
+ * retrying the same broken thing with slightly different arguments, drifting
+ * off the task, or needing a person. Those three questions travel together.
  */
-export async function runIsStuck(
+export async function assessRunFloor(
   provider: DecisionProvider | undefined,
   input: { goal: string; evidence: string; runId?: string; signal?: AbortSignal },
-): Promise<boolean> {
-  if (!provider || input.evidence.trim().length < MIN_EVIDENCE_CHARS) return false;
+): Promise<RunFloorAssessment> {
+  if (!provider || input.evidence.trim().length < MIN_EVIDENCE_CHARS) return { stop: false };
   const result = await provider.decide({
     state: {
       goal: input.goal.slice(0, 2_000),
@@ -52,12 +64,37 @@ export async function runIsStuck(
             "Each action moves the task on, or the repetition is how this task legitimately works.",
         },
       ),
+      off_track: noul("Has this run drifted onto work that does not serve the original goal?", {
+        true: "The recent actions are unrelated to the goal or are solving a different problem.",
+        false: "The recent actions still serve the goal, even if they are struggling.",
+      }),
+      needs_human: noul("Does this run need a person before it can usefully continue?", {
+        true: "It is blocked on judgment, credentials, clarification, or permission.",
+        false: "The run can still make progress with the tools and context it has.",
+      }),
     },
     sessionId: input.runId,
     signal: input.signal,
   });
-  const value = probability(result?.answers.stuck);
-  // Stopping a run that was in fact progressing is the worse error, so this
-  // takes the highest bar of the three.
-  return value !== undefined && value >= DECISION_CONFIDENCE.consequential;
+  if (!result) return { stop: false };
+  // Safety-first order: a person, then drift, then a loop. A finish verdict is
+  // never asked — that would act in place of a person.
+  if (licensed(result.answers.needs_human)) return { stop: true, reason: "needs_human" };
+  if (licensed(result.answers.off_track)) return { stop: true, reason: "off_track" };
+  if (licensed(result.answers.stuck)) return { stop: true, reason: "loop" };
+  return { stop: false };
+}
+
+/**
+ * Whether a run is repeating work that is not getting anywhere.
+ *
+ * Prefer `assessRunFloor` at a segment boundary; this keeps the stuck-only
+ * reading for callers that only asked that question.
+ */
+export async function runIsStuck(
+  provider: DecisionProvider | undefined,
+  input: { goal: string; evidence: string; runId?: string; signal?: AbortSignal },
+): Promise<boolean> {
+  const floor = await assessRunFloor(provider, input);
+  return floor.reason === "loop";
 }

@@ -165,6 +165,7 @@ describe("Pi agent thinking level", () => {
       "request_takeover",
       "browser_act",
       "browser_observe",
+      "browser_pursue",
       "computer_act",
       "computer_observe",
       "schedule_create",

@@ -18,6 +18,11 @@
  */
 
 import { answerConfidence, DECISION_CONFIDENCE, type ScoreAnswer, score } from "@cadre/core";
+import {
+  markUntrustedFetchText,
+  readInjected,
+  untrustedInjectionQuestion,
+} from "./decision-guardrails.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 /** Ordered lowest to highest; the answer is the index of the level that fits. */
@@ -76,25 +81,35 @@ export async function rankMemoryDocuments<T extends RankableMemoryDocument>(
         excerpt: document.content.slice(0, EXCERPT_CHARS).replace(/\s+/g, " "),
       })),
     },
-    questions: Object.fromEntries(
-      considered.map((_document, index) => [
-        `m${index}`,
-        score(
-          {
-            task: "How much does this saved memory bear on the task?",
-            rules: ["Judge only the memory named by this question."],
-          },
-          BEARING_LEVELS,
-        ),
-      ]),
-    ),
+    questions: {
+      ...Object.fromEntries(
+        considered.map((_document, index) => [
+          `m${index}`,
+          score(
+            {
+              task: "How much does this saved memory bear on the task?",
+              rules: ["Judge only the memory named by this question."],
+            },
+            BEARING_LEVELS,
+          ),
+        ]),
+      ),
+      injected: untrustedInjectionQuestion(),
+    },
     sessionId: input.sessionId,
     signal: input.signal,
   });
   if (!result) return input.documents;
 
+  const label = (document: T): T =>
+    readInjected(result.answers.injected) && document.content.trim()
+      ? { ...document, content: markUntrustedFetchText(document.content) }
+      : document;
+
   const judged = considered.map((_document, index) => bearing(result.answers[`m${index}`]));
-  if (judged.every((value) => value === undefined)) return input.documents;
+  if (judged.every((value) => value === undefined)) {
+    return readInjected(result.answers.injected) ? input.documents.map(label) : input.documents;
+  }
 
   // Only the documents the model actually judged move. One it would not judge keeps the
   // slot it arrived in, because silence is not evidence that a memory is irrelevant and
@@ -113,5 +128,5 @@ export async function rankMemoryDocuments<T extends RankableMemoryDocument>(
     ordered[index] = movable[next]!.document;
     next += 1;
   }
-  return [...ordered, ...remainder];
+  return [...ordered, ...remainder].map(label);
 }

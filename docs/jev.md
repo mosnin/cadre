@@ -42,11 +42,68 @@ a path that was already fast makes that path slower for nothing.
 > A question is free; a **request** is not. Ask everything about one state at
 > once, and never open a request for a question that is only speculative.
 
-This is the whole shape of `packages/adapters/src/decision-turn.ts`. Two things
-used to be asked about the same tool call, one after the other, each carrying its
-own copy of the same state. They now travel together, and the review question —
-which is read only if the gate reaches a judge — rides on the request that was
-being made anyway. It is never the reason for a request of its own.
+This is the whole shape of `packages/adapters/src/decision-turn.ts` and
+`decision-start.ts`. Tool-call review used to be two requests about the same
+call; start used to be routing, then skill, then company, each about the same
+task. They now travel together. Speculative questions — the review verdict, the
+skill name, the URL to fetch, the browser step after this one, the injection
+screen on a ranking request — ride on the request that was being made anyway.
+They are never the reason for a request of their own. The start request also
+runs beside credential lookup, plugin sync, and connector discovery, so its
+70–500ms is not added to the critical path. When the first action is a fetch or a short search, that tool starts the
+moment start resolves — overlapping connector discovery, memory ranking, and
+provision — so the result is already in the task. A run with no model
+swallows that in-flight prefetch the same way it swallows provision. Computer
+provision starts beside start, credential lookup and plugin sync once a
+model is already named without that work, so a warm machine is not paid for
+after those return. Override-credential lookup and live plugin sync run
+together; model-key resolution starts as soon as the credential is known,
+so a Composio listing no longer sits in front of the API key. A run with
+no model never starts either.
+The start request begins beside credential lookup and plugin sync — it only
+needs the task, the skill list, and whether anyone already named a model —
+so those waits no longer stack in front of it. Durable memory ranking, the
+scratchpad, current-turn images, and semantic recall start on the same
+beat: none of them read connectors, so a Composio listing no longer sits
+in front of the memory request either.
+Fetch and search start the moment start returns, so they no longer wait
+for discovery or memory either.
+Attached-file bytes start downloading beside start — they do not need the
+computer — and are written to the workspace once the machine is up.
+The first generation starts as soon as credentials resolve unless the first
+action is `browse` or the user attached files — those need the machine now.
+Fetch and search still wait for the prefetch they already started, so the
+page or hits can be inlined. Attached files write before browse starts, so
+the two do not share the computer at once.
+Answer, search, fetch, skill, company, code, and computer generate while
+the boot continues. A company-first start injects company-context and
+connected-workspace together when this run has a workspace identity, so
+Operate, Stored, and Company OS do not each cost a `skill_read`
+generation on a run that can use them. Fetch, search, and skill-first
+answers are kept only when the harness can act: a URL already in the
+task, a short query that is already the user's wording, or a named
+skill — including when first already chose `skill` and the needed noul
+was shy. A commitment the prefetch or injection path cannot use is
+dropped so the model is not told to repeat work that never started.
+A prefetch that fails degrades the same way: the page stays out of the
+prompt and the model fetches. A later `web_search` or `web_fetch` does not wait either.
+The first tool that touches the workspace waits on the same provision
+promise, which a generation has usually already outlasted.
+When the first action is `browse`, pursuit starts the moment start says so and
+the computer is up — overlapping connector discovery, memory ranking, key
+resolution, and prompt assembly — so the first generation sees the page that
+was already acted on instead of spending a turn deciding to call
+`browser_pursue` or `browser_observe`. The same page is untrusted data, like
+a tool result: `<fetched_page>`, `<search_results>`, `<browser_progress>`,
+and `<browser_page>` never override the user's request. A run that only learns the model after start kicks the same
+pursuit once provision begins. Group context, messaging identity, approved-effect replay,
+prior progress, the bot directory, and saved logins start beside computer
+provision, so those reads overlap the boot instead of waiting for it.
+Helper routing starts before the helper waits for a slot, so a queued delegate
+does not pay for the decision after it is already allowed to run. A thread
+already over the history window starts compacting at the beginning of the run —
+the same job the end of the run would have queued — so the summarizer overlaps
+this turn instead of sitting on the next one's critical path.
 
 Answers are also remembered. `decision-cache.ts` keys on the model, the state and
 every question with its criteria, so anything that would change an answer changes
@@ -66,18 +123,31 @@ here is the last thing between an agent and an irreversible action.
 
 | Decision | Replaces | Question | Falls back to |
 | --- | --- | --- | --- |
-| Tool call (`decideToolCall`) | A full judge **generation** per consequential call, and **closes a gap** in the name regex | One request: `noul` "does this change anything outside this workspace?", plus a speculative `choice` pass/ask and `choice` of concern category | The generative judge, and the name check's own verdict |
-| Stuck run (`runIsStuck`) | Nothing; **catches what the hash guard cannot** | `noul` "is this repeating work that already failed?" | Continuing into the next segment |
-| Run model routing (`routeRunModel`) | Nothing; **avoids** paying frontier prices for simple turns | `choice` over the configured pool | The deployment default |
-| Search ranking (`rankWebSearchHits`) | Nothing; **avoids** fetches and context on results that answer nothing | One `score` per result, one request | The engine's own order |
-| Memory order (`rankMemoryDocuments`) | A **recency sort** that decided which saved facts a run would never see | One `score` per document, one request | The recency order, unchanged |
-| Browser action (`planBrowserAction`) | A **generation** per browser step | `choice` operation + speculative `choice` per operation's targets + `choice` of which known value fills the field + `choice` of dropdown control and option together | The agent deciding, as today |
+| Tool call (`decideToolCall`) | A full judge **generation** per consequential call, and **closes a gap** in the name regex | One request: `noul` consequence when the name cleared the call, plus `choice` pass/ask and concern when a default-rule judge will run — including mutation-named tools the name already flagged | The generative judge, and the name check's own verdict |
+| Run floor (`assessRunFloor`) | Nothing; **catches what the hash guard cannot**, in the Foreman shape | One request: `noul` stuck, off-track, and needs-a-person | Continuing into the next segment |
+| Run start (`decideRunStart`) | Two extra start-of-run **requests**, a `skill_read` **generation**, and the first `web_fetch` / `web_search` **generation** | One request: `choice` first action, speculative `choice` of model / skill / company area / URL, `noul` "is a skill needed?" — then only the first step the harness can act on is kept (a named skill, a URL already in the task, or a short search that is already a query) | Each field unset: the deployment default, the catalog unread, the skill's own order, the agent deciding |
+| Search ranking (`rankWebSearchHits`) | Extra **fetches** on a shortlist that already answers | One request: a `score` per result plus `noul` "already answered?" and the injection `noul` | The engine's own order, and the agent fetching |
+| Catalog ranking (`rankCatalogHits`) | Loading the **wrong connector tool** | One request: a `score` per shortlisted tool plus the injection `noul` over their descriptions | The keyword order |
+| Memory order (`rankMemoryDocuments`) | A **recency sort** that decided which saved facts a run would never see | One request: a `score` per document plus the injection `noul` | The recency order, unlabeled |
+| Fetch screen (`screenUntrustedText`) | Nothing; **raises a bar** on pages that try to instruct the agent | `noul` "is this a jailbreak or override?" | The page, unlabeled |
+| Browser page screen | Nothing on `browser_observe` / `browser_act`; **free** on `browser_pursue` because it rides the action request | The same injection `noul`, asked beside the step when the page already has enough text | The page, unlabeled |
+| Connector result screen (`labelUntrustedToolResult`) | Nothing; **raises a bar** on mail, issues, and other connector payloads that try to instruct the agent | The same injection `noul` over the string fields the model reads | The payload, unlabeled |
+| Browser action (`planBrowserTurn`) | A **generation** per browser step, the **next** step's request when the page still has that control, a **navigate** generation that would invent a URL, and the **first** browse generation when start already chose `browse` | One request: `choice` operation + speculative targets + the same questions prefixed `next_` + which known value fills the field + dropdown control and option together + which goal URL to open | The agent deciding, as today |
+| Symbolic find / check / triage | A **generation** that reviews its own diff, files, or log | Scores, nouls, and a closed failure `choice` over evidence the agent already gathered | No findings, with `notChecked` filled |
+
+The same injection screen now also rides memory ranking: a saved fact that
+tries to instruct the agent is labelled, and still kept. A low score is still
+not a reason to hide one.
 
 The consequence question is the one that is purely additive on latency, and it is
 deliberately narrow: it is asked **only** for connector calls the name check
 already cleared, which is the one place that regex can be wrong in the dangerous
 direction. It has been wrong there twice. Because it is being asked anyway, the
-review verdict costs nothing but tokens to ask alongside it.
+review verdict costs nothing but tokens to ask alongside it. When the name
+already flagged a mutation and the default path will judge, review **is** the
+request: it replaces the generation that used to open after a second, empty,
+decision. A rule that already asks or always-allows never reads a verdict, so
+it never opens one.
 
 ## Two that were built and removed
 
@@ -132,15 +202,24 @@ a second after each one and then poll `document.readyState`.
 It now waits for two animation frames instead, which is what a rerender takes,
 and gives up at 50ms. Only filling a combobox waits longer, and only until its
 suggestions are genuinely on screen — a visible `[role="option"]` under the
-field's own `aria-controls` or `aria-owns` — capped at 200ms. A navigation keeps
-the old wait, because a navigation that has been asked for has not yet replaced
-the document and there is nothing to observe.
+field's own `aria-controls` or `aria-owns` — capped at 200ms. A navigation still
+polls `document.readyState` briefly, because a navigation that has been asked for
+has not yet replaced the document. Ordinary clicks and fills do not: settle
+already waited for the rerender, and the old 2s readyState loop was most of the
+step.
 
 The wait runs in an isolated world beside the page, so the page cannot see it and
 the page's own overrides of `requestAnimationFrame` or `setTimeout` do not apply.
 The same world reads the page's **visible** text for the snapshot: an offscreen
 article body or a footer filled the model's context without saying anything about
 the screen being acted on.
+
+CDP clicks do not move the X cursor, so a VNC viewer would see buttons activate
+with no pointer. Each click warps the real cursor first via `xdotool`, using the
+window chrome the snapshot already measured — no extra CDP round trip on the
+click path. Desktop `computer_act` glides the pointer along a short path (a few
+8ms steps) so the same viewer can follow it; settle after a batch is 80ms when
+no screenshot is coming back, 150ms when one is.
 
 ## Pointing at a dropdown option
 
@@ -152,7 +231,7 @@ it handed out, so this is the same "point, don't write" property as filling a
 field: nothing a model composed reaches the page.
 
 `WAIT` exists for a page that is still working, and spends at most two of a
-pursuit's steps; a third means the pursuit is blocked, not patient.
+pursuit's steps at 150ms each; a third means the pursuit is blocked, not patient.
 
 ## What it is bad at, and what that forbids
 
@@ -193,8 +272,10 @@ Two places use them asymmetrically on purpose:
 - Review takes `routing` to **ask** and `consequential` to **pass**. Stopping to
   ask costs a moment; waving a consequential action through on a shaky read costs
   the action.
-- Routine skip takes `consequential` to **skip**. A run that happened when it
-  needn't is visible in the thread; one that silently didn't is not.
+- Routine skip used `consequential` to **skip**. That path is gone until a
+  change feed exists; the bar is recorded so it is not rebuilt softer. A run
+  that happened when it needn't is visible in the thread; one that silently
+  didn't is not.
 
 ## Configuration
 
@@ -204,7 +285,7 @@ JEV_MODEL=typesafe/jev-1.13 # the decision model
 TYPESAFE_API_KEY=           # TypeSafe directly; preferred when set
 JEV_API_KEY=                # OpenRouter, if not OPENROUTER_API_KEY
 JEV_TIMEOUT_MS=6000         # per request; 500 to 30000
-JEV_ROUTER_MODELS='[...]'   # the model pool; empty means no routing
+JEV_ROUTER_MODELS='[...]'   # the model pool; unset uses Qwen 8b + 235b; [] or 0 turns routing off
 ```
 
 With no key, every caller keeps the behaviour it had before the decision layer
@@ -221,7 +302,9 @@ standing between an agent and something irreversible.
 
 A decision sends the state its question is about to a third party: the arguments
 of a tool call, a search query and its result snippets, the text and control names
-of a page, the newest user message when routing, or **an excerpt of each durable
+of a page, a fetched page when screening it, file excerpts or a diff when judging
+code, skill names and descriptions when a run starts, the newest user message
+when deciding that start, or **an excerpt of each durable
 memory document** when ordering them. That last one is the most sensitive on the
 list, because durable memory is whatever the user chose to keep. Leave it off for
 workloads that cannot share that context; with no key every caller keeps the

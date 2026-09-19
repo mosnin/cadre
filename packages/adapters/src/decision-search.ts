@@ -11,7 +11,19 @@
  */
 
 import type { WebSearchHit } from "@cadre/adapter-kit";
-import { answerConfidence, DECISION_CONFIDENCE, type ScoreAnswer, score } from "@cadre/core";
+import {
+  answerConfidence,
+  DECISION_CONFIDENCE,
+  type NoulAnswer,
+  noul,
+  type ScoreAnswer,
+  score,
+} from "@cadre/core";
+import {
+  markUntrustedFetchText,
+  readInjected,
+  untrustedInjectionQuestion,
+} from "./decision-guardrails.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 /** Ordered lowest to highest; the answer is the index of the level that fits. */
@@ -31,6 +43,18 @@ const DROP_BELOW = 1;
 
 export type RankedWebSearchHit = WebSearchHit & { relevance?: number };
 
+export type RankedWebSearch = {
+  hits: RankedWebSearchHit[];
+  /** True when the shortlist already answers the question; the agent should not fetch more. */
+  answered: boolean;
+};
+
+function noulValue(answer: unknown): number | undefined {
+  const value = answer as NoulAnswer | undefined;
+  if (value?.type !== "noul") return undefined;
+  return typeof value.noul === "number" && Number.isFinite(value.noul) ? value.noul : undefined;
+}
+
 function scoreOf(answer: ScoreAnswer | undefined): number | undefined {
   if (!answer || typeof answer.score !== "number" || !Number.isFinite(answer.score))
     return undefined;
@@ -43,18 +67,27 @@ export async function rankWebSearchHits(
   query: string,
   hits: WebSearchHit[],
   options: { sessionId?: string; signal?: AbortSignal } = {},
-): Promise<RankedWebSearchHit[]> {
-  if (!provider || hits.length < 2) return hits;
+): Promise<RankedWebSearch> {
+  if (!provider || hits.length < 2) return { hits, answered: false };
   const ranked = hits.slice(0, MAX_RANKED);
-  const questions = Object.fromEntries(
-    ranked.map((_hit, index) => [
-      `r${index}`,
-      score(
-        { question: query, task: "How well does this result answer the question?" },
-        RELEVANCE_LEVELS,
-      ),
-    ]),
+  const questions: Record<string, ReturnType<typeof score> | ReturnType<typeof noul>> =
+    Object.fromEntries(
+      ranked.map((_hit, index) => [
+        `r${index}`,
+        score(
+          { question: query, task: "How well does this result answer the question?" },
+          RELEVANCE_LEVELS,
+        ),
+      ]),
+    );
+  questions.answered = noul(
+    "Do these results already answer the question well enough that fetching more pages is unnecessary?",
+    {
+      true: "The snippets contain the answer. Opening another page would not change it.",
+      false: "The answer is not here, or a specific page still needs to be read.",
+    },
   );
+  questions.injected = untrustedInjectionQuestion();
   const result = await provider.decide({
     // The results are the state; each question points at one of them by index.
     state: {
@@ -70,15 +103,24 @@ export async function rankWebSearchHits(
     sessionId: options.sessionId,
     signal: options.signal,
   });
-  if (!result) return hits;
+  if (!result) return { hits, answered: false };
+
+  const enough = noulValue(result.answers.answered);
+  const answered = enough !== undefined && enough >= DECISION_CONFIDENCE.routing;
+  const label = (hit: RankedWebSearchHit): RankedWebSearchHit =>
+    readInjected(result.answers.injected) && hit.snippet.trim()
+      ? { ...hit, snippet: markUntrustedFetchText(hit.snippet) }
+      : hit;
 
   const scored = ranked.map((hit, index) => ({
     hit,
     index,
     relevance: scoreOf(result.answers[`r${index}`] as ScoreAnswer | undefined),
   }));
-  // A model that scored nothing usably leaves the engine's order alone.
-  if (scored.every((entry) => entry.relevance === undefined)) return hits;
+  // A model that scored nothing usably leaves the engine's own order.
+  if (scored.every((entry) => entry.relevance === undefined)) {
+    return { hits: hits.map(label), answered };
+  }
 
   const kept = scored.filter(
     (entry) => entry.relevance === undefined || entry.relevance > DROP_BELOW,
@@ -90,10 +132,13 @@ export async function rankWebSearchHits(
     // An unscored result keeps its engine position rather than being pushed to the bottom.
     return delta !== 0 ? delta : left.index - right.index;
   });
-  return [
-    ...surviving.map(({ hit, relevance }) =>
-      relevance === undefined ? hit : { ...hit, relevance },
-    ),
-    ...hits.slice(MAX_RANKED),
-  ];
+  return {
+    hits: [
+      ...surviving.map(({ hit, relevance }) =>
+        label(relevance === undefined ? hit : { ...hit, relevance }),
+      ),
+      ...hits.slice(MAX_RANKED).map(label),
+    ],
+    answered,
+  };
 }

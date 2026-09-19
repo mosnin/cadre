@@ -240,3 +240,26 @@ assert 'autocomplete ? 200 : 50' in m['SETTLE']
 print('settled')`),
   ).toContain("settled");
 });
+
+it("does not poll readyState after a click, and warps the visible cursor first", () => {
+  expect(
+    python(`
+popened=[]
+class FakePopen:
+    def __init__(self, argv, **kwargs):
+        popened.append(argv)
+b=m['VisibleBrowser'].__new__(m['VisibleBrowser'])
+b.state={'chrome':{'x':10,'y':20,'chrome':80,'border':0}}
+calls=[]
+b.call=lambda method, params=None: calls.append(method) or {'result':{'value':{}}}
+m['subprocess'].Popen = FakePopen
+b.show_cursor(12, 34)
+assert calls == []
+assert popened[0] == ['xdotool', 'mousemove', '--', '22', '134']
+src=open(${JSON.stringify(script)}).read()
+assert "for _ in range(20)" not in src
+assert "for _ in range(5)" in src
+assert "state['chrome']" in src
+print('pointer')`),
+  ).toContain("pointer");
+});

@@ -9,8 +9,10 @@ import type { MessageBlock } from "@cadre/contracts";
 import type { PrismaClient } from "@cadre/db";
 import { createLogger, createTestSink, installLogger } from "@cadre/logging";
 import { describe, expect, it, vi } from "vitest";
+import { DEFAULT_OPENROUTER_MODEL } from "./deployment-model.js";
 import {
   compactHistory,
+  enqueueHistoryCompaction,
   formatCompactedSummary,
   formatRecalledMemory,
   historyWindowSize,
@@ -35,6 +37,26 @@ describe("shouldEnqueueCompaction", () => {
     // nextMessageSeq 151) is the first point a full batch has aged out beyond the window.
     expect(shouldEnqueueCompaction(150, 50, 50, 50)).toBe(false);
     expect(shouldEnqueueCompaction(151, 50, 50, 50)).toBe(true);
+  });
+});
+
+describe("enqueueHistoryCompaction", () => {
+  it("enqueues only when a full batch has aged out", async () => {
+    const enqueue = vi.fn(async () => undefined);
+    await expect(
+      enqueueHistoryCompaction(
+        { enqueue },
+        { id: "thread-1", nextMessageSeq: 99, historyCompactedUpToSeq: null },
+      ),
+    ).resolves.toBe(false);
+    expect(enqueue).not.toHaveBeenCalled();
+    await expect(
+      enqueueHistoryCompaction(
+        { enqueue },
+        { id: "thread-1", nextMessageSeq: 100, historyCompactedUpToSeq: null },
+      ),
+    ).resolves.toBe(true);
+    expect(enqueue).toHaveBeenCalledWith(historyCompactJob("thread-1"));
   });
 });
 
@@ -379,7 +401,7 @@ describe("compactHistory", () => {
     expect(request.tools).toEqual([]);
     expect(request.model).toEqual({
       provider: "openrouter",
-      id: "deepseek/deepseek-v4-flash-0731",
+      id: DEFAULT_OPENROUTER_MODEL,
       apiKey: "openrouter-key",
     });
     expect(request.prompt).toContain("message 0");

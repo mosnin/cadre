@@ -8,7 +8,12 @@ import {
 } from "./keyless-http-web.js";
 import { clampMaxChars, clampMaxResults } from "./web-limits.js";
 import { createWebProvider, resolveWebProviderKind } from "./web-provider-factory.js";
-import { webFetchFromTool, webSearchFromTool } from "./web-tools.js";
+import {
+  formatPrefetchedStartPrompt,
+  prefetchRunStart,
+  webFetchFromTool,
+  webSearchFromTool,
+} from "./web-tools.js";
 
 const ctx: AdapterContext = {
   operationId: "1",
@@ -133,5 +138,77 @@ describe("web tool clamps", () => {
     expect(clampMaxChars(undefined)).toBe(8_000);
     expect(clampMaxChars(10)).toBe(100);
     expect(clampMaxChars(999_999)).toBe(50_000);
+  });
+});
+
+describe("prefetching the first start action", () => {
+  it("fetches the URL the start decision already picked", async () => {
+    const fake = new FakeWebProvider();
+    fake.fetchResult = {
+      url: "https://docs.example/a",
+      title: "A",
+      text: "Auth module",
+      truncated: false,
+    };
+    const prefetched = await prefetchRunStart(
+      fake,
+      ctx,
+      { first: "fetch", fetchUrl: "https://docs.example/a" },
+      "Read https://docs.example/a",
+    );
+    expect(prefetched).toEqual({
+      kind: "fetch",
+      url: "https://docs.example/a",
+      text: "Auth module",
+    });
+    expect(formatPrefetchedStartPrompt(prefetched!)).toContain("already fetched");
+  });
+
+  it("does not need connectors — a boot context with empty plugins is enough", async () => {
+    const fake = new FakeWebProvider();
+    fake.searchHits = [{ title: "Paris", url: "https://w.test", snippet: "12C" }];
+    const boot: AdapterContext = {
+      ...ctx,
+      connectedConnections: [],
+      connectedProviders: [],
+    };
+    await expect(
+      prefetchRunStart(fake, boot, { first: "search" }, "weather in paris"),
+    ).resolves.toMatchObject({ kind: "search", query: "weather in paris" });
+  });
+
+  it("searches with the user's own wording when that is already a query", async () => {
+    const fake = new FakeWebProvider();
+    fake.searchHits = [{ title: "Paris", url: "https://w.test", snippet: "12C" }];
+    const prefetched = await prefetchRunStart(fake, ctx, { first: "search" }, "weather in paris");
+    expect(prefetched).toMatchObject({ kind: "search", query: "weather in paris" });
+    expect(fake.lastSearch?.query).toBe("weather in paris");
+    expect(formatPrefetchedStartPrompt(prefetched!)).toContain("already retrieved");
+  });
+
+  it("does not invent a query from a long brief", async () => {
+    const fake = new FakeWebProvider();
+    await expect(
+      prefetchRunStart(fake, ctx, { first: "search" }, "x".repeat(401)),
+    ).resolves.toBeUndefined();
+    expect(fake.lastSearch).toBeUndefined();
+  });
+
+  it("returns nothing when fetch or search fails so the run can still generate", async () => {
+    const fake = new FakeWebProvider();
+    fake.fetchError = new Error("timeout");
+    await expect(
+      prefetchRunStart(
+        fake,
+        ctx,
+        { first: "fetch", fetchUrl: "https://docs.example/a" },
+        "Read https://docs.example/a",
+      ),
+    ).resolves.toBeUndefined();
+
+    fake.searchError = new Error("down");
+    await expect(
+      prefetchRunStart(fake, ctx, { first: "search" }, "weather in paris"),
+    ).resolves.toBeUndefined();
   });
 });
