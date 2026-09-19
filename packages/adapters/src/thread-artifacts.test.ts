@@ -164,7 +164,10 @@ describe("current-turn thread files", () => {
         bytes: new Uint8Array([9, 8]),
       },
     ]);
-    expect(get).toHaveBeenCalledWith("stored-1", expect.objectContaining({ spaceId: "workspace-1" }));
+    expect(get).toHaveBeenCalledWith(
+      "stored-1",
+      expect.objectContaining({ spaceId: "workspace-1" }),
+    );
   });
 
   it("does not load images as computer files", async () => {

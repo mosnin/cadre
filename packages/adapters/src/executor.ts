@@ -1675,16 +1675,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
         try {
           currentTurnFiles =
             deps.artifacts && computer
-              ? await writeCurrentTurnFiles(
-                  { sandbox: deps.sandbox },
-                  await loadFilesPromise,
-                  {
-                    context,
-                    computer,
-                    computerMode,
-                    markWorkspaceDirty: workspaceCheckpoint.markDirty,
-                  },
-                )
+              ? await writeCurrentTurnFiles({ sandbox: deps.sandbox }, await loadFilesPromise, {
+                  context,
+                  computer,
+                  computerMode,
+                  markWorkspaceDirty: workspaceCheckpoint.markDirty,
+                })
               : [];
         } catch (error) {
           await workspaceCheckpoint.flush().catch(() => undefined);
