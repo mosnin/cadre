@@ -13,6 +13,7 @@ test("account settings language picker includes Simplified Chinese and applies i
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
   await expect(settings.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  await settings.getByTestId("settings-section-language").click();
   await expect(settings.getByRole("heading", { name: "Language", exact: true })).toBeVisible();
 
   const picker = settings.getByTestId("ui-locale-select");
@@ -39,6 +40,7 @@ test("account settings language picker includes Korean and applies it", async ({
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
   await expect(settings.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  await settings.getByTestId("settings-section-language").click();
   await expect(settings.getByRole("heading", { name: "Language", exact: true })).toBeVisible();
 
   const picker = settings.getByTestId("ui-locale-select");
@@ -65,6 +67,7 @@ test("account settings language picker includes Spanish and applies it", async (
   const settings = page.getByTestId("user-settings");
   await expect(settings).toBeVisible();
   await expect(settings.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  await settings.getByTestId("settings-section-language").click();
   await expect(settings.getByRole("heading", { name: "Language", exact: true })).toBeVisible();
 
   const picker = settings.getByTestId("ui-locale-select");

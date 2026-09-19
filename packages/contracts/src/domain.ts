@@ -10,6 +10,39 @@ export const MemoryScopeSchema = z.enum(["isolated", "shared"]);
 export type MemoryScopeValue = z.infer<typeof MemoryScopeSchema>;
 
 export const AvatarStyleSchema = z.enum(["robot", "organic"]);
+
+/** BCP 47 language tag such as "en" or "pt-BR". */
+export const UiLocaleTagSchema = z
+  .string()
+  .trim()
+  .regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, "Use a language tag such as en or pt-BR")
+  .max(35);
+/** ISO 3166-1 alpha-2 region such as "US". */
+export const RegionCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z]{2}$/, "Use a two-letter region code");
+/** IANA time zone such as "America/New_York"; validity is checked server-side with Intl. */
+export const TimeZoneSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(64)
+  .regex(/^[A-Za-z0-9_+-]+(\/[A-Za-z0-9_+-]+)*$/, "Use an IANA time zone");
+
+export const UserPreferencesSchema = z.object({
+  avatarStyle: AvatarStyleSchema,
+  /** Null follows the device or browser language. */
+  locale: UiLocaleTagSchema.nullable(),
+  /** Null follows the device or browser region. */
+  region: RegionCodeSchema.nullable(),
+  /** The time zone bots and schedules use. Null means not set yet. */
+  timezone: TimeZoneSchema.nullable(),
+  /** When true, clients keep timezone in sync with the device. */
+  timezoneAutomatic: z.boolean(),
+});
+export type UserPreferences = z.infer<typeof UserPreferencesSchema>;
 export type AvatarStyle = z.infer<typeof AvatarStyleSchema>;
 
 export const ThinkingLevelSchema = z.enum([
@@ -1000,6 +1033,10 @@ export const MeSchema = z.object({
   canChooseHostComputer: z.boolean(),
   sandboxProvider: z.string(),
   avatarStyle: AvatarStyleSchema,
+  locale: UiLocaleTagSchema.nullable(),
+  region: RegionCodeSchema.nullable(),
+  timezone: TimeZoneSchema.nullable(),
+  timezoneAutomatic: z.boolean(),
 });
 export type Me = z.infer<typeof MeSchema>;
 

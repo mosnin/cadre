@@ -14,6 +14,7 @@ import {
   ChatSdkMessagingSurface,
   CompanyWorkspaces,
   type ComposioProvider,
+  ConnectedMemoryProviderResolver,
   type ConnectorRegistry,
   companyWorkspaceConfig,
   createBackgroundJobHandlers,
@@ -54,6 +55,8 @@ import {
   SmtpEmailProvider,
   SpaceMemoryProviderResolver,
   StripeBillingProvider,
+  WorkspaceIntegrations,
+  workspaceProviderOverridesFromEnv,
 } from "@cadre/adapters";
 import {
   blockedAuthPaths,
@@ -93,6 +96,7 @@ import { createRouter } from "./router.js";
 import { mountVoiceHttpRoutes } from "./voice.js";
 import { mountWebhookHttpRoutes } from "./webhook.js";
 import { mountWorkforceRoutes } from "./workforce.js";
+import { mountWorkspaceIntegrationRoutes } from "./workspace-integrations.js";
 
 export interface AppHandles {
   app: Hono;
@@ -199,7 +203,7 @@ export async function createApp(
     prisma,
   });
   const mcpOAuth = new McpOAuthBroker(prisma, secrets, remoteConnectors);
-  const memoryProviders = new SpaceMemoryProviderResolver(prisma, secrets);
+  const localMemoryProviders = new SpaceMemoryProviderResolver(prisma, secrets);
   const oauthLogins = new PiOAuthLogins();
   const { home, artifacts } = createDurableStorage(env.dataDir);
   const memory = new MarkdownMemoryStore(prisma);
@@ -214,12 +218,29 @@ export async function createApp(
           webOrigin: env.webOrigin,
         })
       : undefined;
+  const workspaceIntegrations = created.pool
+    ? new WorkspaceIntegrations({
+        prisma,
+        pool: created.pool,
+        secrets,
+        webOrigin: env.webOrigin,
+        providers: workspaceProviderOverridesFromEnv(process.env),
+      })
+    : undefined;
+  const memoryProviders = new ConnectedMemoryProviderResolver(
+    localMemoryProviders,
+    workspaceIntegrations,
+  );
   const mcp = new McpConnector(
     prisma,
     secrets,
     {
+      // Company OS servers stay refused while Company OS is not configured.
       prepareCompanyWorkspace: companyWorkspaces
         ? (context) => companyWorkspaces.prepare(context)
+        : undefined,
+      prepareWorkspaceIntegrations: workspaceIntegrations
+        ? (context) => workspaceIntegrations.prepare(context)
         : undefined,
       stdioEnabled: env.mcpStdioEnabled,
       allowedCommands: env.mcpStdioAllowedCommands,
@@ -553,6 +574,21 @@ export async function createApp(
   mountCompanyWorkspaceRoutes(
     app,
     companyWorkspaces,
+    async (c) => {
+      const session = await getSession(sessionHeaders(c.req.raw));
+      if (!session?.user) return null;
+      const actor = await requireMembership(
+        prisma,
+        session.user.id,
+        c.req.header("x-cadre-space-id"),
+      ).catch(() => null);
+      return actor ? { actor, sessionId: session.session.id } : null;
+    },
+    env.webOrigin,
+  );
+  mountWorkspaceIntegrationRoutes(
+    app,
+    workspaceIntegrations,
     async (c) => {
       const session = await getSession(sessionHeaders(c.req.raw));
       if (!session?.user) return null;

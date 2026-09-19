@@ -1,6 +1,6 @@
 # Standalone Cadre upstream audit
 
-Baseline: `elie222/rakazo` commit `f17887a2724d6cd457abe406a17c4c8721d0c013`. The fork preserves its Pi agent runtime, bot/thread model, persistent computer UI, file and browser tools, model selector, routines, groups, and native clients. This inventory covers every changed or added tracked path against that baseline at this release.
+Baseline: `elie222/cadre` commit `f17887a2724d6cd457abe406a17c4c8721d0c013`. The fork preserves its Pi agent runtime, bot/thread model, persistent computer UI, file and browser tools, model selector, routines, groups, and native clients. This inventory covers every changed or added tracked path against that baseline at this release.
 
 ## Corrections
 

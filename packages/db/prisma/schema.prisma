@@ -8,6 +8,10 @@ datasource db {
 }
 
 model User {
+  storedMemoryOutbox StoredMemoryOutbox[]
+  workspaceIntegrationGrants WorkspaceIntegrationGrant[]
+  workspaceIntegrationStates WorkspaceIntegrationState[]
+
   companyWorkspaceGrants CompanyWorkspaceGrant[]
   companyWorkspaceStates CompanyWorkspaceOAuthState[]
   codexOAuthGrants CodexOAuthGrant[]
@@ -24,6 +28,10 @@ model User {
   suspendedAt                 DateTime?
   billingCustomerId           String?                      @unique
   avatarStyle                 String                       @default("robot")
+  uiLocale                    String?
+  region                      String?
+  timezone                    String?
+  timezoneAutomatic           Boolean                      @default(true)
   sessions                    Session[]
   accounts                    Account[]
   members                     Member[]
@@ -153,6 +161,10 @@ model Member {
 }
 
 model Space {
+  storedMemoryOutbox StoredMemoryOutbox[]
+  workspaceIntegrations WorkspaceIntegration[]
+  workspaceIntegrationStates WorkspaceIntegrationState[]
+
   companyOsCompanyId String?
   companyOsCompanyName String?
   companyOsCompanySlug String?
@@ -343,6 +355,7 @@ model SpaceVoicePreference {
 }
 
 model Bot {
+  storedMemoryOutbox StoredMemoryOutbox[]
   workforceAssignments WorkforceAssignment[]
   id                String            @id @default(cuid())
   spaceId           String
@@ -1272,4 +1285,67 @@ model CompanyWorkspaceOAuthState {
   ciphertext String
   expiresAt DateTime @db.Timestamptz
   @@map("company_workspace_oauth_states")
+}
+
+model WorkspaceIntegration {
+  id String @id
+  spaceId String
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  provider String
+  externalId String
+  externalName String
+  grants WorkspaceIntegrationGrant[]
+  @@unique([spaceId, provider])
+  @@map("workspace_integrations")
+}
+model WorkspaceIntegrationGrant {
+  id String @id
+  bindingId String
+  binding WorkspaceIntegration @relation(fields: [bindingId], references: [id], onDelete: Cascade)
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject String
+  ciphertext String
+  @@unique([bindingId, userId])
+  @@map("workspace_integration_grants")
+}
+/** OAuth client ids issued to this deployment by providers with dynamic registration. */
+model WorkspaceIntegrationClient {
+  provider String
+  origin String
+  clientId String
+  redirectUri String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@id([provider, origin], name: "provider_origin")
+  @@map("workspace_integration_clients")
+}
+
+model WorkspaceIntegrationState {
+  state String @id
+  spaceId String
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String
+  provider String
+  ciphertext String
+  expiresAt DateTime @db.Timestamptz
+  @@map("workspace_integration_states")
+}
+
+model StoredMemoryOutbox {
+  id String @id
+  spaceId String
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  botId String
+  bot Bot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  generation Int?
+  ciphertext String
+  nextAttemptAt DateTime @default(now()) @db.Timestamptz
+  attempts Int @default(0)
+  @@index([nextAttemptAt], map: "stored_memory_outbox_due")
+  @@map("stored_memory_outbox")
 }

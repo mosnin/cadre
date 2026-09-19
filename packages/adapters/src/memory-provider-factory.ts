@@ -26,7 +26,8 @@ export interface ConfiguredMemoryProvider {
 }
 
 export interface MemoryProviderResolver {
-  resolve(spaceId: string): Promise<ConfiguredMemoryProvider | null>;
+  /** userId selects providers that depend on a member's own grant. */
+  resolve(spaceId: string, userId?: string): Promise<ConfiguredMemoryProvider | null>;
 }
 
 interface MemoryProviderAdapter {

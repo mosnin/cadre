@@ -406,9 +406,20 @@ export function createRouter(deps: RouterDeps) {
     me: authed.me.handler(async ({ context }): Promise<Me> => meDto(deps, context.actor)),
     preferences: {
       update: authed.preferences.update.handler(async ({ context, input }): Promise<Me> => {
+        if (input.timezone && !isValidTimeZone(input.timezone)) {
+          throw new ORPCError("BAD_REQUEST", { message: "Unknown time zone" });
+        }
         await deps.prisma.user.update({
           where: { id: context.actor.userId },
-          data: { avatarStyle: input.avatarStyle },
+          data: {
+            ...(input.avatarStyle !== undefined ? { avatarStyle: input.avatarStyle } : {}),
+            ...(input.locale !== undefined ? { uiLocale: input.locale } : {}),
+            ...(input.region !== undefined ? { region: input.region } : {}),
+            ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
+            ...(input.timezoneAutomatic !== undefined
+              ? { timezoneAutomatic: input.timezoneAutomatic }
+              : {}),
+          },
         });
         return meDto(deps, context.actor);
       }),
@@ -1168,10 +1179,12 @@ export function createRouter(deps: RouterDeps) {
         });
         const [configuredMemory] = await Promise.all([
           target.kind === "bot"
-            ? deps.memoryProviders.resolve(context.actor.spaceId).catch((error) => {
-                getLogger().error("semantic memory resolution after thread clear failed", error);
-                return null;
-              })
+            ? deps.memoryProviders
+                .resolve(context.actor.spaceId, context.actor.userId)
+                .catch((error) => {
+                  getLogger().error("semantic memory resolution after thread clear failed", error);
+                  return null;
+                })
             : Promise.resolve(null),
           Promise.all(
             cancelledRunIds.map((runId) =>
@@ -4087,7 +4100,20 @@ async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     canChooseHostComputer: actor.isDeploymentOwner && deps.env.sandboxProvider === "docker",
     sandboxProvider: deps.env.sandboxProvider,
     avatarStyle: user.avatarStyle === "organic" ? "organic" : "robot",
+    locale: user.uiLocale ?? null,
+    region: user.region ?? null,
+    timezone: user.timezone ?? null,
+    timezoneAutomatic: user.timezoneAutomatic ?? true,
   };
+}
+
+function isValidTimeZone(timezone: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function modelSetup(deps: RouterDeps, actor: Actor) {

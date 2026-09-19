@@ -70,7 +70,16 @@ export default function Layout() {
               >
                 <Stack.Screen name="index" options={{ headerShown: false, title: "Cadre" }} />
                 <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-                <Stack.Screen name="account" options={{ title: t("Account") }} />
+                <Stack.Screen name="account" options={{ title: t("Settings") }} />
+                <Stack.Screen name="account-details" options={{ title: t("Account") }} />
+                <Stack.Screen name="plugins" options={{ title: t("Plugins") }} />
+                <Stack.Screen name="time-zone" options={{ title: t("Time zone") }} />
+                <Stack.Screen name="company-os" options={{ title: t("Company OS") }} />
+                <Stack.Screen name="connections" options={{ title: t("Connections") }} />
+                <Stack.Screen name="notifications" options={{ title: t("Notifications") }} />
+                <Stack.Screen name="appearance" options={{ title: t("Appearance") }} />
+                <Stack.Screen name="language" options={{ title: t("Language") }} />
+                <Stack.Screen name="region" options={{ title: t("Region") }} />
                 <Stack.Screen
                   name="change-password"
                   options={{

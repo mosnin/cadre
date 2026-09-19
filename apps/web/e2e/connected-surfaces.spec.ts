@@ -16,17 +16,10 @@ for (const width of [320, 390, 768, 1440]) {
     );
     await completeOnboarding(page);
     await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
-    await expect(page.getByRole("button", { name: "Company context", exact: true })).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Company context", exact: true }),
-    ).not.toContainText("Loading company");
+    await expect(page.getByTestId("workspace-name")).toContainText("Personal");
+    await expect(page.getByRole("button", { name: "Company context", exact: true })).toHaveCount(0);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await captureScreenshot(page, testInfo, "conversation-focused");
-    await page.getByRole("button", { name: "Company context", exact: true }).click();
-    await expect(page.getByRole("dialog", { name: "Company context", exact: true })).toBeVisible();
-    await expect(page.getByText("No company connected", { exact: true })).toBeVisible();
-    await captureScreenshot(page, testInfo, "company-context");
-    await page.getByRole("button", { name: "Close company context", exact: true }).click();
     await page.getByRole("button", { name: "Open navigation", exact: true }).click();
     await expect(page.getByTestId("bots-sidebar")).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Search conversations" })).toBeFocused();
@@ -61,9 +54,7 @@ for (const width of [320, 390, 768, 1440]) {
     await captureScreenshot(page, testInfo, "setup-agent");
     await page.getByRole("button", { name: "Create agent", exact: true }).click();
     await expect(page.getByTestId("bot-settings-trigger")).toContainText("Studio assistant");
-    await expect(page.getByRole("button", { name: "Company context", exact: true })).toContainText(
-      "Client studio",
-    );
+    await expect(page.getByTestId("workspace-name")).toContainText("Client studio");
     await captureScreenshot(page, testInfo, "first-task");
     await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");

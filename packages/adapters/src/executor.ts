@@ -1072,6 +1072,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           configuredMemory,
           savedSkills,
           agentSkills,
+          userPreferences,
         ] = await Promise.all([
           deps.prisma.bot.findUniqueOrThrow({
             where: { id: run.botId },
@@ -1102,7 +1103,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           }),
           findDefaultModelCredential(deps.prisma, run),
           deps.prisma.deploymentSettings.findUnique({ where: { id: "default" } }),
-          deps.memoryProviders.resolve(run.spaceId),
+          deps.memoryProviders.resolve(run.spaceId, run.userId),
           deps.prisma.taughtSkill.findMany({
             where: { botId: run.botId, spaceId: run.spaceId, status: "saved" },
           }),
@@ -1110,7 +1111,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
             spaceId: run.spaceId,
             userId: run.userId,
           }),
+          deps.prisma.user.findUnique({
+            where: { id: run.userId },
+            select: { uiLocale: true, region: true, timezone: true },
+          }),
         ]);
+        const localeLine = describeUserLocale(userPreferences);
         const hasModelOverride = Boolean(bot.modelProvider && bot.modelId);
         const overrideCredential =
           hasModelOverride && bot.modelProvider
@@ -1146,6 +1152,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               activeKeys.has(`${connection.connectorId}:${connection.provider}`)),
         );
         const context = {
+          workspaceIntegrations: undefined as AdapterContext["workspaceIntegrations"],
           companyWorkspace: undefined as AdapterContext["companyWorkspace"],
           operationId: runId,
           traceId: runId,
@@ -3483,11 +3490,13 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 botDirectory,
                 "archive_bot safely archives a bot this bot created, and only that bot. Use it when the user asks to remove that bot or when it is finished and unused. The user can restore it or permanently delete it later. confirm_name must exactly match its name.",
                 pluginLine,
+                localeLine,
                 context.companyWorkspace
                   ? `Verified Company OS connection for this run: ${JSON.stringify(context.companyWorkspace)}. This workspace OAuth identity was checked now. For company context, call mcp__company-os-context__config_pull when available, or search mcp_search_tools for config_pull and use the returned exact tool ID. A catalog lookup failure is not evidence of missing authorization. Report the actual tool error; request reconnection only after an explicit expired or revoked credential error. Never tell the user to connect an already verified workspace merely because an app-account plugin list omits MCP.`
                   : "No Company OS workspace identity was verified for this run. Check available connector tools before making claims about access.",
+                `Verified workspace connections for this run: ${JSON.stringify(context.workspaceIntegrations ?? {})}. Use Operate for projects and recurring task definitions, and its scheduled_task_history tool for actual completion. Never infer completion from a scheduled date. Use scalar-workspace tools for customer records, pipelines and outreach. Use stored-workspace tools for organizational memory and this bot's stored-agent connector for private memory. Save agent observations privately unless the user explicitly asks to share them. Include source identity and timestamps. Read get_context_pack before tasks and save durable facts through the appropriate connector after verified work. Never copy another workspace or another agent's private memory. Search the MCP catalog for exact tool names before claiming a connector is unavailable.`,
                 agentSkillsLine,
-                "Before using Company OS, read the company-context skill. Before saving Company OS deliverables, also read company-deliverables. Use only this workspace's authorized connector and context; never combine private context across workspaces.",
+                "Before using Operate or Stored, read connected-workspace. Before using Company OS, read the company-context skill. Before saving Company OS deliverables, also read company-deliverables. Use only this workspace's authorized connector and context; never combine private context across workspaces.",
                 "Write clear, direct sentences with normal capitalization. Lead with the useful result or the next necessary action. For a short request, give one useful reply. Perform routine checks silently; do not send an acknowledgment and then restate it as another message. Use message_user only for a meaningful update during sustained work, and do not repeat it in your final answer. Never echo internal routing envelopes, bot IDs, wake prompts, or coordination instructions into user-facing replies. Refer to teammates by name when relevant. Do not say work is done without a verified result or promise background work unless it is actually running. Never use em dashes in your messages to the user. Use periods, commas, or parentheses instead. Avoid decorative symbols.",
                 taughtSkillsLine,
                 'For charts and data visualization, use the render_plot tool: it renders bar, line, scatter, histogram, heatmap, faceted and many more chart types from a JSON spec and attaches the PNG to the chat. Call render_plot with {"help": true} before your first chart to read the full guide.',
@@ -4652,4 +4661,37 @@ export async function loadCurrentTurnImages(
   }
 
   return images.length ? images : undefined;
+}
+
+/** The user's locale, region and time zone shape dates, schedules and language in replies. */
+export function describeUserLocale(
+  user: { uiLocale: string | null; region: string | null; timezone: string | null } | null,
+): string | undefined {
+  if (!user) return undefined;
+  const parts: string[] = [];
+  const timezone = user.timezone;
+  if (timezone) {
+    let now: string | undefined;
+    try {
+      now = new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        dateStyle: "full",
+        timeStyle: "short",
+      }).format(new Date());
+    } catch {
+      now = undefined;
+    }
+    parts.push(
+      `The user's time zone is ${timezone}${now ? ` (now ${now})` : ""}. Use it for schedules, deadlines and any time you mention unless the user names another zone.`,
+    );
+  }
+  if (user.region)
+    parts.push(
+      `The user's region is ${user.region}; use its date, number and currency conventions.`,
+    );
+  if (user.uiLocale)
+    parts.push(
+      `The user's interface language is ${user.uiLocale}; reply in that language unless they write in another.`,
+    );
+  return parts.length ? parts.join(" ") : undefined;
 }

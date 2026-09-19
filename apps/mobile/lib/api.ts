@@ -474,8 +474,98 @@ export type MobileBotSection = BotSection;
 
 export type MobileMe = Pick<
   Me,
-  "name" | "email" | "spaceId" | "defaultProvider" | "defaultModel" | "needsModel" | "avatarStyle"
+  | "name"
+  | "email"
+  | "spaceId"
+  | "defaultProvider"
+  | "defaultModel"
+  | "needsModel"
+  | "avatarStyle"
+  | "locale"
+  | "region"
+  | "timezone"
+  | "timezoneAutomatic"
 >;
+
+/** JSON REST call under `/api/v1`. */
+export async function restRequest<T>(
+  path: string,
+  options: { method?: "GET" | "POST"; body?: unknown } = {},
+): Promise<T> {
+  const res = await fetch(`${currentApiBase()}${path}`, {
+    method: options.method ?? "GET",
+    headers: {
+      "content-type": "application/json",
+      origin: "cadre://",
+      ...(await authHeaders()),
+    },
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  });
+  const body = (await res.json().catch(() => ({}))) as { error?: string };
+  if (!res.ok) throw new Error(body.error ?? `${options.method ?? "GET"} ${path} failed`);
+  return body as T;
+}
+
+export type CompanyWorkspaceConnection = {
+  spaceId: string;
+  companyName: string;
+  companySlug: string;
+  connected: boolean;
+};
+
+export type CompanyWorkspaces = {
+  available: boolean;
+  connections: CompanyWorkspaceConnection[];
+};
+
+export function listCompanyWorkspaces() {
+  return restRequest<CompanyWorkspaces>("/api/v1/company-workspaces");
+}
+
+export function connectCompanyWorkspace() {
+  return restRequest<{ url: string }>("/api/v1/company-workspaces/connect", {
+    method: "POST",
+  });
+}
+
+export function disconnectCompanyWorkspace() {
+  return restRequest<{ disconnected: boolean }>("/api/v1/company-workspaces/disconnect", {
+    method: "POST",
+  });
+}
+
+export type WorkspaceIntegrationProvider = { id: string; name: string; workspaceNoun: string };
+
+export type WorkspaceIntegrationConnection = {
+  provider: string;
+  externalId: string;
+  externalName: string;
+  connected: boolean;
+};
+
+export type WorkspaceIntegrations = {
+  available: boolean;
+  providers: WorkspaceIntegrationProvider[];
+  connections: WorkspaceIntegrationConnection[];
+};
+
+export function listWorkspaceIntegrations() {
+  return restRequest<WorkspaceIntegrations>("/api/v1/workspace-integrations");
+}
+
+export function connectWorkspaceIntegration(provider: string) {
+  return restRequest<{ url: string }>(
+    `/api/v1/workspace-integrations/${encodeURIComponent(provider)}/connect`,
+    { method: "POST" },
+  );
+}
+
+export function disconnectWorkspaceIntegration(provider: string) {
+  return restRequest<{ disconnected: boolean }>(
+    `/api/v1/workspace-integrations/${encodeURIComponent(provider)}/disconnect`,
+    { method: "POST" },
+  );
+}
 
 export type MobileModel = ModelCatalogEntry;
 

@@ -18,11 +18,11 @@ test("workspace menu creates and switches isolated conversation contexts", async
   const switcher = page.getByRole("button", { name: "Switch workspace", exact: true });
   await expect(switcher).toBeVisible();
   await switcher.click();
-  await expect(
-    page
-      .locator('[data-slot="popover-content"]')
-      .getByRole("button", { name: "Connect Company OS", exact: true }),
-  ).toBeVisible();
+  const menu = page.locator('[data-slot="popover-content"]');
+  await expect(menu.getByRole("button", { name: "New workspace", exact: true })).toBeVisible();
+  await expect(menu.getByRole("button", { name: "Connect Company OS", exact: true })).toHaveCount(
+    0,
+  );
   await captureScreenshot(page, testInfo, "workspace-menu");
   await page.getByRole("button", { name: "New workspace", exact: true }).click();
   const dialog = page.getByTestId("workspace-setup");
@@ -41,14 +41,16 @@ test("workspace menu creates and switches isolated conversation contexts", async
   await expect(switcher).toContainText("Personal");
   expect(await page.evaluate(() => localStorage.getItem("cadre:space-id"))).not.toBe(supportId);
   await expect(sidebar.getByRole("button", { name: /^Chief/ })).toHaveCount(1);
-  await switcher.click();
-  await page
-    .locator('[data-slot="popover-content"]')
-    .getByRole("button", { name: "Connect Company OS", exact: true })
-    .click();
-  await expect(page.getByRole("dialog", { name: "Connect a company" })).toBeVisible();
+  await openUserMenu(page);
+  await page.getByRole("button", { name: "Account settings", exact: true }).click();
+  const settings = page.getByTestId("user-settings");
+  await settings.getByTestId("settings-section-company").click();
+  // Company OS lives in Settings now. The test server may not have it configured,
+  // in which case Connect stays disabled next to the not-configured note.
+  const company = settings.getByTestId("company-settings");
+  await expect(company).toBeVisible();
   await expect(
-    page.getByText(/Create a company or choose an existing business in Company OS/),
+    company.getByRole("button", { name: "Connect Company OS", exact: true }),
   ).toBeVisible();
   await captureScreenshot(page, testInfo, "company-workspace-onboarding");
 });
@@ -63,7 +65,9 @@ test("account settings exposes company connection and onboarding", async ({ page
   await openUserMenu(page);
   await page.getByRole("button", { name: "Account settings", exact: true }).click();
   const settings = page.getByTestId("user-settings");
+  await settings.getByTestId("settings-section-company").click();
   await expect(settings.getByRole("heading", { name: "Company OS", exact: true })).toBeVisible();
+  await expect(settings.getByText("No company connected", { exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "company-account-settings");
   await settings.getByRole("button", { name: "Connect Company OS", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Connect a company", exact: true });
@@ -106,34 +110,39 @@ for (const phone of [false, true]) {
       "Company Owner",
     );
     await completeOnboarding(page);
+    await expect(page.getByTestId("workspace-company-status")).toHaveCount(0);
     await openNavigation(page);
-    const status = page.getByTestId("workspace-company-status");
-    await expect(status).toContainText("Company OS");
-    await expect(status).toContainText("Connect Company OS");
     await page.getByRole("button", { name: "Switch workspace", exact: true }).click();
     const menu = page.locator('[data-slot="popover-content"]');
     await expect(menu.getByRole("button", { name: "New workspace", exact: true })).toBeVisible();
-    await expect(
-      menu.getByRole("button", { name: "Connect Company OS", exact: true }),
-    ).toBeVisible();
-    await expect(menu.getByRole("button", { name: "Create company", exact: true })).toBeVisible();
+    await expect(menu.getByRole("button", { name: "Connect Company OS", exact: true })).toHaveCount(
+      0,
+    );
+    await expect(menu.getByRole("button", { name: "Create company", exact: true })).toHaveCount(0);
     await captureScreenshot(page, testInfo, "company-workspace-actions");
-    await menu.getByRole("button", { name: "Create company", exact: true }).click();
+    await page.keyboard.press("Escape");
+    await openUserMenu(page);
+    await page.getByRole("button", { name: "Account settings", exact: true }).click();
+    const settings = page.getByTestId("user-settings");
+    await settings.getByTestId("settings-section-company").click();
+    const company = settings.getByTestId("company-settings");
+    await expect(company).toContainText("No company connected");
+    await expect(
+      company.getByRole("button", { name: "Connect Company OS", exact: true }),
+    ).toBeVisible();
+    await company.getByRole("button", { name: "Create company", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Create a company", exact: true })).toBeVisible();
     await expect(page.getByLabel("Workspace name")).toBeVisible();
     await captureScreenshot(page, testInfo, "create-company-onboarding");
     await page.keyboard.press("Escape");
-    // Escape belongs to the dialog, not the navigator behind it.
-    await expect(page.getByRole("dialog", { name: "Create a company", exact: true })).toBeHidden();
-    await expect(status).toBeVisible();
-    // A failed authorization returns to /app; the header identity reports it even
-    // while navigation is closed.
-    await page.goto("/app?company-error=1");
-    await expect(page.getByTestId("shell-root")).toHaveAttribute("data-ready", "true");
-    await expect(page.getByRole("button", { name: "Company context", exact: true })).toContainText(
-      "Connection not completed",
+    await expect(page.getByRole("dialog", { name: "Create a company", exact: true })).toHaveCount(
+      0,
     );
-    await expect(page).not.toHaveURL(/company-error/);
+    if (phone) {
+      await settings.getByTestId("settings-back").click();
+      await expect(settings.getByTestId("settings-section-company")).toBeVisible();
+    }
+    await settings.getByRole("button", { name: "Close user settings", exact: true }).click();
     const me = await page.request.post("/rpc/me", { data: { json: {} } });
     const { json: actor } = await me.json();
     await page.route("**/api/v1/company-workspaces", (route) =>
@@ -153,11 +162,18 @@ for (const phone of [false, true]) {
     );
     await page.reload();
     await expect(page.getByTestId("shell-root")).toHaveAttribute("data-ready", "true");
-    await openNavigation(page);
-    await expect(status).toBeVisible();
-    await expect(status).toContainText("Example Company");
-    await expect(status).toContainText("Connected");
+    await openUserMenu(page);
+    await page.getByRole("button", { name: "Account settings", exact: true }).click();
+    await settings.getByTestId("settings-section-company").click();
+    await expect(company).toContainText("Example Company");
+    await expect(company).toContainText("Connected");
+    await expect(company.getByRole("button", { name: "Disconnect", exact: true })).toBeVisible();
     await captureScreenshot(page, testInfo, "connected-company-identity");
+    await settings.getByRole("button", { name: "Close user settings", exact: true }).click();
+    await openNavigation(page);
+    await expect(page.getByRole("button", { name: "Switch workspace", exact: true })).toContainText(
+      "Personal",
+    );
     const glyphs = await page
       .getByTestId("bots-sidebar")
       .locator("button svg.lucide")
@@ -175,16 +191,10 @@ for (const phone of [false, true]) {
     if (phone) {
       await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
       await captureScreenshot(page, testInfo, "connected-company-dark");
-      await page.setViewportSize({ width: 390, height: 568 });
-      await expect(status).toBeVisible();
-      await expect(status).toHaveAccessibleName("Example Company Connected");
-      await captureScreenshot(page, testInfo, "company-short-phone");
       await page.getByRole("button", { name: "Close navigation", exact: true }).click();
       await expect(
         page.getByRole("button", { name: "Open navigation", exact: true }),
       ).toBeVisible();
-      await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-      await expect(status).toBeVisible();
     }
   });
 }
@@ -200,10 +210,9 @@ test("Company OS controls recover when a cached page is restored", async ({ page
   );
   await openUserMenu(page);
   await page.getByRole("button", { name: "Account settings", exact: true }).click();
-  await page
-    .getByTestId("user-settings")
-    .getByRole("button", { name: "Connect Company OS", exact: true })
-    .click();
+  const settings = page.getByTestId("user-settings");
+  await settings.getByTestId("settings-section-company").click();
+  await settings.getByRole("button", { name: "Connect Company OS", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Connect a company", exact: true });
   await dialog.getByRole("button", { name: "Continue to Company OS", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Connecting…", exact: true })).toBeDisabled();

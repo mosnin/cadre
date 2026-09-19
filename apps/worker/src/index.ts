@@ -6,6 +6,7 @@ loadRootEnv();
 import {
   ChatSdkMessagingSurface,
   CompanyWorkspaces,
+  ConnectedMemoryProviderResolver,
   companyWorkspaceConfig,
   createBackgroundJobHandlers,
   createCompanyOsWorkforce,
@@ -41,6 +42,8 @@ import {
   resolveSandboxProvider,
   ScriptedAgentRuntime,
   SpaceMemoryProviderResolver,
+  WorkspaceIntegrations,
+  workspaceProviderOverridesFromEnv,
 } from "@cadre/adapters";
 import { companyOsOAuthFromEnv, createAuth, createCompanyOsCredential } from "@cadre/auth";
 import { resolveAuthSecret, resolveEncryptionKey, resolveSupervisorToken } from "@cadre/core";
@@ -97,12 +100,25 @@ async function main() {
           webOrigin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
         })
       : undefined;
+  const workspaceIntegrations = pool
+    ? new WorkspaceIntegrations({
+        prisma,
+        pool,
+        secrets,
+        webOrigin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
+        providers: workspaceProviderOverridesFromEnv(process.env),
+      })
+    : undefined;
   const mcp = new McpConnector(
     prisma,
     secrets,
     {
+      // Company OS servers stay refused while Company OS is not configured.
       prepareCompanyWorkspace: companyWorkspaces
         ? (context) => companyWorkspaces.prepare(context)
+        : undefined,
+      prepareWorkspaceIntegrations: workspaceIntegrations
+        ? (context) => workspaceIntegrations.prepare(context)
         : undefined,
       stdioEnabled: process.env.MCP_STDIO_ENABLED === "true",
       allowedCommands: (process.env.MCP_STDIO_ALLOWED_COMMANDS ?? "")
@@ -136,7 +152,11 @@ async function main() {
   ]);
   const connector = stack.destination;
   await connector.start();
-  const memoryProviders = new SpaceMemoryProviderResolver(prisma, secrets);
+  const localMemoryProviders = new SpaceMemoryProviderResolver(prisma, secrets);
+  const memoryProviders = new ConnectedMemoryProviderResolver(
+    localMemoryProviders,
+    workspaceIntegrations,
+  );
   const { home, artifacts } = createDurableStorage(dataDir);
   const inMemoryJobs = process.env.WAKEUP_DRIVER === "memory" ? new InMemoryJobQueue() : undefined;
   const jobs: JobPublisher = inMemoryJobs ?? new GraphileJobPublisher(databaseUrl);
@@ -211,10 +231,24 @@ async function main() {
   });
   workforce.start();
 
+  let storedFlushing = false;
+  const storedSyncTimer = setInterval(() => {
+    if (storedFlushing || !workspaceIntegrations) return;
+    storedFlushing = true;
+    void (async () => {
+      for (let i = 0; i < 20; i++) if (!(await workspaceIntegrations.flushStoredMemory())) break;
+    })()
+      .catch(() => logger.warn("stored_memory.retry_failed"))
+      .finally(() => {
+        storedFlushing = false;
+      });
+  }, 60_000);
+  storedSyncTimer.unref();
   let stopping = false;
   const stop = async () => {
     if (stopping) return;
     stopping = true;
+    clearInterval(storedSyncTimer);
     try {
       await workforce.stop();
       await reconciler.stop();

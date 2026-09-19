@@ -24,10 +24,12 @@ import {
 import { Trans, useLingui } from "@lingui/react/macro";
 import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { WorkspaceLibraryPanel } from "../components/WorkspaceLibraryPanel";
 import { reserveAuthorizationWindow } from "../lib/authorization-window";
 import { rpc } from "../lib/rpc";
 
 type SourceKind = "treg" | "mcp" | "api";
+type Tab = "apps" | "skills" | "custom";
 
 function itemKey(item: Pick<ConnectionCatalogItem, "connectorId" | "slug">) {
   return `${item.connectorId}:${item.slug}`;
@@ -47,14 +49,19 @@ function markConnected(
 export function PluginsOverlay({
   onClose,
   onOpenMcp,
+  onLibraryChange,
   activeBotId,
 }: {
   onClose: () => void;
   onOpenMcp?: () => void;
+  /** Fires after a skill or plugin bundle changes so the host can refresh its skill list. */
+  onLibraryChange?: () => void;
   activeBotId?: string;
 }) {
   const { t } = useLingui();
-  const [customOpen, setCustomOpen] = useState(false);
+  const [tab, setTab] = useState<Tab>("apps");
+  const customOpen = tab === "custom";
+  const [installCount, setInstallCount] = useState(0);
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(CONNECTION_CATALOG_PAGE_SIZE);
   const [catalog, setCatalog] = useState<ConnectionCatalogItem[]>([]);
@@ -91,16 +98,17 @@ export function PluginsOverlay({
     void rpc.capabilities
       .list()
       .then((installs) => {
-        if (!cancelled)
-          setSources((current) => [
-            ...installs.filter(
-              (item) =>
-                (item.kind === "mcp" || item.kind === "api") &&
-                !removedSources.current.has(item.id) &&
-                !current.some((saved) => saved.id === item.id),
-            ),
-            ...current,
-          ]);
+        if (cancelled) return;
+        setInstallCount(installs.length);
+        setSources((current) => [
+          ...installs.filter(
+            (item) =>
+              (item.kind === "mcp" || item.kind === "api") &&
+              !removedSources.current.has(item.id) &&
+              !current.some((saved) => saved.id === item.id),
+          ),
+          ...current,
+        ]);
       })
       .catch((err: unknown) => {
         if (!cancelled)
@@ -111,6 +119,17 @@ export function PluginsOverlay({
       connectionAttempt.current?.abort();
     };
   }, []);
+
+  const connectedApps = useMemo(() => catalog.filter((item) => item.connected).length, [catalog]);
+  const installed = connectedApps + installCount;
+
+  function recountInstalls() {
+    onLibraryChange?.();
+    void rpc.capabilities
+      .list()
+      .then((installs) => setInstallCount(installs.length))
+      .catch(() => undefined);
+  }
 
   const featuredTiles = useMemo(() => buildFeaturedConnectorTiles(catalog), [catalog]);
   const showFeatured = !query.trim();
@@ -248,6 +267,7 @@ export function PluginsOverlay({
         ...current.filter((source) => source.id !== installed.id),
         installed,
       ]);
+      setInstallCount((count) => count + 1);
     } catch (err) {
       setSourceError(err instanceof Error ? err.message : t`Could not install connector`);
     } finally {
@@ -263,6 +283,7 @@ export function PluginsOverlay({
       await rpc.capabilities.remove({ id: install.id });
       removedSources.current.add(install.id);
       setSources((current) => current.filter((source) => source.id !== install.id));
+      setInstallCount((count) => Math.max(0, count - 1));
     } catch (err) {
       setSourceError(err instanceof Error ? err.message : t`Could not remove connector`);
     } finally {
@@ -282,9 +303,16 @@ export function PluginsOverlay({
         className="flex h-[760px] max-h-[calc(100%-2rem)] w-[1080px] max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-2xl bg-card p-0 sm:max-w-[1080px]"
       >
         <DialogHeader className="flex-row items-start justify-between px-8 pt-7">
-          <DialogTitle className="text-2xl text-foreground">
-            <Trans>Integrations</Trans>
-          </DialogTitle>
+          <div className="flex items-baseline gap-3">
+            <DialogTitle className="text-2xl text-foreground">
+              <Trans>Integrations</Trans>
+            </DialogTitle>
+            {installed > 0 ? (
+              <span data-testid="integrations-installed" className="text-sm text-muted-foreground">
+                <Trans>{installed} installed</Trans>
+              </span>
+            ) : null}
+          </div>
           <DialogClose
             render={<Button variant="ghost" size="icon-sm" aria-label={t`Close integrations`} />}
           >
@@ -294,21 +322,28 @@ export function PluginsOverlay({
 
         <div className="flex gap-2 px-8 pt-4">
           <Button
-            variant={customOpen ? "ghost" : "secondary"}
-            aria-pressed={!customOpen}
-            onClick={() => setCustomOpen(false)}
+            variant={tab === "apps" ? "secondary" : "ghost"}
+            aria-pressed={tab === "apps"}
+            onClick={() => setTab("apps")}
           >
             <Trans>Apps</Trans>
           </Button>
           <Button
+            variant={tab === "skills" ? "secondary" : "ghost"}
+            aria-pressed={tab === "skills"}
+            onClick={() => setTab("skills")}
+          >
+            <Trans>Skills</Trans>
+          </Button>
+          <Button
             variant={customOpen ? "secondary" : "ghost"}
             aria-pressed={customOpen}
-            onClick={() => setCustomOpen(true)}
+            onClick={() => setTab("custom")}
           >
             <Trans>Custom plugins</Trans>
           </Button>
         </div>
-        <div className="px-8 pt-4" hidden={customOpen}>
+        <div className="px-8 pt-4" hidden={tab !== "apps"}>
           <Input
             value={query}
             onChange={(event) => {
@@ -322,7 +357,12 @@ export function PluginsOverlay({
         </div>
 
         <div id="integration-list" className="rk-scroll flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-          <div hidden={customOpen}>
+          {tab === "skills" ? (
+            <section data-testid="integrations-skills" className="mx-auto max-w-2xl space-y-6">
+              <WorkspaceLibraryPanel onChange={recountInstalls} />
+            </section>
+          ) : null}
+          <div hidden={tab !== "apps"}>
             {catalogError ? <p className="mb-4 text-sm text-destructive">{catalogError}</p> : null}
             {loading ? (
               <p className="text-muted-foreground/80">
