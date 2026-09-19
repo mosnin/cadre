@@ -511,7 +511,28 @@
   }
 }
 
+/* A still orb has no shader to show a run in flight, so it breathes instead.
+   The colour is the agent's own, handed down from the component. */
+@keyframes rakazo-orb-working {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--rakazo-orb-halo);
+  }
+  50% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
+.rakazo-orb[data-working="true"] {
+  animation: rakazo-orb-working 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .rakazo-orb[data-working="true"] {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--rakazo-orb-halo);
+  }
+
   .rakazo-bot-avatar-ring,
   .rakazo-bot-avatar-eyes {
     animation: none;

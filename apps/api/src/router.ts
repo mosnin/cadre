@@ -82,6 +82,7 @@ import {
 import type { Auth } from "@rakazo/auth";
 import {
   type Actor,
+  AvatarStyleSchema,
   appContract,
   type ComputerStatus,
   type McpServer,
@@ -4083,7 +4084,9 @@ async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     computerHost: computerHostFor(setup.settings?.computerHost, deps.env.sandboxProvider),
     canChooseHostComputer: actor.isDeploymentOwner && deps.env.sandboxProvider === "docker",
     sandboxProvider: deps.env.sandboxProvider,
-    avatarStyle: user.avatarStyle === "organic" ? "organic" : "robot",
+    // Read the stored value through the schema so a style added later is not
+    // silently reported as another one; anything unknown falls to the default.
+    avatarStyle: AvatarStyleSchema.catch("orb").parse(user.avatarStyle),
   };
 }
 

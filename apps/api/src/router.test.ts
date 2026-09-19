@@ -63,7 +63,7 @@ describe("account preferences", () => {
     });
   });
 
-  it("rejects avatar styles outside robot|organic", async () => {
+  it("rejects avatar styles outside the known set", async () => {
     const { update, actor, handler } = preferencesDeps("robot");
 
     const { response } = await handler.handle(
@@ -79,7 +79,25 @@ describe("account preferences", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
-  it("coerces unknown stored avatar styles to robot on me", async () => {
+  it("keeps a known stored avatar style on me", async () => {
+    const { actor, handler } = preferencesDeps("organic");
+
+    const { response } = await handler.handle(
+      new Request("http://127.0.0.1/rpc/me", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ json: null }),
+      }),
+      { prefix: "/rpc", context: { actor } },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      json: expect.objectContaining({ avatarStyle: "organic" }),
+    });
+  });
+
+  it("coerces unknown stored avatar styles to the default on me", async () => {
     const { actor, handler } = preferencesDeps("custom-cdn");
 
     const { response } = await handler.handle(
@@ -93,7 +111,7 @@ describe("account preferences", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
-      json: expect.objectContaining({ avatarStyle: "robot" }),
+      json: expect.objectContaining({ avatarStyle: "orb" }),
     });
   });
 });

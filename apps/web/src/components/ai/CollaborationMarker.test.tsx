@@ -1,10 +1,17 @@
+import { AvatarStyleProvider } from "@rakazo/ui-web";
+import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ActiveBotGlyph, CollaborationMarker } from "./CollaborationMarker";
 
+// The markers are asserted against the robot renderer's markup, so they name
+// the style rather than leaning on whichever one is currently the default.
+const render = (node: ReactNode) =>
+  renderToString(<AvatarStyleProvider value="robot">{node}</AvatarStyleProvider>);
+
 describe("collaboration transcript markers", () => {
   it("shows a left-aligned peer event with its avatar and full label", () => {
-    const html = renderToString(
+    const html = render(
       <CollaborationMarker
         ariaLabel="Message from Research"
         color="#14B8A6"
@@ -25,7 +32,7 @@ describe("collaboration transcript markers", () => {
   });
 
   it("animates the active bot glyph from its run status", () => {
-    const html = renderToString(
+    const html = render(
       <ActiveBotGlyph
         bots={[{ botId: "research", color: "#14B8A6", status: "running" }]}
         label="Research is working"

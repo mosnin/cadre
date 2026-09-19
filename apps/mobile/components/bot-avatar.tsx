@@ -1,5 +1,10 @@
 import type { AvatarStyle } from "@rakazo/contracts";
-import { ACTIVE_RUN_STATUSES, avatarIdentitySeed, organicAvatarPath } from "@rakazo/core";
+import {
+  ACTIVE_RUN_STATUSES,
+  avatarIdentitySeed,
+  orbGradientStops,
+  organicAvatarPath,
+} from "@rakazo/core";
 import { memo, useEffect } from "react";
 import { View } from "react-native";
 import Animated, {
@@ -12,7 +17,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { G, Path, Rect } from "react-native-svg";
+import Svg, { Defs, G, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { workingAvatarDuration, workingAvatarFrame } from "../lib/avatar-motion";
 import { useI18n } from "../lib/i18n";
 import { useAvatarStyle } from "./avatar-style";
@@ -45,7 +50,11 @@ export const BotAvatar = memo(function BotAvatar({
   const gap = Math.max(3, Math.round(size * 0.11));
   return (
     <View style={{ width: size, height: size }}>
-      {(variant ?? avatarStyle) === "organic" ? (
+      {(variant ?? avatarStyle) === "orb" ? (
+        // No shader here, so the orb is the same three stops the web one
+        // derives, drawn still. A colour chosen on the web reads the same.
+        <OrbAvatar color={color} size={size} />
+      ) : (variant ?? avatarStyle) === "organic" ? (
         <OrganicAvatar color={color} identity={identity} size={size} isWorking={isWorking} />
       ) : (
         <View
@@ -204,5 +213,23 @@ function OrganicAvatar({
         </Svg>
       </Animated.View>
     </View>
+  );
+}
+
+/** The agent orb, still: the web shader's three stops as a radial gradient. */
+function OrbAvatar({ color, size }: { color: string; size: number }) {
+  const [light, mid, dark] = orbGradientStops(color);
+  const gradientId = `orb-${color.replace(/[^0-9a-zA-Z]/g, "")}`;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 100 100">
+      <Defs>
+        <RadialGradient id={gradientId} cx="38%" cy="32%" r="78%">
+          <Stop offset="0%" stopColor={light} />
+          <Stop offset="52%" stopColor={mid} />
+          <Stop offset="100%" stopColor={dark} />
+        </RadialGradient>
+      </Defs>
+      <Path d="M50 2a48 48 0 1 0 0 96 48 48 0 0 0 0-96Z" fill={`url(#${gradientId})`} />
+    </Svg>
   );
 }

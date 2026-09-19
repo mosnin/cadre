@@ -258,9 +258,10 @@ export default function Account() {
         <View accessibilityLabel={t("Avatar style")} style={styles.avatarSection}>
           <Text style={styles.settingsTitle}>{t("Avatars")}</Text>
           <View style={styles.avatarOptions}>
-            {(["robot", "organic"] as const).map((style) => {
+            {(["orb", "robot", "organic"] as const).map((style) => {
               const selected = avatarStyle === style;
-              const styleLabel = style === "robot" ? t("Robot") : t("Organic");
+              const styleLabel =
+                style === "robot" ? t("Robot") : style === "organic" ? t("Organic") : t("Orb");
               return (
                 <Pressable
                   key={style}
@@ -276,7 +277,9 @@ export default function Account() {
                   ]}
                 >
                   <BotAvatar
-                    color={style === "robot" ? "#8B5CF6" : "#D62F8B"}
+                    color={
+                      style === "robot" ? "#8B5CF6" : style === "organic" ? "#D62F8B" : "#3380FF"
+                    }
                     identity="avatar-preview"
                     size={42}
                     variant={style}

@@ -194,8 +194,8 @@ export function AccountSettingsOverlay({
           <h3 className="text-[15px] font-medium text-foreground">
             <Trans>Avatars</Trans>
           </h3>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            {(["robot", "organic"] as const).map((style) => (
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {(["robot", "organic", "orb"] as const).map((style) => (
               <Toggle
                 key={style}
                 variant="outline"
@@ -210,7 +210,15 @@ export function AccountSettingsOverlay({
                   size={32}
                   variant={style}
                 />
-                <span>{style === "robot" ? <Trans>Robot</Trans> : <Trans>Organic</Trans>}</span>
+                <span>
+                  {style === "robot" ? (
+                    <Trans>Robot</Trans>
+                  ) : style === "organic" ? (
+                    <Trans>Organic</Trans>
+                  ) : (
+                    <Trans>Orb</Trans>
+                  )}
+                </span>
               </Toggle>
             ))}
           </div>

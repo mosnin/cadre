@@ -22,6 +22,7 @@ export * from "./messaging-commands.js";
 export * from "./messaging-prompts.js";
 export * from "./model-oauth.js";
 export * from "./model-providers.js";
+export * from "./orb-palette.js";
 export * from "./plugin-bundle.js";
 export { conversationPreview } from "./preview-text.js";
 export * from "./run-state.js";

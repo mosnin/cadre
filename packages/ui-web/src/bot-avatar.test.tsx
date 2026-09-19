@@ -9,8 +9,8 @@ describe("BotAvatar", () => {
   it("renders distinct SVG gradient IDs for concurrent working avatars", () => {
     const html = renderToString(
       <div>
-        <BotAvatar color="#8B5CF6" status="running" />
-        <BotAvatar color="#10B981" status="running" />
+        <BotAvatar variant="robot" color="#8B5CF6" status="running" />
+        <BotAvatar variant="robot" color="#10B981" status="running" />
       </div>,
     );
 
@@ -27,14 +27,14 @@ describe("BotAvatar", () => {
   it.each(["running", "queued", "leased", "waiting_input", "waiting_takeover"])(
     "renders active working ring for %s status",
     (status) => {
-      const html = renderToString(<BotAvatar color="#3B82F6" status={status} />);
+      const html = renderToString(<BotAvatar variant="robot" color="#3B82F6" status={status} />);
       expect(html).toContain("<svg");
       expect(html).toContain("rakazo-bot-avatar-ring");
     },
   );
 
   it("keeps the working ring mounted when idle so its timeline does not reset", () => {
-    const html = renderToString(<BotAvatar color="#F59E0B" status="idle" />);
+    const html = renderToString(<BotAvatar variant="robot" color="#F59E0B" status="idle" />);
     expect(html).toContain('data-working="false"');
     expect(html).toContain("rakazo-bot-avatar-ring");
   });
@@ -105,7 +105,7 @@ describe("BotAvatar", () => {
     expect(idle).toContain("rakazo-organic-avatar-body-idle");
     expect(idle).toContain("rakazo-organic-avatar-body-working");
     expect(readFileSync(new URL("./styles.css", import.meta.url), "utf8")).not.toMatch(
-      /data-working[^}]+animation:/s,
+      /\.rakazo-organic-avatar[^{}]*data-working[^}]+animation:/s,
     );
   });
 });

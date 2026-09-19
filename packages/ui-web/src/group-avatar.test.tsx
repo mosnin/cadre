@@ -1,20 +1,27 @@
+import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { AvatarStyleProvider } from "./avatar-style.js";
 import { GroupAvatar } from "./group-avatar.js";
+
+// These assert the robot renderer's own markup, so they say which style they
+// mean rather than leaning on whichever one is currently the default.
+const render = (node: ReactNode) =>
+  renderToString(<AvatarStyleProvider value="robot">{node}</AvatarStyleProvider>);
 
 describe("GroupAvatar", () => {
   it("renders fallback squad icon when no members provided", () => {
-    const html = renderToString(<GroupAvatar members={[]} />);
+    const html = render(<GroupAvatar members={[]} />);
     expect(html).toContain("<svg");
   });
 
   it("renders single BotAvatar when 1 member", () => {
-    const html = renderToString(<GroupAvatar members={[{ name: "Harry", color: "#8B5CF6" }]} />);
+    const html = render(<GroupAvatar members={[{ name: "Harry", color: "#8B5CF6" }]} />);
     expect(html).toContain("rakazo-bot-avatar");
   });
 
   it("renders 2 overlapping bot avatars for 2 members", () => {
-    const html = renderToString(
+    const html = render(
       <GroupAvatar
         members={[
           { name: "Sherlock", color: "#8B5CF6" },
@@ -28,7 +35,7 @@ describe("GroupAvatar", () => {
   });
 
   it("renders a working member inside a group avatar", () => {
-    const html = renderToString(
+    const html = render(
       <GroupAvatar
         members={[
           { name: "Sherlock", color: "#8B5CF6", status: "running" },
@@ -41,7 +48,7 @@ describe("GroupAvatar", () => {
   });
 
   it("renders 3 mini bot avatars for 3 members", () => {
-    const html = renderToString(
+    const html = render(
       <GroupAvatar
         members={[
           { name: "Sherlock", color: "#8B5CF6" },
@@ -55,7 +62,7 @@ describe("GroupAvatar", () => {
   });
 
   it("renders 2 mini avatars + overflow count for 4+ members", () => {
-    const html = renderToString(
+    const html = render(
       <GroupAvatar
         members={[
           { name: "Sherlock", color: "#8B5CF6" },

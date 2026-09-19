@@ -2,6 +2,7 @@ import { ACTIVE_RUN_STATUSES, avatarIdentitySeed, organicAvatarPath } from "@rak
 import { type CSSProperties, memo, useId, useSyncExternalStore } from "react";
 import { type AvatarStyle, useAvatarStyle } from "./avatar-style.js";
 import { cn } from "./lib/utils.js";
+import { OrbAvatar, type OrbState } from "./orb-avatar.js";
 import "./styles.css";
 
 export interface BotAvatarProps {
@@ -24,6 +25,16 @@ export const BotAvatar = memo(function BotAvatar({
   const isWorking = ACTIVE_RUN_STATUSES.some((activeStatus) => activeStatus === status);
   const gradId = `spin-grad-${useId().replace(/[^a-zA-Z0-9-_]/g, "")}`;
   const preferredVariant = useAvatarStyle();
+  if ((variant ?? preferredVariant) === "orb") {
+    return (
+      <OrbAvatar
+        color={color}
+        size={size}
+        state={orbStateForStatus(status, isWorking)}
+        className={className}
+      />
+    );
+  }
   if ((variant ?? preferredVariant) === "organic") {
     return (
       <OrganicAvatar
@@ -235,6 +246,17 @@ function OrganicAvatar({
 }
 
 const reducedMotionMedia = "(prefers-reduced-motion: reduce)";
+
+/**
+ * What the run is doing, in the orb's language: a run in flight is the orb
+ * speaking, one waiting on an answer is it listening, one starting up is it
+ * connecting, and anything else is at rest.
+ */
+function orbStateForStatus(status: string | undefined, isWorking: boolean): OrbState {
+  if (status === "waiting_input") return "listening";
+  if (status === "queued" || status === "leased") return "connecting";
+  return isWorking ? "speaking" : "idle";
+}
 
 function reducedMotionSnapshot(): boolean {
   return window.matchMedia(reducedMotionMedia).matches;
