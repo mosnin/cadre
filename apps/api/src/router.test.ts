@@ -630,6 +630,20 @@ describe("computer screen url", () => {
     });
     expect(updateMany).not.toHaveBeenCalled();
   });
+
+  it("returns a recoverable conflict when the screen RPC times out", async () => {
+    const { response, updateMany } = await callScreenUrl(() =>
+      Promise.reject(new DOMException("The operation was aborted due to timeout", "TimeoutError")),
+    );
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      json: expect.objectContaining({
+        code: "CONFLICT",
+        message: COMPUTER_SCREEN_UNAVAILABLE,
+      }),
+    });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
 });
 
 describe("connector readiness", () => {

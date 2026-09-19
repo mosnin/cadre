@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
+import { ComputerScreenUnavailableError } from "./computer-screens.js";
 import { FlySandboxProvider } from "./fly-sandbox.js";
 
 const context = {
@@ -505,6 +506,32 @@ it("rejects an update response without a version instead of waiting for any inst
     "updated version is unavailable",
   );
   expect(request).toHaveBeenCalledTimes(2);
+});
+
+it("turns a hung screen RPC into a retryable screen error", async () => {
+  const request = vi.fn<typeof fetch>().mockImplementation(async (url) => {
+    if (String(url).includes("api.machines.dev")) return json(machine);
+    throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+  });
+  const provider = new FlySandboxProvider(options, request);
+  await expect(provider.connectScreen(ref, { view: "stream" }, context)).rejects.toThrow(
+    ComputerScreenUnavailableError,
+  );
+});
+
+it("does not rewrite a cancelled screen request as a busy screen", async () => {
+  const controller = new AbortController();
+  controller.abort(new DOMException("The operation was aborted.", "AbortError"));
+  const request = vi.fn<typeof fetch>().mockImplementation(async (url, init) => {
+    if (String(url).includes("api.machines.dev")) return json(machine);
+    const signal = init?.signal as AbortSignal | undefined;
+    if (signal?.aborted) throw signal.reason;
+    return json({ key: "screen-key" });
+  });
+  const provider = new FlySandboxProvider(options, request);
+  await expect(
+    provider.connectScreen(ref, { view: "stream" }, { ...context, signal: controller.signal }),
+  ).rejects.toMatchObject({ name: "AbortError" });
 });
 
 it("rejects readiness from a different machine version", async () => {

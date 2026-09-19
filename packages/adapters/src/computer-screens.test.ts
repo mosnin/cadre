@@ -114,6 +114,17 @@ describe("Team Computer parallel screens", () => {
     expect(isComputerScreenUnavailable(new Error("cannot allocate another screen"))).toBe(true);
   });
 
+  it("treats a screen RPC timeout as temporarily busy, not a cancelled request", async () => {
+    const timeout = new DOMException("The operation was aborted due to timeout", "TimeoutError");
+    expect(isComputerScreenUnavailable(timeout)).toBe(true);
+    expect(isComputerScreenUnavailable(new DOMException("Cancelled", "AbortError"))).toBe(false);
+    await expect(
+      withComputerScreenAvailability(async () => {
+        throw timeout;
+      }),
+    ).resolves.toEqual({ error: expect.stringMatching(/temporarily busy/) });
+  });
+
   it("lets a second Team bot use graphics after the first run releases the claim", async () => {
     const emulator = new ManagedSandboxEmulator();
     expect(emulator.describe().capabilities.multiScreen).toBe(false);
