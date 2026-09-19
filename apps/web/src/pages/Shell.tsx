@@ -2825,7 +2825,7 @@ export function ShellPage() {
             }
             navigation={
               <>
-                <nav aria-label={t`Workspace`} className="-mx-0.5">
+                <nav aria-label={t`Workspace`}>
                   <RailNavRow
                     testId="rail-new-chat"
                     icon={<MessageSquarePlus size={RAIL.navIconSize} />}
@@ -3071,7 +3071,7 @@ export function ShellPage() {
               role="tabpanel"
               id={`workspace-views-panel-${activityMode ? "activity" : "conversations"}`}
               aria-labelledby={`workspace-views-tab-${activityMode ? "activity" : "conversations"}`}
-              className="rk-scroll flex flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2"
+              className="rk-scroll flex flex-1 flex-col gap-1 overflow-y-auto pb-2"
             >
               {showSpaceSearch ? (
                 <SpaceSearchResults

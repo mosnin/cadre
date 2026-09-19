@@ -37,7 +37,7 @@ export function AppSidebar({
         <SidebarHeaderContent closeLabel={closeLabel} actions={headerActions} title={headerTitle} />
         {navigation}
       </SidebarHeader>
-      <SidebarContent className="px-2 pb-3">{children}</SidebarContent>
+      <SidebarContent className="px-3 pb-3">{children}</SidebarContent>
       <SidebarFooter className="px-3 pb-3">{footer}</SidebarFooter>
     </Sidebar>
   );
