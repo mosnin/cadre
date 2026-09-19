@@ -16,6 +16,7 @@ export const SUBAGENT_PARENT_TOOL_NAMES = new Set([
   // Helpers share the parent display. Durable bots have independent screens.
   "browser_observe",
   "browser_act",
+  "browser_pursue",
   "computer_observe",
   "computer_act",
   "message_user",

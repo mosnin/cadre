@@ -46,11 +46,17 @@ This is the whole shape of `packages/adapters/src/decision-turn.ts` and
 `decision-start.ts`. Tool-call review used to be two requests about the same
 call; start used to be routing, then skill, then company, each about the same
 task. They now travel together. Speculative questions — the review verdict, the
-skill name, the URL to fetch — ride on the request that was being made anyway.
+skill name, the URL to fetch, the browser step after this one — ride on the
+request that was being made anyway.
 They are never the reason for a request of their own. The start request also
 runs beside connector discovery, so its 70–500ms is not added to the critical
 path. When the first action is a fetch or a short search, that tool runs while
-the computer provisions, and the result is already in the task.
+the computer provisions, and the result is already in the task. When it is
+`browse`, pursuit starts the moment the computer is up — overlapping the rest of
+prompt assembly — so the first generation sees the page that was already acted
+on instead of spending a turn deciding to call `browser_pursue`. Helper routing
+starts before the helper waits for a slot, so a queued delegate does not pay
+for the decision after it is already allowed to run.
 
 Answers are also remembered. `decision-cache.ts` keys on the model, the state and
 every question with its criteria, so anything that would change an answer changes
@@ -77,7 +83,7 @@ here is the last thing between an agent and an irreversible action.
 | Catalog ranking (`rankCatalogHits`) | Loading the **wrong connector tool** | One `score` per shortlisted tool, one request | The keyword order |
 | Memory order (`rankMemoryDocuments`) | A **recency sort** that decided which saved facts a run would never see | One `score` per document, one request | The recency order, unchanged |
 | Fetch screen (`screenUntrustedText`) | Nothing; **raises a bar** on pages that try to instruct the agent | `noul` "is this a jailbreak or override?" | The page, unlabeled |
-| Browser action (`planBrowserAction`) | A **generation** per browser step | `choice` operation + speculative `choice` per operation's targets + `choice` of which known value fills the field + `choice` of dropdown control and option together | The agent deciding, as today |
+| Browser action (`planBrowserTurn`) | A **generation** per browser step, the **next** step's request when the page still has that control, a **navigate** generation that would invent a URL, and the **first** browse generation when start already chose `browse` | One request: `choice` operation + speculative targets + the same questions prefixed `next_` + which known value fills the field + dropdown control and option together + which goal URL to open | The agent deciding, as today |
 | Symbolic find / check / triage | A **generation** that reviews its own diff, files, or log | Scores, nouls, and a closed failure `choice` over evidence the agent already gathered | No findings, with `notChecked` filled |
 
 The consequence question is the one that is purely additive on latency, and it is
@@ -139,15 +145,24 @@ a second after each one and then poll `document.readyState`.
 It now waits for two animation frames instead, which is what a rerender takes,
 and gives up at 50ms. Only filling a combobox waits longer, and only until its
 suggestions are genuinely on screen — a visible `[role="option"]` under the
-field's own `aria-controls` or `aria-owns` — capped at 200ms. A navigation keeps
-the old wait, because a navigation that has been asked for has not yet replaced
-the document and there is nothing to observe.
+field's own `aria-controls` or `aria-owns` — capped at 200ms. A navigation still
+polls `document.readyState` briefly, because a navigation that has been asked for
+has not yet replaced the document. Ordinary clicks and fills do not: settle
+already waited for the rerender, and the old 2s readyState loop was most of the
+step.
 
 The wait runs in an isolated world beside the page, so the page cannot see it and
 the page's own overrides of `requestAnimationFrame` or `setTimeout` do not apply.
 The same world reads the page's **visible** text for the snapshot: an offscreen
 article body or a footer filled the model's context without saying anything about
 the screen being acted on.
+
+CDP clicks do not move the X cursor, so a VNC viewer would see buttons activate
+with no pointer. Each click warps the real cursor first via `xdotool`, using the
+window chrome the snapshot already measured — no extra CDP round trip on the
+click path. Desktop `computer_act` glides the pointer along a short path (a few
+8ms steps) so the same viewer can follow it; settle after a batch is 80ms when
+no screenshot is coming back, 150ms when one is.
 
 ## Pointing at a dropdown option
 
@@ -159,7 +174,7 @@ it handed out, so this is the same "point, don't write" property as filling a
 field: nothing a model composed reaches the page.
 
 `WAIT` exists for a page that is still working, and spends at most two of a
-pursuit's steps; a third means the pursuit is blocked, not patient.
+pursuit's steps at 150ms each; a third means the pursuit is blocked, not patient.
 
 ## What it is bad at, and what that forbids
 

@@ -28,6 +28,8 @@ NATIVE_CAPTURES = {}
 NATIVE_LOCK = threading.Lock()
 DISPLAY_LOCKS = {}
 DISPLAY_LOCKS_GUARD = threading.Lock()
+POINTER_AT = {}
+POINTER_GLIDE_MS = 8
 
 
 def display_lock(display):
@@ -150,6 +152,34 @@ def allowed_xdotool_argv(argv):
     return False
 
 
+def pointer_glide_steps(argv, display):
+    """Turn a teleporting mousemove into a short visible path the VNC viewer can follow."""
+    if len(argv) < 7 or argv[2] != "xdotool" or argv[3] != "mousemove":
+        return [{"argv": argv}]
+    try:
+        x, y = int(argv[5]), int(argv[6])
+    except (ValueError, IndexError):
+        return [{"argv": argv}]
+    last = POINTER_AT.get(display)
+    POINTER_AT[display] = (x, y)
+    if last is None:
+        return [{"argv": argv}]
+    lx, ly = last
+    distance = ((x - lx) ** 2 + (y - ly) ** 2) ** 0.5
+    if distance < 12:
+        return [{"argv": argv}]
+    steps = min(10, max(3, int(distance / 90)))
+    prefix = list(argv[:5])
+    out = []
+    for index in range(1, steps):
+        nx = int(lx + (x - lx) * index / steps)
+        ny = int(ly + (y - ly) * index / steps)
+        out.append({"argv": [*prefix, str(nx), str(ny)]})
+        out.append({"waitMs": POINTER_GLIDE_MS})
+    out.append({"argv": argv})
+    return out
+
+
 def allowed_control_argv(argv, display):
     """Only supervisor-shaped argv for the locked display."""
     if not isinstance(argv, list) or not (3 <= len(argv) <= MAX_ARGV):
@@ -259,7 +289,17 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(display, str) or not re.fullmatch(r":[0-9]+", display):
                 raise RuntimeError("invalid display")
             with display_lock(display):
+                expanded = []
                 for step in body.get("steps", []):
+                    if "waitMs" in step:
+                        expanded.append(step)
+                        continue
+                    argv = step.get("argv")
+                    if isinstance(argv, list):
+                        expanded.extend(pointer_glide_steps(argv, display))
+                    else:
+                        expanded.append(step)
+                for step in expanded:
                     if "waitMs" in step:
                         time.sleep(max(0, min(int(step["waitMs"]), 5000)) / 1000)
                         continue

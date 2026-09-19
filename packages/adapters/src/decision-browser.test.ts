@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  actionAppliesToSnapshot,
   type BrowserElement,
   browserActionSpace,
+  entitiesFromTask,
+  formatPursuedStartPrompt,
   MAX_PURSUIT_STEPS,
   planBrowserAction,
   pursueBrowserGoal,
@@ -42,6 +45,9 @@ describe("planning the next browser action", () => {
     const request = decide.mock.calls[0]![0] as unknown as { questions: Record<string, unknown> };
     expect(Object.keys(request.questions).sort()).toEqual([
       "click_target",
+      "next_click_target",
+      "next_operation",
+      "next_type_text_target",
       "operation",
       "type_text_target",
     ]);
@@ -116,6 +122,44 @@ describe("planning the next browser action", () => {
       { goal: "g", snapshot: { elements: ELEMENTS } },
     );
     expect(planned).toBeUndefined();
+  });
+
+  it("offers navigation only among URLs already written in the goal", async () => {
+    const decide = vi.fn(async (_request: unknown) => ({ answers: {}, model: "m" }));
+    await planBrowserAction(
+      { decide },
+      { goal: "open https://flights.example and book", snapshot: { elements: ELEMENTS } },
+    );
+    const request = decide.mock.calls[0]![0] as unknown as {
+      questions: Record<string, { criteria?: Record<string, unknown> }>;
+    };
+    expect(Object.keys(request.questions)).toEqual(
+      expect.arrayContaining(["navigate_url", "next_navigate_url", "next_operation"]),
+    );
+    expect(Object.keys(request.questions.navigate_url!.criteria!)).toEqual([
+      "https://flights.example",
+    ]);
+  });
+
+  it("returns a URL the goal already contained, never one the model composed", async () => {
+    await expect(
+      planBrowserAction(
+        provider({
+          operation: { type: "choice", choice: "NAVIGATE", confidence: 0.9 },
+          navigate_url: { type: "choice", choice: "https://flights.example", confidence: 0.9 },
+        }),
+        { goal: "open https://flights.example", snapshot: { elements: ELEMENTS } },
+      ),
+    ).resolves.toEqual({ operation: "NAVIGATE", url: "https://flights.example" });
+    await expect(
+      planBrowserAction(
+        provider({
+          operation: { type: "choice", choice: "NAVIGATE", confidence: 0.9 },
+          navigate_url: { type: "choice", choice: "https://evil.example", confidence: 0.99 },
+        }),
+        { goal: "open https://flights.example", snapshot: { elements: ELEMENTS } },
+      ),
+    ).resolves.toBeUndefined();
   });
 });
 
@@ -208,6 +252,30 @@ describe("pursuing a goal over several steps", () => {
     );
     expect(outcome.status).toBe("undecided");
     expect(io.act).not.toHaveBeenCalled();
+  });
+
+  it("takes a speculative follow-up from the same request when the control is still there", async () => {
+    const decide = vi.fn(async () => ({
+      answers: {
+        operation: { type: "choice", choice: "CLICK", confidence: 0.9 },
+        click_target: { type: "choice", choice: "e1", confidence: 0.9 },
+        next_operation: { type: "choice", choice: "TYPE_TEXT", confidence: 0.9 },
+        next_type_text_target: { type: "choice", choice: "e2", confidence: 0.9 },
+      } as never,
+      model: "m",
+    }));
+    const io = browser([ELEMENTS, ELEMENTS]);
+    const outcome = await pursueBrowserGoal(
+      { decide },
+      { goal: "search", values: { "Where from?": "Zurich" }, maxSteps: 2 },
+      io,
+    );
+    expect(decide).toHaveBeenCalledTimes(1);
+    expect(io.acted).toEqual([
+      { action: "click", snapshotId: "s0", ref: "e1" },
+      { action: "fill", snapshotId: "s1", ref: "e2", text: "Zurich" },
+    ]);
+    expect(outcome.steps).toHaveLength(2);
   });
 
   it("stops at the step limit instead of looping", async () => {
@@ -464,5 +532,68 @@ describe("the page each action already returned", () => {
     expect(outcome.status).toBe("failed");
     expect(outcome.error).toContain("stale");
     expect(outcome.steps).toHaveLength(1);
+  });
+
+  it("uses a snapshot the caller already has instead of looking first", async () => {
+    const observe = vi.fn(async () => ({ snapshotId: "fresh", elements: ELEMENTS }));
+    const act = vi.fn(async () => ({ snapshotId: "s2", elements: ELEMENTS }));
+    await pursueBrowserGoal(
+      provider({
+        operation: { type: "choice", choice: "CLICK", confidence: 0.9 },
+        click_target: { type: "choice", choice: "e1", confidence: 0.9 },
+      }),
+      { goal: "click it", snapshot: { snapshotId: "s0", elements: ELEMENTS }, maxSteps: 1 },
+      { observe, act },
+    );
+    expect(observe).not.toHaveBeenCalled();
+    expect(act).toHaveBeenCalledWith({ action: "click", snapshotId: "s0", ref: "e1" });
+  });
+
+  it("opens a URL from the goal through the ordinary navigate call", async () => {
+    const act = vi.fn(async () => ({ snapshotId: "s2", url: "https://flights.example" }));
+    const outcome = await pursueBrowserGoal(
+      provider({
+        operation: { type: "choice", choice: "NAVIGATE", confidence: 0.9 },
+        navigate_url: { type: "choice", choice: "https://flights.example", confidence: 0.9 },
+      }),
+      { goal: "open https://flights.example", maxSteps: 1 },
+      { observe: async () => ({ snapshotId: "s1", elements: ELEMENTS }), act },
+    );
+    expect(act).toHaveBeenCalledWith({ action: "navigate", url: "https://flights.example" });
+    expect(outcome.steps).toEqual([{ operation: "NAVIGATE", note: "https://flights.example" }]);
+  });
+});
+
+describe("start-path browser helpers", () => {
+  it("points at quoted phrases instead of inventing fill values", () => {
+    expect(entitiesFromTask(`search for "Zurich" then 'Geneva'`)).toEqual([
+      { label: "quoted 1", value: "Zurich" },
+      { label: "quoted 2", value: "Geneva" },
+    ]);
+  });
+
+  it("summarizes a pursuit so the first generation does not repeat it", () => {
+    expect(
+      formatPursuedStartPrompt({
+        status: "done",
+        steps: [{ operation: "CLICK", name: "Search" }],
+        snapshot: { url: "https://flights.example" },
+      }),
+    ).toContain("CLICK Search");
+  });
+
+  it("will not reuse a navigation that is already the page on screen", () => {
+    expect(
+      actionAppliesToSnapshot(
+        { operation: "NAVIGATE", url: "https://flights.example" },
+        { url: "https://flights.example/" },
+      ),
+    ).toBe(false);
+    expect(
+      actionAppliesToSnapshot(
+        { operation: "NAVIGATE", url: "https://flights.example" },
+        { url: "https://other.example" },
+      ),
+    ).toBe(true);
   });
 });

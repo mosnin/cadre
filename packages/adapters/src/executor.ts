@@ -157,10 +157,19 @@ import {
   resolveBotWorkspacePath,
   teamBotWorkspaceDirectory,
 } from "./computer-support.js";
-import { observationToolResult, parseComputerActions } from "./computer-tools.js";
+import {
+  computerActSettleMs,
+  observationToolResult,
+  parseComputerActions,
+} from "./computer-tools.js";
 import { checkpointAfterComputerWork } from "./computer-workspace.js";
 import { sanitizeConnectorError } from "./connector-safety.js";
-import { type BrowserSnapshot, pursueBrowserGoal } from "./decision-browser.js";
+import {
+  type BrowserSnapshot,
+  entitiesFromTask,
+  formatPursuedStartPrompt,
+  pursueBrowserGoal,
+} from "./decision-browser.js";
 import { assessRunFloor } from "./decision-guards.js";
 import { routerCandidates } from "./decision-routing.js";
 import { decideRunStart, skillsImpliedByStart } from "./decision-start.js";
@@ -1375,10 +1384,23 @@ export function createRunExecutor(deps: ExecutorDeps) {
         });
         keepAliveTarget = computer;
         screenRelease = { computer, context };
+        const browsePromise = prefetchBrowseStart({
+          start,
+          goal: task.prompt,
+          decisions,
+          runId,
+          context,
+          computer,
+          browser: deps.sandbox.browser,
+          prisma: deps.prisma,
+          spaceId: run.spaceId,
+          botId: run.botId,
+        });
         scheduleComputerSleep(deps.jobs, storedComputer.id);
         const workspaceCheckpoint = createRunWorkspaceCheckpoint(() =>
           checkpointAfterComputerWork(deps, storedComputer, computer, context),
         );
+        if (start.first === "browse") workspaceCheckpoint.markDirty();
         /**
          * End this attempt without ending the run: persist a progress note, reset the tool
          * budget and requeue, so the next attempt continues with a fresh budget instead of
@@ -2376,7 +2398,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 {
                   actions: parseComputerActions(args.actions),
                   observe: args.observe !== false,
-                  settleMs: Number(args.settle_ms ?? 350),
+                  settleMs: computerActSettleMs(args),
                 },
                 context,
               );
@@ -3392,8 +3414,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
         const preloadedSkillBlocks = startSkills
           .filter((skill) => !taskPrompt.includes(`Use skill: ${skill.name}`))
           .map((skill) => formatForcedSkillPrompt(skill.name, skill.content));
-        const prefetched = await prefetchPromise;
+        const [prefetched, pursued] = await Promise.all([prefetchPromise, browsePromise]);
         const prefetchedBlock = prefetched ? formatPrefetchedStartPrompt(prefetched) : undefined;
+        const pursuedBlock = pursued ? formatPursuedStartPrompt(pursued) : undefined;
         const invokedSkill = savedSkills.find((skill) =>
           promptInvokesSkill(taskPrompt, skill.name || skill.goal),
         );
@@ -3406,6 +3429,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             : taskPrompt,
           ...preloadedSkillBlocks,
           prefetchedBlock,
+          pursuedBlock,
         ]
           .filter(Boolean)
           .join("\n\n");
@@ -4217,6 +4241,56 @@ export function createRunExecutor(deps: ExecutorDeps) {
       }
     },
   };
+}
+
+async function prefetchBrowseStart(input: {
+  start: { first?: string };
+  goal: string;
+  decisions: DecisionProvider | undefined;
+  runId: string;
+  context: AdapterContext;
+  computer: ComputerRef;
+  browser: ExecutorDeps["sandbox"]["browser"];
+  prisma: ExecutorDeps["prisma"];
+  spaceId: string;
+  botId: string;
+}) {
+  if (input.start.first !== "browse" || !input.browser) return undefined;
+  if (await getActiveTeachingSession(input.prisma, input.spaceId, input.botId)) return undefined;
+  const liveComputer = await input.prisma.computer.findUnique({
+    where: { id: input.computer.id },
+    select: {
+      controlHolder: true,
+      controlLeaseId: true,
+      controlLeaseExpiresAt: true,
+      controlBotId: true,
+    },
+  });
+  if (liveComputer && hasActiveComputerControlForBot(liveComputer, input.botId)) return undefined;
+  try {
+    const outcome = await pursueBrowserGoal(
+      input.decisions,
+      {
+        goal: input.goal,
+        entities: entitiesFromTask(input.goal),
+        sessionId: input.runId,
+        signal: input.context.signal,
+      },
+      {
+        observe: async () =>
+          (await input.browser!(
+            input.computer,
+            { action: "snapshot" },
+            input.context,
+          )) as BrowserSnapshot,
+        act: (request) => input.browser!(input.computer, request as BrowserRequest, input.context),
+      },
+    );
+    if (!outcome.steps.length && !outcome.snapshot) return undefined;
+    return outcome;
+  } catch {
+    return undefined;
+  }
 }
 
 async function computerScreenToolResult(
