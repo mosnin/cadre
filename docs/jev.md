@@ -49,15 +49,18 @@ task. They now travel together. Speculative questions — the review verdict, th
 skill name, the URL to fetch, the browser step after this one — ride on the
 request that was being made anyway.
 They are never the reason for a request of their own. The start request also
-runs beside connector discovery, so its 70–500ms is not added to the critical
-path. When the first action is a fetch or a short search, that tool runs while
+runs beside credential lookup, plugin sync, and connector discovery, so its
+70–500ms is not added to the critical path. When the first action is a fetch or a short search, that tool runs while
 the computer provisions, and the result is already in the task. Computer
 provision and model-credential resolution start beside start, discovery and
 memory once the run already has a model, so a warm machine is not paid for
 after those return. A run with no model never starts either.
+The start request begins beside credential lookup and plugin sync — it only
+needs the task, the skill list, and whether anyone already named a model —
+so those waits no longer stack in front of it.
 The first generation starts as soon as credentials resolve unless the first
-action is `browse` or `computer`, or the user attached files — those need the
-machine now. Answer, search, fetch, skill, company, and code generate while
+action is `browse` or the user attached files — those need the machine now.
+Answer, search, fetch, skill, company, code, and computer generate while
 the boot continues. A later `web_search` or `web_fetch` does not wait either.
 The first tool that touches the workspace waits on the same provision
 promise, which a generation has usually already outlasted.

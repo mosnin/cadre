@@ -129,7 +129,7 @@ describe("what a start decision already paid for", () => {
     expect(needsComputerBeforeFirstGeneration("code", false)).toBe(false);
     expect(needsComputerBeforeFirstGeneration(undefined, false)).toBe(false);
     expect(needsComputerBeforeFirstGeneration("browse", false)).toBe(true);
-    expect(needsComputerBeforeFirstGeneration("computer", false)).toBe(true);
+    expect(needsComputerBeforeFirstGeneration("computer", false)).toBe(false);
     expect(needsComputerBeforeFirstGeneration("answer", true)).toBe(true);
   });
 

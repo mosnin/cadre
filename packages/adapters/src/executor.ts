@@ -1190,7 +1190,31 @@ export function createRunExecutor(deps: ExecutorDeps) {
         void enqueueHistoryCompaction(deps.jobs, thread).catch((error) =>
           getLogger().error("history.compact enqueue failed", error),
         );
+        runAbortController = new AbortController();
+        if (!leaseValid) runAbortController.abort();
+        const decisions = deps.decisions ?? defaultDecisions;
         const hasModelOverride = Boolean(bot.modelProvider && bot.modelId);
+        const runDeployment = deps.deploymentModelKey ? resolveDeploymentModel() : null;
+        const runtimeFallback = runtimeFallbackModel(deps.runtime);
+        const namedModelId =
+          (hasModelOverride ? bot.modelId : null) ??
+          defaultCredential?.defaultModel ??
+          settings?.defaultModelId;
+        const routerPool = namedModelId ? [] : routerCandidates();
+        const shouldSuggestSkill =
+          agentSkills.some((skill) => skill.source === "user" || skill.source === "plugin") ||
+          agentSkills.length > 4;
+        // Start beside credential lookup and plugin sync: the decision only
+        // needs the task, the skill list, and whether anyone already named a model.
+        const startPromise = decideRunStart(decisions, {
+          task: task.prompt,
+          candidates: routerPool.length > 1 ? routerPool : undefined,
+          fallbackModel: namedModelId ?? runDeployment?.model ?? runtimeFallback?.id,
+          skills: shouldSuggestSkill ? agentSkills : undefined,
+          company: true,
+          sessionId: runId,
+          signal: runAbortController.signal,
+        });
         const overrideCredential =
           hasModelOverride && bot.modelProvider
             ? await findModelCredential(deps.prisma, run, bot.modelProvider)
@@ -1199,8 +1223,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
         // default secret for a different override provider.
         const useModelOverride = Boolean(hasModelOverride && overrideCredential);
         const credential = useModelOverride ? overrideCredential! : defaultCredential;
-        runAbortController = new AbortController();
-        if (!leaseValid) runAbortController.abort();
         const composioRows = storedConnections.filter(
           (connection) => connection.connectorId === "composio",
         );
@@ -1249,9 +1271,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
           ? effectiveMemoryScope(bot.memoryScope, configuredMemory.defaultScope)
           : null;
         const semanticMemory: SemanticMemoryProvider | null = configuredMemory?.provider ?? null;
-        const decisions = deps.decisions ?? defaultDecisions;
-        const runDeployment = deps.deploymentModelKey ? resolveDeploymentModel() : null;
-        const runtimeFallback = runtimeFallbackModel(deps.runtime);
         const runModelProvider =
           (useModelOverride ? bot.modelProvider : null) ??
           credential?.provider ??
@@ -1285,21 +1304,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
               runAbortController.signal,
             )
           : undefined;
-        // Only a run nobody chose a model for is routed: an explicit bot, credential or
-        // deployment-settings choice is the user's and is never second-guessed.
-        const routerPool = chosenModelId ? [] : routerCandidates();
-        const shouldSuggestSkill =
-          agentSkills.some((skill) => skill.source === "user" || skill.source === "plugin") ||
-          agentSkills.length > 4;
-        const startPromise = decideRunStart(decisions, {
-          task: task.prompt,
-          candidates: routerPool.length > 1 ? routerPool : undefined,
-          fallbackModel: runModelId,
-          skills: shouldSuggestSkill ? agentSkills : undefined,
-          company: true,
-          sessionId: runId,
-          signal: runAbortController.signal,
-        });
 
         await deps.events.append({
           spaceId: run.spaceId,
