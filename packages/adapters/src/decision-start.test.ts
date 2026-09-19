@@ -104,6 +104,70 @@ describe("deciding a run from one request", () => {
     );
     expect(start).toEqual({});
   });
+
+  it("keeps fetch only when a URL in the task can be pointed at", async () => {
+    const oneUrl = await decideRunStart(
+      answering({
+        first: { type: "choice", choice: "fetch", confidence: 0.9 },
+        fetch_url: { type: "choice", choice: "none_of_these", confidence: 0.99 },
+      }),
+      { task: "Read https://docs.example/a" },
+    );
+    expect(oneUrl).toEqual({ first: "fetch", fetchUrl: "https://docs.example/a" });
+
+    const noUrl = await decideRunStart(
+      answering({ first: { type: "choice", choice: "fetch", confidence: 0.9 } }),
+      { task: "Read the docs" },
+    );
+    expect(noUrl).toEqual({});
+
+    const twoUrls = await decideRunStart(
+      answering({
+        first: { type: "choice", choice: "fetch", confidence: 0.9 },
+        fetch_url: { type: "choice", choice: "none_of_these", confidence: 0.99 },
+      }),
+      { task: "Compare https://a.test/x and https://b.test/y" },
+    );
+    expect(twoUrls).toEqual({});
+  });
+
+  it("injects a named skill when first already committed to skill", async () => {
+    const start = await decideRunStart(
+      answering({
+        first: { type: "choice", choice: "skill", confidence: 0.9 },
+        needed: { type: "noul", noul: 0.2 },
+        skill: { type: "choice", choice: "symbolic", confidence: 0.85 },
+      }),
+      { task: "Judge this diff", skills: SKILLS },
+    );
+    expect(start).toEqual({ first: "skill", skill: "symbolic" });
+  });
+
+  it("drops skill-first when no catalog skill was named", async () => {
+    const start = await decideRunStart(
+      answering({
+        first: { type: "choice", choice: "skill", confidence: 0.9 },
+        needed: { type: "noul", noul: 0.9 },
+        skill: { type: "choice", choice: "none_of_these", confidence: 0.99 },
+      }),
+      { task: "Judge this diff", skills: SKILLS },
+    );
+    expect(start).toEqual({});
+  });
+
+  it("keeps search only when the task is already a short query", async () => {
+    const short = await decideRunStart(
+      answering({ first: { type: "choice", choice: "search", confidence: 0.9 } }),
+      { task: "weather in paris" },
+    );
+    expect(short).toEqual({ first: "search" });
+
+    const long = await decideRunStart(
+      answering({ first: { type: "choice", choice: "search", confidence: 0.9 } }),
+      { task: "x".repeat(401) },
+    );
+    expect(long).toEqual({});
+  });
 });
 
 describe("what a start decision already paid for", () => {

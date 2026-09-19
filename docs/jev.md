@@ -75,7 +75,12 @@ action is `browse` or the user attached files — those need the machine now.
 Answer, search, fetch, skill, company, code, and computer generate while
 the boot continues. A company-first start injects company-context and
 connected-workspace together, so Operate, Stored, and Company OS do not
-each cost a `skill_read` generation. A later `web_search` or `web_fetch` does not wait either.
+each cost a `skill_read` generation. Fetch, search, and skill-first
+answers are kept only when the harness can act: a URL already in the
+task, a short query that is already the user's wording, or a named
+skill — including when first already chose `skill` and the needed noul
+was shy. A commitment the prefetch or injection path cannot use is
+dropped so the model is not told to repeat work that never started. A later `web_search` or `web_fetch` does not wait either.
 The first tool that touches the workspace waits on the same provision
 promise, which a generation has usually already outlasted.
 When the first action is `browse`, pursuit starts the moment start says so and
@@ -112,7 +117,7 @@ here is the last thing between an agent and an irreversible action.
 | --- | --- | --- | --- |
 | Tool call (`decideToolCall`) | A full judge **generation** per consequential call, and **closes a gap** in the name regex | One request: `noul` consequence when the name cleared the call, plus `choice` pass/ask and concern when a default-rule judge will run — including mutation-named tools the name already flagged | The generative judge, and the name check's own verdict |
 | Run floor (`assessRunFloor`) | Nothing; **catches what the hash guard cannot**, in the Foreman shape | One request: `noul` stuck, off-track, and needs-a-person | Continuing into the next segment |
-| Run start (`decideRunStart`) | Two extra start-of-run **requests**, a `skill_read` **generation**, and the first `web_fetch` / `web_search` **generation** | One request: `choice` first action, speculative `choice` of model / skill / company area / URL, `noul` "is a skill needed?" | Each field unset: the deployment default, the catalog unread, the skill's own order, the agent deciding |
+| Run start (`decideRunStart`) | Two extra start-of-run **requests**, a `skill_read` **generation**, and the first `web_fetch` / `web_search` **generation** | One request: `choice` first action, speculative `choice` of model / skill / company area / URL, `noul` "is a skill needed?" — then only the first step the harness can act on is kept (a named skill, a URL already in the task, or a short search that is already a query) | Each field unset: the deployment default, the catalog unread, the skill's own order, the agent deciding |
 | Search ranking (`rankWebSearchHits`) | Extra **fetches** on a shortlist that already answers | One request: a `score` per result plus `noul` "already answered?" and the injection `noul` | The engine's own order, and the agent fetching |
 | Catalog ranking (`rankCatalogHits`) | Loading the **wrong connector tool** | One request: a `score` per shortlisted tool plus the injection `noul` over their descriptions | The keyword order |
 | Memory order (`rankMemoryDocuments`) | A **recency sort** that decided which saved facts a run would never see | One request: a `score` per document plus the injection `noul` | The recency order, unlabeled |
