@@ -1256,7 +1256,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
             sessionId: runId,
           }),
         );
-        void prefetchPromise.catch(() => undefined);
+        void prefetchPromise.catch((error) => {
+          getLogger().error("start.prefetch failed", error);
+        });
         const memoryScope = configuredMemory
           ? effectiveMemoryScope(bot.memoryScope, configuredMemory.defaultScope)
           : null;
@@ -1281,7 +1283,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 bootContext,
               )
             : Promise.resolve([]);
-        void loadFilesPromise.catch(() => undefined);
+        void loadFilesPromise.catch((error) => {
+          getLogger().error("start.files failed", error);
+        });
         const threadContext = threadContextForRun(run.trigger, {
           messages: [...messages].reverse().map((m) => ({
             id: m.id,
@@ -1365,13 +1369,18 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 botId: run.botId,
               }),
             )
-            .catch(() => undefined);
+            .catch((error) => {
+              getLogger().error("start.browse failed", error);
+              return undefined;
+            });
           return browseInFlight;
         };
         let browsePromise = startPromise.then((startDecision) =>
           browseWhenReady(startDecision, bootContext),
         );
-        void browsePromise.catch(() => undefined);
+        void browsePromise.catch((error) => {
+          getLogger().error("start.browse failed", error);
+        });
         let runReads =
           storedComputer && fallbackProvider && fallbackModelId
             ? startIndependentRunReads(deps, { run, thread, bot, userName: ownerName })
@@ -4570,7 +4579,8 @@ async function prefetchBrowseStart(input: {
     );
     if (!outcome.steps.length && !outcome.snapshot) return undefined;
     return outcome;
-  } catch {
+  } catch (error) {
+    getLogger().error("start.browse failed", error);
     return undefined;
   }
 }

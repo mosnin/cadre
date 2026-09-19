@@ -228,16 +228,17 @@ export async function decideRunStart(
     if (chosen && chosen !== input.fallbackModel) decided.model = chosen;
   }
 
-  if (skills.length > 0) {
-    const needed = result.answers.needed;
-    if (needed?.type === "noul" && needed.noul >= DECISION_CONFIDENCE.routing) {
-      const skill = actionableChoice(
-        result.answers.skill,
-        skills.map((entry) => entry.name),
-        DECISION_CONFIDENCE.routing,
-      );
-      if (skill) decided.skill = skill;
-    }
+  const skillChoice =
+    skills.length > 0
+      ? (actionableChoice(
+          result.answers.skill,
+          skills.map((entry) => entry.name),
+          DECISION_CONFIDENCE.routing,
+        ) ?? undefined)
+      : undefined;
+  const needed = result.answers.needed;
+  if (skillChoice && needed?.type === "noul" && needed.noul >= DECISION_CONFIDENCE.routing) {
+    decided.skill = skillChoice;
   }
 
   if (input.company) {
@@ -264,7 +265,35 @@ export async function decideRunStart(
     }
   }
 
-  return decided;
+  return consumeRunStart(decided, { task, urls, skillChoice });
+}
+
+/**
+ * Keep only the first-step commitments the harness can act on. A fetch
+ * without a URL, a search that is not already a query, or a skill-first
+ * run with no named skill would otherwise skip prefetch/injection and
+ * still spend the generation those paths exist to replace.
+ */
+export function consumeRunStart(
+  decided: RunStartDecision,
+  input: { task: string; urls: string[]; skillChoice?: string },
+): RunStartDecision {
+  const next: RunStartDecision = { ...decided };
+  if (next.first === "skill") {
+    next.skill ??= input.skillChoice;
+    if (!next.skill) delete next.first;
+  }
+  if (next.first === "fetch") {
+    if (!next.fetchUrl && input.urls.length === 1) {
+      const only = input.urls[0];
+      if (only) next.fetchUrl = only;
+    }
+    if (!next.fetchUrl) delete next.first;
+  }
+  if (next.first === "search" && !searchQueryForStart(input.task)) {
+    delete next.first;
+  }
+  return next;
 }
 
 /** Short enough that the user's own wording is the search query — Jev cannot invent one. */
