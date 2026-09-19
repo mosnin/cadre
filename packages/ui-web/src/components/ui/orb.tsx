@@ -43,6 +43,7 @@ export function Orb({
     <div className={className ?? "relative h-full w-full"}>
       <Canvas
         resize={{ debounce: resizeDebounce }}
+        style={{ pointerEvents: "none" }}
         gl={{
           alpha: true,
           antialias: true,

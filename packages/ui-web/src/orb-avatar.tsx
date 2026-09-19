@@ -13,6 +13,9 @@ import "./styles.css";
 
 export type OrbState = "idle" | "connecting" | "listening" | "speaking" | "muted";
 
+/** Mentions stay a colour fill; rail-size orbs run the official shader. */
+const LIVE_ORB_MIN_SIZE = 20;
+
 const LiveOrb = lazy(async () => {
   const module = await import("./orb-avatar-live.js");
   return { default: module.LiveOrb };
@@ -61,7 +64,7 @@ export const OrbAvatar = memo(function OrbAvatar({
   useEffect(() => {
     setHydrated(true);
   }, []);
-  const wantsLive = hydrated && !reducedMotion;
+  const wantsLive = hydrated && size >= LIVE_ORB_MIN_SIZE && !reducedMotion;
   const [, mid] = orbColors(color);
 
   return (
@@ -71,7 +74,7 @@ export const OrbAvatar = memo(function OrbAvatar({
       data-working={state === "speaking" ? "true" : "false"}
       data-halo={!wantsLive && state === "speaking" ? "true" : undefined}
       className={cn(
-        "cadre-orb relative inline-block shrink-0 overflow-hidden rounded-full",
+        "cadre-orb pointer-events-none relative inline-block shrink-0 overflow-hidden rounded-full",
         className,
       )}
       style={{ width: size, height: size, backgroundColor: mid }}

@@ -80,10 +80,13 @@ export function LiveOrb({
   }, [onScreen, budgetEpoch]);
 
   return (
-    <div ref={hostRef} className="pointer-events-none absolute inset-0 h-full w-full">
+    <div
+      ref={hostRef}
+      className="pointer-events-none absolute inset-0 h-full w-full overflow-hidden"
+    >
       {hasBudget ? (
         <Orb
-          className="h-full w-full"
+          className="pointer-events-none h-full w-full"
           colors={orbColors(color)}
           seed={orbSeed(color)}
           agentState={agentStateFor(state)}
