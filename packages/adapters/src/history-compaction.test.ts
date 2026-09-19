@@ -9,6 +9,7 @@ import type { MessageBlock } from "@cadre/contracts";
 import type { PrismaClient } from "@cadre/db";
 import { createLogger, createTestSink, installLogger } from "@cadre/logging";
 import { describe, expect, it, vi } from "vitest";
+import { DEFAULT_OPENROUTER_MODEL } from "./deployment-model.js";
 import {
   compactHistory,
   formatCompactedSummary,
@@ -379,7 +380,7 @@ describe("compactHistory", () => {
     expect(request.tools).toEqual([]);
     expect(request.model).toEqual({
       provider: "openrouter",
-      id: "deepseek/deepseek-v4-flash-0731",
+      id: DEFAULT_OPENROUTER_MODEL,
       apiKey: "openrouter-key",
     });
     expect(request.prompt).toContain("message 0");
