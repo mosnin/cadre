@@ -50,8 +50,10 @@ skill name, the URL to fetch, the browser step after this one, the injection
 screen on a ranking request — ride on the request that was being made anyway.
 They are never the reason for a request of their own. The start request also
 runs beside credential lookup, plugin sync, and connector discovery, so its
-70–500ms is not added to the critical path. When the first action is a fetch or a short search, that tool runs while
-the computer provisions, and the result is already in the task. Computer
+70–500ms is not added to the critical path. When the first action is a fetch or a short search, that tool starts the
+moment start resolves — overlapping connector discovery, memory ranking, and
+provision — so the result is already in the task. A run with no model
+swallows that in-flight prefetch the same way it swallows provision. Computer
 provision starts beside start, credential lookup and plugin sync once a
 model is already named without that work, so a warm machine is not paid for
 after those return. Override-credential lookup and live plugin sync run
@@ -64,6 +66,8 @@ so those waits no longer stack in front of it. Durable memory ranking, the
 scratchpad, current-turn images, and semantic recall start on the same
 beat: none of them read connectors, so a Composio listing no longer sits
 in front of the memory request either.
+Fetch and search start the moment start returns, so they no longer wait
+for discovery or memory either.
 The first generation starts as soon as credentials resolve unless the first
 action is `browse` or the user attached files — those need the machine now.
 Answer, search, fetch, skill, company, code, and computer generate while

@@ -82,9 +82,10 @@ export type PrefetchedStart =
     };
 
 /**
- * First tool the start decision already committed to, run while the computer
- * provisions so the model does not spend a generation opening the same page
- * or inventing a search.
+ * First tool the start decision already committed to. Starts as soon as
+ * start resolves so fetch/search overlap discovery, memory, and provision
+ * instead of waiting for them. The model does not spend a generation
+ * opening the same page or inventing a search.
  */
 export async function prefetchRunStart(
   web: WebSearchProvider & WebFetchProvider,

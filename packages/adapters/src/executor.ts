@@ -1239,6 +1239,15 @@ export function createRunExecutor(deps: ExecutorDeps) {
           connectedConnections: [],
           connectedProviders: [],
         };
+        // Fetch/search only need signal and ids — start them the moment
+        // start resolves, so they overlap discovery, memory, and provision.
+        const prefetchPromise = startPromise.then((startDecision) =>
+          prefetchRunStart(web, bootContext, startDecision, task.prompt, {
+            provider: decisions,
+            sessionId: runId,
+          }),
+        );
+        void prefetchPromise.catch(() => undefined);
         const memoryScope = configuredMemory
           ? effectiveMemoryScope(bot.memoryScope, configuredMemory.defaultScope)
           : null;
@@ -1472,6 +1481,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           await Promise.all([
             provisionPromise?.catch(() => undefined),
             resolvePromise?.catch(() => undefined),
+            prefetchPromise.catch(() => undefined),
           ]);
           const failed = await deps.events.finalizeRun({
             spaceId: run.spaceId,
@@ -1516,10 +1526,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
         runReads ??= startIndependentRunReads(deps, { run, thread, bot });
         const reads = runReads;
         const computerMode = parseComputerMode(storedComputer.scope);
-        const prefetchPromise = prefetchRunStart(web, context, start, task.prompt, {
-          provider: decisions,
-          sessionId: runId,
-        });
         const resolved = await (resolvePromise ??
           resolveModelKey(
             deps,
