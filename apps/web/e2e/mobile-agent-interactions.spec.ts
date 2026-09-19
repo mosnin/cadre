@@ -11,7 +11,7 @@ import {
 test("mobile inbox pins chats, creates groups and offers attachment sources", async ({
   page,
 }, testInfo) => {
-  await signup(page, `mobile-inbox-${Date.now()}@rakazo.test`, "password12", "Mobile Inbox");
+  await signup(page, `mobile-inbox-${Date.now()}@cadre.test`, "password12", "Mobile Inbox");
   await completeOnboarding(page);
   const chief = activeBotId(page);
   await createNamedBot(page, "Researcher");
@@ -74,7 +74,7 @@ test("mobile inbox pins chats, creates groups and offers attachment sources", as
 test("computer help and navigation commands use only the current viewer", async ({
   page,
 }, testInfo) => {
-  await signup(page, `mobile-controls-${Date.now()}@rakazo.test`, "password12", "Mobile Controls");
+  await signup(page, `mobile-controls-${Date.now()}@cadre.test`, "password12", "Mobile Controls");
   await completeOnboarding(page);
   const botId = activeBotId(page);
   await rpc(page, "computer/boot", { botId });

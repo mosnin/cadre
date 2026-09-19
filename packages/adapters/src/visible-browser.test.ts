@@ -126,7 +126,7 @@ it("requires a protected fill to name the host and the field it belongs to", () 
   expect(
     python(`
 import os
-os.environ['RAKAZO_PROTECTED_TEXT']='secret'
+os.environ['CADRE_PROTECTED_TEXT']='secret'
 for request in [{'action':'fill_protected','snapshotId':'s','ref':'e1'},{'action':'fill_protected','snapshotId':'s','ref':'e1','secretHost':' ','secretField':'password'},{'action':'fill_protected','snapshotId':'s','ref':'e1','secretHost':'bank.example','secretField':'anything'}]:
     try: m['bounded_request'](request)
     except ValueError: continue

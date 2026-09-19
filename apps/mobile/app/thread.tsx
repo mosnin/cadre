@@ -1,12 +1,12 @@
-import { ChatMarkdown } from "@rakazo/chat-ui/native";
+import { ChatMarkdown } from "@cadre/chat-ui/native";
 import type {
   AgentSkillCatalogEntry,
   Connection,
   ConnectionCatalogItem,
   MessageBlock,
   Routine,
-} from "@rakazo/contracts";
-import { canReactToThreadMessage } from "@rakazo/contracts";
+} from "@cadre/contracts";
+import { canReactToThreadMessage } from "@cadre/contracts";
 import {
   abortableDelay,
   attachmentsForThread,
@@ -24,7 +24,7 @@ import {
   serializeComposerPrompt,
   truncateSlashDescription,
   userVisibleMessages,
-} from "@rakazo/core";
+} from "@cadre/core";
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";

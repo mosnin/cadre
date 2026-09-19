@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { createDb } from "@cadre/db";
 import type { OAuthCredential } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
-import { createDb } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
 import { modelOAuthModifier } from "./model-oauth-storage.js";
 import { PiRuntimeCredentialStore } from "./pi-credentials.js";

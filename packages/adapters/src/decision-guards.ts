@@ -7,7 +7,7 @@
  * when the model will not commit, every one returns the caller's own answer.
  */
 
-import { DECISION_CONFIDENCE, type NoulAnswer, noul } from "@rakazo/core";
+import { DECISION_CONFIDENCE, type NoulAnswer, noul } from "@cadre/core";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 function probability(answer: unknown): number | undefined {

@@ -1,5 +1,5 @@
-import { cn } from "@rakazo/ui-web";
-import { Loader } from "@rakazo/ui-web/directory/loader";
+import { cn } from "@cadre/ui-web";
+import { Loader } from "@cadre/ui-web/directory/loader";
 import { type ReactNode, useEffect, useState } from "react";
 
 /** Format wall-clock seconds since `startedAtMs` as `0.0s` / `1m 2.3s`. */

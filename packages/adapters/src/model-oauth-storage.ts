@@ -1,5 +1,5 @@
-import type { ModifyModelOAuthCredential } from "@rakazo/adapter-kit";
-import type { PrismaClient } from "@rakazo/db";
+import type { ModifyModelOAuthCredential } from "@cadre/adapter-kit";
+import type { PrismaClient } from "@cadre/db";
 import { toOAuthCredential } from "./pi-credentials.js";
 import { parseModelSecret, serializeModelSecret } from "./pi-oauth.js";
 import type { EncryptedSecretStore } from "./secrets.js";

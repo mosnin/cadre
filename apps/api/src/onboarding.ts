@@ -1,6 +1,6 @@
-import type { ComposioProvider } from "@rakazo/adapters";
-import type { Actor, MessageBlock } from "@rakazo/contracts";
-import { featuredConnectorProvidersMatch } from "@rakazo/core";
+import type { ComposioProvider } from "@cadre/adapters";
+import type { Actor, MessageBlock } from "@cadre/contracts";
+import { featuredConnectorProvidersMatch } from "@cadre/core";
 import {
   appendEventInTransaction,
   createThreadMessageInTransaction,
@@ -8,7 +8,7 @@ import {
   type Prisma,
   type PrismaClient,
   type ThreadEvents,
-} from "@rakazo/db";
+} from "@cadre/db";
 
 /**
  * First-run conversational onboarding, seeded deterministically into the bot's

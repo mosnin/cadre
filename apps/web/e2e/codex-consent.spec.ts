@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { captureScreenshot, completeOnboarding, signup } from "./helpers";
 
 test("reviews all-space Codex consent before issuing access", async ({ page }, testInfo) => {
-  await signup(page, `codex-consent-${Date.now()}@rakazo.test`, "password12", "OAuth Fixture");
+  await signup(page, `codex-consent-${Date.now()}@cadre.test`, "password12", "OAuth Fixture");
   await completeOnboarding(page);
   await page.route("**/api/oauth/codex/consent*", async (route) => {
     if (route.request().method() === "GET")

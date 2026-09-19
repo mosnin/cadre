@@ -1,5 +1,5 @@
+import type { CapabilityInstall, Routine } from "@cadre/contracts";
 import { expect, test } from "@playwright/test";
-import type { CapabilityInstall, Routine } from "@rakazo/contracts";
 import {
   activeBotId,
   captureScreenshot,
@@ -15,7 +15,7 @@ for (const width of [1280, 390]) {
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height: 844 });
-    await signup(page, `controls-${width}-${Date.now()}@rakazo.test`, "password12", "Controls");
+    await signup(page, `controls-${width}-${Date.now()}@cadre.test`, "password12", "Controls");
     await completeOnboarding(page);
     await openNavigation(page);
     const logo = page.getByTestId("bots-sidebar").getByRole("img", { name: "Cadre", exact: true });
@@ -76,7 +76,7 @@ for (const width of [1280, 390]) {
 test("custom plugins survive catalog failure and install once without a refresh", async ({
   page,
 }, testInfo) => {
-  await signup(page, `custom-controls-${Date.now()}@rakazo.test`, "password12", "Custom Controls");
+  await signup(page, `custom-controls-${Date.now()}@cadre.test`, "password12", "Custom Controls");
   await completeOnboarding(page);
   let installs = 0;
   const installed: CapabilityInstall[] = [];

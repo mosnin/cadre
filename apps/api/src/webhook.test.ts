@@ -170,7 +170,7 @@ describe("inbound webhook HTTP route", () => {
         authorization: `Bearer ${SECRET}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ event: "ci.failed", repo: "rakazo" }),
+      body: JSON.stringify({ event: "ci.failed", repo: "cadre" }),
     });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
@@ -261,7 +261,7 @@ describe("inbound webhook HTTP route", () => {
           return new Promise(() => undefined);
         },
       });
-      const request = new Request("https://rakazo.example.test/webhook", {
+      const request = new Request("https://cadre.example.test/webhook", {
         method: "POST",
         headers:
           kind === "declared"

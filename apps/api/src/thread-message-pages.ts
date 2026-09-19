@@ -1,6 +1,6 @@
-import type { MessageBlock, ThreadMessage, ThreadMessagePage } from "@rakazo/contracts";
-import { hasUserInputBlocks, isPeerReceiptBlocks, isUserFacingPeerCallback } from "@rakazo/core";
-import type { Prisma, PrismaClient } from "@rakazo/db";
+import type { MessageBlock, ThreadMessage, ThreadMessagePage } from "@cadre/contracts";
+import { hasUserInputBlocks, isPeerReceiptBlocks, isUserFacingPeerCallback } from "@cadre/core";
+import type { Prisma, PrismaClient } from "@cadre/db";
 
 type MessageDb = PrismaClient | Prisma.TransactionClient;
 

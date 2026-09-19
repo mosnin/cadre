@@ -1,5 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import type { Bot } from "@rakazo/contracts";
+import type { Bot } from "@cadre/contracts";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +16,8 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
-} from "@rakazo/ui-web";
+} from "@cadre/ui-web";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Lock } from "lucide-react";
 import { useId, useState } from "react";
 

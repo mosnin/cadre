@@ -19,7 +19,7 @@
  * already in flight, against a whole second round trip.
  */
 
-import type { ActionApprovalRule } from "@rakazo/core";
+import type { ActionApprovalRule } from "@cadre/core";
 import {
   actionableChoice,
   choice,
@@ -27,7 +27,7 @@ import {
   escapePromptData,
   type NoulAnswer,
   noul,
-} from "@rakazo/core";
+} from "@cadre/core";
 import type { AutoReviewJudgeResult } from "./auto-review.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 

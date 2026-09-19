@@ -8,7 +8,7 @@ test("workspace library saves edits and imports complete plugin references", asy
   page,
 }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light" });
-  await signup(page, `library-${Date.now()}@rakazo.test`, "password12", "Library Owner");
+  await signup(page, `library-${Date.now()}@cadre.test`, "password12", "Library Owner");
   await completeOnboarding(page);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await openNavigation(page);

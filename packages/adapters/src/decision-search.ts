@@ -10,8 +10,8 @@
  * a decision provider, or when the model hedges, the engine's own order is returned unchanged.
  */
 
-import type { WebSearchHit } from "@rakazo/adapter-kit";
-import { answerConfidence, DECISION_CONFIDENCE, type ScoreAnswer, score } from "@rakazo/core";
+import type { WebSearchHit } from "@cadre/adapter-kit";
+import { answerConfidence, DECISION_CONFIDENCE, type ScoreAnswer, score } from "@cadre/core";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 /** Ordered lowest to highest; the answer is the index of the level that fits. */

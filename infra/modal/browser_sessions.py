@@ -11,7 +11,7 @@ import time
 import signal
 import re
 
-PROFILES = Path('/home/rakazo/.browser-profiles')
+PROFILES = Path('/home/cadre/.browser-profiles')
 STATE_FILE = PROFILES / 'shared-sessions.json'
 COOKIE_FIELDS = ('name', 'value', 'domain', 'path', 'secure', 'httpOnly', 'sameSite',
                  'expires', 'priority', 'sourceScheme', 'sourcePort', 'partitionKey')

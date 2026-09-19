@@ -1,5 +1,5 @@
-import type { BillingProvider } from "@rakazo/adapter-kit";
-import { BillingSnapshotSchema } from "@rakazo/contracts";
+import type { BillingProvider } from "@cadre/adapter-kit";
+import { BillingSnapshotSchema } from "@cadre/contracts";
 import * as z from "zod";
 
 const Customer = z.object({

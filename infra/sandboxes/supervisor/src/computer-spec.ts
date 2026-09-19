@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-export const COMPUTER_IMAGE = process.env.RAKAZO_COMPUTER_IMAGE ?? "rakazo/computer:local";
+export const COMPUTER_IMAGE = process.env.CADRE_COMPUTER_IMAGE ?? "cadre/computer:local";
 export const COMPUTER_UID = 1000;
 export const COMPUTER_GID = 1000;
 export const COMPUTER_USER = `${COMPUTER_UID}:${COMPUTER_GID}`;
@@ -86,20 +86,20 @@ export function containerCreateOptions(input: ComputerCreateInput) {
     Tty: true,
     Env: [
       "DISPLAY=:1",
-      "HOME=/home/rakazo",
-      "PATH=/home/rakazo/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-      "NPM_CONFIG_PREFIX=/home/rakazo/.local",
+      "HOME=/home/cadre",
+      "PATH=/home/cadre/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "NPM_CONFIG_PREFIX=/home/cadre/.local",
       "PIP_USER=1",
-      ...(input.controlToken ? [`RAKAZO_COMPUTER_CONTROL_TOKEN=${input.controlToken}`] : []),
+      ...(input.controlToken ? [`CADRE_COMPUTER_CONTROL_TOKEN=${input.controlToken}`] : []),
     ],
     Labels: {
-      "rakazo.managed": "true",
-      "rakazo.botId": input.botId,
-      "rakazo.spaceId": input.spaceId,
+      "cadre.managed": "true",
+      "cadre.botId": input.botId,
+      "cadre.spaceId": input.spaceId,
     },
     ExposedPorts: ports.ExposedPorts,
     HostConfig: {
-      Binds: [`${input.homePath}:/home/rakazo`],
+      Binds: [`${input.homePath}:/home/cadre`],
       PortBindings: ports.PortBindings,
       ShmSize: 256 * 1024 * 1024,
       // A browser with many tabs must not take the host down with it.
@@ -115,7 +115,7 @@ export function containerCreateOptions(input: ComputerCreateInput) {
       AutoRemove: false,
       NetworkMode: input.networkMode ?? "bridge",
     },
-    WorkingDir: "/home/rakazo",
+    WorkingDir: "/home/cadre",
   };
 }
 
@@ -125,7 +125,7 @@ export function sanitizeIdentifier(botId: string) {
 }
 
 export function containerNameFor(botId: string) {
-  return `rakazo-bot-${sanitizeIdentifier(botId)}`;
+  return `cadre-bot-${sanitizeIdentifier(botId)}`;
 }
 
 export function computerNetworkNameFor(botId: string) {
@@ -133,7 +133,7 @@ export function computerNetworkNameFor(botId: string) {
   // characters (e.g. "a/b" and "ab"). Do not change containerNameFor — that
   // name must stay stable so an existing computer can resume.
   const hash = createHash("sha256").update(botId).digest("hex").slice(0, 32);
-  return `rakazo-computer-${sanitizeIdentifier(botId).slice(0, 32)}-${hash}`;
+  return `cadre-computer-${sanitizeIdentifier(botId).slice(0, 32)}-${hash}`;
 }
 
 /** Current and prior network names used by this PR, for delete cleanup. */
@@ -142,8 +142,8 @@ export function computerNetworkNamesForCleanup(botId: string) {
   const digest = createHash("sha256").update(botId).digest("hex");
   return [
     computerNetworkNameFor(botId),
-    `rakazo-computer-${safe}`,
-    `rakazo-computer-${safe.slice(0, 32)}-${digest.slice(0, 8)}`,
+    `cadre-computer-${safe}`,
+    `cadre-computer-${safe.slice(0, 32)}-${digest.slice(0, 8)}`,
   ];
 }
 
@@ -242,9 +242,9 @@ function mapKey(key: string) {
 
 const DEFAULT_COMPUTER_MEMORY_BYTES = 4 * 1024 * 1024 * 1024;
 
-/** Container memory cap; RAKAZO_COMPUTER_MEMORY_MB overrides the 4 GiB default. */
+/** Container memory cap; CADRE_COMPUTER_MEMORY_MB overrides the 4 GiB default. */
 export function computerMemoryBytes(env: NodeJS.ProcessEnv = process.env): number {
-  const mb = Number(env.RAKAZO_COMPUTER_MEMORY_MB);
+  const mb = Number(env.CADRE_COMPUTER_MEMORY_MB);
   if (Number.isFinite(mb) && mb >= 512) return Math.floor(mb) * 1024 * 1024;
   return DEFAULT_COMPUTER_MEMORY_BYTES;
 }

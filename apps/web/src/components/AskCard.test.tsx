@@ -1,4 +1,4 @@
-import { selectedAskActionLabel } from "@rakazo/core";
+import { selectedAskActionLabel } from "@cadre/core";
 import { describe, expect, it } from "vitest";
 
 describe("selectedAskActionLabel", () => {

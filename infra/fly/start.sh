@@ -3,10 +3,10 @@ set -euo pipefail
 umask 077
 # The platform management socket must stay inaccessible to desktop processes.
 [ ! -d /.fly ] || chmod 700 /.fly
-export RAKAZO_VNC_HOST=127.0.0.1
+export CADRE_VNC_HOST=127.0.0.1
 : "${CADRE_SCREEN_VIEW_TOKEN:?Screen capability required}"
 : "${CADRE_RPC_TOKEN:?Computer capability required}"
-install -d -m 700 -o 1000 -g 1000 /home/rakazo
+install -d -m 700 -o 1000 -g 1000 /home/cadre
 # Runtime grants do not survive a VM restart; the persistent home does.
 rm -rf /run/cadre /run/cadre-input
 install -d -m 755 /run/cadre-input
@@ -14,7 +14,7 @@ install -d -m 700 /run/cadre
 rm -f /tmp/.X?-lock /tmp/.X11-unix/X?
 python3 -c 'import sys; sys.path.insert(0,"/opt/cadre"); import screens; screens.resume_sessions()'
 export CADRE_SHARED_BROWSER_SESSIONS=1
-env -u CADRE_SCREEN_VIEW_TOKEN -u CADRE_RPC_TOKEN runuser -u rakazo -- /usr/local/bin/rakazo-computer &
+env -u CADRE_SCREEN_VIEW_TOKEN -u CADRE_RPC_TOKEN runuser -u cadre -- /usr/local/bin/cadre-computer &
 COMPUTER_PID=$!
 trap 'kill "$COMPUTER_PID" 2>/dev/null || true' EXIT
 for _ in $(seq 1 100); do

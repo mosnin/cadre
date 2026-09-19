@@ -2,9 +2,9 @@ import type {
   AgentModelOAuthCredential,
   AgentRuntime,
   ModifyModelOAuthCredential,
-} from "@rakazo/adapter-kit";
-import type { ActionApprovalRule } from "@rakazo/core";
-import { type AutoReviewJudgeDecision, escapePromptData, redactSecrets } from "@rakazo/core";
+} from "@cadre/adapter-kit";
+import type { ActionApprovalRule } from "@cadre/core";
+import { type AutoReviewJudgeDecision, escapePromptData, redactSecrets } from "@cadre/core";
 import { resolveDeploymentModel } from "./deployment-model.js";
 import { LOCAL_PROVIDER_ID } from "./pi-local-provider.js";
 
@@ -33,7 +33,7 @@ function envFlag(env: NodeJS.ProcessEnv, name: string): boolean {
 }
 
 function localModelIds(env: NodeJS.ProcessEnv): string[] {
-  return (env.RAKAZO_LOCAL_MODELS ?? "")
+  return (env.CADRE_LOCAL_MODELS ?? "")
     .split(",")
     .map((id) => id.trim())
     .filter((id) => id.length > 0);
@@ -41,11 +41,11 @@ function localModelIds(env: NodeJS.ProcessEnv): string[] {
 
 /** Deployment default for the user toggle when no preference row exists. */
 export function deploymentAutoReviewDefault(env: NodeJS.ProcessEnv = process.env): boolean {
-  return envFlag(env, "RAKAZO_AUTO_REVIEW");
+  return envFlag(env, "CADRE_AUTO_REVIEW");
 }
 
 export function autoReviewTimeoutMs(env: NodeJS.ProcessEnv = process.env): number {
-  const raw = env.RAKAZO_AUTO_REVIEW_TIMEOUT_MS?.trim();
+  const raw = env.CADRE_AUTO_REVIEW_TIMEOUT_MS?.trim();
   if (!raw) return DEFAULT_TIMEOUT_MS;
   const value = Number(raw);
   if (!Number.isFinite(value) || value < 200 || value > 30_000) return DEFAULT_TIMEOUT_MS;
@@ -59,8 +59,8 @@ export function autoReviewTimeoutMs(env: NodeJS.ProcessEnv = process.env): numbe
 export function resolveAutoReviewChecker(
   env: NodeJS.ProcessEnv = process.env,
 ): AutoReviewChecker | null {
-  const overrideProvider = env.RAKAZO_AUTO_REVIEW_PROVIDER?.trim();
-  const overrideModel = env.RAKAZO_AUTO_REVIEW_MODEL?.trim();
+  const overrideProvider = env.CADRE_AUTO_REVIEW_PROVIDER?.trim();
+  const overrideModel = env.CADRE_AUTO_REVIEW_MODEL?.trim();
   if (overrideProvider && overrideModel) {
     return { provider: overrideProvider, model: overrideModel };
   }

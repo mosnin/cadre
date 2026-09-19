@@ -1,7 +1,7 @@
+import type { Bot } from "@cadre/contracts";
+import { BotAvatar } from "@cadre/ui-web";
+import { CommandPalette as DirectoryCommandPalette } from "@cadre/ui-web/directory/command-palette";
 import { t } from "@lingui/core/macro";
-import type { Bot } from "@rakazo/contracts";
-import { BotAvatar } from "@rakazo/ui-web";
-import { CommandPalette as DirectoryCommandPalette } from "@rakazo/ui-web/directory/command-palette";
 import { useMemo } from "react";
 
 export function CommandPalette({

@@ -15,8 +15,8 @@
  * behaviour it had before — no decision model is required to run this product.
  */
 
-import type { DecisionAnswer, DecisionQuestion } from "@rakazo/core";
-import { getLogger } from "@rakazo/logging";
+import type { DecisionAnswer, DecisionQuestion } from "@cadre/core";
+import { getLogger } from "@cadre/logging";
 import { type Questions, TypeSafeClient } from "@typesafe-ai/sdk";
 import { cached } from "./decision-cache.js";
 

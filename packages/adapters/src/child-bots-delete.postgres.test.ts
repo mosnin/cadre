@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { AgentHomeStore, JobPublisher, SandboxProvider } from "@rakazo/adapter-kit";
-import { createDb } from "@rakazo/db";
+import type { AgentHomeStore, JobPublisher, SandboxProvider } from "@cadre/adapter-kit";
+import { createDb } from "@cadre/db";
 import { describe, expect, it, vi } from "vitest";
 import { BotDeletionBusyError, destroyBot } from "./child-bots.js";
 

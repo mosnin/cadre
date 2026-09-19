@@ -38,8 +38,8 @@ def demote():
     os.setgroups([]); os.setgid(1000); os.setuid(1000)
 
 def child_env(index, key):
-    env = {k:v for k,v in os.environ.items() if not k.startswith(('MODAL_', 'CADRE_RPC_', 'CADRE_SCREEN_', 'RAKAZO_COMPUTER_CONTROL_'))}
-    env.update(CADRE_SHARED_BROWSER_SESSIONS='1', HOME='/home/rakazo', DISPLAY=f':{index+1}', RAKAZO_BROWSER_PROFILE=f'/home/rakazo/.browser-profiles/bot-{key}')
+    env = {k:v for k,v in os.environ.items() if not k.startswith(('MODAL_', 'CADRE_RPC_', 'CADRE_SCREEN_', 'CADRE_COMPUTER_CONTROL_'))}
+    env.update(CADRE_SHARED_BROWSER_SESSIONS='1', HOME='/home/cadre', DISPLAY=f':{index+1}', CADRE_BROWSER_PROFILE=f'/home/cadre/.browser-profiles/bot-{key}')
     return env
 
 def ready(port):
@@ -52,7 +52,7 @@ def desktop_running(state):
     if not pid: return False
     try:
         argv = Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0')
-        return b'/usr/local/bin/rakazo-computer' in argv and Path(f'/proc/{pid}').stat().st_uid == 1000
+        return b'/usr/local/bin/cadre-computer' in argv and Path(f'/proc/{pid}').stat().st_uid == 1000
     except FileNotFoundError: return False
 
 def ensure(state, key):
@@ -61,7 +61,7 @@ def ensure(state, key):
         # A lost stream is not a lost desktop. Its supervisor repairs only that
         # service; never unlink a live X socket or restart its Chromium profile.
         if index != 0 and not desktop_running(state):
-            child = subprocess.Popen(['/usr/local/bin/rakazo-computer'], env=child_env(index,key),
+            child = subprocess.Popen(['/usr/local/bin/cadre-computer'], env=child_env(index,key),
                 stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,preexec_fn=demote,start_new_session=True)
             state['pid'] = child.pid
         for _ in range(150):
@@ -213,7 +213,7 @@ def resume_sessions():
     if marker.exists() and sessions_running(int(marker.read_text())): return
     Path('/tmp/cadre-browser-sessions-ready').unlink(missing_ok=True)
     child = subprocess.Popen(['/usr/bin/python3', '/opt/cadre/browser_sessions.py'],
-        env={'PATH':'/usr/local/bin:/usr/bin:/bin', 'HOME':'/home/rakazo'},
+        env={'PATH':'/usr/local/bin:/usr/bin:/bin', 'HOME':'/home/cadre'},
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         preexec_fn=demote, start_new_session=True)
     (STATE / 'browser-sessions.pid').write_text(str(child.pid))
@@ -256,7 +256,7 @@ def resume_browsers():
         state=json.loads(p.read_text());displays[state['index']]=p.stem
     for index,key in displays.items():
         env=child_env(index,key)
-        if index==0: env['RAKAZO_BROWSER_PROFILE']='/home/rakazo/.browser-profiles/chromium'
+        if index==0: env['CADRE_BROWSER_PROFILE']='/home/cadre/.browser-profiles/chromium'
         if ready(6080+index*2):
-            subprocess.Popen(['rakazo-browser'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,preexec_fn=demote,start_new_session=True)
+            subprocess.Popen(['cadre-browser'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,preexec_fn=demote,start_new_session=True)
     return {'ok':True}

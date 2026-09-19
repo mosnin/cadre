@@ -1,4 +1,3 @@
-import { Readability } from "@mozilla/readability";
 import type {
   AdapterContext,
   WebFetchRequest,
@@ -6,7 +5,8 @@ import type {
   WebProvider,
   WebSearchHit,
   WebSearchRequest,
-} from "@rakazo/adapter-kit";
+} from "@cadre/adapter-kit";
+import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 import { clampMaxChars, clampMaxResults } from "./web-limits.js";
 import { fetchSafeWebText, type ResolveHostname } from "./web-ssrf.js";
@@ -67,8 +67,7 @@ export class KeylessHttpWebProvider implements WebProvider {
     this.searchTimeoutMs = options.searchTimeoutMs ?? 15_000;
     this.fetchTimeoutMs = options.fetchTimeoutMs ?? 15_000;
     this.maxBufferBytes = options.maxBufferBytes ?? 5 * 1024 * 1024;
-    this.userAgent =
-      options.userAgent ?? "Rakazo/0.1 (+https://github.com/elie222/rakazo; web tools)";
+    this.userAgent = options.userAgent ?? "Cadre/0.1 (+https://github.com/mosnin/cadre; web tools)";
   }
 
   describe() {

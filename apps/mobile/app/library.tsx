@@ -1,5 +1,5 @@
-import type { AgentSkill, AgentSkillCatalogEntry, CapabilityInstall } from "@rakazo/contracts";
-import { buildSkillMd, parseSkillMd, validatePluginBundle } from "@rakazo/core";
+import type { AgentSkill, AgentSkillCatalogEntry, CapabilityInstall } from "@cadre/contracts";
+import { buildSkillMd, parseSkillMd, validatePluginBundle } from "@cadre/core";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import { useFocusEffect } from "expo-router";

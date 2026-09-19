@@ -1,4 +1,4 @@
-import type { WebSearchHit } from "@rakazo/adapter-kit";
+import type { WebSearchHit } from "@cadre/adapter-kit";
 import { describe, expect, it, vi } from "vitest";
 import { rankWebSearchHits } from "./decision-search.js";
 import type { DecisionProvider } from "./jev-decisions.js";

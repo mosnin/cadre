@@ -29,7 +29,7 @@ const fakeHex = (bytes: number) => "ab".repeat(bytes);
 
 describe("stack locations", () => {
   it("keeps the compose project under user data", () => {
-    expect(stackDir("/data/rakazo")).toBe(path.join("/data/rakazo", "stack"));
+    expect(stackDir("/data/cadre")).toBe(path.join("/data/cadre", "stack"));
   });
 
   it("reads resources from the bundle when packaged and from the repo otherwise", () => {
@@ -52,7 +52,7 @@ describe("resolveImageTag", () => {
     expect(resolveImageTag({ version: "0.2.0-beta.1", packaged: true })).toBe("edge");
   });
 
-  it("lets RAKAZO_IMAGE_TAG override everything", () => {
+  it("lets CADRE_IMAGE_TAG override everything", () => {
     expect(resolveImageTag({ version: "0.2.0", packaged: true, override: " v9.9.9 " })).toBe(
       "v9.9.9",
     );
@@ -75,10 +75,10 @@ describe("renderStackEnv", () => {
     ]) {
       expect(lines).toContain(`${name}=${"ab".repeat(32)}`);
     }
-    expect(lines.some((line) => line.startsWith("RAKAZO_IMAGE_TAG="))).toBe(false);
-    expect(lines.some((line) => line.startsWith("RAKAZO_COMPUTER_IMAGE_TAG="))).toBe(false);
+    expect(lines.some((line) => line.startsWith("CADRE_IMAGE_TAG="))).toBe(false);
+    expect(lines.some((line) => line.startsWith("CADRE_COMPUTER_IMAGE_TAG="))).toBe(false);
     // Everything else, including the image names and empty optional keys, stays verbatim.
-    expect(lines).toContain("RAKAZO_IMAGE=ghcr.io/elie222/rakazo/app");
+    expect(lines).toContain("CADRE_IMAGE=ghcr.io/mosnin/cadre/app");
     expect(lines).toContain("SANDBOX_PROVIDER=docker");
     expect(lines).toContain("OPENROUTER_API_KEY=");
     expect(rendered.endsWith("\n")).toBe(template.endsWith("\n"));
@@ -94,7 +94,7 @@ describe("renderStackEnv", () => {
 describe("ensureStackEnv", () => {
   let dir: string;
   beforeEach(async () => {
-    dir = await mkdtemp(path.join(tmpdir(), "rakazo-stack-env-"));
+    dir = await mkdtemp(path.join(tmpdir(), "cadre-stack-env-"));
   });
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true });
@@ -132,7 +132,7 @@ describe("ensureStackEnv", () => {
 describe("stack identity", () => {
   let dir: string;
   beforeEach(async () => {
-    dir = await mkdtemp(path.join(tmpdir(), "rakazo-stack-token-"));
+    dir = await mkdtemp(path.join(tmpdir(), "cadre-stack-token-"));
   });
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true });
@@ -277,7 +277,7 @@ const ok: Script = (args) => {
   if (args[0] === "info") return { stdout: "27.1.1\n" };
   const subcommand = args[5];
   if (subcommand === "pull") return { lines: ["app Pulled", "computer Pulled"] };
-  if (subcommand === "up") return { lines: ["Container rakazo-web-1 Started"] };
+  if (subcommand === "up") return { lines: ["Container cadre-web-1 Started"] };
   return {};
 };
 
@@ -287,7 +287,7 @@ describe("LocalStackController", () => {
   let phases: string[];
 
   beforeEach(async () => {
-    root = await mkdtemp(path.join(tmpdir(), "rakazo-stack-"));
+    root = await mkdtemp(path.join(tmpdir(), "cadre-stack-"));
     calls = [];
     phases = [];
   });
@@ -333,7 +333,7 @@ describe("LocalStackController", () => {
     expect(state.output).toEqual([
       "app Pulled",
       "computer Pulled",
-      "Container rakazo-web-1 Started",
+      "Container cadre-web-1 Started",
     ]);
     expect(phases).toEqual([
       "checking-docker",
@@ -355,21 +355,21 @@ describe("LocalStackController", () => {
       expect(call.binary).toBe("/usr/bin/docker");
       expect(call.cwd).toBe(stackPath);
       expect(call.env).toMatchObject({
-        RAKAZO_IMAGE_TAG: "v1.2.3",
-        RAKAZO_COMPUTER_IMAGE_TAG: "v1.2.3",
+        CADRE_IMAGE_TAG: "v1.2.3",
+        CADRE_COMPUTER_IMAGE_TAG: "v1.2.3",
         COMPOSE_PROGRESS: "plain",
         HOME: "/home/me",
       });
       expect(call.env).not.toHaveProperty("OPENROUTER_API_KEY");
     }
-    expect(calls.at(-1)?.env.RAKAZO_DESKTOP_STACK_TOKEN).toBe("ab".repeat(32));
+    expect(calls.at(-1)?.env.CADRE_DESKTOP_STACK_TOKEN).toBe("ab".repeat(32));
 
     await expect(readFile(path.join(stackPath, STACK_COMPOSE_FILE), "utf8")).resolves.toBe(
       await readFile(path.join(COMPOSE_DIR, STACK_COMPOSE_FILE), "utf8"),
     );
     const env = await readFile(path.join(stackPath, STACK_ENV_FILE), "utf8");
     expect(env).toContain(`POSTGRES_PASSWORD=${"ab".repeat(16)}`);
-    expect(env).not.toContain("RAKAZO_IMAGE_TAG=");
+    expect(env).not.toContain("CADRE_IMAGE_TAG=");
     if (process.platform !== "win32") {
       expect((await stat(path.join(stackPath, STACK_ENV_FILE))).mode & 0o777).toBe(0o600);
       expect((await stat(stackPath)).mode & 0o777).toBe(0o700);

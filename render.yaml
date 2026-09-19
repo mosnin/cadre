@@ -14,8 +14,8 @@ projects:
             runtime: node
             plan: standard
             region: virginia
-            buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter @rakazo/db generate
-            preDeployCommand: pnpm --filter @rakazo/db migrate
+            buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter @cadre/db generate
+            preDeployCommand: pnpm --filter @cadre/db migrate
             startCommand: node infra/render-start.mjs
             healthCheckPath: /health
             envVars:

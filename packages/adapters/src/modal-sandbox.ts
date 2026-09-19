@@ -1,6 +1,6 @@
 import { createHash, createHmac } from "node:crypto";
-import type { AdapterContext, ComputerRef } from "@rakazo/adapter-kit";
-import { getLogger } from "@rakazo/logging";
+import type { AdapterContext, ComputerRef } from "@cadre/adapter-kit";
+import { getLogger } from "@cadre/logging";
 import { AlreadyExistsError, ModalClient, NotFoundError, type Sandbox } from "modal";
 import { LinuxDesktopSandbox } from "./linux-desktop-sandbox.js";
 
@@ -163,7 +163,7 @@ export class ModalSandboxProvider extends LinuxDesktopSandbox<Sandbox> {
           encryptedPorts: [8080],
           env: {
             CADRE_SCREEN_VIEW_TOKEN: this.viewToken(req.botId, ctx),
-            HOME: "/home/rakazo",
+            HOME: "/home/cadre",
             DISPLAY: ":1",
           },
         }),

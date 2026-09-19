@@ -1,11 +1,11 @@
-import { Trans, useLingui } from "@lingui/react/macro";
 import {
   Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@rakazo/ui-web";
+} from "@cadre/ui-web";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Camera, File, Image, Plus } from "lucide-react";
 import type { RefObject } from "react";
 

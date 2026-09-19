@@ -1,5 +1,5 @@
-[begin] (Rakazo)
-  [exec] (Browser) {rakazo-browser}
+[begin] (Cadre)
+  [exec] (Browser) {cadre-browser}
   [exec] (Files) {pcmanfm}
   [exec] (Text Editor) {mousepad}
   [exec] (Terminal) {xterm -bg #111113 -fg #E8E8EA -cr #E8E8EA -title Terminal}

@@ -1,4 +1,4 @@
-package com.rakazo.notifications
+package com.cadre.notifications
 
 import java.net.URI
 

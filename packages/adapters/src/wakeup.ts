@@ -4,8 +4,8 @@ import {
   dispatchBackgroundJob,
   type JobPublisher,
   type JobWorkerHost,
-} from "@rakazo/adapter-kit";
-import { runCorrelatedJob, unwrapJobPayload, wrapJobPayload } from "@rakazo/logging";
+} from "@cadre/adapter-kit";
+import { runCorrelatedJob, unwrapJobPayload, wrapJobPayload } from "@cadre/logging";
 import { makeWorkerUtils, type Runner, run, type WorkerUtils } from "graphile-worker";
 
 export class GraphileJobPublisher implements JobPublisher {

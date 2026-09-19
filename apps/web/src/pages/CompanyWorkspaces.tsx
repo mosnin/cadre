@@ -1,18 +1,18 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import type { Space } from "@rakazo/contracts";
-import { Button, Input } from "@rakazo/ui-web";
+import type { Space } from "@cadre/contracts";
+import { Button, Input } from "@cadre/ui-web";
 import {
   CenterMorphModal,
   CenterMorphModalContent,
-} from "@rakazo/ui-web/directory/center-morph-modal";
-import { Popover, PopoverContent, PopoverTrigger } from "@rakazo/ui-web/directory/popover";
+} from "@cadre/ui-web/directory/center-morph-modal";
+import { Popover, PopoverContent, PopoverTrigger } from "@cadre/ui-web/directory/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@rakazo/ui-web/directory/select";
+} from "@cadre/ui-web/directory/select";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { rpc, selectSpace, withSpaceHeaders } from "../lib/rpc";

@@ -1,6 +1,5 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import type { AgentSkill, AgentSkillCatalogEntry, CapabilityInstall } from "@rakazo/contracts";
-import { buildSkillMd, parseSkillMd, validatePluginBundle } from "@rakazo/core";
+import type { AgentSkill, AgentSkillCatalogEntry, CapabilityInstall } from "@cadre/contracts";
+import { buildSkillMd, parseSkillMd, validatePluginBundle } from "@cadre/core";
 import {
   Button,
   Dialog,
@@ -9,7 +8,8 @@ import {
   DialogTitle,
   Input,
   Textarea,
-} from "@rakazo/ui-web";
+} from "@cadre/ui-web";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useId, useRef, useState } from "react";
 import { rpc } from "../lib/rpc";
 

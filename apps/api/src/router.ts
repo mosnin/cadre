@@ -1,5 +1,4 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { implement, ORPCError } from "@orpc/server";
 import {
   type AdapterContext,
   type AgentHomeStore,
@@ -15,7 +14,7 @@ import {
   runContinueJob,
   runJobKey,
   type SandboxProvider,
-} from "@rakazo/adapter-kit";
+} from "@cadre/adapter-kit";
 import {
   acquireComputerExecutionLease,
   applyTeachingDesktopInput,
@@ -78,8 +77,8 @@ import {
   touchRunningComputer,
   verifyMcpInstall,
   waitForComputerReady,
-} from "@rakazo/adapters";
-import type { Auth } from "@rakazo/auth";
+} from "@cadre/adapters";
+import type { Auth } from "@cadre/auth";
 import {
   type Actor,
   appContract,
@@ -88,7 +87,7 @@ import {
   type Me,
   OPENAI_COMPATIBLE_PROVIDER_ID,
   type SpaceNavigation,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   ACTIVE_RUN_STATUSES,
   AttachmentValidationError,
@@ -101,7 +100,7 @@ import {
   nextCronDateAcrossStrict,
   PLUGIN_BUNDLE_MAX_BYTES,
   validatePluginBundle,
-} from "@rakazo/core";
+} from "@cadre/core";
 import {
   appendEventInTransaction,
   createGroupRepos,
@@ -128,8 +127,9 @@ import {
   selectSpaceVoicePreference,
   type ThreadEvents,
   touchGroupUpdatedAt,
-} from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+} from "@cadre/db";
+import { getLogger } from "@cadre/logging";
+import { implement, ORPCError } from "@orpc/server";
 import { type AdminConfig, createAdminRouter } from "./admin.js";
 import { createAgentSkillsService } from "./agent-skills.js";
 import { createOwnedArtifact, getOwnedArtifact, getSpaceArtifact } from "./artifacts.js";

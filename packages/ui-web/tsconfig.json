@@ -9,7 +9,7 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@rakazo/ui-web/*": ["./src/*"]
+      "@cadre/ui-web/*": ["./src/*"]
     }
   },
   "include": ["src"]

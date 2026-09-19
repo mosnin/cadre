@@ -1,4 +1,4 @@
-import type { AdapterContext, MemorySnapshot, MemoryStore } from "@rakazo/adapter-kit";
+import type { AdapterContext, MemorySnapshot, MemoryStore } from "@cadre/adapter-kit";
 import { rankMemoryDocuments } from "./decision-memory.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 

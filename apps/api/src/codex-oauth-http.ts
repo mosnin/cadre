@@ -1,5 +1,5 @@
-import { CODEX_CLIENT, createCodexOAuth, validRequest } from "@rakazo/auth/codex-oauth";
-import type { Pool } from "@rakazo/db";
+import { CODEX_CLIENT, createCodexOAuth, validRequest } from "@cadre/auth/codex-oauth";
+import type { Pool } from "@cadre/db";
 import type { Hono } from "hono";
 import { readBoundedBody } from "./http-body.js";
 export function mountCodexOAuth(

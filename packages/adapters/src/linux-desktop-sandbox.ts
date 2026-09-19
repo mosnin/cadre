@@ -14,7 +14,7 @@ import type {
   ProcessEvent,
   SandboxProvider,
   ScreenRequest,
-} from "@rakazo/adapter-kit";
+} from "@cadre/adapter-kit";
 import { screenSessionKey } from "./computer-screens.js";
 import { boundedComputerActions, computerObservation } from "./computer-support.js";
 import { shouldSkipPortableWorkspaceFile } from "./computer-workspace.js";
@@ -121,7 +121,7 @@ export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
       computer,
       {
         argv: ["python3", "-c", source, JSON.stringify(visibleRequest)],
-        env: secretText !== undefined ? { RAKAZO_PROTECTED_TEXT: secretText } : undefined,
+        env: secretText !== undefined ? { CADRE_PROTECTED_TEXT: secretText } : undefined,
         timeoutMs: 20000,
       },
       context,

@@ -17,7 +17,7 @@
  * exactly as it came in.
  */
 
-import { answerConfidence, DECISION_CONFIDENCE, type ScoreAnswer, score } from "@rakazo/core";
+import { answerConfidence, DECISION_CONFIDENCE, type ScoreAnswer, score } from "@cadre/core";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 /** Ordered lowest to highest; the answer is the index of the level that fits. */

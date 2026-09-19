@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { type PrismaClient, withTransactionRetry } from "@rakazo/db";
+import { type PrismaClient, withTransactionRetry } from "@cadre/db";
 
 export function boundedLimit(raw: string | undefined, fallback: number, maximum: number): number {
   const value = Number(raw);

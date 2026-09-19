@@ -2787,8 +2787,8 @@ msgid "Paste a replacement key"
 msgstr "Yeni bir anahtar yapıştır"
 
 #: src/pages/Onboarding.tsx:648
-msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
-msgstr "Sunucundaki OpenAI uyumlu adresi yapıştır. Gerekirse Rakazo /v1 ekler."
+msgid "Paste the OpenAI-compatible address from your server. Cadre adds /v1 if needed."
+msgstr "Sunucundaki OpenAI uyumlu adresi yapıştır. Gerekirse Cadre /v1 ekler."
 
 #: src/pages/ModelSettingsOverlay.tsx:436
 msgid "Paste the OpenAI-compatible address from your server. The /v1 path is added if needed."
@@ -3102,8 +3102,8 @@ msgid "Retry screen"
 msgstr ""
 
 #: src/pages/McpOAuthCallback.tsx:62
-msgid "Return to Rakazo"
-msgstr "Rakazo'ya dön"
+msgid "Return to Cadre"
+msgstr "Cadre'ya dön"
 
 #: src/pages/MessagingSettingsOverlay.tsx:318
 msgid "Revoke"

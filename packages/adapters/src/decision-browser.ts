@@ -15,7 +15,7 @@
  * freshness, the human-input epoch, occlusion checks and credential binding all still apply.
  */
 
-import { actionableChoice, type ChoiceAnswer, choice, DECISION_CONFIDENCE } from "@rakazo/core";
+import { actionableChoice, type ChoiceAnswer, choice, DECISION_CONFIDENCE } from "@cadre/core";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 /** The option that means "no supplied value belongs here", so the model need not force one. */

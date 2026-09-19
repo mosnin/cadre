@@ -1,9 +1,9 @@
-import type { ModelCatalogEntry } from "@rakazo/contracts";
-import { waitForModelOAuthCompletion } from "@rakazo/core";
+import type { ModelCatalogEntry } from "@cadre/contracts";
+import { waitForModelOAuthCompletion } from "@cadre/core";
 import { rpc } from "./rpc";
 
-export type { ModelCatalogEntry, ModelCredential, ModelOAuthBegin } from "@rakazo/contracts";
-export { cancelModelOAuthAttempt, finishModelOAuthAttempt } from "@rakazo/core";
+export type { ModelCatalogEntry, ModelCredential, ModelOAuthBegin } from "@cadre/contracts";
+export { cancelModelOAuthAttempt, finishModelOAuthAttempt } from "@cadre/core";
 
 /** English fallback auth hint for a catalog entry (localize at the UI call site). */
 export function providerHint(entry: ModelCatalogEntry) {

@@ -1,6 +1,6 @@
-import type { MessageBlock } from "@rakazo/contracts";
-import { ONCE_ROUTINE_CRON } from "@rakazo/core";
-import type { PrismaClient } from "@rakazo/db";
+import type { MessageBlock } from "@cadre/contracts";
+import { ONCE_ROUTINE_CRON } from "@cadre/core";
+import type { PrismaClient } from "@cadre/db";
 import { describe, expect, it, vi } from "vitest";
 import {
   createRunExecutor,

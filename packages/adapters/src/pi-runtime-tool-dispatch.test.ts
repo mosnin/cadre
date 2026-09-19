@@ -1,4 +1,4 @@
-import type { ConnectorTool } from "@rakazo/adapter-kit";
+import type { ConnectorTool } from "@cadre/adapter-kit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const fakeAgentState = vi.hoisted(() => ({
@@ -818,7 +818,7 @@ describe("Pi connector tool dispatch", () => {
     expect(maxToolCallsPerTurn({ MAX_TOOL_CALLS_PER_TURN: " 12.9 " })).toBe(12);
   });
 
-  it.each([undefined, "/home/rakazo/shared"])(
+  it.each([undefined, "/home/cadre/shared"])(
     "preserves the executor workspace default or explicit cwd (%s)",
     async (cwd) => {
       fakeAgentState.invoke = { name: "shell", args: { command: "pwd", ...(cwd ? { cwd } : {}) } };
