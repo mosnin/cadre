@@ -42,11 +42,15 @@ a path that was already fast makes that path slower for nothing.
 > A question is free; a **request** is not. Ask everything about one state at
 > once, and never open a request for a question that is only speculative.
 
-This is the whole shape of `packages/adapters/src/decision-turn.ts`. Two things
-used to be asked about the same tool call, one after the other, each carrying its
-own copy of the same state. They now travel together, and the review question —
-which is read only if the gate reaches a judge — rides on the request that was
-being made anyway. It is never the reason for a request of its own.
+This is the whole shape of `packages/adapters/src/decision-turn.ts` and
+`decision-start.ts`. Tool-call review used to be two requests about the same
+call; start used to be routing, then skill, then company, each about the same
+task. They now travel together. Speculative questions — the review verdict, the
+skill name, the URL to fetch — ride on the request that was being made anyway.
+They are never the reason for a request of their own. The start request also
+runs beside connector discovery, so its 70–500ms is not added to the critical
+path. When the first action is a fetch or a short search, that tool runs while
+the computer provisions, and the result is already in the task.
 
 Answers are also remembered. `decision-cache.ts` keys on the model, the state and
 every question with its criteria, so anything that would change an answer changes
@@ -68,10 +72,8 @@ here is the last thing between an agent and an irreversible action.
 | --- | --- | --- | --- |
 | Tool call (`decideToolCall`) | A full judge **generation** per consequential call, and **closes a gap** in the name regex | One request: `noul` "does this change anything outside this workspace?", plus a speculative `choice` pass/ask and `choice` of concern category | The generative judge, and the name check's own verdict |
 | Run floor (`assessRunFloor`) | Nothing; **catches what the hash guard cannot**, in the Foreman shape | One request: `noul` stuck, off-track, and needs-a-person | Continuing into the next segment |
-| Run model routing (`routeRunModel`) | Nothing; **avoids** paying a strong Qwen for simple turns | `choice` over the Qwen pool (or `JEV_ROUTER_MODELS`) | The deployment default (`qwen/qwen3-235b-a22b`) |
-| Skill suggestion (`suggestSkill`) | Extra `skill_read` **generations** on a large catalog | One request: `noul` "is a skill needed?" plus speculative `choice` of skill | The catalog line, unread |
-| Company focus (`suggestCompanyFocus`) | A **generation** that guesses which Company OS records to pull | `choice` over overview, goals, customers, product, constraints, decisions, department | The company-context skill's own order |
-| Search ranking (`rankWebSearchHits`) | Nothing; **avoids** fetches and context on results that answer nothing | One `score` per result, one request | The engine's own order |
+| Run start (`decideRunStart`) | Two extra start-of-run **requests**, a `skill_read` **generation**, and the first `web_fetch` / `web_search` **generation** | One request: `choice` first action, speculative `choice` of model / skill / company area / URL, `noul` "is a skill needed?" | Each field unset: the deployment default, the catalog unread, the skill's own order, the agent deciding |
+| Search ranking (`rankWebSearchHits`) | Extra **fetches** on a shortlist that already answers | One request: a `score` per result plus `noul` "already answered?" | The engine's own order, and the agent fetching |
 | Catalog ranking (`rankCatalogHits`) | Loading the **wrong connector tool** | One `score` per shortlisted tool, one request | The keyword order |
 | Memory order (`rankMemoryDocuments`) | A **recency sort** that decided which saved facts a run would never see | One `score` per document, one request | The recency order, unchanged |
 | Fetch screen (`screenUntrustedText`) | Nothing; **raises a bar** on pages that try to instruct the agent | `noul` "is this a jailbreak or override?" | The page, unlabeled |
@@ -233,8 +235,8 @@ standing between an agent and something irreversible.
 A decision sends the state its question is about to a third party: the arguments
 of a tool call, a search query and its result snippets, the text and control names
 of a page, a fetched page when screening it, file excerpts or a diff when judging
-code, skill names and descriptions when suggesting one, the newest user message
-when routing or choosing a company-records starting point, or **an excerpt of each durable
+code, skill names and descriptions when a run starts, the newest user message
+when deciding that start, or **an excerpt of each durable
 memory document** when ordering them. That last one is the most sensitive on the
 list, because durable memory is whatever the user chose to keep. Leave it off for
 workloads that cannot share that context; with no key every caller keeps the

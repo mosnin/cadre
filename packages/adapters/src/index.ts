@@ -29,6 +29,7 @@ export * from "./decision-catalog.js";
 export * from "./decision-company.js";
 export * from "./decision-guardrails.js";
 export * from "./decision-skills.js";
+export * from "./decision-start.js";
 export * from "./decision-symbolic.js";
 export * from "./deployment-model.js";
 export * from "./desktop-sandbox.js";

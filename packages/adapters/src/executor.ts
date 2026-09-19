@@ -42,6 +42,8 @@ import {
   endsSentence,
   escapePromptData,
   expandSkillReferencesInPrompt,
+  findSkillByName,
+  formatForcedSkillPrompt,
   formatSkillRunPrompt,
   formatSkillsCatalogInstruction,
   inferAttachmentMimeType,
@@ -161,10 +163,9 @@ import { observationToolResult, parseComputerActions } from "./computer-tools.js
 import { checkpointAfterComputerWork } from "./computer-workspace.js";
 import { sanitizeConnectorError } from "./connector-safety.js";
 import { type BrowserSnapshot, pursueBrowserGoal } from "./decision-browser.js";
-import { suggestCompanyFocus } from "./decision-company.js";
 import { assessRunFloor } from "./decision-guards.js";
-import { routeRunModel, routerCandidates } from "./decision-routing.js";
-import { suggestSkill } from "./decision-skills.js";
+import { routerCandidates } from "./decision-routing.js";
+import { decideRunStart, skillsImpliedByStart } from "./decision-start.js";
 import { symbolicFromTool } from "./decision-symbolic.js";
 import { decideToolCall } from "./decision-turn.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
@@ -278,7 +279,12 @@ import {
   userProgressClientNonce,
 } from "./user-progress.js";
 import { createWebProvider } from "./web-provider-factory.js";
-import { webFetchFromTool, webSearchFromTool } from "./web-tools.js";
+import {
+  formatPrefetchedStartPrompt,
+  prefetchRunStart,
+  webFetchFromTool,
+  webSearchFromTool,
+} from "./web-tools.js";
 
 const READ_ONLY_AGENT_TOOLS = new Set([
   "computer_observe",
@@ -599,25 +605,6 @@ export function buildApprovalContinuation(
 const MAX_INTERRUPTED_ATTEMPTS_AFTER_EFFECTS = 2;
 const INTERRUPTED_TOO_OFTEN =
   "Stopped: this run was interrupted repeatedly after it had already made changes. Review what was done before starting it again.";
-
-/**
- * What the run was actually asked to do, for a routing decision. The newest user message in
- * the thread, which is the request the model is about to answer.
- */
-async function routableTaskText(
-  prisma: ExecutorDeps["prisma"],
-  run: { threadId: string },
-): Promise<string> {
-  const message = await prisma.message
-    .findFirst({
-      where: { threadId: run.threadId, role: "user" },
-      orderBy: { seq: "desc" },
-      select: { blocks: true },
-    })
-    .catch(() => null);
-  if (!message) return "";
-  return blocksToAgentHistoryText((message.blocks ?? []) as MessageBlock[]).slice(0, 4_000);
-}
 
 function escapeProgressNote(value: string): string {
   // The note is model-authored from tool output an attacker may control, so it is escaped
@@ -1184,6 +1171,35 @@ export function createRunExecutor(deps: ExecutorDeps) {
           ? effectiveMemoryScope(bot.memoryScope, configuredMemory.defaultScope)
           : null;
         const semanticMemory: SemanticMemoryProvider | null = configuredMemory?.provider ?? null;
+        const decisions = deps.decisions ?? defaultDecisions;
+        const runDeployment = deps.deploymentModelKey ? resolveDeploymentModel() : null;
+        const runtimeFallback = runtimeFallbackModel(deps.runtime);
+        const runModelProvider =
+          (useModelOverride ? bot.modelProvider : null) ??
+          credential?.provider ??
+          settings?.defaultModelProvider ??
+          runDeployment?.provider ??
+          runtimeFallback?.provider;
+        const chosenModelId =
+          (useModelOverride ? bot.modelId : null) ??
+          credential?.defaultModel ??
+          settings?.defaultModelId;
+        let runModelId = chosenModelId ?? runDeployment?.model ?? runtimeFallback?.id;
+        // Only a run nobody chose a model for is routed: an explicit bot, credential or
+        // deployment-settings choice is the user's and is never second-guessed.
+        const routerPool = chosenModelId ? [] : routerCandidates();
+        const shouldSuggestSkill =
+          agentSkills.some((skill) => skill.source === "user" || skill.source === "plugin") ||
+          agentSkills.length > 4;
+        const startPromise = decideRunStart(decisions, {
+          task: task.prompt,
+          candidates: routerPool.length > 1 ? routerPool : undefined,
+          fallbackModel: runModelId,
+          skills: shouldSuggestSkill ? agentSkills : undefined,
+          company: true,
+          sessionId: runId,
+          signal: runAbortController.signal,
+        });
 
         await deps.events.append({
           spaceId: run.spaceId,
@@ -1261,12 +1277,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
                 context,
               )
             : Promise.resolve(null);
-        const [discovered, currentTurnImages, memoryContext, scratchpadContext, recalled] =
+        const [discovered, currentTurnImages, memoryContext, scratchpadContext, recalled, start] =
           await Promise.all([
             discoveredPromise,
             loadCurrentTurnImages(deps, turnBlocks, context),
             loadAgentMemoryContext(deps.memory, bot.id, context, {
-              decisions: deps.decisions ?? defaultDecisions,
+              decisions,
               task: task.prompt,
             }),
             loadAgentScratchpadContext(deps, {
@@ -1274,6 +1290,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               botId: bot.id,
             }),
             recallPromise,
+            startPromise,
           ]);
         const semanticMemoryEnabled = Boolean(semanticMemory);
         let recalledMemory = "";
@@ -1295,31 +1312,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             }),
           );
         }
-        const runDeployment = deps.deploymentModelKey ? resolveDeploymentModel() : null;
-        const runtimeFallback = runtimeFallbackModel(deps.runtime);
-        const runModelProvider =
-          (useModelOverride ? bot.modelProvider : null) ??
-          credential?.provider ??
-          settings?.defaultModelProvider ??
-          runDeployment?.provider ??
-          runtimeFallback?.provider;
-        const chosenModelId =
-          (useModelOverride ? bot.modelId : null) ??
-          credential?.defaultModel ??
-          settings?.defaultModelId;
-        let runModelId = chosenModelId ?? runDeployment?.model ?? runtimeFallback?.id;
-        // Only a run nobody chose a model for is routed: an explicit bot, credential or
-        // deployment-settings choice is the user's and is never second-guessed.
-        const routerPool = chosenModelId ? [] : routerCandidates();
-        if (routerPool.length > 1 && runModelId) {
-          const routed = await routeRunModel(deps.decisions ?? defaultDecisions, {
-            task: await routableTaskText(deps.prisma, run),
-            candidates: routerPool,
-            fallbackModel: runModelId,
-            sessionId: runId,
-          });
-          if (routed) runModelId = routed;
-        }
+        if (start.model) runModelId = start.model;
         if (!runModelProvider || !runModelId) {
           const failed = await deps.events.finalizeRun({
             spaceId: run.spaceId,
@@ -1359,24 +1352,30 @@ export function createRunExecutor(deps: ExecutorDeps) {
           }
           return;
         }
-        const resolved = await resolveModelKey(
-          deps,
-          run.userId,
-          run.spaceId,
-          credential,
-          runModelProvider,
-          (values) => runSecrets.push(...values),
-          runAbortController.signal,
-        );
+        if (!bot.computer) throw new Error("Bot has no computer");
+        const storedComputer = bot.computer;
+        const computerMode = parseComputerMode(storedComputer.scope);
+        const prefetchPromise = prefetchRunStart(web, context, start, task.prompt, {
+          provider: decisions,
+          sessionId: runId,
+        });
+        const [resolved, computer] = await Promise.all([
+          resolveModelKey(
+            deps,
+            run.userId,
+            run.spaceId,
+            credential,
+            runModelProvider,
+            (values) => runSecrets.push(...values),
+            runAbortController.signal,
+          ),
+          provisionComputer(deps, storedComputer.id, context, "bot"),
+        ]);
         runSecrets.push(...resolved.redact);
         await deps.prisma.run.updateMany({
           where: { id: runId, status: "running", leaseOwner: workerId, leaseFence: fence },
           data: { modelProvider: runModelProvider, modelId: runModelId },
         });
-        if (!bot.computer) throw new Error("Bot has no computer");
-        const storedComputer = bot.computer;
-        const computerMode = parseComputerMode(storedComputer.scope);
-        const computer = await provisionComputer(deps, storedComputer.id, context, "bot");
         keepAliveTarget = computer;
         screenRelease = { computer, context };
         scheduleComputerSleep(deps.jobs, storedComputer.id);
@@ -3385,31 +3384,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   "\n",
                 )}\nWhen the user asks to run a taught skill by name, follow that skill's playbook exactly. The full playbook is included in the user task when they invoke it.`
             : undefined;
-        const decisions = deps.decisions ?? defaultDecisions;
-        const shouldSuggestSkill =
-          agentSkills.some((skill) => skill.source === "user" || skill.source === "plugin") ||
-          agentSkills.length > 4;
-        const [suggestedSkill, companyFocus] = await Promise.all([
-          shouldSuggestSkill
-            ? suggestSkill(decisions, {
-                task: task.prompt,
-                skills: agentSkills,
-                sessionId: runId,
-                signal: runAbortController?.signal,
-              })
-            : Promise.resolve(undefined),
-          context.companyWorkspace
-            ? suggestCompanyFocus(decisions, {
-                task: task.prompt,
-                sessionId: runId,
-                signal: runAbortController?.signal,
-              })
-            : Promise.resolve(undefined),
-        ]);
+        const companyFocus = context.companyWorkspace ? start.companyFocus : undefined;
+        const startSkills = skillsImpliedByStart(start)
+          .map((name) => findSkillByName(agentSkills, name))
+          .filter((skill): skill is NonNullable<typeof skill> => Boolean(skill));
         const agentSkillsLine = formatSkillsCatalogInstruction(agentSkills);
-        const suggestedSkillLine = suggestedSkill
-          ? `A typed decision selected "${suggestedSkill}" as the catalog skill for this request. Call skill_read for that name first if it still fits; skip it if it does not.`
-          : undefined;
+        const companySkillLoaded = startSkills.some((skill) => skill.name === "company-context");
         const missingImagesInstruction = missingTurnImagesInstruction(
           turnBlocks,
           currentTurnImages,
@@ -3418,15 +3398,26 @@ export function createRunExecutor(deps: ExecutorDeps) {
           [task.prompt, attachedFilesPrompt, missingImagesInstruction].filter(Boolean).join("\n\n"),
           agentSkills,
         );
+        const preloadedSkillBlocks = startSkills
+          .filter((skill) => !taskPrompt.includes(`Use skill: ${skill.name}`))
+          .map((skill) => formatForcedSkillPrompt(skill.name, skill.content));
+        const prefetched = await prefetchPromise;
+        const prefetchedBlock = prefetched ? formatPrefetchedStartPrompt(prefetched) : undefined;
         const invokedSkill = savedSkills.find((skill) =>
           promptInvokesSkill(taskPrompt, skill.name || skill.goal),
         );
-        const basePrompt = invokedSkill
-          ? `${formatSkillRunPrompt(
-              invokedSkill.name || invokedSkill.goal.slice(0, 80),
-              parsePlaybook(invokedSkill.playbook),
-            )}\n\n${taskPrompt}`
-          : taskPrompt;
+        const basePrompt = [
+          invokedSkill
+            ? `${formatSkillRunPrompt(
+                invokedSkill.name || invokedSkill.goal.slice(0, 80),
+                parsePlaybook(invokedSkill.playbook),
+              )}\n\n${taskPrompt}`
+            : taskPrompt,
+          ...preloadedSkillBlocks,
+          prefetchedBlock,
+        ]
+          .filter(Boolean)
+          .join("\n\n");
         const approvalContinuation = buildApprovalContinuation(
           approvedEffects,
           (request) => redactSecrets(JSON.stringify(request), runSecrets),
@@ -3559,9 +3550,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
                   : "No Company OS workspace identity was verified for this run. Check available connector tools before making claims about access.",
                 `Verified workspace connections for this run: ${JSON.stringify(context.workspaceIntegrations ?? {})}. Use Operate for projects and recurring task definitions, and its scheduled_task_history tool for actual completion. Never infer completion from a scheduled date. Use scalar-workspace tools for customer records, pipelines and outreach. Use stored-workspace tools for organizational memory and this bot's stored-agent connector for private memory. Save agent observations privately unless the user explicitly asks to share them. Include source identity and timestamps. Read get_context_pack before tasks and save durable facts through the appropriate connector after verified work. Never copy another workspace or another agent's private memory. Search the MCP catalog for exact tool names before claiming a connector is unavailable.`,
                 agentSkillsLine,
-                suggestedSkillLine,
                 "For a coding task, use symbolic_find, symbolic_check, and symbolic_triage to judge files, diffs, and failures. They do not write code or approve a change.",
-                "Before using Operate or Stored, read connected-workspace. Before using Company OS, read the company-context skill. Before saving Company OS deliverables, also read company-deliverables. Use only this workspace's authorized connector and context; never combine private context across workspaces.",
+                companySkillLoaded
+                  ? "Before using Operate or Stored, read connected-workspace. Before saving Company OS deliverables, also read company-deliverables. Use only this workspace's authorized connector and context; never combine private context across workspaces."
+                  : "Before using Operate or Stored, read connected-workspace. Before using Company OS, read the company-context skill. Before saving Company OS deliverables, also read company-deliverables. Use only this workspace's authorized connector and context; never combine private context across workspaces.",
                 "Write clear, direct sentences with normal capitalization. Lead with the useful result or the next necessary action. For a short request, give one useful reply. Perform routine checks silently; do not send an acknowledgment and then restate it as another message. Use message_user only for a meaningful update during sustained work, and do not repeat it in your final answer. Never echo internal routing envelopes, bot IDs, wake prompts, or coordination instructions into user-facing replies. Refer to teammates by name when relevant. Do not say work is done without a verified result or promise background work unless it is actually running. Never use em dashes in your messages to the user. Use periods, commas, or parentheses instead. Avoid decorative symbols.",
                 taughtSkillsLine,
                 'For charts and data visualization, use the render_plot tool: it renders bar, line, scatter, histogram, heatmap, faceted and many more chart types from a JSON spec and attaches the PNG to the chat. Call render_plot with {"help": true} before your first chart to read the full guide.',
