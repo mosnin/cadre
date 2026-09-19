@@ -1324,9 +1324,19 @@ export function createRunExecutor(deps: ExecutorDeps) {
             : Promise.resolve(null);
         // Boot does not read connectors. Start it beside credential lookup
         // and plugin sync once a model is already named without that work.
+        // Watch immediately so a fast reject is setup failure, not an
+        // unhandled rejection, and first generation can still overlap a
+        // healthy boot.
+        let provisionFailed: unknown;
+        const watchProvision = (p: Promise<ComputerRef>): Promise<ComputerRef> => {
+          void p.catch((error) => {
+            provisionFailed ??= error;
+          });
+          return p;
+        };
         let provisionPromise =
           storedComputer && fallbackProvider && fallbackModelId
-            ? provisionComputer(deps, storedComputer.id, bootContext, "bot")
+            ? watchProvision(provisionComputer(deps, storedComputer.id, bootContext, "bot"))
             : undefined;
         // Pursuit starts as soon as start says browse and the machine is up,
         // overlapping discovery, memory, and key resolution. A second kick
@@ -1446,7 +1456,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
         // If the model was only knowable after override-credential lookup, boot now.
         provisionPromise ??=
           storedComputer && runModelProvider && runModelId
-            ? provisionComputer(deps, storedComputer.id, context, "bot")
+            ? watchProvision(provisionComputer(deps, storedComputer.id, context, "bot"))
             : undefined;
         runReads ??=
           storedComputer && runModelProvider && runModelId
@@ -1577,7 +1587,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
           return;
         }
         if (!storedComputer) throw new Error("Bot has no computer");
-        provisionPromise ??= provisionComputer(deps, storedComputer.id, context, "bot");
+        provisionPromise ??= watchProvision(
+          provisionComputer(deps, storedComputer.id, context, "bot"),
+        );
         browsePromise = browseWhenReady(start, context);
         runReads ??= startIndependentRunReads(deps, { run, thread, bot, userName: ownerName });
         const reads = runReads;
@@ -3749,6 +3761,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
             throw error;
           }
         };
+        await Promise.resolve();
+        if (provisionFailed) throw provisionFailed;
         try {
           for await (const event of deps.runtime.run(
             {
