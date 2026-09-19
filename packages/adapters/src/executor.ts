@@ -170,7 +170,12 @@ import {
 import { labelUntrustedPageText, labelUntrustedToolResult } from "./decision-guardrails.js";
 import { assessRunFloor } from "./decision-guards.js";
 import { routerCandidates } from "./decision-routing.js";
-import { decideRunStart, skillsImpliedByStart } from "./decision-start.js";
+import {
+  decideRunStart,
+  needsComputerBeforeFirstGeneration,
+  skillsImpliedByStart,
+  toolNeedsComputer,
+} from "./decision-start.js";
 import { symbolicFromTool } from "./decision-symbolic.js";
 import { decideToolCall, shouldAskToolCallReview } from "./decision-turn.js";
 import { resolveDeploymentModel } from "./deployment-model.js";
@@ -1466,42 +1471,61 @@ export function createRunExecutor(deps: ExecutorDeps) {
           provider: decisions,
           sessionId: runId,
         });
-        const [resolved, computer] = await Promise.all([
-          resolvePromise ??
-            resolveModelKey(
-              deps,
-              run.userId,
-              run.spaceId,
-              credential,
-              runModelProvider,
-              (values) => runSecrets.push(...values),
-              runAbortController.signal,
-            ),
-          provisionPromise,
-        ]);
+        const resolved = await (resolvePromise ??
+          resolveModelKey(
+            deps,
+            run.userId,
+            run.spaceId,
+            credential,
+            runModelProvider,
+            (values) => runSecrets.push(...values),
+            runAbortController.signal,
+          ));
         runSecrets.push(...resolved.redact);
         await deps.prisma.run.updateMany({
           where: { id: runId, status: "running", leaseOwner: workerId, leaseFence: fence },
           data: { modelProvider: runModelProvider, modelId: runModelId },
         });
-        keepAliveTarget = computer;
-        screenRelease = { computer, context };
-        const browsePromise = prefetchBrowseStart({
-          start,
-          goal: task.prompt,
-          decisions,
-          runId,
-          context,
-          computer,
-          browser: deps.sandbox.browser,
-          prisma: deps.prisma,
-          spaceId: run.spaceId,
-          botId: run.botId,
-        });
+        const computerReady = provisionPromise;
+        let computer: ComputerRef | undefined;
+        const ensureComputer = async (): Promise<ComputerRef> => {
+          if (!computer) {
+            computer = await computerReady;
+            keepAliveTarget = computer;
+            screenRelease = { computer, context };
+          }
+          return computer;
+        };
+        void computerReady
+          .then((ready) => {
+            computer = ready;
+            keepAliveTarget = ready;
+            screenRelease = { computer: ready, context };
+          })
+          .catch(() => undefined);
+        const hasFileAttachments = Boolean(turnBlocks?.some((block) => block.kind === "file"));
+        if (needsComputerBeforeFirstGeneration(start.first, hasFileAttachments)) {
+          await ensureComputer();
+        }
         scheduleComputerSleep(deps.jobs, storedComputer.id);
-        const workspaceCheckpoint = createRunWorkspaceCheckpoint(() =>
-          checkpointAfterComputerWork(deps, storedComputer, computer, context),
-        );
+        const workspaceCheckpoint = createRunWorkspaceCheckpoint(() => {
+          if (!computer) return Promise.resolve();
+          return checkpointAfterComputerWork(deps, storedComputer, computer, context);
+        });
+        const browsePromise = computer
+          ? prefetchBrowseStart({
+              start,
+              goal: task.prompt,
+              decisions,
+              runId,
+              context,
+              computer,
+              browser: deps.sandbox.browser,
+              prisma: deps.prisma,
+              spaceId: run.spaceId,
+              botId: run.botId,
+            })
+          : Promise.resolve(undefined);
         if (start.first === "browse") workspaceCheckpoint.markDirty();
         /**
          * End this attempt without ending the run: persist a progress note, reset the tool
@@ -1559,25 +1583,26 @@ export function createRunExecutor(deps: ExecutorDeps) {
         };
         let currentTurnFiles: Awaited<ReturnType<typeof materializeCurrentTurnFiles>>;
         try {
-          currentTurnFiles = deps.artifacts
-            ? await materializeCurrentTurnFiles(
-                { prisma: deps.prisma, artifacts: deps.artifacts, sandbox: deps.sandbox },
-                turnBlocks,
-                {
-                  context,
-                  computer,
-                  computerMode,
-                  markWorkspaceDirty: workspaceCheckpoint.markDirty,
-                },
-              )
-            : [];
+          currentTurnFiles =
+            deps.artifacts && computer
+              ? await materializeCurrentTurnFiles(
+                  { prisma: deps.prisma, artifacts: deps.artifacts, sandbox: deps.sandbox },
+                  turnBlocks,
+                  {
+                    context,
+                    computer,
+                    computerMode,
+                    markWorkspaceDirty: workspaceCheckpoint.markDirty,
+                  },
+                )
+              : [];
         } catch (error) {
           await workspaceCheckpoint.flush().catch(() => undefined);
           throw error;
         }
         const attachedFilesPrompt = currentTurnFilesInstruction(currentTurnFiles);
         const graphical =
-          computer.kind !== "desktop" && deps.sandbox.describe().capabilities.graphical;
+          storedComputer.kind !== "desktop" && deps.sandbox.describe().capabilities.graphical;
         // Gate on the model this run will actually call — the pair written to the run row
         // above. Deriving it a second time here dropped the deployment fallback, so a
         // vision-capable default was gated as "scripted" and lost its screenshot tools.
@@ -1814,6 +1839,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
           }
           if (guardrailFailure) throw guardrailFailure;
           if (context.signal.aborted) throw new Error("Run stopped before tool execution.");
+          const computer = toolNeedsComputer(name, args)
+            ? await ensureComputer()
+            : (undefined as unknown as ComputerRef);
           if (handedOff) {
             return { error: "This stage was handed off. End the turn without more tool calls." };
           }
@@ -3711,10 +3739,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
                     });
                     return Promise.all(
                       steering.map(async (item) => {
+                        const hasSteerFiles = Boolean(
+                          item.blocks?.some((block) => block.kind === "file"),
+                        );
+                        const readyComputer = hasSteerFiles ? await ensureComputer() : undefined;
                         const { images, files, unavailableInstruction } =
                           await settleSteeringAttachmentLoads(
                             loadCurrentTurnImages(deps, item.blocks, context),
-                            deps.artifacts
+                            deps.artifacts && readyComputer
                               ? materializeCurrentTurnFiles(
                                   {
                                     prisma: deps.prisma,
@@ -3724,7 +3756,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                                   item.blocks,
                                   {
                                     context,
-                                    computer,
+                                    computer: readyComputer,
                                     computerMode,
                                     markWorkspaceDirty: workspaceCheckpoint.markDirty,
                                   },
@@ -4021,16 +4053,19 @@ export function createRunExecutor(deps: ExecutorDeps) {
 
           if (guardrailFailure) throw guardrailFailure;
           for (const turn of script ?? []) {
-            for (const file of turn.files ?? []) {
-              workspaceCheckpoint.markDirty();
-              await deps.sandbox.writeFile(
-                computer,
-                {
-                  path: resolveBotWorkspacePath(computerMode, bot.id, file.path),
-                  content: new TextEncoder().encode(file.content),
-                },
-                context,
-              );
+            if (turn.files?.length) {
+              const readyComputer = await ensureComputer();
+              for (const file of turn.files) {
+                workspaceCheckpoint.markDirty();
+                await deps.sandbox.writeFile(
+                  readyComputer,
+                  {
+                    path: resolveBotWorkspacePath(computerMode, bot.id, file.path),
+                    content: new TextEncoder().encode(file.content),
+                  },
+                  context,
+                );
+              }
             }
             for (const mem of turn.memory ?? []) {
               await deps.memory.commit(

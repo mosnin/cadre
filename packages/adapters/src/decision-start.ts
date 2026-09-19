@@ -47,6 +47,37 @@ export const FIRST_ACTIONS = {
 
 export type FirstAction = keyof typeof FIRST_ACTIONS;
 
+/** The first generation can start without the machine unless this step needs it now. */
+export function needsComputerBeforeFirstGeneration(
+  first: FirstAction | undefined,
+  hasFileAttachments: boolean,
+): boolean {
+  return hasFileAttachments || first === "browse" || first === "computer";
+}
+
+const WORKSPACE_TOOLS = new Set([
+  "browser_observe",
+  "browser_act",
+  "browser_pursue",
+  "computer_observe",
+  "computer_act",
+  "list_files",
+  "read_file",
+  "write_file",
+  "attach_file",
+  "shell",
+  "open_path",
+  "launch_app",
+]);
+
+/** A search, fetch, or message does not wait for provision; these do. */
+export function toolNeedsComputer(name: string, args?: Record<string, unknown>): boolean {
+  if (name === "render_plot") {
+    return Boolean(args && (args.spec || args.data_path));
+  }
+  return WORKSPACE_TOOLS.has(name);
+}
+
 export type RunStartDecision = {
   model?: string;
   skill?: string;
