@@ -187,6 +187,7 @@ import {
 } from "../lib/transcript-scroll";
 import { speaker } from "../lib/tts";
 import { normalizeUiLocale } from "../lib/ui-locale";
+import { readUsageBannerDismissed, writeUsageBannerDismissed } from "../lib/usage-banner-pref";
 import { ActivityList } from "./ActivityList";
 import type { ContextMenuPosition } from "./BotContextMenu";
 import { WorkspaceSwitcher } from "./CompanyWorkspaces";
@@ -721,6 +722,12 @@ export function ShellPage() {
     outputTokens: number;
     runs: number;
   } | null>(null);
+  const [usageBannerDismissed, setUsageBannerDismissed] = useState(() =>
+    readUsageBannerDismissed(userId),
+  );
+  useEffect(() => {
+    setUsageBannerDismissed(readUsageBannerDismissed(userId));
+  }, [userId]);
   useEffect(() => {
     let cancelled = false;
     void rpc.usage
@@ -2845,8 +2852,7 @@ export function ShellPage() {
             className="w-full min-w-0 bg-transparent"
             closeLabel={t`Close navigation`}
             headerActions={
-              <div className="app-no-drag flex items-center gap-2">
-                {" "}
+              <div className="app-no-drag flex shrink-0 items-center gap-1">
                 <Popover open={createMenuOpen} onOpenChange={setCreateMenuOpen}>
                   <PopoverTrigger
                     className="app-no-drag inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium text-foreground hover:bg-muted md:size-7 md:justify-center md:rounded-md md:px-0"
@@ -2896,7 +2902,7 @@ export function ShellPage() {
             }
             navigation={
               <>
-                <nav aria-label={t`Workspace`}>
+                <nav aria-label={t`Workspace`} className="flex w-full flex-col">
                   <RailNavRow
                     testId="rail-new-chat"
                     icon={<MessageSquarePlus size={RAIL.navIconSize} />}
@@ -2984,13 +2990,17 @@ export function ShellPage() {
             }
             footer={
               <>
-                {usage ? (
+                {usage && !usageBannerDismissed ? (
                   <RailUsage
                     runs={usage.runs}
                     tokens={usage.inputTokens + usage.outputTokens}
                     onUpgrade={() => {
                       setAccountSettingsFocusUsage(true);
                       setAccountSettingsOpen(true);
+                    }}
+                    onDismiss={() => {
+                      writeUsageBannerDismissed(userId, true);
+                      setUsageBannerDismissed(true);
                     }}
                   />
                 ) : null}
@@ -3003,7 +3013,7 @@ export function ShellPage() {
                   }}
                 >
                   <Trans>Workspace library</Trans>
-                </Button>{" "}
+                </Button>
                 <Popover open={menuOpen} onOpenChange={setMenuOpen}>
                   <PopoverTrigger
                     data-testid="user-menu-trigger"
@@ -3811,9 +3821,9 @@ export function ShellPage() {
       <aside
         data-testid="side-panel"
         data-panel={panel ?? "closed"}
-        className={`absolute inset-y-0 end-0 z-40 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background lg:relative lg:z-20 ${
+        className={`absolute inset-y-0 end-0 z-40 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background md:rounded-2xl lg:relative lg:z-20 ${
           panel && (active || activeGroup || panel === "create" || panel === "create-group")
-            ? "w-full max-w-[384px] border-s border-sidebar-border lg:w-[384px] lg:max-w-none"
+            ? "w-full max-w-[384px] border-s border-sidebar-border md:inset-y-3 md:end-3 md:border-0 lg:inset-auto lg:w-[384px] lg:max-w-none"
             : "pointer-events-none w-0"
         }`}
       >

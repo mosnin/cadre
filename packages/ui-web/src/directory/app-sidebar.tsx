@@ -100,13 +100,13 @@ function SidebarHeaderContent({
   }
 
   return (
-    <div className="flex min-h-11 items-center gap-2">
+    <div className="flex min-h-11 flex-nowrap items-center gap-2">
       <div className="flex shrink-0 items-center gap-2">
         <AppBrand className="ml-1 size-7 md:size-5" />
       </div>
       {title ? <div className="min-w-0 flex-1">{title}</div> : null}
 
-      <div className="ms-auto flex items-center gap-1">
+      <div className="ms-auto flex shrink-0 items-center gap-1">
         <Button
           type="button"
           variant="ghost"
@@ -121,7 +121,7 @@ function SidebarHeaderContent({
         {actions}
         <SidebarTrigger
           aria-label={closeLabel}
-          className="hidden size-11 text-muted-foreground md:flex"
+          className="hidden size-7 text-muted-foreground md:flex"
         />
       </div>
     </div>

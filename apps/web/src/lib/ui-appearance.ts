@@ -26,6 +26,8 @@ export function applyResolvedAppearance(
   if (!root) return;
   root.dataset.theme = appearance;
   root.style.colorScheme = appearance;
+  // The ElevenLabs Orb inverts from the `dark` class, not from data-theme.
+  root.classList.toggle("dark", appearance === "dark");
   if (typeof document === "undefined") return;
   const meta = document.querySelector(THEME_COLOR_META);
   if (meta) {

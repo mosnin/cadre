@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ORB_COLOR,
   ORB_PRESETS,
+  orbColors,
   orbGradientStops,
   orbPresetForSeed,
+  orbSeed,
   orbStops,
   parseHex,
 } from "./orb-palette.js";
@@ -50,5 +52,11 @@ describe("orb palette", () => {
       "rgb(0, 0, 0)",
       "rgb(0, 0, 0)",
     ]);
+  });
+
+  it("hands the ElevenLabs Orb a light/mid pair from the agent's colour", () => {
+    expect(orbColors("#3380FF")).toEqual(["#74a9ff", "#3380ff"]);
+    expect(orbSeed("#3380FF")).toBe(orbSeed("#3380FF"));
+    expect(orbSeed("#3380FF")).not.toBe(orbSeed("#26BF8C"));
   });
 });

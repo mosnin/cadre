@@ -1,5 +1,6 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import NumberFlow from "@number-flow/react";
+import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { RAIL } from "./home-tokens";
 
@@ -34,10 +35,10 @@ export function RailNavRow({
       data-testid={testId}
       onClick={onSelect}
       aria-current={active ? "page" : undefined}
-      className={`flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2.5 text-start md:min-h-0 ${
+      className={`flex h-11 w-full shrink-0 items-center gap-2.5 rounded-lg px-2.5 text-start md:h-[38px] ${
         active ? "bg-sidebar-accent text-foreground" : "text-foreground/90 hover:bg-accent/60"
       }`}
-      style={{ height: RAIL.navPitch, fontSize: RAIL.navFontSize }}
+      style={{ fontSize: RAIL.navFontSize }}
     >
       <span className="grid shrink-0 place-items-center text-muted-foreground">{icon}</span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
@@ -55,13 +56,25 @@ export function RailUsage({
   runs,
   tokens,
   onUpgrade,
+  onDismiss,
 }: {
   runs: number;
   tokens: number;
   onUpgrade: () => void;
+  onDismiss: () => void;
 }) {
+  const { t } = useLingui();
   return (
-    <div className="rounded-xl bg-sidebar-accent/70 p-3">
+    <div className="relative rounded-xl bg-sidebar-accent/70 p-3" data-testid="rail-usage">
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label={t`Dismiss usage`}
+        data-testid="rail-usage-dismiss"
+        className="absolute top-2 end-2 grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+      >
+        <X size={15} strokeWidth={1.75} />
+      </button>
       <span
         aria-hidden
         className="mb-2.5 block size-5 rounded-full"

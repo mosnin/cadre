@@ -13,13 +13,26 @@ describe("ui-appearance", () => {
   });
 
   it("writes data-theme and color-scheme on the root", () => {
+    const toggled: Array<[string, boolean]> = [];
     const root = {
       dataset: {} as DOMStringMap,
       style: { colorScheme: "" },
+      classList: {
+        toggle: (token: string, force?: boolean) => {
+          toggled.push([token, Boolean(force)]);
+          return Boolean(force);
+        },
+      },
     };
     applyResolvedAppearance("light", root as unknown as HTMLElement);
     expect(root.dataset.theme).toBe("light");
     expect(root.style.colorScheme).toBe("light");
+    expect(toggled).toEqual([["dark", false]]);
+    applyResolvedAppearance("dark", root as unknown as HTMLElement);
+    expect(toggled).toEqual([
+      ["dark", false],
+      ["dark", true],
+    ]);
   });
 
   it("persists preference through storage helpers", () => {

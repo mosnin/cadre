@@ -42,5 +42,7 @@ describe("BotAvatar", () => {
     const html = renderToString(<BotAvatar color="not a colour" />);
     expect(html).toContain("cadre-orb");
     expect(html).not.toContain("NaN");
+    expect(html).not.toContain("fluid-orb");
+    expect(html).not.toContain("<canvas");
   });
 });

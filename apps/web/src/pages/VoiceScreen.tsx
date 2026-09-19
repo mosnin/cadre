@@ -1,6 +1,14 @@
+import { orbColors, orbSeed } from "@cadre/core";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@cadre/ui-web";
-import FluidOrb from "@cadre/ui-web/components/ui/fluid-orb";
+import { type AgentState, Orb } from "@cadre/ui-web/components/ui/orb";
 import type { ReactNode } from "react";
+
+function agentStateForPhase(phase: string): AgentState {
+  if (phase === "listening") return "listening";
+  if (phase === "speaking") return "talking";
+  if (phase === "thinking" || phase === "connecting") return "thinking";
+  return null;
+}
 
 export function VoiceScreen({
   name,
@@ -38,14 +46,16 @@ export function VoiceScreen({
           <div
             data-testid="voice-orb"
             data-audio-level={level.toFixed(2)}
-            className="transition-transform duration-100 ease-out motion-reduce:transform-none motion-reduce:transition-none"
-            style={{ transform: `scale(${1 + Math.min(1, Math.max(0, level)) * 0.065})` }}
+            className="aspect-square h-full max-h-full w-full max-w-full"
           >
-            <FluidOrb
-              size={320}
-              color={color}
-              style={{ width: "min(68vw, 34dvh, 320px)", height: "min(68vw, 34dvh, 320px)" }}
-              aria-hidden="true"
+            <Orb
+              className="h-full w-full"
+              colors={orbColors(color)}
+              seed={orbSeed(color)}
+              agentState={agentStateForPhase(phase)}
+              volumeMode="manual"
+              getInputVolume={() => (phase === "listening" ? Math.min(1, Math.max(0, level)) : 0)}
+              getOutputVolume={() => Math.min(1, Math.max(0, level))}
             />
           </div>
         </div>

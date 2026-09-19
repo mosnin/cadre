@@ -89,3 +89,31 @@ export function orbGradientStops(color: string): [string, string, string] {
     `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
   return [css(light), css(mid), css(dark)];
 }
+
+function hexStop([r, g, b]: Rgb): string {
+  return `#${[r, g, b]
+    .map((channel) =>
+      Math.round(channel * 255)
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
+}
+
+/**
+ * The two colours the ElevenLabs Orb takes. Light first, then the agent's
+ * own colour, which is the same pairing the still gradient uses.
+ */
+export function orbColors(color: string): [string, string] {
+  const [mid, light] = orbStops(color);
+  return [hexStop(light), hexStop(mid)];
+}
+
+/** A stable seed so the same agent colour keeps the same swirl. */
+export function orbSeed(color: string): number {
+  let hash = 0;
+  for (let index = 0; index < color.length; index += 1) {
+    hash = (hash * 31 + color.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
