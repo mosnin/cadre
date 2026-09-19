@@ -198,6 +198,12 @@ Two places use them asymmetrically on purpose:
 
 ## Configuration
 
+Every key below is in [`.env.example`](../.env.example), and
+[`jev-install.md`](./jev-install.md) covers installing, verifying and operating
+the layer — including how to tell a working install from one that is silently
+falling back.
+
+
 ```bash
 JEV_DECISIONS_ENABLED=1     # 0 turns every decision off
 JEV_MODEL=typesafe/jev-1.13 # the decision model
