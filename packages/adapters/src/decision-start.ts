@@ -52,7 +52,7 @@ export function needsComputerBeforeFirstGeneration(
   first: FirstAction | undefined,
   hasFileAttachments: boolean,
 ): boolean {
-  return hasFileAttachments || first === "browse" || first === "computer";
+  return hasFileAttachments || first === "browse";
 }
 
 const WORKSPACE_TOOLS = new Set([
