@@ -170,6 +170,7 @@ import {
   formatPursuedStartPrompt,
   pursueBrowserGoal,
 } from "./decision-browser.js";
+import { labelUntrustedPageText } from "./decision-guardrails.js";
 import { assessRunFloor } from "./decision-guards.js";
 import { routerCandidates } from "./decision-routing.js";
 import { decideRunStart, skillsImpliedByStart } from "./decision-start.js";
@@ -2333,7 +2334,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
                       deps.sandbox.browser!(computer, request as BrowserRequest, context),
                   },
                 );
-              return computerScreenToolResult(run, finish);
+              return computerScreenToolResult(
+                async () => labelBrowserToolResult(await run(), decisions, runId, context.signal),
+                finish,
+              );
             }
             let browserRequest: BrowserRequest =
               name === "browser_observe"
@@ -2375,7 +2379,13 @@ export function createRunExecutor(deps: ExecutorDeps) {
               };
             }
             return computerScreenToolResult(
-              () => deps.sandbox.browser!(computer, browserRequest, context),
+              async () =>
+                labelBrowserToolResult(
+                  await deps.sandbox.browser!(computer, browserRequest, context),
+                  decisions,
+                  runId,
+                  context.signal,
+                ),
               name === "browser_act" ? finish : undefined,
             );
           }
@@ -4241,6 +4251,39 @@ export function createRunExecutor(deps: ExecutorDeps) {
       }
     },
   };
+}
+
+async function labelBrowserToolResult(
+  result: unknown,
+  decisions: DecisionProvider | undefined,
+  sessionId: string,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  if (!result || typeof result !== "object") return result;
+  const page = result as {
+    text?: unknown;
+    url?: unknown;
+    snapshot?: { text?: unknown; url?: unknown };
+  };
+  if (typeof page.text === "string") {
+    const text = await labelUntrustedPageText(decisions, {
+      source: typeof page.url === "string" ? page.url : "browser",
+      text: page.text,
+      sessionId,
+      signal,
+    });
+    return { ...page, text };
+  }
+  if (page.snapshot && typeof page.snapshot.text === "string") {
+    const text = await labelUntrustedPageText(decisions, {
+      source: typeof page.snapshot.url === "string" ? page.snapshot.url : "browser",
+      text: page.snapshot.text,
+      sessionId,
+      signal,
+    });
+    return { ...page, snapshot: { ...page.snapshot, text } };
+  }
+  return result;
 }
 
 async function prefetchBrowseStart(input: {

@@ -15,7 +15,18 @@
  * freshness, the human-input epoch, occlusion checks and credential binding all still apply.
  */
 
-import { actionableChoice, type ChoiceAnswer, choice, DECISION_CONFIDENCE } from "@cadre/core";
+import {
+  actionableChoice,
+  type ChoiceAnswer,
+  choice,
+  DECISION_CONFIDENCE,
+  type noul,
+} from "@cadre/core";
+import {
+  markUntrustedFetchText,
+  readInjected,
+  untrustedInjectionQuestion,
+} from "./decision-guardrails.js";
 import { extractTaskUrls } from "./decision-start.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 
@@ -157,7 +168,7 @@ function targetCriteria(element: BrowserElement) {
 }
 
 function addActionQuestions(
-  questions: Record<string, ReturnType<typeof choice>>,
+  questions: Record<string, ReturnType<typeof choice> | ReturnType<typeof noul>>,
   prefix: string,
   input: {
     goal: string;
@@ -306,6 +317,8 @@ export type BrowserTurn = {
   current?: PlannedBrowserAction;
   /** Speculative follow-up from the same request; used only if the page still has that control. */
   next?: PlannedBrowserAction;
+  /** True when the page text screened as an injection attempt. The page is still acted on. */
+  injected?: boolean;
 };
 
 export async function planBrowserTurn(
@@ -342,9 +355,12 @@ export async function planBrowserTurn(
 
   const entities = (input.entities ?? []).slice(0, 40);
   const shared = { goal: input.goal, operations, targets, selectChoices, entities, urls };
-  const questions: Record<string, ReturnType<typeof choice>> = {};
+  const questions: Record<string, ReturnType<typeof choice> | ReturnType<typeof noul>> = {};
   addActionQuestions(questions, "", { ...shared, rules: RULES });
   addActionQuestions(questions, "next_", { ...shared, rules: NEXT_RULES });
+  if ((input.snapshot.text ?? "").trim().length >= 40) {
+    questions.injected = untrustedInjectionQuestion();
+  }
 
   const result = await provider.decide({
     state: {
@@ -379,7 +395,16 @@ export async function planBrowserTurn(
     entities,
     urls,
   );
-  return { current, next: next && !sameBrowserStep(current, next) ? next : undefined };
+  return {
+    current,
+    next: next && !sameBrowserStep(current, next) ? next : undefined,
+    injected: readInjected(result.answers.injected),
+  };
+}
+
+function labelSnapshot(snapshot: BrowserSnapshot, injected: boolean | undefined): BrowserSnapshot {
+  if (!injected || typeof snapshot.text !== "string" || !snapshot.text.trim()) return snapshot;
+  return { ...snapshot, text: markUntrustedFetchText(snapshot.text) };
 }
 
 function sameBrowserStep(
@@ -509,6 +534,7 @@ export async function pursueBrowserGoal(
       });
       planned = turn.current;
       followUp = turn.next;
+      snapshot = labelSnapshot(snapshot, turn.injected);
     }
     let acted: unknown;
     if (!planned) return { status: "undecided", steps, snapshot };
