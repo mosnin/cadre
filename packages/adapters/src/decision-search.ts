@@ -19,6 +19,11 @@ import {
   type ScoreAnswer,
   score,
 } from "@cadre/core";
+import {
+  markUntrustedFetchText,
+  readInjected,
+  untrustedInjectionQuestion,
+} from "./decision-guardrails.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 /** Ordered lowest to highest; the answer is the index of the level that fits. */
@@ -82,6 +87,7 @@ export async function rankWebSearchHits(
       false: "The answer is not here, or a specific page still needs to be read.",
     },
   );
+  questions.injected = untrustedInjectionQuestion();
   const result = await provider.decide({
     // The results are the state; each question points at one of them by index.
     state: {
@@ -101,6 +107,10 @@ export async function rankWebSearchHits(
 
   const enough = noulValue(result.answers.answered);
   const answered = enough !== undefined && enough >= DECISION_CONFIDENCE.routing;
+  const label = (hit: RankedWebSearchHit): RankedWebSearchHit =>
+    readInjected(result.answers.injected) && hit.snippet.trim()
+      ? { ...hit, snippet: markUntrustedFetchText(hit.snippet) }
+      : hit;
 
   const scored = ranked.map((hit, index) => ({
     hit,
@@ -108,7 +118,9 @@ export async function rankWebSearchHits(
     relevance: scoreOf(result.answers[`r${index}`] as ScoreAnswer | undefined),
   }));
   // A model that scored nothing usably leaves the engine's own order.
-  if (scored.every((entry) => entry.relevance === undefined)) return { hits, answered };
+  if (scored.every((entry) => entry.relevance === undefined)) {
+    return { hits: hits.map(label), answered };
+  }
 
   const kept = scored.filter(
     (entry) => entry.relevance === undefined || entry.relevance > DROP_BELOW,
@@ -123,9 +135,9 @@ export async function rankWebSearchHits(
   return {
     hits: [
       ...surviving.map(({ hit, relevance }) =>
-        relevance === undefined ? hit : { ...hit, relevance },
+        label(relevance === undefined ? hit : { ...hit, relevance }),
       ),
-      ...hits.slice(MAX_RANKED),
+      ...hits.slice(MAX_RANKED).map(label),
     ],
     answered,
   };

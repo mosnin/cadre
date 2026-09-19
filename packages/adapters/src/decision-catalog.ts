@@ -7,6 +7,11 @@
  */
 
 import { answerConfidence, DECISION_CONFIDENCE, type ScoreAnswer, score } from "@cadre/core";
+import {
+  markUntrustedFetchText,
+  readInjected,
+  untrustedInjectionQuestion,
+} from "./decision-guardrails.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 export type RankableCatalogHit = {
@@ -54,27 +59,37 @@ export async function rankCatalogHits<T extends RankableCatalogHit>(
         description: hit.description.slice(0, DESCRIPTION_CHARS),
       })),
     },
-    questions: Object.fromEntries(
-      ranked.map((_hit, index) => [
-        `t${index}`,
-        score({ query: trimmed, task: "How well does this tool match the search?" }, FIT_LEVELS),
-      ]),
-    ),
+    questions: {
+      ...Object.fromEntries(
+        ranked.map((_hit, index) => [
+          `t${index}`,
+          score({ query: trimmed, task: "How well does this tool match the search?" }, FIT_LEVELS),
+        ]),
+      ),
+      injected: untrustedInjectionQuestion(),
+    },
     sessionId: options.sessionId,
     signal: options.signal,
   });
   if (!result) return hits;
+
+  const label = (hit: T): T =>
+    readInjected(result.answers.injected) && hit.description.trim()
+      ? { ...hit, description: markUntrustedFetchText(hit.description) }
+      : hit;
 
   const scored = ranked.map((hit, index) => ({
     hit,
     index,
     relevance: relevance(result.answers[`t${index}`] as ScoreAnswer | undefined),
   }));
-  if (scored.every((entry) => entry.relevance === undefined)) return hits;
+  if (scored.every((entry) => entry.relevance === undefined)) {
+    return [...ranked.map(label), ...remainder];
+  }
 
   scored.sort((left, right) => {
     const delta = (right.relevance ?? -1) - (left.relevance ?? -1);
     return delta !== 0 ? delta : left.index - right.index;
   });
-  return [...scored.map((entry) => entry.hit), ...remainder];
+  return [...scored.map((entry) => label(entry.hit)), ...remainder];
 }
