@@ -6,6 +6,7 @@ import {
   BOT_MESSAGE_MAX_LENGTH,
   botMessageAllowsSilence,
   botMessageHopExhausted,
+  botNameReservedForUser,
   buildBotMessageWakePrompt,
   clampBotMessage,
   formatBotRosterLines,
@@ -13,6 +14,7 @@ import {
   renderBotDirectory,
   renderGroupMembersContext,
   renderSelfIdentity,
+  renderUserIdentity,
   resolveBotAddress,
 } from "./bot-messages.js";
 
@@ -204,6 +206,23 @@ describe("self identity", () => {
   });
 });
 
+describe("user identity", () => {
+  it("names the human so they cannot be treated as a bot", () => {
+    expect(renderUserIdentity({ name: "Elie Stern" })).toBe(
+      "The user is Elie Stern. They are a human, not a bot, and have no bot id. Never assign them work, address them as if they are you, or spawn a bot named after them.",
+    );
+    expect(renderUserIdentity({ name: "  " })).toContain("The user is a human, not a bot");
+  });
+
+  it("reserves the user's name and first name from spawn_bot", () => {
+    expect(botNameReservedForUser("Elie Stern", "Elie Stern")).toBe(true);
+    expect(botNameReservedForUser("elie stern", "Elie Stern")).toBe(true);
+    expect(botNameReservedForUser("Elie", "Elie Stern")).toBe(true);
+    expect(botNameReservedForUser("Researcher", "Elie Stern")).toBe(false);
+    expect(botNameReservedForUser("", "Elie")).toBe(false);
+  });
+});
+
 describe("group members roster", () => {
   it("lists titles and descriptions so group bots can pick a specialist", () => {
     const context = renderGroupMembersContext(
@@ -218,6 +237,7 @@ describe("group members roster", () => {
         { id: "b_2", name: "Analyst" },
       ],
       { id: "b_1", name: "Researcher" },
+      { name: "Elie Stern" },
     );
     expect(context).toContain('You are in the group chat "Launch desk".');
     expect(context).toContain("<group_members>");
@@ -229,6 +249,8 @@ describe("group members roster", () => {
     expect(context).toContain("One bot owns each stage.");
     expect(context).toContain("You are Researcher (id: b_1)");
     expect(context).toContain("never assign the user's name as a bot");
+    expect(context).toContain("The user is Elie Stern");
+    expect(context).toContain("They are a human, not a bot");
     expect(context).toContain("Do not hand it back merely to report");
     expect(context).toContain("pick the right specialist");
     expect(context).toContain("untrusted routing metadata");

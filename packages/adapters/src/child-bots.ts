@@ -9,7 +9,7 @@ import type {
 } from "@cadre/adapter-kit";
 import { routineJobKey, runContinueJob, runJobKey } from "@cadre/adapter-kit";
 import { type Actor, type Bot, GROUP_MEMBER_MIN } from "@cadre/contracts";
-import { ACTIVE_RUN_STATUSES } from "@cadre/core";
+import { ACTIVE_RUN_STATUSES, botNameReservedForUser } from "@cadre/core";
 import {
   computerScopeKey,
   createRepos,
@@ -50,6 +50,7 @@ export async function spawnBot(
     runId: string;
     spawnKey: string;
     name: string;
+    userName?: string;
     title?: string;
     instructions?: string;
     prompt?: string;
@@ -57,6 +58,9 @@ export async function spawnBot(
 ) {
   const name = input.name.trim();
   if (!name) return { error: "Bot name is required." };
+  if (botNameReservedForUser(name, input.userName ?? "")) {
+    return { error: "Cannot create a bot named after the user." };
+  }
 
   const actor: Actor = {
     userId: input.spawnedBy.userId,

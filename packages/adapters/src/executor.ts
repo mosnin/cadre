@@ -59,6 +59,7 @@ import {
   redactSecretsDeep,
   renderBotDirectory,
   renderSelfIdentity,
+  renderUserIdentity,
   resolveActionApprovalDetail,
   sandboxCommandTimeoutMs,
   toolRequiresApproval,
@@ -1114,9 +1115,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
           }),
           deps.prisma.user.findUnique({
             where: { id: run.userId },
-            select: { uiLocale: true, region: true, timezone: true },
+            select: { name: true, uiLocale: true, region: true, timezone: true },
           }),
         ]);
+        const ownerName = userPreferences?.name?.trim() ?? "";
         const localeLine = describeUserLocale(userPreferences);
         const hasModelOverride = Boolean(bot.modelProvider && bot.modelId);
         const overrideCredential =
@@ -1457,7 +1459,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
           deps.runtime.describe().capabilities.scripted ||
           modelAcceptsImageInput(runModelProvider, runModelId);
         const groupContext = thread.groupId
-          ? await loadGroupContext(deps.prisma, thread.groupId, { id: bot.id, name: bot.name })
+          ? await loadGroupContext(
+              deps.prisma,
+              thread.groupId,
+              { id: bot.id, name: bot.name },
+              { name: ownerName },
+            )
           : undefined;
         // Messaging runs are rare; the source lookup only happens for them.
         const messagingSourceBlocks =
@@ -3168,6 +3175,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               runId,
               spawnKey: executionId,
               name: String(args.name ?? ""),
+              userName: ownerName,
               title: args.title ? String(args.title) : undefined,
               instructions: args.instructions ? String(args.instructions) : undefined,
               prompt: args.prompt ? String(args.prompt) : undefined,
@@ -3483,6 +3491,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                           "Schedules you create wake you to run the prompt yourself. Never spawn a bot named after the user or assign them as the bot for a reminder.",
                       },
                     ),
+                groupContext ? undefined : renderUserIdentity({ name: ownerName }),
                 groupContext,
                 messagingContext,
                 memoryContext ? redactSecrets(memoryContext, runSecrets) : undefined,
