@@ -42,8 +42,14 @@ function applyOptions(element: HTMLElement): RevealOptions {
   element.style.setProperty("--reveal-duration", `${duration}s`);
   element.style.setProperty("--reveal-delay", `${delay}s`);
 
-  if (element.dataset.restingColor) {
-    element.style.setProperty("--reveal-resting-color", element.dataset.restingColor);
+  // The resting colour has to be a concrete value. `currentColor` would be
+  // resolved against the element's own colour, which `.is-revealed` sets to
+  // transparent — so the gradient's resting third would be invisible and the
+  // text would finish the sweep blank. Read the real colour first, while the
+  // element still has one.
+  const resting = element.dataset.restingColor ?? (getComputedStyle(element).color || undefined);
+  if (resting && resting !== "rgba(0, 0, 0, 0)") {
+    element.style.setProperty("--reveal-resting-color", resting);
   }
 
   return { threshold };

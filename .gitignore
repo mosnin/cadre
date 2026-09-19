@@ -53,3 +53,6 @@ __pycache__/
 # Sana AI reference screenshots and design captures — screenshots of another
 # company's product, kept local for measurement only.
 .sana-refs/
+
+# Local capture harness for the shell rebuild.
+.shots/

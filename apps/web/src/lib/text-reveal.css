@@ -15,18 +15,30 @@
  *     Safari only honours the prefixed pair
  */
 
+/*
+ * Resting state: ordinary text.
+ *
+ * Upstream puts the hidden state on the base selector, which is right for a
+ * scroll reveal — everything it marks will enter the viewport eventually, so
+ * "transparent until revealed" always resolves. Here the trigger is a bot
+ * finishing a run, which may never happen for a given row, and a base-hidden
+ * name is then permanently invisible. A screenshot of the real roster showed
+ * exactly that: three bots, three blank names.
+ *
+ * So the gradient, the transparency and the 300% window all move onto the
+ * animating state. The mechanic is untouched — same stops, same 300% window,
+ * same 66.67% transparent boundary, same blur in the same keyframe — it simply
+ * only exists while the sweep is running, and `forwards` leaves the text on
+ * its resting colour afterwards.
+ */
 [data-reveal-06] {
-  --reveal-resting-color: #111111;
+  --reveal-resting-color: currentColor;
   --reveal-duration: 1.2s;
   --reveal-delay: 0.1s;
   --reveal-blur: 2px;
   /*
-   * Claude's palette rather than the generic rainbow the effect ships with.
-   * The ramp runs manilla -> kraft -> the coral Claude leads with -> book
-   * cloth -> a deeper terracotta, so the sweep reads as the model that did
-   * the work instead of as decoration. Only the five colour values change;
-   * the stops, the 300% window and the 66.67% transparent boundary are
-   * untouched, which is what the effect depends on.
+   * Claude's palette: manilla, kraft, the coral it leads with, book cloth,
+   * then a deeper terracotta.
    */
   --reveal-color-1: rgb(235, 219, 188);
   --reveal-color-2: rgb(212, 162, 127);
@@ -34,6 +46,9 @@
   --reveal-color-4: rgb(204, 120, 92);
   --reveal-color-5: rgb(189, 93, 58);
   display: inline;
+}
+
+[data-reveal-06].is-revealed {
   color: transparent;
   background-image: linear-gradient(
     90deg,
@@ -52,9 +67,6 @@
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-}
-
-[data-reveal-06].is-revealed {
   animation: text-reveal-06-sweep var(--reveal-duration) cubic-bezier(0.455, 0.03, 0.515, 0.955)
     var(--reveal-delay) forwards;
 }
@@ -76,10 +88,11 @@
  * name. The sweep is decoration; the text is not. This skips the animation and
  * paints the resting colour directly rather than leaving it transparent.
  */
+/* The sweep is decoration; the name is not. Reduced motion keeps the text. */
 @media (prefers-reduced-motion: reduce) {
-  [data-reveal-06] {
+  [data-reveal-06].is-revealed {
     animation: none;
-    color: var(--reveal-resting-color);
+    color: inherit;
     background-image: none;
     -webkit-text-fill-color: currentColor;
   }
