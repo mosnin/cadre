@@ -21,7 +21,7 @@ test("command palette opens with keyboard, filters, and switches bots", async ({
   });
   await page.reload();
   await page.waitForURL(/\/app\/[^/]+$/);
-  await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
+  await expect(page.getByTestId("bots-sidebar")).toBeVisible();
 
   await expect(page.getByTestId("shell-root")).toHaveAttribute("data-ready", "true");
   await page.keyboard.press("ControlOrMeta+K");

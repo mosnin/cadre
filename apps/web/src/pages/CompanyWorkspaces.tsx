@@ -319,7 +319,7 @@ export function WorkspaceSwitcher({
               aria-label={t`Switch workspace`}
             >
               <span className="truncate">{current?.name ?? t`Workspace`}</span>
-              <ChevronDown aria-hidden="true" className="size-5 shrink-0 md:size-[13px]" />
+              <ChevronDown aria-hidden="true" className="shrink-0" />
             </button>
           </PopoverTrigger>
           <PopoverContent

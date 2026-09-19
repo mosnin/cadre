@@ -7,24 +7,29 @@ import {
   signup,
 } from "./helpers";
 
-test("creating an agent returns to work and navigation restores keyboard focus", async ({
+test("creating an agent returns to work and the rail keeps its state", async ({
   page,
 }, testInfo) => {
   await signup(page, `new-bot-ux-${Date.now()}@rakazo.test`, "password12", "New Bot UX");
   await completeOnboarding(page);
   await createBotFromPicker(page);
   await expect(page.getByPlaceholder("Message New Bot")).toBeVisible();
-  await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
+  // The rail is part of the desktop layout, so creating an agent leaves it
+  // where it was rather than pushing it off screen.
+  await expect(page.getByTestId("bots-sidebar")).toBeVisible();
   await captureScreenshot(page, testInfo, "create-chat-focused");
   await openNavigation(page);
-  await expect(page.getByRole("textbox", { name: "Search conversations" })).toBeFocused();
-  await page.keyboard.press("Escape");
+  await expect(page.getByRole("textbox", { name: "Search conversations" })).toBeVisible();
   const show = page.getByRole("button", { name: "Open navigation", exact: true });
+  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+  await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
+  // Closing hands focus back to the control that reopens it.
   await expect(show).toBeFocused();
   await show.press("Enter");
   await expect(page.getByTestId("bots-sidebar")).toBeVisible();
   await page.getByRole("button", { name: "Close navigation", exact: true }).click();
   await page.reload();
+  // And the choice survives the reload, because it is a stored preference now.
   await expect(show).toBeVisible();
   await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
   await captureScreenshot(page, testInfo, "navigation-recedes");

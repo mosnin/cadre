@@ -38,6 +38,7 @@ export const RAIL = {
   width: 268,
   navPitch: 38,
   navFontSize: 13.5,
+  /** Also enforced in styles.css, which governs every lucide icon in a button. */
   navIconSize: 15,
   sectionFontSize: 11,
 } as const;

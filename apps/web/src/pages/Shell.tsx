@@ -470,6 +470,9 @@ export function ShellPage() {
   const [desktopLayout, setDesktopLayout] = useState(
     () => window.matchMedia("(min-width: 768px)").matches,
   );
+  const [wideLayout, setWideLayout] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches,
+  );
   const [draggedBotId, setDraggedBotId] = useState<string | null>(null);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [botsSidebarCollapsed, setBotsSidebarCollapsed] = useState(readRailCollapsed);
@@ -509,11 +512,27 @@ export function ShellPage() {
     desktop.addEventListener("change", closeMobileSidebar);
     return () => desktop.removeEventListener("change", closeMobileSidebar);
   }, []);
+  /**
+   * The rail takes 268px and the side panel 384. Below 1024 there is not enough
+   * left for a conversation between them — at 768 it measured 68px — so the
+   * panel floats over the conversation until there is room for both.
+   */
+  useEffect(() => {
+    const wide = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setWideLayout(wide.matches);
+    sync();
+    wide.addEventListener("change", sync);
+    return () => wide.removeEventListener("change", sync);
+  }, []);
   const navigationOpen = desktopLayout ? !botsSidebarCollapsed : mobileSidebarOpen;
   useEffect(() => {
-    if (!navigationOpen || desktopLayout) return;
+    if (!navigationOpen) return;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const frame = requestAnimationFrame(() => sidebarSearchRef.current?.focus());
+    // A drawer that just opened over the conversation should take the caret; a
+    // rail that is always there must not, or it steals focus on every load.
+    const frame = desktopLayout
+      ? 0
+      : requestAnimationFrame(() => sidebarSearchRef.current?.focus());
     return () => {
       cancelAnimationFrame(frame);
       const active = document.activeElement;
@@ -672,6 +691,9 @@ export function ShellPage() {
 
   const inGroup = Boolean(groupId);
   const atWorkspaceHome = !botId && !groupId && bootstrapRouted;
+  // The conversation is behind something whenever the drawer is over it, or
+  // the side panel is floating rather than sitting beside it.
+  const mainCovered = (!desktopLayout && mobileSidebarOpen) || (!wideLayout && Boolean(panel));
   const active =
     inGroup || atWorkspaceHome ? undefined : (bots.find((b) => b.id === botId) ?? bots[0]);
   const activeGroup = groups.find((group) => group.id === groupId);
@@ -2720,7 +2742,9 @@ export function ShellPage() {
           if (event.key === "Escape" && !event.defaultPrevented && !createMenuOpen && !menuOpen) {
             event.preventDefault();
             setMobileSidebarOpen(false);
-            setBotsSidebarCollapsed(true);
+            // Closing by Escape is the same choice as closing by the button,
+            // so it is remembered the same way.
+            setBotsSidebarCollapsedPref(true);
           }
         }}
         id="bots-sidebar"
@@ -2755,7 +2779,7 @@ export function ShellPage() {
                     aria-label={t`Create`}
                     data-testid="create-menu-trigger"
                   >
-                    <Plus size={18} strokeWidth={1.8} className="md:size-[15px]" />
+                    <Plus size={18} strokeWidth={1.8} />
                     <span className="md:hidden">
                       <Trans>Create</Trans>
                     </span>
@@ -3468,8 +3492,8 @@ export function ShellPage() {
       </aside>
 
       <main
-        aria-hidden={(!desktopLayout && (mobileSidebarOpen || Boolean(panel))) || undefined}
-        inert={!desktopLayout && (mobileSidebarOpen || Boolean(panel))}
+        aria-hidden={mainCovered || undefined}
+        inert={mainCovered}
         className="flex min-w-0 flex-1 flex-col bg-background md:rounded-2xl overflow-hidden"
       >
         <div
@@ -3723,14 +3747,14 @@ export function ShellPage() {
       <aside
         data-testid="side-panel"
         data-panel={panel ?? "closed"}
-        className={`absolute inset-y-0 end-0 z-40 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background md:relative md:z-20 ${
+        className={`absolute inset-y-0 end-0 z-40 flex min-h-0 shrink-0 flex-col overflow-hidden bg-background lg:relative lg:z-20 ${
           panel && (active || activeGroup || panel === "create" || panel === "create-group")
-            ? "w-full max-w-[384px] border-s border-sidebar-border md:w-[384px] md:max-w-none"
+            ? "w-full max-w-[384px] border-s border-sidebar-border lg:w-[384px] lg:max-w-none"
             : "pointer-events-none w-0"
         }`}
       >
         {panel && (active || activeGroup || panel === "create" || panel === "create-group") ? (
-          <div className="rk-scroll h-full w-full overflow-y-auto px-5 py-[17px] md:w-[384px]">
+          <div className="rk-scroll h-full w-full overflow-y-auto px-5 py-[17px] lg:w-[384px]">
             {panel !== "routine" &&
             panel !== "create" &&
             panel !== "create-group" &&

@@ -66,3 +66,11 @@ svg.lucide {
   height: 1.125rem;
   flex-shrink: 0;
 }
+/* The rail is built to the reference's icon, 19px at 1920 and so 15 here, on a
+   38px row. Below md it is a drawer and keeps the 18px touch size. */
+@media (min-width: 768px) {
+  [data-testid="bots-sidebar"] :where(button, a, [role="button"]) svg.lucide {
+    width: 0.9375rem;
+    height: 0.9375rem;
+  }
+}

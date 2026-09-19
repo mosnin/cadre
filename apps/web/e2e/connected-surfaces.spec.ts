@@ -6,6 +6,9 @@ for (const width of [320, 390, 768, 1440]) {
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height: width === 320 ? 568 : width === 768 ? 600 : 900 });
+    // At and above md the rail is part of the layout and is simply there; below
+    // it is a drawer that opens over the conversation.
+    const railIsPermanent = width >= 768;
     await page.addInitScript(() => localStorage.setItem("rakazo.uiAppearance", "system"));
     await page.emulateMedia({ colorScheme: "light" });
     await signup(
@@ -15,7 +18,7 @@ for (const width of [320, 390, 768, 1440]) {
       "Workspace Owner",
     );
     await completeOnboarding(page);
-    await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
+    await expect(page.getByTestId("bots-sidebar")).toBeVisible({ visible: railIsPermanent });
     await expect(page.getByRole("button", { name: "Company context", exact: true })).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Company context", exact: true }),
@@ -27,10 +30,14 @@ for (const width of [320, 390, 768, 1440]) {
     await expect(page.getByText("No company connected", { exact: true })).toBeVisible();
     await captureScreenshot(page, testInfo, "company-context");
     await page.getByRole("button", { name: "Close company context", exact: true }).click();
-    await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+    if (!railIsPermanent) {
+      await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+    }
     await expect(page.getByTestId("bots-sidebar")).toBeVisible();
-    await expect(page.getByRole("textbox", { name: "Search conversations" })).toBeFocused();
-    await page.keyboard.press("Escape");
+    await expect(page.getByRole("textbox", { name: "Search conversations" })).toBeVisible();
+    // Escape closes it from inside, wherever it is, and hands focus to the
+    // control that brings it back.
+    await page.getByRole("textbox", { name: "Search conversations" }).press("Escape");
     await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
     await expect(page.getByRole("button", { name: "Open navigation", exact: true })).toBeFocused();
     await page.keyboard.press("Enter");
@@ -48,6 +55,7 @@ for (const width of [320, 390, 768, 1440]) {
     await page.getByRole("button", { name: "Close setup", exact: true }).click();
     await expect(page.getByTestId("bots-sidebar")).toBeVisible();
     await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+    await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
     await expect(page.getByRole("group", { name: "Message composer" })).toHaveCount(0);
     await page.getByRole("button", { name: "Continue setup", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Connect your company" })).toBeVisible();
@@ -72,7 +80,7 @@ for (const width of [320, 390, 768, 1440]) {
     await captureScreenshot(page, testInfo, "workspace-navigator-dark");
     await page.getByTestId("create-menu-trigger").click();
     await page.getByTestId("create-new-bot").click();
-    await expect(page.getByTestId("bots-sidebar")).not.toBeVisible();
+    await expect(page.getByTestId("bots-sidebar")).toBeVisible({ visible: railIsPermanent });
     await page.getByLabel("Name", { exact: true }).fill("Research partner");
     await page.getByLabel("Purpose", { exact: true }).fill("Research questions for the studio");
     await captureScreenshot(page, testInfo, "create-another-agent");
