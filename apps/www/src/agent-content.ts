@@ -21,6 +21,7 @@ Cadre is an open source Grok Bot alternative that gives each bot a sandboxed bro
 - [About](https://cadre.to/about/)
 - [Support](https://cadre.to/support/)
 - [Privacy](https://cadre.to/privacy/)
+- [Terms](https://cadre.to/terms/)
 - [Sitemap](https://cadre.to/sitemap-index.xml)
 `;
 
@@ -53,6 +54,17 @@ In a self-hosted deployment, the server operator controls the information sent t
 Read the [complete privacy policy](https://cadre.to/privacy/) in HTML.
 `;
 
+export const TERMS_MARKDOWN = `# Cadre terms
+
+These terms apply to the Cadre services Cadre hosts: the hosted web app, the Cadre mobile app, and cadre.to. The Cadre software itself is open source under the Apache License, Version 2.0, and that licence — not these terms — governs running, modifying, and redistributing the source, including commercially. A self-hosted deployment is the responsibility of whoever operates it.
+
+A bot acts with the access its user gives it, so its work is attributable to that user. Models make mistakes; Cadre does not guarantee a bot's work is correct or suitable for a purpose. Users keep ownership of their content, and Cadre processes it only to operate the service, does not train models on it, and does not sell it. What is sent to a model provider or connected app is also governed by that provider's terms.
+
+For questions about these terms, email [hello@cadre.to](mailto:hello@cadre.to).
+
+Read the [complete terms](https://cadre.to/terms/) in HTML.
+`;
+
 export const AGENT_INSTRUCTIONS = `# Cadre
 
 > Open source Grok Bot alternative with sandboxed browser and shell access. Your keys, your model, your machine.
@@ -77,6 +89,7 @@ Do not present Cadre as a zero-configuration hosted service. Self-hosting is ava
 - [About](https://cadre.to/about/)
 - [Support](https://cadre.to/support/)
 - [Privacy](https://cadre.to/privacy/)
+- [Terms](https://cadre.to/terms/)
 - [Sitemap](https://cadre.to/sitemap-index.xml)
 `;
 
@@ -94,6 +107,7 @@ const MARKDOWN_DOCUMENTS = new Map<string, string>([
   ["/about", ABOUT_MARKDOWN],
   ["/privacy", PRIVACY_MARKDOWN],
   ["/support", SUPPORT_MARKDOWN],
+  ["/terms", TERMS_MARKDOWN],
 ]);
 
 type MediaPreference = {

@@ -77,6 +77,8 @@ export class McpConnector implements ConnectorProvider {
     private readonly secrets: EncryptedSecretStore,
     private readonly options: {
       prepareCompanyWorkspace?: (context: AdapterContext) => Promise<void>;
+      /** Refreshes Operate and Stored servers for the run; never gates other servers. */
+      prepareWorkspaceIntegrations?: (context: AdapterContext) => Promise<void>;
       stdioEnabled?: boolean;
       allowedCommands?: string[];
       network?: RemoteTransportDependencies;
@@ -133,9 +135,22 @@ export class McpConnector implements ConnectorProvider {
     return pending;
   }
 
+  /** The same isolation for the workspace providers: one provider's outage disables only its own servers. */
+  private async prepareWorkspaceIntegrations(context: AdapterContext) {
+    try {
+      await this.options.prepareWorkspaceIntegrations?.(context);
+    } catch (error) {
+      // A provider outage disables its own servers; the bot's other servers stay usable.
+      getLogger().warn("workspace_integrations.prepare_failed", {
+        error: sanitizeConnectorError(error),
+      });
+    }
+  }
+
   private async authorizedTools(context: AdapterContext): Promise<ConnectorTool[]> {
     if (!context.botId) return [];
     await this.prepareCompanyWorkspace(context);
+    await this.prepareWorkspaceIntegrations(context);
     const assignments = await this.prisma.botMcpServer.findMany({
       where: {
         botId: context.botId,
@@ -215,6 +230,7 @@ export class McpConnector implements ConnectorProvider {
       return;
     }
     await this.prepareCompanyWorkspace(context);
+    await this.prepareWorkspaceIntegrations(context);
     const assignment = await this.prisma.botMcpServer.findFirst({
       where: {
         botId: context.botId,

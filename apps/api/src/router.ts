@@ -404,6 +404,25 @@ export function createRouter(deps: RouterDeps) {
     admin: createAdminRouter({ prisma: deps.prisma, jobs: deps.jobs, config: deps.admin }),
     health: os.health.handler(async () => ({ ok: true as const, version: "0.1.0" })),
     me: authed.me.handler(async ({ context }): Promise<Me> => meDto(deps, context.actor)),
+    preferences: {
+      update: authed.preferences.update.handler(async ({ context, input }): Promise<Me> => {
+        if (input.timezone && !isValidTimeZone(input.timezone)) {
+          throw new ORPCError("BAD_REQUEST", { message: "Unknown time zone" });
+        }
+        await deps.prisma.user.update({
+          where: { id: context.actor.userId },
+          data: {
+            ...(input.locale !== undefined ? { uiLocale: input.locale } : {}),
+            ...(input.region !== undefined ? { region: input.region } : {}),
+            ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
+            ...(input.timezoneAutomatic !== undefined
+              ? { timezoneAutomatic: input.timezoneAutomatic }
+              : {}),
+          },
+        });
+        return meDto(deps, context.actor);
+      }),
+    },
     spaces: {
       list: authed.spaces.list.handler(async ({ context }) =>
         spaceNavigationDto(deps, context.actor, repos, groupRepos),
@@ -1159,10 +1178,12 @@ export function createRouter(deps: RouterDeps) {
         });
         const [configuredMemory] = await Promise.all([
           target.kind === "bot"
-            ? deps.memoryProviders.resolve(context.actor.spaceId).catch((error) => {
-                getLogger().error("semantic memory resolution after thread clear failed", error);
-                return null;
-              })
+            ? deps.memoryProviders
+                .resolve(context.actor.spaceId, context.actor.userId)
+                .catch((error) => {
+                  getLogger().error("semantic memory resolution after thread clear failed", error);
+                  return null;
+                })
             : Promise.resolve(null),
           Promise.all(
             cancelledRunIds.map((runId) =>
@@ -4077,7 +4098,20 @@ async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     computerHost: computerHostFor(setup.settings?.computerHost, deps.env.sandboxProvider),
     canChooseHostComputer: actor.isDeploymentOwner && deps.env.sandboxProvider === "docker",
     sandboxProvider: deps.env.sandboxProvider,
+    locale: user.uiLocale ?? null,
+    region: user.region ?? null,
+    timezone: user.timezone ?? null,
+    timezoneAutomatic: user.timezoneAutomatic ?? true,
   };
+}
+
+function isValidTimeZone(timezone: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function modelSetup(deps: RouterDeps, actor: Actor) {

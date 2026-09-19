@@ -1,0 +1,129 @@
+---
+import Footer from "../components/Footer.astro";
+import Header from "../components/Header.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+---
+
+<BaseLayout
+  title="Terms · Cadre"
+  description="The terms that apply when you use a Cadre service that we host."
+>
+  <div class="container">
+    <Header />
+    <main id="main" class="privacy-copy">
+      <h1>Terms</h1>
+      <p><strong>Last updated: September 19, 2026</strong></p>
+      <p>
+        These terms apply when you use a Cadre service that we host, including the hosted web app,
+        the Cadre mobile app, and cadre.to. They are an agreement between you and Cadre (“we” or
+        “us”). If you do not agree to them, do not use the hosted service.
+      </p>
+
+      <h2>The software and the service are separate</h2>
+      <p>
+        The Cadre software is open source under the Apache License, Version 2.0. That licence — not
+        these terms — governs what you may do with the source: run it, modify it, and distribute it,
+        including commercially, on the conditions the licence states. These terms govern only the
+        service we operate for you. If you run Cadre yourself, the operator of that deployment is
+        responsible for it, and these terms do not apply to it.
+      </p>
+
+      <h2>Your account</h2>
+      <p>
+        You need an account to use the hosted service. Keep your credentials secure, give us accurate
+        information, and tell us promptly if you believe your account has been used without your
+        permission. You are responsible for what happens under your account, including what your
+        bots do. You must be old enough to enter a contract where you live.
+      </p>
+
+      <h2>What bots do on your behalf</h2>
+      <p>
+        Cadre runs bots that use a browser, a shell, and the tools and accounts you connect. A bot
+        acts with the access you give it, so the work it does is attributable to you. Give a bot only
+        the access it needs, review the boundaries at which it must ask for approval, and check
+        results that matter before relying on them. Models make mistakes, and Cadre does not
+        guarantee that a bot's work is correct, complete, or suitable for a purpose.
+      </p>
+
+      <h2>Acceptable use</h2>
+      <p>You may not use the hosted service to:</p>
+      <ul>
+        <li>Break the law, infringe someone's rights, or help someone else do either.</li>
+        <li>
+          Access an account, system, or dataset you are not authorised to access, or circumvent a
+          technical restriction, rate limit, or access control.
+        </li>
+        <li>
+          Send malware, mount a denial-of-service attack, scrape in violation of a site's terms, or
+          disrupt the service for other users.
+        </li>
+        <li>
+          Impersonate a person or organisation, or generate content presented as genuine when it is
+          not — records, reviews, identity documents, or approvals.
+        </li>
+        <li>Handle someone else's personal data without a lawful basis to do so.</li>
+        <li>Resell or redistribute the hosted service as your own.</li>
+      </ul>
+      <p>
+        We may suspend an account that we reasonably believe is being used this way, or that puts the
+        service or other users at risk.
+      </p>
+
+      <h2>Your content</h2>
+      <p>
+        You keep ownership of what you put into Cadre: instructions, messages, files, memories, and
+        routines. You give us permission to host, process, and transmit that content only as needed
+        to operate the service for you — including sending it to the model providers and connected
+        applications you choose. We do not use your content to train models, and we do not sell it.
+        You are responsible for having the rights to the content you provide.
+      </p>
+
+      <h2>Models and connected services</h2>
+      <p>
+        Cadre works with model providers and third-party applications you select. What you send to
+        one is also governed by that provider's own terms and privacy policy, and its availability,
+        pricing, and behaviour are outside our control. Where you supply your own provider keys, the
+        cost of that provider's usage is yours.
+      </p>
+
+      <h2>Fees</h2>
+      <p>
+        Where a plan is paid, the price, billing period, and what it includes are stated at the point
+        of purchase. Fees are charged in advance and are not refundable except where the law requires
+        it. We will give notice before a price change takes effect for you.
+      </p>
+
+      <h2>Availability</h2>
+      <p>
+        We work to keep the hosted service available but do not promise it will be uninterrupted or
+        error-free, and we may change or discontinue features. The service is provided as is, without
+        warranties of any kind, to the extent the law allows. Nothing here limits a liability that
+        cannot be limited by law, including for fraud, or for death or personal injury caused by
+        negligence.
+      </p>
+
+      <h2>Ending it</h2>
+      <p>
+        You may stop using the hosted service and delete your account at any time. We may end or
+        suspend your access if you materially breach these terms, or if we stop offering the service,
+        with reasonable notice where we can give it. You can export your data before you go; after an
+        account is deleted, we remove or anonymise it as the privacy policy describes.
+      </p>
+
+      <h2>Changes to these terms</h2>
+      <p>
+        We may update these terms. The date at the top of this page says when they last changed, and
+        we will give notice of a material change before it takes effect for you. Continuing to use
+        the hosted service after that means the updated terms apply.
+      </p>
+
+      <h2>Contact us</h2>
+      <p>
+        Cadre<br />
+        <a href="mailto:hello@cadre.to">hello@cadre.to</a>
+      </p>
+    </main>
+    <Footer />
+  </div>
+</BaseLayout>

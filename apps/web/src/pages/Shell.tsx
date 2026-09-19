@@ -153,6 +153,7 @@ import { loadComputerScreen } from "../lib/computer-screen";
 import { desktopBridge } from "../lib/desktop";
 import { dictation } from "../lib/dictation";
 import { scheduleFocusPrompt } from "../lib/focus-prompt";
+import { getActiveUiLocale, setUiLocale } from "../lib/i18n";
 import { localTimezone } from "../lib/local-timezone";
 import { copyableMessageText } from "../lib/message-text";
 import { providerLabel } from "../lib/messaging";
@@ -185,9 +186,10 @@ import {
   transcriptMovedDown,
 } from "../lib/transcript-scroll";
 import { speaker } from "../lib/tts";
+import { normalizeUiLocale } from "../lib/ui-locale";
 import { ActivityList } from "./ActivityList";
 import type { ContextMenuPosition } from "./BotContextMenu";
-import { WorkspaceIdentity, WorkspaceSwitcher } from "./CompanyWorkspaces";
+import { WorkspaceSwitcher } from "./CompanyWorkspaces";
 import { CreateGroupForm, GroupSettings, memberName } from "./GroupPanel";
 import { HostComputerPrompt } from "./HostComputerPrompt";
 import {
@@ -226,6 +228,9 @@ import { WorkspaceLibrary } from "./WorkspaceLibrary";
 const BotContextMenu = lazy(() =>
   import("./BotContextMenu").then((module) => ({ default: module.BotContextMenu })),
 );
+
+import type { SettingsNotice, SettingsSectionId } from "./AccountSettingsOverlay";
+
 const AccountSettingsOverlay = lazy(() =>
   import("./AccountSettingsOverlay").then((module) => ({
     default: module.AccountSettingsOverlay,
@@ -446,6 +451,45 @@ export function ShellPage() {
   const [workforceOpen, setWorkforceOpen] = useState(false);
   const [mcpOpen, setMcpOpen] = useState(false);
   const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
+  const [accountSettingsSection, setAccountSettingsSection] = useState<SettingsSectionId>();
+  const [accountSettingsNotice, setAccountSettingsNotice] = useState<SettingsNotice | null>(null);
+  // Company OS and workspace connection callbacks return to /app; consume the outcome once
+  // and show it in the matching Settings section.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const companyKeys = ["company-connected", "company-ready", "company-error"];
+    const integrationKeys = ["integration", "connected", "connection-error"];
+    if (!companyKeys.some((key) => params.has(key)) && !params.has("integration")) return;
+    if (params.has("company-connected")) {
+      const target = params.get("company-connected") ?? "";
+      if (target && target !== selectedSpaceId() && selectSpace(target)) {
+        window.location.replace("/app?company-ready=1");
+        return;
+      }
+    }
+    let notice: SettingsNotice | null = null;
+    if (params.has("company-connected") || params.has("company-ready"))
+      notice = { section: "company", company: "connected" };
+    else if (params.has("company-error")) notice = { section: "company", company: "error" };
+    else if (params.has("integration"))
+      notice = {
+        section: "connections",
+        integration: {
+          provider: params.get("integration") ?? "",
+          error: params.has("connection-error"),
+        },
+      };
+    for (const key of [...companyKeys, ...integrationKeys]) params.delete(key);
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${params.size ? `?${params}` : ""}${window.location.hash}`,
+    );
+    if (!notice) return;
+    setAccountSettingsNotice(notice);
+    setAccountSettingsSection(notice.section);
+    setAccountSettingsOpen(true);
+  }, []);
   const [messagingSettingsOpen, setMessagingSettingsOpen] = useState(false);
   const [messagingSurfaceEnabled, setMessagingSurfaceEnabled] = useState(false);
   const [accountSettingsFocusUsage, setAccountSettingsFocusUsage] = useState(false);
@@ -609,6 +653,26 @@ export function ShellPage() {
    */
   const [bootstrapRouted, setBootstrapRouted] = useState(false);
   const [bootstrapMe, setBootstrapMe] = useState<Me | null>();
+  const updatePreferences = useCallback(
+    async (patch: Parameters<typeof rpc.preferences.update>[0]) => {
+      setBootstrapMe(await rpc.preferences.update(patch));
+    },
+    [],
+  );
+  // Keep the saved time zone in step with the device while automatic, and apply
+  // the saved UI language on load so the choice follows the account across devices.
+  useEffect(() => {
+    if (!bootstrapMe) return;
+    if (bootstrapMe.timezoneAutomatic) {
+      const zone = localTimezone();
+      if (zone !== bootstrapMe.timezone)
+        void updatePreferences({ timezone: zone, timezoneAutomatic: true }).catch(() => undefined);
+    }
+    if (bootstrapMe.locale) {
+      const preferred = normalizeUiLocale(bootstrapMe.locale);
+      if (preferred !== getActiveUiLocale()) void setUiLocale(preferred);
+    }
+  }, [bootstrapMe, updatePreferences]);
   // The active space survives a failed bootstrap: navigation refreshes report it too.
   const [currentSpaceId, setCurrentSpaceId] = useState<string>();
   const [routineDraft, setRoutineDraft] = useState<RoutineDraftState>(emptyRoutineDraft());
@@ -2822,12 +2886,10 @@ export function ShellPage() {
             }
             headerTitle={
               <WorkspaceSwitcher
-                part="name"
                 spaces={spaces}
                 currentSpaceId={currentSpaceId}
                 onSwitch={openSpaceChat}
                 onCreate={() => navigate("/onboarding?new=1")}
-                onManage={() => setAccountSettingsOpen(true)}
               />
             }
             navigation={
@@ -2920,14 +2982,6 @@ export function ShellPage() {
             }
             footer={
               <>
-                <WorkspaceSwitcher
-                  part="status"
-                  spaces={spaces}
-                  currentSpaceId={currentSpaceId}
-                  onSwitch={openSpaceChat}
-                  onCreate={() => navigate("/onboarding?new=1")}
-                  onManage={() => setAccountSettingsOpen(true)}
-                />
                 {usage ? (
                   <RailUsage
                     runs={usage.runs}
@@ -3534,12 +3588,12 @@ export function ShellPage() {
             >
               <PanelLeftOpen size={20} aria-hidden="true" />
             </button>
-            <WorkspaceIdentity
-              spaceId={currentSpaceId}
-              workspaceName={
-                spaces.find((space) => space.id === currentSpaceId)?.name ?? t`Workspace`
-              }
-            />
+            <span
+              data-testid="workspace-name"
+              className="app-no-drag flex min-h-11 min-w-0 w-full sm:w-40 items-center truncate px-2 text-sm font-medium"
+            >
+              {spaces.find((space) => space.id === bootstrapMe?.spaceId)?.name ?? t`Workspace`}
+            </span>
             <button
               type="button"
               data-testid="bot-settings-trigger"
@@ -3980,7 +4034,7 @@ export function ShellPage() {
                 draft={routineDraft}
                 onChange={setRoutineDraft}
                 editing={editingRoutine}
-                timezone={editingRoutine?.timezone ?? localTimezone()}
+                timezone={editingRoutine?.timezone ?? bootstrapMe?.timezone ?? localTimezone()}
                 webhook={{
                   path:
                     typeof window !== "undefined"
@@ -4062,7 +4116,7 @@ export function ShellPage() {
                         name: routineDraft.name || t`Routine`,
                         prompt: routineDraft.prompt || t`Check in.`,
                         crons,
-                        timezone: localTimezone(),
+                        timezone: bootstrapMe?.timezone ?? localTimezone(),
                         active: routineDraft.active,
                         notify: true,
                         webhookEnabled: routineDraft.webhookEnabled,
@@ -4328,6 +4382,7 @@ export function ShellPage() {
         {pluginsOpen ? (
           <PluginsOverlay
             activeBotId={activeBotId.current}
+            onLibraryChange={refreshAgentSkills}
             onClose={() => setPluginsOpen(false)}
             onOpenMcp={() => {
               setPluginsOpen(false);
@@ -4354,6 +4409,10 @@ export function ShellPage() {
             email={session.data?.user.email}
             usage={usage}
             focusUsage={accountSettingsFocusUsage}
+            initialSection={accountSettingsSection}
+            notice={accountSettingsNotice}
+            me={bootstrapMe}
+            onPreferencesChange={updatePreferences}
             isDeploymentOwner={bootstrapMe?.isDeploymentOwner === true}
             sandboxProvider={bootstrapMe?.sandboxProvider}
             messagingEnabled={messagingSurfaceEnabled}
@@ -4361,9 +4420,32 @@ export function ShellPage() {
               setAccountSettingsOpen(false);
               setMessagingSettingsOpen(true);
             }}
+            onOpenPlugins={() => {
+              setAccountSettingsOpen(false);
+              setPluginsOpen(true);
+            }}
+            onOpenLibrary={() => {
+              setAccountSettingsOpen(false);
+              setLibraryOpen(true);
+            }}
+            onOpenWorkforce={
+              capabilities?.companyOsOrigin
+                ? () => {
+                    setAccountSettingsOpen(false);
+                    setWorkforceOpen(true);
+                  }
+                : undefined
+            }
+            activeBot={active && !inGroup ? { id: active.id, name: active.name } : null}
+            computer={computer}
+            onComputerChanged={async () => {
+              if (active) await refreshThread(active.id);
+            }}
             onClose={() => {
               setAccountSettingsOpen(false);
               setAccountSettingsFocusUsage(false);
+              setAccountSettingsSection(undefined);
+              setAccountSettingsNotice(null);
             }}
           />
         ) : null}

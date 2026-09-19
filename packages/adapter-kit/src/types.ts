@@ -8,6 +8,9 @@ export interface AdapterContext {
   botId?: string;
   runId?: string;
   /** Set only after this run validates its workspace OAuth grant. Never credentials. */
+  workspaceIntegrations?: Partial<
+    Record<"operate" | "stored" | "scalar", { id: string; name: string }>
+  >;
   companyWorkspace?: { id: string; name: string; slug: string };
   /** Opaque fence for releasing a graphical screen without tearing down its replacement. */
   screenLeaseId?: string;
