@@ -59,8 +59,8 @@ When the first action is `browse`, pursuit starts the moment the computer is
 up — overlapping the rest of prompt assembly — so the first generation sees the
 page that was already acted on instead of spending a turn deciding to call
 `browser_pursue`. Group context, messaging identity, approved-effect replay,
-prior progress, the bot directory, and saved logins start the moment the
-computer is up too, so those reads are not paid for after files materialize.
+prior progress, the bot directory, and saved logins start beside computer
+provision, so those reads overlap the boot instead of waiting for it.
 Helper routing starts before the helper waits for a slot, so a queued delegate
 does not pay for the decision after it is already allowed to run. A thread
 already over the history window starts compacting at the beginning of the run —
