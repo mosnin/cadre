@@ -309,9 +309,12 @@ export const OrbAvatar = memo(function OrbAvatar({
     <span
       aria-hidden="true"
       data-orb-state={state}
+      // Whether a run is in flight, always stated so a caller can count or
+      // assert on it.
+      data-working={state === "speaking" ? "true" : "false"}
       // Only the still orb breathes: a live one already shows the run in its
       // own motion, and two signals at once reads as a glitch.
-      data-working={!wantsLive && state === "speaking" ? "true" : undefined}
+      data-halo={!wantsLive && state === "speaking" ? "true" : undefined}
       className={cn("cadre-orb relative inline-block shrink-0 rounded-full", className)}
       style={
         {

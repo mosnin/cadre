@@ -1,4 +1,3 @@
-import type { AvatarStyle } from "@cadre/contracts";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -14,7 +13,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAvatarStyle } from "../components/avatar-style";
 import { BotAvatar } from "../components/bot-avatar";
 import type { MobileBot } from "../lib/api";
 import {
@@ -56,8 +54,6 @@ export default function Account() {
   const [localeSaving, setLocaleSaving] = useState(false);
   const [localeError, setLocaleError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [avatarPending, setAvatarPending] = useState(false);
-  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<LiveNotificationSettings>(
     DEFAULT_LIVE_NOTIFICATION_SETTINGS,
   );
@@ -71,7 +67,6 @@ export default function Account() {
     inputTokens: number;
     outputTokens: number;
   } | null>(null);
-  const { avatarStyle, updateAvatarStyle } = useAvatarStyle();
   const appearance = getCachedAppearancePreference();
   const styles = useThemedStyles(createAccountStyles);
 
@@ -117,19 +112,6 @@ export default function Account() {
         t("Could not restore bot"),
         restoreError instanceof Error ? restoreError.message : t("Try again."),
       );
-    }
-  }
-
-  async function selectAvatarStyle(next: AvatarStyle) {
-    if (next === avatarStyle) return;
-    setAvatarPending(true);
-    setAvatarError(null);
-    try {
-      await updateAvatarStyle(next);
-    } catch {
-      setAvatarError(t("Couldn't update avatars"));
-    } finally {
-      setAvatarPending(false);
     }
   }
 
@@ -253,43 +235,6 @@ export default function Account() {
               );
             })}
           </View>
-        </View>
-
-        <View accessibilityLabel={t("Avatar style")} style={styles.avatarSection}>
-          <Text style={styles.settingsTitle}>{t("Avatars")}</Text>
-          <View style={styles.avatarOptions}>
-            {(["orb", "robot", "organic"] as const).map((style) => {
-              const selected = avatarStyle === style;
-              const styleLabel =
-                style === "robot" ? t("Robot") : style === "organic" ? t("Organic") : t("Orb");
-              return (
-                <Pressable
-                  key={style}
-                  accessibilityLabel={t("{style} avatars", { style: styleLabel })}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected, disabled: avatarPending }}
-                  disabled={avatarPending}
-                  onPress={() => void selectAvatarStyle(style)}
-                  style={({ pressed }) => [
-                    styles.avatarOption,
-                    selected && styles.avatarOptionSelected,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <BotAvatar
-                    color={
-                      style === "robot" ? "#8B5CF6" : style === "organic" ? "#D62F8B" : "#3380FF"
-                    }
-                    identity="avatar-preview"
-                    size={42}
-                    variant={style}
-                  />
-                  <Text style={styles.avatarLabel}>{styleLabel}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          {avatarError ? <Text style={styles.error}>{avatarError}</Text> : null}
         </View>
 
         <View accessibilityLabel={t("Language")} style={styles.avatarSection}>

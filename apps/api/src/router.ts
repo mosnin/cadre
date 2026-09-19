@@ -81,7 +81,6 @@ import {
 import type { Auth } from "@cadre/auth";
 import {
   type Actor,
-  AvatarStyleSchema,
   appContract,
   type ComputerStatus,
   type McpServer,
@@ -405,15 +404,6 @@ export function createRouter(deps: RouterDeps) {
     admin: createAdminRouter({ prisma: deps.prisma, jobs: deps.jobs, config: deps.admin }),
     health: os.health.handler(async () => ({ ok: true as const, version: "0.1.0" })),
     me: authed.me.handler(async ({ context }): Promise<Me> => meDto(deps, context.actor)),
-    preferences: {
-      update: authed.preferences.update.handler(async ({ context, input }): Promise<Me> => {
-        await deps.prisma.user.update({
-          where: { id: context.actor.userId },
-          data: { avatarStyle: input.avatarStyle },
-        });
-        return meDto(deps, context.actor);
-      }),
-    },
     spaces: {
       list: authed.spaces.list.handler(async ({ context }) =>
         spaceNavigationDto(deps, context.actor, repos, groupRepos),
@@ -4087,9 +4077,6 @@ async function meDto(deps: RouterDeps, actor: Actor): Promise<Me> {
     computerHost: computerHostFor(setup.settings?.computerHost, deps.env.sandboxProvider),
     canChooseHostComputer: actor.isDeploymentOwner && deps.env.sandboxProvider === "docker",
     sandboxProvider: deps.env.sandboxProvider,
-    // Read the stored value through the schema so a style added later is not
-    // silently reported as another one; anything unknown falls to the default.
-    avatarStyle: AvatarStyleSchema.catch("orb").parse(user.avatarStyle),
   };
 }
 

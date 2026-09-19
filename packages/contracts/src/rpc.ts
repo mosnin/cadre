@@ -10,7 +10,6 @@ import {
   AppBootstrapSchema,
   ArtifactSchema,
   ArtifactWithContentSchema,
-  AvatarStyleSchema,
   BotMcpServerSchema,
   BotSchema,
   BotSectionSchema,
@@ -130,9 +129,6 @@ export const appContract = {
   admin: adminContract,
   health: oc.output(z.object({ ok: z.literal(true), version: z.string() })),
   me: oc.output(MeSchema),
-  preferences: {
-    update: oc.input(z.object({ avatarStyle: AvatarStyleSchema })).output(MeSchema),
-  },
   spaces: {
     list: oc.output(SpaceNavigationSchema),
     create: oc.input(z.object({ name: z.string().trim().min(1).max(60) })).output(SpaceSchema),

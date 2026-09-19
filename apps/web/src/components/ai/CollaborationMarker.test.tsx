@@ -1,13 +1,8 @@
-import { AvatarStyleProvider } from "@cadre/ui-web";
-import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ActiveBotGlyph, CollaborationMarker } from "./CollaborationMarker";
 
-// The markers are asserted against the robot renderer's markup, so they name
-// the style rather than leaning on whichever one is currently the default.
-const render = (node: ReactNode) =>
-  renderToString(<AvatarStyleProvider value="robot">{node}</AvatarStyleProvider>);
+const render = renderToString;
 
 describe("collaboration transcript markers", () => {
   it("shows a left-aligned peer event with its avatar and full label", () => {
@@ -26,7 +21,7 @@ describe("collaboration transcript markers", () => {
     expect(html).toContain('class="flex justify-start"');
     expect(html).toContain('class="inline-flex max-w-full');
     expect(html).toContain('class="truncate"');
-    expect(html).toContain("cadre-bot-avatar");
+    expect(html).toContain("cadre-orb");
     expect(html).toContain("Message from Research");
     expect(html).not.toContain("{peer}");
   });
@@ -41,6 +36,6 @@ describe("collaboration transcript markers", () => {
 
     expect(html).toContain('role="status"');
     expect(html).toContain('data-working="true"');
-    expect(html).toContain("cadre-bot-avatar-ring");
+    expect(html).toContain("cadre-orb");
   });
 });

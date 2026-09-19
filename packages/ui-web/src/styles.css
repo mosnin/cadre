@@ -523,12 +523,12 @@
   }
 }
 
-.cadre-orb[data-working="true"] {
+.cadre-orb[data-halo="true"] {
   animation: cadre-orb-working 1.8s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cadre-orb[data-working="true"] {
+  .cadre-orb[data-halo="true"] {
     animation: none;
     box-shadow: 0 0 0 2px var(--cadre-orb-halo);
   }

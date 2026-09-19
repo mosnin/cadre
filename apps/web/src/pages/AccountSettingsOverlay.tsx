@@ -1,4 +1,3 @@
-import type { AvatarStyle } from "@cadre/contracts";
 import {
   BotAvatar,
   Button,
@@ -42,8 +41,6 @@ export function AccountSettingsOverlay({
   name,
   usage,
   focusUsage,
-  avatarStyle,
-  onAvatarStyleChange,
   isDeploymentOwner = false,
   sandboxProvider,
   messagingEnabled = false,
@@ -54,8 +51,6 @@ export function AccountSettingsOverlay({
   name: string;
   usage?: { runs: number; inputTokens: number; outputTokens: number } | null;
   focusUsage?: boolean;
-  avatarStyle: AvatarStyle;
-  onAvatarStyleChange: (style: AvatarStyle) => Promise<void>;
   isDeploymentOwner?: boolean;
   sandboxProvider?: string | null;
   messagingEnabled?: boolean;
@@ -84,8 +79,6 @@ export function AccountSettingsOverlay({
   const [appearance, setAppearance] = useState<AppearancePreference>(() =>
     getUiAppearancePreference(),
   );
-  const [avatarPending, setAvatarPending] = useState(false);
-  const [avatarError, setAvatarError] = useState<string | null>(null);
 
   function chooseLocale(next: UiLocale) {
     if (next === locale) return;
@@ -95,19 +88,6 @@ export function AccountSettingsOverlay({
       if (requestId !== localeRequestRef.current) return;
       setLocale(activated);
     });
-  }
-
-  async function chooseAvatarStyle(next: AvatarStyle) {
-    if (avatarPending || next === avatarStyle) return;
-    setAvatarPending(true);
-    setAvatarError(null);
-    try {
-      await onAvatarStyleChange(next);
-    } catch {
-      setAvatarError(t`Couldn't update avatars`);
-    } finally {
-      setAvatarPending(false);
-    }
   }
 
   if (companySpaceId !== null)
@@ -188,45 +168,6 @@ export function AccountSettingsOverlay({
             <Trans>Language</Trans>
           </h3>
           <UiLocalePicker value={locale} onChange={chooseLocale} />
-        </section>
-
-        <section className="mt-8">
-          <h3 className="text-[15px] font-medium text-foreground">
-            <Trans>Avatars</Trans>
-          </h3>
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {(["robot", "organic", "orb"] as const).map((style) => (
-              <Toggle
-                key={style}
-                variant="outline"
-                pressed={style === avatarStyle}
-                disabled={avatarPending}
-                onPressedChange={() => void chooseAvatarStyle(style)}
-                className="h-auto justify-start gap-3 px-3.5 py-3 text-[14px] font-normal"
-              >
-                <BotAvatar
-                  color="#D9508A"
-                  identity="avatar-style-preview"
-                  size={32}
-                  variant={style}
-                />
-                <span>
-                  {style === "robot" ? (
-                    <Trans>Robot</Trans>
-                  ) : style === "organic" ? (
-                    <Trans>Organic</Trans>
-                  ) : (
-                    <Trans>Orb</Trans>
-                  )}
-                </span>
-              </Toggle>
-            ))}
-          </div>
-          {avatarError ? (
-            <p role="alert" className="mt-3 text-[12.5px] text-destructive">
-              {avatarError}
-            </p>
-          ) : null}
         </section>
 
         <div

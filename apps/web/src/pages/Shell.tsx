@@ -56,7 +56,6 @@ import {
   waitForComputerStartup,
 } from "@cadre/core";
 import {
-  AvatarStyleProvider,
   BotAvatar,
   Button,
   DropdownMenuItem,
@@ -4355,17 +4354,12 @@ export function ShellPage() {
             email={session.data?.user.email}
             usage={usage}
             focusUsage={accountSettingsFocusUsage}
-            avatarStyle={bootstrapMe?.avatarStyle ?? "orb"}
             isDeploymentOwner={bootstrapMe?.isDeploymentOwner === true}
             sandboxProvider={bootstrapMe?.sandboxProvider}
             messagingEnabled={messagingSurfaceEnabled}
             onOpenMessaging={() => {
               setAccountSettingsOpen(false);
               setMessagingSettingsOpen(true);
-            }}
-            onAvatarStyleChange={async (avatarStyle) => {
-              const nextMe = await rpc.preferences.update({ avatarStyle });
-              setBootstrapMe(nextMe);
             }}
             onClose={() => {
               setAccountSettingsOpen(false);
@@ -4592,9 +4586,7 @@ export function ShellPage() {
     </div>
   );
 
-  return (
-    <AvatarStyleProvider value={bootstrapMe?.avatarStyle ?? "orb"}>{shell}</AvatarStyleProvider>
-  );
+  return shell;
 }
 
 const Transcript = memo(function Transcript({

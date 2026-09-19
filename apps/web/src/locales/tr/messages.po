@@ -13,7 +13,7 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/pages/Shell.tsx:3333
+#: src/pages/Shell.tsx:3332
 msgid " (unread)"
 msgstr " (okunmadı)"
 
@@ -23,12 +23,12 @@ msgid "{0, plural, one {# model} other {# models}}"
 msgstr "{0, plural, one {# model} other {# model}}"
 
 #. placeholder {0}: file.name
-#: src/pages/Shell.tsx:2116
+#: src/pages/Shell.tsx:2115
 msgid "{0} (max {ATTACHMENT_MAX_COUNT} attachments)"
 msgstr "{0} (en fazla {ATTACHMENT_MAX_COUNT} ek)"
 
 #. placeholder {0}: file.name
-#: src/pages/Shell.tsx:2120
+#: src/pages/Shell.tsx:2119
 msgid "{0} (over 10 MiB)"
 msgstr "{0} (10 MiB üzeri)"
 
@@ -59,7 +59,7 @@ msgstr "{0} MB"
 
 #. placeholder {0}: usage.runs
 #. placeholder {1}: usage.inputTokens + usage.outputTokens
-#: src/pages/AccountSettingsOverlay.tsx:243
+#: src/pages/AccountSettingsOverlay.tsx:184
 msgid "{0} runs · {1} tokens"
 msgstr "{0} çalıştırma · {1} token"
 
@@ -69,11 +69,11 @@ msgid "{0}'s computer"
 msgstr ""
 
 #. placeholder {0}: active.name
-#: src/pages/Shell.tsx:3874
+#: src/pages/Shell.tsx:3873
 msgid "{0}'s screen"
 msgstr ""
 
-#: src/pages/Shell.tsx:6135
+#: src/pages/Shell.tsx:6127
 msgid "{botName}’s computer"
 msgstr "{botName} adlı botun bilgisayarı"
 
@@ -117,12 +117,12 @@ msgstr "{size} B"
 msgid "{title}, {label}"
 msgstr "{title}, {label}"
 
-#: src/pages/Shell.tsx:4663
+#: src/pages/Shell.tsx:4655
 msgid "{workingBotName} is working"
 msgstr "{workingBotName} çalışıyor"
 
 #. placeholder {0}: mention.name
-#: src/pages/Shell.tsx:5237
+#: src/pages/Shell.tsx:5229
 msgid "@{0}"
 msgstr "@{0}"
 
@@ -147,7 +147,7 @@ msgstr ""
 msgid "Access token (optional)"
 msgstr "Erişim token'ı (isteğe bağlı)"
 
-#: src/pages/AccountSettingsOverlay.tsx:149
+#: src/pages/AccountSettingsOverlay.tsx:129
 msgid "Account"
 msgstr "Hesap"
 
@@ -155,7 +155,7 @@ msgstr "Hesap"
 msgid "Account default"
 msgstr "Hesap varsayılanı"
 
-#: src/pages/Shell.tsx:2973
+#: src/pages/Shell.tsx:2972
 msgid "Account settings"
 msgstr ""
 
@@ -180,7 +180,7 @@ msgstr "Etkin model"
 msgid "Active voice"
 msgstr "Etkin ses"
 
-#: src/pages/Shell.tsx:2916
+#: src/pages/Shell.tsx:2915
 msgid "Activity"
 msgstr "Etkinlik"
 
@@ -194,7 +194,7 @@ msgstr "Ekle"
 msgid "Add a model in Settings to use this."
 msgstr ""
 
-#: src/pages/Shell.tsx:4041
+#: src/pages/Shell.tsx:4040
 msgid "Add a run time for this one-shot."
 msgstr ""
 
@@ -202,7 +202,7 @@ msgstr ""
 msgid "Add a schedule or webhook to run this routine."
 msgstr ""
 
-#: src/pages/Shell.tsx:4013
+#: src/pages/Shell.tsx:4012
 msgid "Add a schedule or webhook trigger"
 msgstr ""
 
@@ -239,7 +239,7 @@ msgstr "Uzak MCP sunucusu ekle"
 msgid "Add server"
 msgstr "Sunucu ekle"
 
-#: src/pages/Shell.tsx:5604
+#: src/pages/Shell.tsx:5596
 msgid "Add thumbs-up"
 msgstr ""
 
@@ -265,11 +265,11 @@ msgstr ""
 msgid "Adding…"
 msgstr "Ekleniyor…"
 
-#: src/pages/AccountSettingsOverlay.tsx:258
+#: src/pages/AccountSettingsOverlay.tsx:199
 msgid "Administration"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:278
+#: src/pages/AccountSettingsOverlay.tsx:219
 #: src/pages/McpServersOverlay.tsx:344
 #: src/pages/RoutineSchedule.tsx:58
 #: src/pages/shell/bot-panel.tsx:410
@@ -289,7 +289,7 @@ msgstr ""
 msgid "Agent"
 msgstr ""
 
-#: src/pages/Shell.tsx:3608
+#: src/pages/Shell.tsx:3607
 msgid "Agent computer"
 msgstr "Agent bilgisayarı"
 
@@ -301,8 +301,8 @@ msgstr ""
 msgid "Agent key"
 msgstr ""
 
-#: src/pages/Shell.tsx:5845
-#: src/pages/Shell.tsx:6008
+#: src/pages/Shell.tsx:5837
+#: src/pages/Shell.tsx:6000
 msgid "Agent reply"
 msgstr ""
 
@@ -315,7 +315,7 @@ msgstr ""
 msgid "Agents:"
 msgstr "Agent'lar:"
 
-#: src/pages/Shell.tsx:3580
+#: src/pages/Shell.tsx:3579
 msgid "All"
 msgstr ""
 
@@ -402,8 +402,8 @@ msgstr "API anahtarı"
 msgid "API key header"
 msgstr "API anahtarı üstbilgisi"
 
-#: src/pages/AccountSettingsOverlay.tsx:175
-#: src/pages/AccountSettingsOverlay.tsx:423
+#: src/pages/AccountSettingsOverlay.tsx:155
+#: src/pages/AccountSettingsOverlay.tsx:364
 msgid "Appearance"
 msgstr "Görünüm"
 
@@ -433,15 +433,15 @@ msgstr ""
 msgid "Archive"
 msgstr "Arşivle"
 
-#: src/pages/Shell.tsx:5912
+#: src/pages/Shell.tsx:5904
 msgid "archived"
 msgstr "arşivlendi"
 
-#: src/pages/Shell.tsx:3416
+#: src/pages/Shell.tsx:3415
 msgid "Archived"
 msgstr "Arşivlendi"
 
-#: src/pages/Shell.tsx:5923
+#: src/pages/Shell.tsx:5915
 msgid "Archived. Chat, memory, and files kept."
 msgstr "Arşivlendi. Sohbet, hafıza ve dosyalar korundu."
 
@@ -499,11 +499,11 @@ msgstr "Dosya ekle"
 msgid "Attach image"
 msgstr ""
 
-#: src/pages/Shell.tsx:5563
+#: src/pages/Shell.tsx:5555
 msgid "Attachment"
 msgstr "Ek"
 
-#: src/pages/Shell.tsx:5204
+#: src/pages/Shell.tsx:5196
 msgid "Attachments"
 msgstr ""
 
@@ -533,10 +533,6 @@ msgstr "Yetkilendir"
 msgid "Available after the routine is saved"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:195
-msgid "Avatars"
-msgstr ""
-
 #: src/pages/Onboarding.tsx:915
 #: src/pages/RoutineEditor.tsx:231
 #: src/pages/WorkspaceLibrary.tsx:207
@@ -562,27 +558,27 @@ msgstr "Temel URL"
 msgid "Bearer token"
 msgstr "Bearer token"
 
-#: src/pages/Shell.tsx:6127
+#: src/pages/Shell.tsx:6119
 msgid "Booting live desktop…"
 msgstr "Canlı masaüstü başlatılıyor…"
 
-#: src/pages/Shell.tsx:5790
-#: src/pages/Shell.tsx:5791
-#: src/pages/Shell.tsx:5916
+#: src/pages/Shell.tsx:5782
+#: src/pages/Shell.tsx:5783
+#: src/pages/Shell.tsx:5908
 msgid "bot"
 msgstr "bot"
 
 #. js-lingui-explicit-id
 #: src/lib/browser-notifications.ts:71
-#: src/pages/Shell.tsx:1911
+#: src/pages/Shell.tsx:1910
 msgid "Bot"
 msgstr "Bot"
 
-#: src/pages/Shell.tsx:4539
+#: src/pages/Shell.tsx:4533
 msgid "Bot screen"
 msgstr "Bot ekranı"
 
-#: src/pages/Shell.tsx:3836
+#: src/pages/Shell.tsx:3835
 msgid "Bot screen preview"
 msgstr "Bot ekranı önizlemesi"
 
@@ -594,7 +590,7 @@ msgstr ""
 msgid "Bots act without asking by default. Add an exception only when you want to review a type of action first."
 msgstr "Botlar varsayılan olarak sormadan hareket eder. Yalnızca belirli bir işlem türünü önce incelemek istediğinde istisna ekle."
 
-#: src/pages/Shell.tsx:4664
+#: src/pages/Shell.tsx:4656
 msgid "Bots are working"
 msgstr "Botlar çalışıyor"
 
@@ -633,7 +629,7 @@ msgstr ""
 msgid "Cancel new group"
 msgstr "Yeni grubu iptal et"
 
-#: src/pages/Shell.tsx:5187
+#: src/pages/Shell.tsx:5179
 msgid "Cancel reply"
 msgstr "Yanıtı iptal et"
 
@@ -642,7 +638,7 @@ msgstr "Yanıtı iptal et"
 msgid "Cancelled"
 msgstr "İptal edildi"
 
-#: src/pages/AccountSettingsOverlay.tsx:372
+#: src/pages/AccountSettingsOverlay.tsx:313
 msgid "Change password"
 msgstr "Parolayı değiştir"
 
@@ -650,7 +646,7 @@ msgstr "Parolayı değiştir"
 msgid "Changes saved. Reload the library to see them."
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:372
+#: src/pages/AccountSettingsOverlay.tsx:313
 msgid "Changing…"
 msgstr "Değiştiriliyor…"
 
@@ -666,11 +662,11 @@ msgstr "Grafik çizilemedi: {error}"
 msgid "Chat apps"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:165
+#: src/pages/AccountSettingsOverlay.tsx:145
 msgid "Chat apps, group channels, and agent connections."
 msgstr ""
 
-#: src/pages/Shell.tsx:5506
+#: src/pages/Shell.tsx:5498
 msgid "Chat Settings"
 msgstr "Sohbet Ayarları"
 
@@ -682,8 +678,8 @@ msgstr ""
 msgid "Check for updates"
 msgstr ""
 
-#: src/pages/Shell.tsx:4054
-#: src/pages/Shell.tsx:4064
+#: src/pages/Shell.tsx:4053
+#: src/pages/Shell.tsx:4063
 msgid "Check in."
 msgstr "Durum bildir."
 
@@ -765,15 +761,15 @@ msgstr "Kapat"
 msgid "Close chart"
 msgstr "Grafiği kapat"
 
-#: src/pages/CompanyWorkspaces.tsx:198
+#: src/pages/CompanyWorkspaces.tsx:207
 msgid "Close company connection"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:525
+#: src/pages/CompanyWorkspaces.tsx:534
 msgid "Close company context"
 msgstr ""
 
-#: src/pages/Shell.tsx:4429
+#: src/pages/Shell.tsx:4423
 msgid "Close computer"
 msgstr "Bilgisayarı kapat"
 
@@ -801,11 +797,11 @@ msgstr ""
 msgid "Close model settings"
 msgstr "Model ayarlarını kapat"
 
-#: src/pages/Shell.tsx:2779
+#: src/pages/Shell.tsx:2778
 msgid "Close navigation"
 msgstr "Gezinmeyi kapat"
 
-#: src/pages/Shell.tsx:3809
+#: src/pages/Shell.tsx:3808
 msgid "Close panel"
 msgstr "Paneli kapat"
 
@@ -821,7 +817,7 @@ msgstr ""
 msgid "Close setup"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:140
+#: src/pages/AccountSettingsOverlay.tsx:120
 msgid "Close user settings"
 msgstr "Kullanıcı ayarlarını kapat"
 
@@ -843,7 +839,7 @@ msgid "Code"
 msgstr ""
 
 #. placeholder {0}: group.title
-#: src/pages/Shell.tsx:3139
+#: src/pages/Shell.tsx:3138
 msgid "Collapse {0}"
 msgstr ""
 
@@ -863,12 +859,12 @@ msgstr "Komut"
 msgid "Company"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:492
-#: src/pages/CompanyWorkspaces.tsx:524
+#: src/pages/CompanyWorkspaces.tsx:501
+#: src/pages/CompanyWorkspaces.tsx:533
 msgid "Company context"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:98
+#: src/pages/CompanyWorkspaces.tsx:107
 msgid "Company OS"
 msgstr ""
 
@@ -876,8 +872,8 @@ msgstr ""
 msgid "Company OS assignments"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:114
-#: src/pages/CompanyWorkspaces.tsx:178
+#: src/pages/CompanyWorkspaces.tsx:123
+#: src/pages/CompanyWorkspaces.tsx:187
 msgid "Company OS connection is not configured on this deployment."
 msgstr ""
 
@@ -889,7 +885,7 @@ msgstr ""
 msgid "Company OS is not configured on this deployment. You can connect it later in Settings."
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:401
+#: src/pages/CompanyWorkspaces.tsx:410
 msgid "Company OS unavailable"
 msgstr ""
 
@@ -897,29 +893,29 @@ msgstr ""
 msgid "Complete"
 msgstr "Tamamlandı"
 
-#: src/pages/Shell.tsx:6068
+#: src/pages/Shell.tsx:6060
 #: src/pages/shell/bot-panel.tsx:49
 msgid "Computer"
 msgstr "Bilgisayar"
 
-#: src/pages/Shell.tsx:6130
+#: src/pages/Shell.tsx:6122
 msgid "Computer failed to boot"
 msgstr "Bilgisayar başlatılamadı"
 
-#: src/pages/Shell.tsx:4581
+#: src/pages/Shell.tsx:4575
 msgid "Computer is asleep"
 msgstr "Bilgisayar uykuda"
 
-#: src/pages/Shell.tsx:6129
+#: src/pages/Shell.tsx:6121
 msgid "Computer is asleep. Open it to wake."
 msgstr ""
 
-#: src/pages/Shell.tsx:6131
+#: src/pages/Shell.tsx:6123
 msgid "Computer is stopped"
 msgstr "Bilgisayar durduruldu"
 
-#: src/pages/AccountSettingsOverlay.tsx:266
-#: src/pages/Shell.tsx:2865
+#: src/pages/AccountSettingsOverlay.tsx:207
+#: src/pages/Shell.tsx:2864
 msgid "Computers"
 msgstr "Bilgisayarlar"
 
@@ -939,7 +935,7 @@ msgstr "Yapılandırılmış sunucular"
 msgid "Confirm delete"
 msgstr "Silmeyi onayla"
 
-#: src/pages/AccountSettingsOverlay.tsx:355
+#: src/pages/AccountSettingsOverlay.tsx:296
 #: src/pages/Auth.tsx:345
 msgid "Confirm password"
 msgstr "Parolayı doğrulayın"
@@ -949,8 +945,8 @@ msgstr "Parolayı doğrulayın"
 msgid "Connect"
 msgstr "Bağlan"
 
-#: src/pages/CompanyWorkspaces.tsx:199
-#: src/pages/CompanyWorkspaces.tsx:202
+#: src/pages/CompanyWorkspaces.tsx:208
+#: src/pages/CompanyWorkspaces.tsx:211
 msgid "Connect a company"
 msgstr ""
 
@@ -970,10 +966,10 @@ msgstr "API anahtarıyla bağlan"
 msgid "Connect Cadre to Codex"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:124
-#: src/pages/CompanyWorkspaces.tsx:368
-#: src/pages/CompanyWorkspaces.tsx:404
-#: src/pages/CompanyWorkspaces.tsx:513
+#: src/pages/CompanyWorkspaces.tsx:133
+#: src/pages/CompanyWorkspaces.tsx:377
+#: src/pages/CompanyWorkspaces.tsx:413
+#: src/pages/CompanyWorkspaces.tsx:522
 #: src/pages/Onboarding.tsx:473
 msgid "Connect Company OS"
 msgstr ""
@@ -1010,8 +1006,8 @@ msgstr ""
 msgid "Connect your company"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:109
-#: src/pages/CompanyWorkspaces.tsx:407
+#: src/pages/CompanyWorkspaces.tsx:118
+#: src/pages/CompanyWorkspaces.tsx:416
 #: src/pages/McpOAuthCallback.tsx:54
 #: src/pages/MemorySettingsOverlay.tsx:184
 #: src/pages/ModelSettingsOverlay.tsx:397
@@ -1043,12 +1039,12 @@ msgstr "Bağlandı, {0} kullanılıyor."
 msgid "Connected. Its tools are available from your next message."
 msgstr "Bağlandı. Araçları bir sonraki mesajından itibaren kullanılabilir."
 
-#: src/pages/Shell.tsx:4557
+#: src/pages/Shell.tsx:4551
 msgid "Connecting to your screen…"
 msgstr ""
 
 #: src/pages/CodexConsent.tsx:96
-#: src/pages/CompanyWorkspaces.tsx:273
+#: src/pages/CompanyWorkspaces.tsx:282
 #: src/pages/McpServersOverlay.tsx:39
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:82
 #: src/pages/Onboarding.tsx:473
@@ -1059,7 +1055,7 @@ msgstr ""
 msgid "Connecting…"
 msgstr "Bağlanıyor…"
 
-#: src/pages/CompanyWorkspaces.tsx:512
+#: src/pages/CompanyWorkspaces.tsx:521
 msgid "Connection not completed. Try again."
 msgstr ""
 
@@ -1068,8 +1064,8 @@ msgstr ""
 msgid "Connection to {0} is still pending. You can close this and check again."
 msgstr "{0} bağlantısı hâlâ beklemede. Bunu kapatıp daha sonra tekrar kontrol edebilirsin."
 
-#: src/pages/CompanyWorkspaces.tsx:102
-#: src/pages/CompanyWorkspaces.tsx:508
+#: src/pages/CompanyWorkspaces.tsx:111
+#: src/pages/CompanyWorkspaces.tsx:517
 msgid "Connection unavailable"
 msgstr ""
 
@@ -1078,7 +1074,7 @@ msgstr ""
 msgid "Continue"
 msgstr "Devam"
 
-#: src/pages/CompanyWorkspaces.tsx:273
+#: src/pages/CompanyWorkspaces.tsx:282
 msgid "Continue to Company OS"
 msgstr ""
 
@@ -1094,15 +1090,15 @@ msgstr "E-posta ile devam et"
 msgid "Continue without a company"
 msgstr ""
 
-#: src/pages/Shell.tsx:4735
+#: src/pages/Shell.tsx:4727
 msgid "Conversation"
 msgstr ""
 
-#: src/pages/Shell.tsx:2913
+#: src/pages/Shell.tsx:2912
 msgid "Conversations"
 msgstr ""
 
-#: src/pages/Shell.tsx:5616
+#: src/pages/Shell.tsx:5608
 msgid "Copy"
 msgstr "Kopyala"
 
@@ -1126,7 +1122,7 @@ msgstr "Bu sunucu onaylanamadı"
 msgid "Could not authorize this app"
 msgstr "Bu uygulama yetkilendirilemedi"
 
-#: src/pages/AccountSettingsOverlay.tsx:321
+#: src/pages/AccountSettingsOverlay.tsx:262
 msgid "Could not change password"
 msgstr "Parola değiştirilemedi"
 
@@ -1155,7 +1151,7 @@ msgstr "Bağlanılamadı"
 msgid "Could not connect {0}"
 msgstr "{0} bağlanamadı"
 
-#: src/pages/CompanyWorkspaces.tsx:225
+#: src/pages/CompanyWorkspaces.tsx:234
 msgid "Could not connect Company OS"
 msgstr ""
 
@@ -1171,7 +1167,7 @@ msgstr "Bu sağlayıcı bağlanamadı"
 msgid "Could not connect this voice provider"
 msgstr "Bu ses sağlayıcısı bağlanamadı"
 
-#: src/pages/Shell.tsx:1039
+#: src/pages/Shell.tsx:1038
 msgid "Could not connect to the computer screen"
 msgstr ""
 
@@ -1219,7 +1215,7 @@ msgstr "MCP sunucusu silinemedi"
 msgid "Could not delete routine"
 msgstr "Rutin silinemedi"
 
-#: src/pages/CompanyWorkspaces.tsx:136
+#: src/pages/CompanyWorkspaces.tsx:145
 msgid "Could not disconnect Company OS"
 msgstr ""
 
@@ -1256,7 +1252,7 @@ msgstr "Bağlayıcı kurulamadı"
 msgid "Could not load approval rules"
 msgstr "Onay kuralları yüklenemedi"
 
-#: src/pages/CompanyWorkspaces.tsx:88
+#: src/pages/CompanyWorkspaces.tsx:97
 msgid "Could not load Company OS connection"
 msgstr ""
 
@@ -1292,7 +1288,7 @@ msgstr "Model ayarları yüklenemedi"
 msgid "Could not load setup. Reload to try again."
 msgstr ""
 
-#: src/pages/Shell.tsx:4555
+#: src/pages/Shell.tsx:4549
 msgid "Could not load the screen"
 msgstr ""
 
@@ -1317,11 +1313,11 @@ msgstr "Ses ayarları yüklenemedi"
 msgid "Could not load workforce"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:182
+#: src/pages/CompanyWorkspaces.tsx:191
 msgid "Could not load workspaces"
 msgstr ""
 
-#: src/pages/Shell.tsx:2516
+#: src/pages/Shell.tsx:2515
 msgid "Could not open computer"
 msgstr ""
 
@@ -1334,7 +1330,7 @@ msgstr "Deneme sesi çalınamadı"
 msgid "Could not reach sign-in. Reconnecting…"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:329
+#: src/pages/AccountSettingsOverlay.tsx:270
 #: src/pages/Auth.tsx:88
 #: src/pages/Auth.tsx:318
 msgid "Could not reach the server"
@@ -1377,7 +1373,7 @@ msgstr "Parola sıfırlanamadı"
 msgid "Could not revoke connection"
 msgstr "Bağlantı iptal edilemedi"
 
-#: src/pages/Shell.tsx:4116
+#: src/pages/Shell.tsx:4115
 msgid "Could not run routine"
 msgstr ""
 
@@ -1405,7 +1401,7 @@ msgstr ""
 msgid "Could not save model"
 msgstr "Model kaydedilemedi"
 
-#: src/pages/Shell.tsx:4087
+#: src/pages/Shell.tsx:4086
 msgid "Could not save routine"
 msgstr "Rutin kaydedilemedi"
 
@@ -1466,7 +1462,7 @@ msgstr "Agent erişimi güncellenemedi"
 msgid "Could not update computer"
 msgstr ""
 
-#: src/pages/Shell.tsx:2102
+#: src/pages/Shell.tsx:2101
 msgid "Could not update reaction"
 msgstr ""
 
@@ -1482,24 +1478,20 @@ msgstr ""
 msgid "Couldn't load messaging settings"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:107
-msgid "Couldn't update avatars"
-msgstr ""
-
 #: src/pages/MessagingSettingsOverlay.tsx:60
 msgid "Couldn't update messaging settings"
 msgstr ""
 
+#: src/pages/Shell.tsx:2785
 #: src/pages/Shell.tsx:2786
-#: src/pages/Shell.tsx:2787
-#: src/pages/Shell.tsx:2792
+#: src/pages/Shell.tsx:2791
 #: src/pages/shell/dialogs.tsx:155
 #: src/pages/shell/space-home.tsx:198
 msgid "Create"
 msgstr "Oluştur"
 
-#: src/pages/CompanyWorkspaces.tsx:199
-#: src/pages/CompanyWorkspaces.tsx:202
+#: src/pages/CompanyWorkspaces.tsx:208
+#: src/pages/CompanyWorkspaces.tsx:211
 msgid "Create a company"
 msgstr ""
 
@@ -1507,7 +1499,7 @@ msgstr ""
 msgid "Create a company in Company OS"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:262
+#: src/pages/CompanyWorkspaces.tsx:271
 msgid "Create a company or choose an existing business in Company OS, then approve access. Its context stays in this workspace."
 msgstr ""
 
@@ -1530,7 +1522,7 @@ msgstr "Hesap oluştur"
 msgid "Create agent"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:379
+#: src/pages/CompanyWorkspaces.tsx:388
 msgid "Create company"
 msgstr ""
 
@@ -1587,7 +1579,7 @@ msgstr "Cron"
 msgid "Cron expression"
 msgstr "Cron ifadesi"
 
-#: src/pages/AccountSettingsOverlay.tsx:343
+#: src/pages/AccountSettingsOverlay.tsx:284
 msgid "Current password"
 msgstr "Mevcut parola"
 
@@ -1604,7 +1596,7 @@ msgstr ""
 msgid "Customer support"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:418
+#: src/pages/AccountSettingsOverlay.tsx:359
 msgid "Dark"
 msgstr "Koyu"
 
@@ -1629,7 +1621,7 @@ msgstr "gün"
 msgid "Decline"
 msgstr ""
 
-#: src/pages/Shell.tsx:3634
+#: src/pages/Shell.tsx:3633
 msgid "Default"
 msgstr ""
 
@@ -1644,8 +1636,8 @@ msgstr "Varsayılan kapsam"
 #: src/pages/BotContextMenu.tsx:140
 #: src/pages/McpServersOverlay.tsx:505
 #: src/pages/RoutineEditor.tsx:272
-#: src/pages/Shell.tsx:3455
-#: src/pages/Shell.tsx:3489
+#: src/pages/Shell.tsx:3454
+#: src/pages/Shell.tsx:3488
 #: src/pages/shell/dialogs.tsx:298
 #: src/pages/shell/dialogs.tsx:355
 msgid "Delete"
@@ -1653,8 +1645,8 @@ msgstr "Sil"
 
 #. placeholder {0}: bot.name
 #. placeholder {0}: group.name
-#: src/pages/Shell.tsx:3452
-#: src/pages/Shell.tsx:3486
+#: src/pages/Shell.tsx:3451
+#: src/pages/Shell.tsx:3485
 msgid "Delete {0}"
 msgstr "{0} sil"
 
@@ -1673,7 +1665,7 @@ msgstr "Grubu sil"
 msgid "Delete memories too"
 msgstr "Hafızayı da sil"
 
-#: src/pages/Shell.tsx:5914
+#: src/pages/Shell.tsx:5906
 msgid "deleted"
 msgstr "silindi"
 
@@ -1707,18 +1699,18 @@ msgstr "Açıklama"
 msgid "Details"
 msgstr ""
 
-#: src/pages/Shell.tsx:5435
+#: src/pages/Shell.tsx:5427
 msgid "Dictate"
 msgstr "Dikte et"
 
-#: src/pages/CompanyWorkspaces.tsx:140
+#: src/pages/CompanyWorkspaces.tsx:149
 #: src/pages/McpServersOverlay.tsx:490
 #: src/pages/MemorySettingsOverlay.tsx:207
 msgid "Disconnect"
 msgstr "Bağlantıyı kes"
 
-#: src/pages/CompanyWorkspaces.tsx:109
-#: src/pages/CompanyWorkspaces.tsx:407
+#: src/pages/CompanyWorkspaces.tsx:118
+#: src/pages/CompanyWorkspaces.tsx:416
 msgid "Disconnected"
 msgstr ""
 
@@ -1731,7 +1723,7 @@ msgstr "Bağlantı kesiliyor…"
 msgid "Dismiss"
 msgstr ""
 
-#: src/pages/Shell.tsx:5167
+#: src/pages/Shell.tsx:5159
 msgid "Dismiss error"
 msgstr ""
 
@@ -1788,7 +1780,7 @@ msgstr "Taslak beceri"
 msgid "Duplicate"
 msgstr "Çoğalt"
 
-#: src/pages/Shell.tsx:5744
+#: src/pages/Shell.tsx:5736
 msgid "Earlier message"
 msgstr ""
 
@@ -1866,7 +1858,7 @@ msgid "Expand"
 msgstr "Genişlet"
 
 #. placeholder {0}: group.title
-#: src/pages/Shell.tsx:3138
+#: src/pages/Shell.tsx:3137
 msgid "Expand {0}"
 msgstr ""
 
@@ -1896,14 +1888,14 @@ msgstr "Çok yüksek"
 msgid "Failed"
 msgstr "Başarısız"
 
-#: src/pages/Shell.tsx:2275
-#: src/pages/Shell.tsx:2277
-#: src/pages/Shell.tsx:2279
+#: src/pages/Shell.tsx:2274
+#: src/pages/Shell.tsx:2276
+#: src/pages/Shell.tsx:2278
 msgid "Failed to send message"
 msgstr "Mesaj gönderilemedi"
 
-#: src/pages/Shell.tsx:2306
-#: src/pages/Shell.tsx:2325
+#: src/pages/Shell.tsx:2305
+#: src/pages/Shell.tsx:2324
 msgid "Failed to stop"
 msgstr "Durdurulamadı"
 
@@ -1982,8 +1974,8 @@ msgid "Give agents access to the business context you authorize in Company OS."
 msgstr ""
 
 #: src/pages/MessagingSettingsOverlay.tsx:198
-#: src/pages/Shell.tsx:3578
-#: src/pages/Shell.tsx:3779
+#: src/pages/Shell.tsx:3577
+#: src/pages/Shell.tsx:3778
 msgid "Group"
 msgstr "Grup"
 
@@ -2042,11 +2034,11 @@ msgstr ""
 msgid "High"
 msgstr "Yüksek"
 
-#: src/pages/Shell.tsx:5454
+#: src/pages/Shell.tsx:5446
 msgid "Hold to talk"
 msgstr "Konuşmak için basılı tut"
 
-#: src/pages/Shell.tsx:5454
+#: src/pages/Shell.tsx:5446
 msgid "Hold to talk (on-device dictation)"
 msgstr "Konuşmak için basılı tut (cihaz üzerinde dikte)"
 
@@ -2066,7 +2058,7 @@ msgstr "Ne sıklıkla"
 msgid "How to check"
 msgstr "Nasıl kontrol edilir"
 
-#: src/pages/Shell.tsx:5673
+#: src/pages/Shell.tsx:5665
 msgid "I’m done"
 msgstr "Bitirdim"
 
@@ -2112,7 +2104,7 @@ msgid "Instructions"
 msgstr ""
 
 #: src/pages/PluginsOverlay.tsx:286
-#: src/pages/Shell.tsx:2990
+#: src/pages/Shell.tsx:2989
 msgid "Integrations"
 msgstr "Entegrasyonlar"
 
@@ -2143,11 +2135,11 @@ msgstr "Yalıtılmış"
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
 msgstr "Sohbeti, dosyaları ve rutinleri kalıcı olarak silinecek. Oluşturduğu botlar listende kalır."
 
-#: src/pages/Shell.tsx:4859
+#: src/pages/Shell.tsx:4851
 msgid "Jump to latest"
 msgstr "En son mesaja git"
 
-#: src/pages/Shell.tsx:5739
+#: src/pages/Shell.tsx:5731
 msgid "Jump to replied message"
 msgstr "Yanıtlanan mesaja git"
 
@@ -2171,8 +2163,8 @@ msgstr ""
 msgid "Keys stay on the server. The app only learns whether a provider is configured."
 msgstr "Anahtarlar sunucuda kalır. Uygulama yalnızca bir sağlayıcının yapılandırılıp yapılandırılmadığını öğrenir."
 
-#: src/pages/AccountSettingsOverlay.tsx:188
-#: src/pages/AccountSettingsOverlay.tsx:458
+#: src/pages/AccountSettingsOverlay.tsx:168
+#: src/pages/AccountSettingsOverlay.tsx:399
 msgid "Language"
 msgstr "Dil"
 
@@ -2184,7 +2176,7 @@ msgstr ""
 msgid "Leave blank to keep saved key"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:417
+#: src/pages/AccountSettingsOverlay.tsx:358
 msgid "Light"
 msgstr "Açık"
 
@@ -2201,7 +2193,7 @@ msgstr ""
 msgid "Listening…"
 msgstr "Dinliyor…"
 
-#: src/pages/Shell.tsx:4786
+#: src/pages/Shell.tsx:4778
 msgid "Load earlier messages"
 msgstr "Önceki mesajları yükle"
 
@@ -2209,12 +2201,12 @@ msgstr "Önceki mesajları yükle"
 msgid "Loading activity…"
 msgstr "Etkinlik yükleniyor…"
 
-#: src/pages/CompanyWorkspaces.tsx:399
+#: src/pages/CompanyWorkspaces.tsx:408
 msgid "Loading Company OS…"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:104
-#: src/pages/CompanyWorkspaces.tsx:506
+#: src/pages/CompanyWorkspaces.tsx:113
+#: src/pages/CompanyWorkspaces.tsx:515
 msgid "Loading company…"
 msgstr ""
 
@@ -2252,7 +2244,7 @@ msgstr "Ses sağlayıcıları yükleniyor…"
 #: src/pages/Auth.tsx:141
 #: src/pages/Onboarding.tsx:524
 #: src/pages/PeerMessagesOverlay.tsx:99
-#: src/pages/Shell.tsx:4786
+#: src/pages/Shell.tsx:4778
 #: src/pages/WorkforceOverlay.tsx:148
 msgid "Loading…"
 msgstr "Yükleniyor…"
@@ -2261,7 +2253,7 @@ msgstr "Yükleniyor…"
 msgid "Local"
 msgstr "Yerel"
 
-#: src/pages/Shell.tsx:3070
+#: src/pages/Shell.tsx:3069
 msgid "Log out"
 msgstr "Çıkış yap"
 
@@ -2281,7 +2273,7 @@ msgstr "Botların bu Mac'te çalışmasına izin verirsen macOS ek izin istemez.
 msgid "Make a copy"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:168
+#: src/pages/AccountSettingsOverlay.tsx:148
 msgid "Manage messaging settings"
 msgstr ""
 
@@ -2319,7 +2311,7 @@ msgid "Members (pick {GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX})"
 msgstr "Üyeler ({GROUP_MEMBER_MIN}–{GROUP_MEMBER_MAX} seç)"
 
 #: src/pages/MemorySettingsOverlay.tsx:157
-#: src/pages/Shell.tsx:3025
+#: src/pages/Shell.tsx:3024
 msgid "Memory"
 msgstr "Hafıza"
 
@@ -2327,39 +2319,39 @@ msgstr "Hafıza"
 msgid "Memory scope"
 msgstr "Hafıza kapsamı"
 
-#: src/pages/Shell.tsx:5223
+#: src/pages/Shell.tsx:5215
 msgid "Mentions"
 msgstr ""
 
 #. js-lingui-explicit-id
 #: src/lib/browser-notifications.ts:83
-#: src/pages/Shell.tsx:5355
-#: src/pages/Shell.tsx:5565
+#: src/pages/Shell.tsx:5347
+#: src/pages/Shell.tsx:5557
 msgid "Message"
 msgstr "Mesaj"
 
-#: src/pages/Shell.tsx:5350
-#: src/pages/Shell.tsx:5355
+#: src/pages/Shell.tsx:5342
+#: src/pages/Shell.tsx:5347
 msgid "Message {activeName}"
 msgstr "{activeName} sohbetine yaz"
 
-#: src/pages/Shell.tsx:5147
+#: src/pages/Shell.tsx:5139
 msgid "Message composer"
 msgstr ""
 
-#: src/pages/Shell.tsx:5808
+#: src/pages/Shell.tsx:5800
 msgid "Message from {peer}"
 msgstr "{peer} botundan mesaj"
 
-#: src/pages/Shell.tsx:5351
+#: src/pages/Shell.tsx:5343
 msgid "Message…"
 msgstr "Mesaj…"
 
-#: src/pages/Shell.tsx:5808
+#: src/pages/Shell.tsx:5800
 msgid "Messaged {peer}"
 msgstr "{peer} botuna mesaj gönderildi"
 
-#: src/pages/AccountSettingsOverlay.tsx:162
+#: src/pages/AccountSettingsOverlay.tsx:142
 #: src/pages/MessagingSettingsOverlay.tsx:92
 msgid "Messaging"
 msgstr ""
@@ -2407,7 +2399,7 @@ msgstr "Model seçenekleri"
 msgid "Model providers"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:249
+#: src/pages/AccountSettingsOverlay.tsx:190
 msgid "Model spend uses your provider keys."
 msgstr "Model harcaması senin sağlayıcı anahtarlarını kullanır."
 
@@ -2416,7 +2408,7 @@ msgid "Model updated."
 msgstr "Model güncellendi."
 
 #: src/pages/ModelSettingsOverlay.tsx:326
-#: src/pages/Shell.tsx:3014
+#: src/pages/Shell.tsx:3013
 msgid "Models"
 msgstr "Modeller"
 
@@ -2433,7 +2425,7 @@ msgstr ""
 msgid "Monthly"
 msgstr "Aylık"
 
-#: src/pages/Shell.tsx:2881
+#: src/pages/Shell.tsx:2880
 msgid "More"
 msgstr ""
 
@@ -2507,7 +2499,7 @@ msgstr ""
 msgid "New assignments paused"
 msgstr ""
 
-#: src/pages/Shell.tsx:2840
+#: src/pages/Shell.tsx:2839
 msgid "New chat"
 msgstr ""
 
@@ -2523,7 +2515,7 @@ msgstr ""
 msgid "New open-work item"
 msgstr "Yeni açık iş öğesi"
 
-#: src/pages/AccountSettingsOverlay.tsx:349
+#: src/pages/AccountSettingsOverlay.tsx:290
 #: src/pages/Auth.tsx:339
 msgid "New password"
 msgstr "Yeni parola"
@@ -2542,8 +2534,8 @@ msgstr ""
 msgid "New space"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:239
-#: src/pages/CompanyWorkspaces.tsx:357
+#: src/pages/CompanyWorkspaces.tsx:248
+#: src/pages/CompanyWorkspaces.tsx:366
 #: src/pages/shell/bot-picker.tsx:37
 msgid "New workspace"
 msgstr ""
@@ -2572,7 +2564,7 @@ msgstr "Kimlik doğrulaması yok"
 msgid "No chat apps linked yet."
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:105
+#: src/pages/CompanyWorkspaces.tsx:114
 msgid "No company connected"
 msgstr ""
 
@@ -2702,13 +2694,13 @@ msgid "on the {monthDaySelect}"
 msgstr ""
 
 #: src/pages/ScratchpadSection.tsx:159
-#: src/pages/Shell.tsx:3863
-#: src/pages/Shell.tsx:3868
+#: src/pages/Shell.tsx:3862
+#: src/pages/Shell.tsx:3867
 msgid "Open"
 msgstr "Aç"
 
 #. placeholder {0}: group.title
-#: src/pages/Shell.tsx:3136
+#: src/pages/Shell.tsx:3135
 msgid "Open {0}"
 msgstr ""
 
@@ -2716,13 +2708,13 @@ msgstr ""
 msgid "Open a browser on"
 msgstr ""
 
-#: src/pages/Shell.tsx:3825
+#: src/pages/Shell.tsx:3824
 msgid "Open in full window"
 msgstr "Tam pencerede aç"
 
+#: src/pages/Shell.tsx:3516
 #: src/pages/Shell.tsx:3517
-#: src/pages/Shell.tsx:3518
-#: src/pages/Shell.tsx:3530
+#: src/pages/Shell.tsx:3529
 msgid "Open navigation"
 msgstr "Gezinmeyi aç"
 
@@ -2739,7 +2731,7 @@ msgstr "Açık işler"
 msgid "OpenAI-compatible server URL"
 msgstr "OpenAI uyumlu sunucu URL'si"
 
-#: src/pages/Shell.tsx:5925
+#: src/pages/Shell.tsx:5917
 msgid "Opened its thread."
 msgstr "Sohbeti açıldı."
 
@@ -2761,7 +2753,7 @@ msgstr ""
 msgid "Optional"
 msgstr "İsteğe bağlı"
 
-#: src/pages/AccountSettingsOverlay.tsx:281
+#: src/pages/AccountSettingsOverlay.tsx:222
 msgid "Optional controls most people never need"
 msgstr "Çoğu kişinin hiç ihtiyaç duymadığı isteğe bağlı ayarlar"
 
@@ -2776,14 +2768,6 @@ msgstr "Veya bir API anahtarı bağla"
 #: src/pages/Onboarding.tsx:817
 msgid "Or paste an API key"
 msgstr "Veya bir API anahtarı yapıştır"
-
-#: src/pages/AccountSettingsOverlay.tsx:219
-msgid "Orb"
-msgstr ""
-
-#: src/pages/AccountSettingsOverlay.tsx:217
-msgid "Organic"
-msgstr ""
 
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx:61
 msgid "Organization API key"
@@ -2808,7 +2792,7 @@ msgid "Park"
 msgstr "Beklet"
 
 #: src/components/SiteLoginsSettings.tsx:127
-#: src/pages/AccountSettingsOverlay.tsx:339
+#: src/pages/AccountSettingsOverlay.tsx:280
 #: src/pages/Auth.tsx:167
 #: src/pages/Auth.tsx:217
 #: src/pages/Auth.tsx:226
@@ -2819,12 +2803,12 @@ msgstr "Parola"
 msgid "Password recovery is not configured for this server"
 msgstr "Bu sunucu için parola kurtarma yapılandırılmamış"
 
-#: src/pages/AccountSettingsOverlay.tsx:374
+#: src/pages/AccountSettingsOverlay.tsx:315
 #: src/pages/Auth.tsx:329
 msgid "Password updated"
 msgstr "Parola güncellendi"
 
-#: src/pages/AccountSettingsOverlay.tsx:308
+#: src/pages/AccountSettingsOverlay.tsx:249
 #: src/pages/Auth.tsx:305
 msgid "Passwords do not match"
 msgstr "Parolalar eşleşmiyor"
@@ -2946,7 +2930,7 @@ msgstr ""
 msgid "Reconnect"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:124
+#: src/pages/CompanyWorkspaces.tsx:133
 msgid "Reconnect Company OS"
 msgstr ""
 
@@ -2990,7 +2974,7 @@ msgstr ""
 msgid "Refreshing…"
 msgstr ""
 
-#: src/pages/Shell.tsx:5663
+#: src/pages/Shell.tsx:5655
 msgid "Release"
 msgstr "Bırak"
 
@@ -3027,7 +3011,7 @@ msgid "Remove {0} from this workspace?"
 msgstr ""
 
 #. placeholder {0}: mention.name
-#: src/pages/Shell.tsx:5407
+#: src/pages/Shell.tsx:5399
 msgid "Remove mention {0}"
 msgstr "{0} bahsini kaldır"
 
@@ -3036,12 +3020,12 @@ msgid "Remove schedule"
 msgstr ""
 
 #. placeholder {0}: selectedSkill.name
-#: src/pages/Shell.tsx:5386
+#: src/pages/Shell.tsx:5378
 msgid "Remove skill {0}"
 msgstr "{0} becerisini kaldır"
 
-#: src/pages/Shell.tsx:4832
-#: src/pages/Shell.tsx:5604
+#: src/pages/Shell.tsx:4824
+#: src/pages/Shell.tsx:5596
 msgid "Remove thumbs-up"
 msgstr ""
 
@@ -3053,7 +3037,7 @@ msgstr ""
 msgid "Remove worker"
 msgstr ""
 
-#: src/pages/Shell.tsx:5924
+#: src/pages/Shell.tsx:5916
 msgid "Removed with chat, computer, and memory."
 msgstr "Sohbeti, bilgisayarı ve hafızasıyla birlikte kaldırıldı."
 
@@ -3081,11 +3065,11 @@ msgstr "API anahtarını değiştir"
 msgid "Replace key"
 msgstr "Anahtarı değiştir"
 
-#: src/pages/Shell.tsx:5595
+#: src/pages/Shell.tsx:5587
 msgid "Reply"
 msgstr "Yanıtla"
 
-#: src/pages/Shell.tsx:5184
+#: src/pages/Shell.tsx:5176
 msgid "Replying to {replyName}"
 msgstr "{replyName} yanıtlanıyor"
 
@@ -3118,8 +3102,8 @@ msgstr "Parolanızı sıfırlayın"
 msgid "Resetting…"
 msgstr ""
 
-#: src/pages/Shell.tsx:3446
-#: src/pages/Shell.tsx:3480
+#: src/pages/Shell.tsx:3445
+#: src/pages/Shell.tsx:3479
 msgid "Restore"
 msgstr "Geri yükle"
 
@@ -3139,8 +3123,8 @@ msgstr ""
 msgid "Retry now"
 msgstr "Şimdi tekrar dene"
 
-#: src/pages/Shell.tsx:2721
-#: src/pages/Shell.tsx:4562
+#: src/pages/Shell.tsx:2720
+#: src/pages/Shell.tsx:4556
 msgid "Retry screen"
 msgstr ""
 
@@ -3156,10 +3140,6 @@ msgstr "İptal et"
 msgid "Right-click"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:215
-msgid "Robot"
-msgstr ""
-
 #: src/pages/Onboarding.tsx:900
 msgid "Role or specialty"
 msgstr ""
@@ -3169,8 +3149,8 @@ msgid "Rotate key"
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx:236
-#: src/pages/Shell.tsx:4053
-#: src/pages/Shell.tsx:4063
+#: src/pages/Shell.tsx:4052
+#: src/pages/Shell.tsx:4062
 msgid "Routine"
 msgstr "Rutin"
 
@@ -3188,7 +3168,7 @@ msgstr ""
 msgid "Run history"
 msgstr ""
 
-#: src/pages/Shell.tsx:4046
+#: src/pages/Shell.tsx:4045
 msgid "Run time must be in the future."
 msgstr ""
 
@@ -3204,7 +3184,7 @@ msgstr "Çalışıyor · Durdur"
 msgid "Running…"
 msgstr "Çalışıyor…"
 
-#: src/pages/Shell.tsx:3051
+#: src/pages/Shell.tsx:3050
 msgid "runs"
 msgstr ""
 
@@ -3268,10 +3248,10 @@ msgstr "Bir şey söyle. Sessiz kalınca gönderilir."
 msgid "Say yes or no, or answer in a sentence."
 msgstr "Evet ya da hayır de veya bir cümleyle yanıtla."
 
-#: src/pages/Shell.tsx:2850
-#: src/pages/Shell.tsx:3595
-#: src/pages/Shell.tsx:3601
-#: src/pages/Shell.tsx:3775
+#: src/pages/Shell.tsx:2849
+#: src/pages/Shell.tsx:3594
+#: src/pages/Shell.tsx:3600
+#: src/pages/Shell.tsx:3774
 msgid "Schedules"
 msgstr ""
 
@@ -3279,7 +3259,7 @@ msgstr ""
 msgid "Scroll"
 msgstr ""
 
-#: src/pages/Shell.tsx:2900
+#: src/pages/Shell.tsx:2899
 #: src/pages/shell/command-palette.tsx:52
 msgid "Search"
 msgstr "Ara"
@@ -3289,7 +3269,7 @@ msgstr "Ara"
 msgid "Search apps"
 msgstr "Uygulama ara"
 
-#: src/pages/Shell.tsx:2897
+#: src/pages/Shell.tsx:2896
 msgid "Search conversations"
 msgstr ""
 
@@ -3319,7 +3299,7 @@ msgstr ""
 msgid "See what your bots have been spending"
 msgstr ""
 
-#: src/pages/Shell.tsx:3581
+#: src/pages/Shell.tsx:3580
 msgid "Select a bot"
 msgstr "Bir bot seç"
 
@@ -3327,8 +3307,8 @@ msgstr "Bir bot seç"
 msgid "Selected"
 msgstr ""
 
-#: src/pages/Shell.tsx:5467
-#: src/pages/Shell.tsx:5488
+#: src/pages/Shell.tsx:5459
+#: src/pages/Shell.tsx:5480
 #: src/pages/shell/space-home.tsx:180
 msgid "Send"
 msgstr "Gönder"
@@ -3371,17 +3351,17 @@ msgstr "Sunucu adı"
 msgid "Server URL"
 msgstr "Sunucu URL'si"
 
-#: src/pages/AccountSettingsOverlay.tsx:137
-#: src/pages/Shell.tsx:2980
-#: src/pages/Shell.tsx:3773
+#: src/pages/AccountSettingsOverlay.tsx:117
+#: src/pages/Shell.tsx:2979
+#: src/pages/Shell.tsx:3772
 msgid "Settings"
 msgstr "Ayarlar"
 
-#: src/pages/Shell.tsx:5508
+#: src/pages/Shell.tsx:5500
 msgid "Settings: General"
 msgstr "Ayarlar: Genel"
 
-#: src/pages/Shell.tsx:5510
+#: src/pages/Shell.tsx:5502
 msgid "Settings: Usage"
 msgstr "Ayarlar: Kullanım"
 
@@ -3403,7 +3383,7 @@ msgstr "Ortak"
 msgid "Show all providers"
 msgstr ""
 
-#: src/pages/Shell.tsx:3799
+#: src/pages/Shell.tsx:3798
 msgid "Show computer"
 msgstr "Bilgisayarı göster"
 
@@ -3420,7 +3400,7 @@ msgstr ""
 msgid "Show popular providers"
 msgstr ""
 
-#: src/pages/Shell.tsx:3799
+#: src/pages/Shell.tsx:3798
 msgid "Show settings"
 msgstr "Ayarları göster"
 
@@ -3450,7 +3430,7 @@ msgid "Site"
 msgstr ""
 
 #. placeholder {0}: skill.name
-#: src/pages/Shell.tsx:5270
+#: src/pages/Shell.tsx:5262
 msgid "Skill {0}"
 msgstr "Beceri: {0}"
 
@@ -3466,7 +3446,7 @@ msgstr ""
 msgid "Skills and workflows"
 msgstr ""
 
-#: src/pages/Shell.tsx:5670
+#: src/pages/Shell.tsx:5662
 msgid "Skip"
 msgstr "Atla"
 
@@ -3479,7 +3459,7 @@ msgid "Skip or deploy key"
 msgstr "Atla veya dağıtım anahtarı kullan"
 
 #. placeholder {0}: skipped.join(", ")
-#: src/pages/Shell.tsx:2136
+#: src/pages/Shell.tsx:2135
 msgid "Skipped {0}"
 msgstr "{0} atlandı"
 
@@ -3508,8 +3488,8 @@ msgstr "Alan varsayılanı"
 msgid "Space interrupts · Esc hangs up"
 msgstr "Boşluk keser · Esc aramayı sonlandırır"
 
-#: src/pages/Shell.tsx:5776
-#: src/pages/Shell.tsx:6019
+#: src/pages/Shell.tsx:5768
+#: src/pages/Shell.tsx:6011
 msgid "Speak"
 msgstr "Seslendir"
 
@@ -3521,8 +3501,8 @@ msgstr "Seslendir + yazıya dök"
 msgid "Speak only"
 msgstr "Yalnızca seslendir"
 
-#: src/pages/Shell.tsx:5772
-#: src/pages/Shell.tsx:6015
+#: src/pages/Shell.tsx:5764
+#: src/pages/Shell.tsx:6007
 msgid "Speak this reply"
 msgstr "Bu yanıtı seslendir"
 
@@ -3569,20 +3549,20 @@ msgstr "Adımlar"
 msgid "Steps and instructions"
 msgstr ""
 
-#: src/pages/Shell.tsx:4460
-#: src/pages/Shell.tsx:4465
-#: src/pages/Shell.tsx:5477
-#: src/pages/Shell.tsx:5776
-#: src/pages/Shell.tsx:6019
+#: src/pages/Shell.tsx:4454
+#: src/pages/Shell.tsx:4459
+#: src/pages/Shell.tsx:5469
+#: src/pages/Shell.tsx:5768
+#: src/pages/Shell.tsx:6011
 msgid "Stop"
 msgstr "Durdur"
 
-#: src/pages/Shell.tsx:5435
+#: src/pages/Shell.tsx:5427
 msgid "Stop dictation"
 msgstr "Dikteyi durdur"
 
-#: src/pages/Shell.tsx:5772
-#: src/pages/Shell.tsx:6015
+#: src/pages/Shell.tsx:5764
+#: src/pages/Shell.tsx:6007
 msgid "Stop speaking"
 msgstr "Seslendirmeyi durdur"
 
@@ -3600,7 +3580,7 @@ msgstr "Durduruldu."
 msgid "Stored encrypted"
 msgstr "Şifreli saklanıyor"
 
-#: src/pages/Shell.tsx:5878
+#: src/pages/Shell.tsx:5870
 msgid "subagent"
 msgstr "alt ajan"
 
@@ -3622,7 +3602,7 @@ msgstr ""
 msgid "Switch agent"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:319
+#: src/pages/CompanyWorkspaces.tsx:328
 msgid "Switch workspace"
 msgstr ""
 
@@ -3634,11 +3614,11 @@ msgstr "Geçiliyor…"
 msgid "Synced"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:416
+#: src/pages/AccountSettingsOverlay.tsx:357
 msgid "System"
 msgstr "Sistem"
 
-#: src/pages/Shell.tsx:4480
+#: src/pages/Shell.tsx:4474
 msgid "Take control"
 msgstr "Kontrolü devral"
 
@@ -3659,7 +3639,7 @@ msgstr ""
 msgid "Teach a task"
 msgstr "Görev öğret"
 
-#: src/pages/Shell.tsx:3693
+#: src/pages/Shell.tsx:3692
 msgid "Teaching in progress. Stop teaching before sending a new message."
 msgstr "Öğretme sürüyor. Yeni mesaj göndermeden önce öğretmeyi durdur."
 
@@ -3667,7 +3647,7 @@ msgstr "Öğretme sürüyor. Yeni mesaj göndermeden önce öğretmeyi durdur."
 msgid "Team"
 msgstr "Takım"
 
-#: src/pages/Shell.tsx:6135
+#: src/pages/Shell.tsx:6127
 msgid "Team Computer"
 msgstr "Takım Bilgisayarı"
 
@@ -3703,11 +3683,11 @@ msgstr "Düşünüyor"
 msgid "Thinking…"
 msgstr ""
 
-#: src/pages/Shell.tsx:3829
+#: src/pages/Shell.tsx:3828
 msgid "This bot runs on this computer, not a Linux desktop. Shell and files use your home folder."
 msgstr "Bu bot bir Linux masaüstünde değil, bu bilgisayarda çalışır. Kabuk ve dosyalar senin kullanıcı klasörünü kullanır."
 
-#: src/pages/Shell.tsx:4523
+#: src/pages/Shell.tsx:4517
 msgid "This bot runs on this computer. There is no separate Linux desktop. Ask it to use the shell; working directories under your home folder are allowed."
 msgstr "Bu bot bu bilgisayarda çalışır. Ayrı bir Linux masaüstü yoktur. Kabuğu kullanmasını isteyebilirsin; kullanıcı klasörünün altındaki çalışma dizinlerine izin verilir."
 
@@ -3786,7 +3766,7 @@ msgstr "Günün saati"
 msgid "Title"
 msgstr "Başlık"
 
-#: src/pages/Shell.tsx:3056
+#: src/pages/Shell.tsx:3055
 msgid "tokens"
 msgstr ""
 
@@ -3846,7 +3826,7 @@ msgid "Unpin"
 msgstr "Sabitlemeyi kaldır"
 
 #. placeholder {0}: pending.file.name
-#: src/pages/Shell.tsx:2214
+#: src/pages/Shell.tsx:2213
 msgid "Unsupported file type: {0}"
 msgstr "Desteklenmeyen dosya türü: {0}"
 
@@ -3885,8 +3865,8 @@ msgstr ""
 msgid "Updating…"
 msgstr ""
 
-#: src/pages/AccountSettingsOverlay.tsx:239
-#: src/pages/Shell.tsx:3046
+#: src/pages/AccountSettingsOverlay.tsx:180
+#: src/pages/Shell.tsx:3045
 msgid "Usage"
 msgstr "Kullanım"
 
@@ -3928,7 +3908,7 @@ msgstr "Doğrulanıyor…"
 msgid "View details"
 msgstr ""
 
-#: src/pages/Shell.tsx:3036
+#: src/pages/Shell.tsx:3035
 #: src/pages/shell/bot-panel.tsx:505
 #: src/pages/VoiceSettingsOverlay.tsx:51
 #: src/pages/VoiceSettingsOverlay.tsx:213
@@ -4037,7 +4017,7 @@ msgstr ""
 msgid "Worker name"
 msgstr ""
 
-#: src/pages/Shell.tsx:3001
+#: src/pages/Shell.tsx:3000
 #: src/pages/WorkforceOverlay.tsx:133
 msgid "Workforce"
 msgstr ""
@@ -4049,39 +4029,39 @@ msgstr ""
 msgid "Working…"
 msgstr "Çalışıyor…"
 
-#: src/pages/CompanyWorkspaces.tsx:232
-#: src/pages/CompanyWorkspaces.tsx:235
-#: src/pages/CompanyWorkspaces.tsx:321
+#: src/pages/CompanyWorkspaces.tsx:241
+#: src/pages/CompanyWorkspaces.tsx:244
+#: src/pages/CompanyWorkspaces.tsx:330
 #: src/pages/Onboarding.tsx:404
-#: src/pages/Shell.tsx:2836
-#: src/pages/Shell.tsx:3541
+#: src/pages/Shell.tsx:2835
+#: src/pages/Shell.tsx:3540
 msgid "Workspace"
 msgstr ""
 
-#: src/pages/Shell.tsx:2950
+#: src/pages/Shell.tsx:2949
 #: src/pages/WorkspaceLibrary.tsx:141
 msgid "Workspace library"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:250
+#: src/pages/CompanyWorkspaces.tsx:259
 #: src/pages/Onboarding.tsx:438
 msgid "Workspace name"
 msgstr ""
 
-#: src/pages/Shell.tsx:2745
+#: src/pages/Shell.tsx:2744
 msgid "Workspace navigation"
 msgstr ""
 
-#: src/pages/Shell.tsx:2911
+#: src/pages/Shell.tsx:2910
 msgid "Workspace views"
 msgstr ""
 
-#: src/pages/CompanyWorkspaces.tsx:326
+#: src/pages/CompanyWorkspaces.tsx:335
 msgid "Workspaces"
 msgstr ""
 
-#: src/pages/Shell.tsx:1908
-#: src/pages/Shell.tsx:2726
+#: src/pages/Shell.tsx:1907
+#: src/pages/Shell.tsx:2725
 msgid "You"
 msgstr "Sen"
 
@@ -4109,7 +4089,7 @@ msgstr "E-posta adresin"
 msgid "Your key or subscription token is stored securely and is never shown here."
 msgstr "Anahtarın veya abonelik token'ın güvenle saklanır ve burada asla gösterilmez."
 
-#: src/pages/Shell.tsx:5997
+#: src/pages/Shell.tsx:5989
 msgid "Your message"
 msgstr ""
 

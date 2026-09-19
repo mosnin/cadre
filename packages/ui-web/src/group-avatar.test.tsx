@@ -1,13 +1,6 @@
-import type { ReactNode } from "react";
-import { renderToString } from "react-dom/server";
+import { renderToString as render } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { AvatarStyleProvider } from "./avatar-style.js";
 import { GroupAvatar } from "./group-avatar.js";
-
-// These assert the robot renderer's own markup, so they say which style they
-// mean rather than leaning on whichever one is currently the default.
-const render = (node: ReactNode) =>
-  renderToString(<AvatarStyleProvider value="robot">{node}</AvatarStyleProvider>);
 
 describe("GroupAvatar", () => {
   it("renders fallback squad icon when no members provided", () => {
@@ -17,7 +10,7 @@ describe("GroupAvatar", () => {
 
   it("renders single BotAvatar when 1 member", () => {
     const html = render(<GroupAvatar members={[{ name: "Harry", color: "#8B5CF6" }]} />);
-    expect(html).toContain("cadre-bot-avatar");
+    expect(html).toContain("cadre-orb");
   });
 
   it("renders 2 overlapping bot avatars for 2 members", () => {
@@ -44,7 +37,7 @@ describe("GroupAvatar", () => {
       />,
     );
     expect(html).toContain('data-working="true"');
-    expect(html).toContain("cadre-bot-avatar-ring");
+    expect(html).toContain("cadre-orb");
   });
 
   it("renders 3 mini bot avatars for 3 members", () => {

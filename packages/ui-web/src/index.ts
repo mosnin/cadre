@@ -1,5 +1,4 @@
-export { type AvatarStyle, AvatarStyleProvider, useAvatarStyle } from "./avatar-style.js";
-export { BotAvatar, Wordmark } from "./bot-avatar.js";
+export { BotAvatar, type BotAvatarProps } from "./bot-avatar.js";
 export * from "./components/ui/alert-dialog.js";
 export * from "./components/ui/badge.js";
 export * from "./components/ui/button.js";
@@ -28,3 +27,4 @@ export * from "./components/ui/tooltip.js";
 export { GroupAvatar, type GroupAvatarMember, type GroupAvatarProps } from "./group-avatar.js";
 export { cn } from "./lib/utils.js";
 export { OrbAvatar, type OrbAvatarProps, type OrbState } from "./orb-avatar.js";
+export { Wordmark } from "./wordmark.js";
