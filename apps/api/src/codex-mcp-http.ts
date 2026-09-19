@@ -1,5 +1,5 @@
-import { allowsRoute, type createCodexOAuth } from "@rakazo/auth/codex-oauth";
-import { codexMcpTools } from "@rakazo/contracts";
+import { allowsRoute, type createCodexOAuth } from "@cadre/auth/codex-oauth";
+import { codexMcpTools } from "@cadre/contracts";
 import type { Hono } from "hono";
 import { z } from "zod";
 import { readBoundedBody } from "./http-body.js";
@@ -100,7 +100,7 @@ export function mountCodexMcp(
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
-        ...(spaceId ? { "x-rakazo-space-id": spaceId } : {}),
+        ...(spaceId ? { "x-cadre-space-id": spaceId } : {}),
       },
       body: JSON.stringify({ json: input }),
       signal: c.req.raw.signal,

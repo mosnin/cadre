@@ -4,12 +4,7 @@ import { captureScreenshot, completeOnboarding, signup } from "./helpers";
 test("workspace export explicitly starts the computer and keeps export failures retryable", async ({
   page,
 }, testInfo) => {
-  await signup(
-    page,
-    `workspace-export-${Date.now()}@rakazo.test`,
-    "password12",
-    "Workspace Export",
-  );
+  await signup(page, `workspace-export-${Date.now()}@cadre.test`, "password12", "Workspace Export");
   await completeOnboarding(page);
   const gear = page.getByRole("button", { name: "Show settings" });
   if (!(await gear.isVisible().catch(() => false))) await page.getByTitle("Agent computer").click();

@@ -1,4 +1,4 @@
-import type { AdapterContext, WebFetchProvider, WebSearchProvider } from "@rakazo/adapter-kit";
+import type { AdapterContext, WebFetchProvider, WebSearchProvider } from "@cadre/adapter-kit";
 import { rankWebSearchHits } from "./decision-search.js";
 import type { DecisionProvider } from "./jev-decisions.js";
 import { clampMaxChars, clampMaxResults } from "./web-limits.js";

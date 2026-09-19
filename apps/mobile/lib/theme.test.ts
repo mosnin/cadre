@@ -1,4 +1,4 @@
-import { darkTokens } from "@rakazo/ui-tokens";
+import { darkTokens } from "@cadre/ui-tokens";
 import { describe, expect, it } from "vitest";
 import { botColors, tokens } from "./theme.js";
 

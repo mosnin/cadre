@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="/opt/rakazo"
+PROJECT_DIR="/opt/cadre"
 COMPOSE_FILE="${PROJECT_DIR}/infra/compose/docker-compose.prod.yml"
 ENV_FILE="${PROJECT_DIR}/.env"
-BACKUP_ROOT="/var/backups/rakazo"
+BACKUP_ROOT="/var/backups/cadre"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 SNAPSHOT_DIR="${BACKUP_ROOT}/${STAMP}"
 
@@ -14,7 +14,7 @@ compose=(docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}")
 
 "${compose[@]}" exec -T postgres sh -c \
   'pg_dump --format=custom --no-owner --no-privileges -U "$POSTGRES_USER" "$POSTGRES_DB"' \
-  > "${SNAPSHOT_DIR}/rakazo.dump"
+  > "${SNAPSHOT_DIR}/cadre.dump"
 
 # Archive the appdata volume from the host, not through `compose exec api`.
 #
@@ -48,10 +48,10 @@ if [[ "${rc}" -gt 1 ]]; then
 fi
 
 "${compose[@]}" exec -T postgres pg_restore --list \
-  < "${SNAPSHOT_DIR}/rakazo.dump" >/dev/null
+  < "${SNAPSHOT_DIR}/cadre.dump" >/dev/null
 tar -tzf "${SNAPSHOT_DIR}/appdata.tgz" >/dev/null
 
-sha256sum "${SNAPSHOT_DIR}/rakazo.dump" "${SNAPSHOT_DIR}/appdata.tgz" \
+sha256sum "${SNAPSHOT_DIR}/cadre.dump" "${SNAPSHOT_DIR}/appdata.tgz" \
   > "${SNAPSHOT_DIR}/SHA256SUMS"
 chmod 600 "${SNAPSHOT_DIR}"/*
 
@@ -59,4 +59,4 @@ chmod 600 "${SNAPSHOT_DIR}"/*
 # cleanup can never expand to an environment-controlled or broad path.
 find "${BACKUP_ROOT}" -mindepth 1 -maxdepth 1 -type d -mtime +6 -exec rm -rf -- {} +
 
-echo "Verified Rakazo backup written to ${SNAPSHOT_DIR}"
+echo "Verified Cadre backup written to ${SNAPSHOT_DIR}"

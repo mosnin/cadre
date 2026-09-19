@@ -1,4 +1,4 @@
-import { darkTokens } from "@rakazo/ui-tokens";
+import { darkTokens } from "@cadre/ui-tokens";
 export const DEFAULT_WARM_WINDOW_TTL_MS = 15 * 60_000;
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
 

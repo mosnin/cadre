@@ -1,6 +1,6 @@
 # Typed decisions (Jev)
 
-This is the running record of where Rakazo uses a decision model instead of a
+This is the running record of where Cadre uses a decision model instead of a
 chat model, why each one is there, and what it falls back to. Add a row when you
 add a decision; the table is the inventory.
 
@@ -232,7 +232,7 @@ behaviour it had, and memory stays in recency order.
 1. Check it against all three rules above. Most ideas fail the first, and the
    ones that pass usually belong in a bundle that already exists rather than in a
    request of their own.
-2. Build the question with `choice` / `score` / `noul` from `@rakazo/core`.
+2. Build the question with `choice` / `score` / `noul` from `@cadre/core`.
 3. Read the answer through `actionableChoice` or an explicit confidence check,
    never `answer.choice` directly.
 4. Write the fallback first and test it: no provider, a hedged answer, an option

@@ -1,22 +1,22 @@
 import { randomUUID } from "node:crypto";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import type { AdapterContext, JobPublisher } from "@rakazo/adapter-kit";
-import { runContinueJob, runJobKey } from "@rakazo/adapter-kit";
-import type { Actor } from "@rakazo/contracts";
+import type { AdapterContext, JobPublisher } from "@cadre/adapter-kit";
+import { runContinueJob, runJobKey } from "@cadre/adapter-kit";
+import type { Actor } from "@cadre/contracts";
 import {
   WorkforceConfigure,
   WorkforceReport,
   WorkforceSync,
   WorkforceSyncResult,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   createRepos,
   type Pool,
   type PrismaClient,
   requireMembership,
   type ThreadEvents,
-} from "@rakazo/db";
+} from "@cadre/db";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import * as z from "zod";
 import type { EncryptedSecretStore } from "./secrets.js";
 

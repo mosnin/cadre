@@ -1,4 +1,4 @@
-import { choice, noul, score } from "@rakazo/core";
+import { choice, noul, score } from "@cadre/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { decisionModel, decisionProvider } from "./jev-decisions.js";
 

@@ -5,7 +5,7 @@ import {
   createRepos,
   createSpaceForMember,
   requireMembership,
-} from "@rakazo/db";
+} from "@cadre/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { CompanyWorkspaces, companyWorkspaceConfig } from "./company-workspaces.js";
 import { EncryptedSecretStore } from "./secrets.js";

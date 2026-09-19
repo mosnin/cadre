@@ -4,8 +4,8 @@ contact_links:
     url: https://github.com/elie222/rakazo/blob/main/SECURITY.md
     about: Report security issues to security@rakazo.com — do not open a public issue.
   - name: User support
-    url: mailto:support@rakazo.com
-    about: Questions about using Rakazo or self-hosting help.
+    url: mailto:support@cadre.com
+    about: Questions about using Cadre or self-hosting help.
   - name: Maintainer
-    url: mailto:elie@rakazo.com
+    url: mailto:elie@cadre.com
     about: Reach the maintainer directly.

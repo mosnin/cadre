@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { bootstrapUserSpace, createDb, createThreadEvents, requireMembership } from "@rakazo/db";
+import { bootstrapUserSpace, createDb, createThreadEvents, requireMembership } from "@cadre/db";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import {
   companyOsEndpoint,

@@ -150,7 +150,7 @@ const ModelMeshScene = () => {
             "inset-x-0 mx-auto -mt-8.75 flex h-17.5 w-17.5 items-center justify-center rounded-full border border-line bg-linear-to-br from-line-2 to-surface",
           )}
         >
-          <RakazoMark className="size-9" />
+          <CadreMark className="size-9" />
         </motion.div>
       </div>
       <style>{`
@@ -337,7 +337,7 @@ const AnimatedRightPaths = () => {
   );
 };
 
-const RakazoMark = ({ className = "" }) => (
+const CadreMark = ({ className = "" }) => (
   <svg
     viewBox="0 0 64 64"
     fill="none"

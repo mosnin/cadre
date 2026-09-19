@@ -1,4 +1,4 @@
-import type { Routine } from "@rakazo/contracts";
+import type { Routine } from "@cadre/contracts";
 import {
   type CronFreq,
   type CronPreset,
@@ -7,7 +7,7 @@ import {
   isOneShotRoutineCrons,
   ordinalDay,
   presetFromCron,
-} from "@rakazo/core";
+} from "@cadre/core";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";

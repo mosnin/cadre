@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
-import { createAuth } from "@rakazo/auth";
-import { createDb } from "@rakazo/db";
+import { createAuth } from "@cadre/auth";
+import { createDb } from "@cadre/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 const hasDb = process.env.VERIFY_DATABASE === "1" && Boolean(process.env.DATABASE_URL);

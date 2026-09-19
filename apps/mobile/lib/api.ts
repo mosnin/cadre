@@ -9,7 +9,7 @@ import type {
   ModelCredential,
   Space,
   SpaceNavigation,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   isRunTerminalEvent,
   mergeThreadHistory,
@@ -19,7 +19,7 @@ import {
   runFailureError,
   type ThreadHistory,
   upsertMessageById,
-} from "@rakazo/core";
+} from "@cadre/core";
 import * as SecureStore from "expo-secure-store";
 import { defaultApiBase, type EndpointResult, normalizeApiBase } from "./endpoint";
 import { t } from "./i18n";
@@ -33,9 +33,9 @@ import {
   tokenFromAuthResponse,
 } from "./session";
 
-const ENDPOINT_KEY = "rakazo.api_base";
-const SPACE_KEY = "rakazo.space_id";
-const SPACE_ROLLBACK_KEY = "rakazo.space_rollback";
+const ENDPOINT_KEY = "cadre.api_base";
+const SPACE_KEY = "cadre.space_id";
+const SPACE_ROLLBACK_KEY = "cadre.space_rollback";
 const RPC_TIMEOUT_MS = 8_000;
 
 let cachedApiBase: string | undefined;
@@ -274,7 +274,7 @@ export async function authHeaders(
   const token = await loadSessionToken();
   return {
     ...(token ? { authorization: `Bearer ${token}` } : {}),
-    ...(spaceId ? { "x-rakazo-space-id": spaceId } : {}),
+    ...(spaceId ? { "x-cadre-space-id": spaceId } : {}),
   };
 }
 
@@ -298,7 +298,7 @@ async function authenticateWithEmail(
 ) {
   const res = await fetch(`${currentApiBase()}/api/auth/${action}/email`, {
     method: "POST",
-    headers: { "content-type": "application/json", origin: "rakazo://" },
+    headers: { "content-type": "application/json", origin: "cadre://" },
     body: JSON.stringify(input),
   });
   const body = await res.json().catch(() => ({}));
@@ -335,7 +335,7 @@ export type PasswordResetCapabilities = {
 
 export async function passwordResetCapabilities(): Promise<PasswordResetCapabilities> {
   const response = await fetch(`${currentApiBase()}/api/auth/capabilities`, {
-    headers: { origin: "rakazo://" },
+    headers: { origin: "cadre://" },
   });
   if (!response.ok) throw new Error("Could not load password recovery settings");
   return (await response.json()) as PasswordResetCapabilities;
@@ -344,7 +344,7 @@ export async function passwordResetCapabilities(): Promise<PasswordResetCapabili
 export async function requestPasswordReset(email: string, redirectTo: string): Promise<void> {
   const response = await fetch(`${currentApiBase()}/api/auth/request-password-reset`, {
     method: "POST",
-    headers: { "content-type": "application/json", origin: "rakazo://" },
+    headers: { "content-type": "application/json", origin: "cadre://" },
     body: JSON.stringify({ email, redirectTo }),
   });
   const body = await response.json().catch(() => ({}));
@@ -354,7 +354,7 @@ export async function requestPasswordReset(email: string, redirectTo: string): P
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   const response = await fetch(`${currentApiBase()}/api/auth/change-password`, {
     method: "POST",
-    headers: { "content-type": "application/json", origin: "rakazo://", ...(await authHeaders()) },
+    headers: { "content-type": "application/json", origin: "cadre://", ...(await authHeaders()) },
     body: JSON.stringify({ currentPassword, newPassword, revokeOtherSessions: true }),
   });
   const body = await response.json().catch(() => ({}));
@@ -370,7 +370,7 @@ export async function signOut() {
     await withAbort(
       fetch(`${currentApiBase()}/api/auth/sign-out`, {
         method: "POST",
-        headers: { "content-type": "application/json", origin: "rakazo://", ...headers },
+        headers: { "content-type": "application/json", origin: "cadre://", ...headers },
         signal: controller.signal,
       }),
       controller.signal,
@@ -405,7 +405,7 @@ export async function deleteAccount(password: string) {
   await rpc("notifications/unregisterPush").catch(() => undefined);
   const res = await fetch(`${currentApiBase()}/api/auth/delete-user`, {
     method: "POST",
-    headers: { "content-type": "application/json", origin: "rakazo://", ...(await authHeaders()) },
+    headers: { "content-type": "application/json", origin: "cadre://", ...(await authHeaders()) },
     body: JSON.stringify({ password }),
   });
   const body = await res.json().catch(() => ({}));
@@ -436,7 +436,7 @@ export async function rpc<T>(
       method: "POST",
       headers: {
         "content-type": "application/json",
-        origin: "rakazo://",
+        origin: "cadre://",
         ...(options.requestContext?.headers ?? (await authHeaders())),
       },
       body: JSON.stringify({ json: body }),
@@ -637,7 +637,7 @@ export async function subscribeThread(
     headers: {
       "content-type": "application/json",
       accept: "text/event-stream",
-      origin: "rakazo://",
+      origin: "cadre://",
       ...(await authHeaders()),
     },
     body: JSON.stringify({ json: { ...target, cursor } }),

@@ -1,6 +1,6 @@
+import type { Actor } from "@cadre/contracts";
+import type { PrismaClient } from "@cadre/db";
 import { RPCHandler } from "@orpc/server/fetch";
-import type { Actor } from "@rakazo/contracts";
-import type { PrismaClient } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
 import { createRouter, type RouterDeps } from "./router.js";
 
@@ -265,12 +265,12 @@ function messagingDeps(
       providers: ["sendblue"],
       openSignup: false,
     },
-    dataDir: "/tmp/rakazo-router-test",
+    dataDir: "/tmp/cadre-router-test",
   } as unknown as RouterDeps;
   const actor = {
     spaceId: "ws-1",
     userId: "user-1",
-    email: "user@rakazo.test",
+    email: "user@cadre.test",
     isDeploymentOwner: false,
   } satisfies Actor;
   return {

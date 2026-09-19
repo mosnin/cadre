@@ -1,4 +1,4 @@
-import type { BillingSnapshot } from "@rakazo/contracts";
+import type { BillingSnapshot } from "@cadre/contracts";
 
 export interface BillingProvider {
   customer(customerId: string, signal?: AbortSignal): Promise<BillingSnapshot>;

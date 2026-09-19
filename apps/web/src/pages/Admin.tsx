@@ -6,8 +6,8 @@ import {
   DialogTitle,
   Input,
   Textarea,
-} from "@rakazo/ui-web";
-import { Table as DirectoryTable } from "@rakazo/ui-web/directory/table";
+} from "@cadre/ui-web";
+import { Table as DirectoryTable } from "@cadre/ui-web/directory/table";
 import { ArrowLeft, ArrowUpRight, RefreshCw, ShieldCheck } from "lucide-react";
 import {
   Children,

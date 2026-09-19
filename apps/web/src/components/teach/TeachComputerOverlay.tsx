@@ -1,6 +1,5 @@
-import { Trans, useLingui } from "@lingui/react/macro";
-import type { ComputerStatus } from "@rakazo/contracts";
-import { waitForComputerStartup } from "@rakazo/core";
+import type { ComputerStatus } from "@cadre/contracts";
+import { waitForComputerStartup } from "@cadre/core";
 import {
   Button,
   DropdownMenuItem,
@@ -9,7 +8,8 @@ import {
   PopoverContent,
   PopoverTrigger,
   Textarea,
-} from "@rakazo/ui-web";
+} from "@cadre/ui-web";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
 import { rpc } from "../../lib/rpc";
 

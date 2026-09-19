@@ -1,12 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
-import {
-  allowsRoute,
-  CODEX_CLIENT,
-  createCodexOAuth,
-  validRequest,
-} from "@rakazo/auth/codex-oauth";
-import { createDb } from "@rakazo/db";
+import { allowsRoute, CODEX_CLIENT, createCodexOAuth, validRequest } from "@cadre/auth/codex-oauth";
+import { createDb } from "@cadre/db";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 const databaseUrl =

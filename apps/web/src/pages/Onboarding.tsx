@@ -1,16 +1,16 @@
-import { Trans, useLingui } from "@lingui/react/macro";
 import {
   OPENAI_COMPATIBLE_PROVIDER_ID,
   openAiCompatibleConnectReady,
   openAiCompatibleProbeSuccessMessage,
-} from "@rakazo/contracts";
+} from "@cadre/contracts";
 import {
   featuredModelProviders,
   modelCatalogEntryMatchesQuery,
   selectedProviderOutsideSearchResults,
-} from "@rakazo/core";
-import { Button, Input, NativeSelect, NativeSelectOption, Textarea } from "@rakazo/ui-web";
-import { Disclosure } from "@rakazo/ui-web/components/ui/disclosure";
+} from "@cadre/core";
+import { Button, Input, NativeSelect, NativeSelectOption, Textarea } from "@cadre/ui-web";
+import { Disclosure } from "@cadre/ui-web/components/ui/disclosure";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Check } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -645,7 +645,7 @@ export function OnboardingPage() {
                     summary={<Trans>Setup help</Trans>}
                   >
                     <p className="mt-1">
-                      {t`Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed.`}
+                      {t`Paste the OpenAI-compatible address from your server. Cadre adds /v1 if needed.`}
                     </p>
                   </Disclosure>
                   <div className="mt-3">

@@ -4,7 +4,7 @@ import { captureScreenshot, completeOnboarding, openUserMenu, signup } from "./h
 test("model dropdown search and provider group headers", async ({ page }, testInfo) => {
   const stamp = Date.now();
   const userName = `Model picker ${stamp}`;
-  await signup(page, `model-picker-${stamp}@rakazo.test`, "password12", userName);
+  await signup(page, `model-picker-${stamp}@cadre.test`, "password12", userName);
   await completeOnboarding(page);
 
   await openUserMenu(page);

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { MessageBlock } from "@rakazo/contracts";
-import { isVisibleInternalPeerEvent, userVisibleMessages } from "@rakazo/core";
-import { createDb, type Prisma } from "@rakazo/db";
+import type { MessageBlock } from "@cadre/contracts";
+import { isVisibleInternalPeerEvent, userVisibleMessages } from "@cadre/core";
+import { createDb, type Prisma } from "@cadre/db";
 import { describe, expect, it } from "vitest";
 import { isInternalPeerRun, loadMessagePage } from "./thread-message-pages.js";
 import { type ThreadTarget, threadSnapshot } from "./thread-target.js";

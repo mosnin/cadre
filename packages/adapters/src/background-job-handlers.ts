@@ -6,10 +6,10 @@ import type {
   JobPublisher,
   MessagingSurface,
   SandboxProvider,
-} from "@rakazo/adapter-kit";
-import { messagingDeliverJob } from "@rakazo/adapter-kit";
-import type { PrismaClient, ThreadEvents } from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+} from "@cadre/adapter-kit";
+import { messagingDeliverJob } from "@cadre/adapter-kit";
+import type { PrismaClient, ThreadEvents } from "@cadre/db";
+import { getLogger } from "@cadre/logging";
 import { expireComputerControl } from "./computer-control.js";
 import { scheduleComputerSleep, sleepComputerIfIdle } from "./computer-idle.js";
 import {

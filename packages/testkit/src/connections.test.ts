@@ -7,7 +7,7 @@ import {
   InstalledConnectorProvider,
   PipedreamConnector,
   ThirdPartyConnectorEmulator,
-} from "@rakazo/adapters";
+} from "@cadre/adapters";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { sessionCookieHeader } from "./index.js";
 
@@ -30,7 +30,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
   let thirdParties: ThirdPartyConnectorEmulator;
   let connectionOrdinal = 0;
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const dataDir = mkdtempSync(path.join(tmpdir(), "rakazo-connections-"));
+  const dataDir = mkdtempSync(path.join(tmpdir(), "cadre-connections-"));
 
   beforeAll(async () => {
     const { createApp } = await import("../../../apps/api/src/app.ts");
@@ -73,8 +73,8 @@ describeWithDatabase("Composio catalog reconciliation", () => {
   });
 
   it("reconciles one scoped row per provider under concurrent catalog fetches", async () => {
-    const ownerCookie = await signup(app, `owner-connections-${stamp}@rakazo.test`, "Owner");
-    const otherCookie = await signup(app, `other-connections-${stamp}@rakazo.test`, "Other");
+    const ownerCookie = await signup(app, `owner-connections-${stamp}@cadre.test`, "Owner");
+    const otherCookie = await signup(app, `other-connections-${stamp}@cadre.test`, "Other");
     const owner = await rpc<Actor>(app, ownerCookie, "me");
     const other = await rpc<Actor>(app, otherCookie, "me");
     await connectRemote(composio, owner, "GMAIL");
@@ -118,7 +118,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
   });
 
   it("fails closed when local connection access cannot be checked", async () => {
-    const cookie = await signup(app, `db-failure-connections-${stamp}@rakazo.test`, "DB Failure");
+    const cookie = await signup(app, `db-failure-connections-${stamp}@cadre.test`, "DB Failure");
     const actor = await rpc<Actor>(app, cookie, "me");
     await connectRemote(composio, actor, "SLACK");
     const pending = await createConnection(actor, "SLACK");
@@ -136,7 +136,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
   });
 
   it("preserves in-flight OAuth during chat and recovers a late connection without reopening settings", async () => {
-    const cookie = await signup(app, `late-oauth-${stamp}@rakazo.test`, "Late OAuth");
+    const cookie = await signup(app, `late-oauth-${stamp}@cadre.test`, "Late OAuth");
     const actor = await rpc<Actor>(app, cookie, "me");
     const bot = await rpc<{ id: string }>(app, cookie, "bots/create", {
       name: "Connection check",
@@ -188,7 +188,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
   it("revokes duplicate rows for the same provider without touching another provider", async () => {
     const cookie = await signup(
       app,
-      `revoke-duplicates-${stamp}@rakazo.test`,
+      `revoke-duplicates-${stamp}@cadre.test`,
       "Duplicate Connections",
     );
     const actor = await rpc<Actor>(app, cookie, "me");
@@ -207,7 +207,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
   });
 
   it("retains local denial when the remote disconnect fails", async () => {
-    const cookie = await signup(app, `remote-revoke-${stamp}@rakazo.test`, "Remote revoke");
+    const cookie = await signup(app, `remote-revoke-${stamp}@cadre.test`, "Remote revoke");
     const actor = await rpc<Actor>(app, cookie, "me");
     const row = await createConnection(actor, "GMAIL");
     await connectRemote(composio, actor, "GMAIL");
@@ -226,7 +226,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
   it("does not mutate local state when the provider catalog fails", async () => {
     const cookie = await signup(
       app,
-      `provider-failure-connections-${stamp}@rakazo.test`,
+      `provider-failure-connections-${stamp}@cadre.test`,
       "Provider Failure",
     );
     const actor = await rpc<Actor>(app, cookie, "me");
@@ -243,7 +243,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
   });
 
   it("routes an emulated Composio app tool with user-scoped connection context", async () => {
-    const cookie = await signup(app, `composio-tool-${stamp}@rakazo.test`, "Composio Tool");
+    const cookie = await signup(app, `composio-tool-${stamp}@cadre.test`, "Composio Tool");
     const actor = await rpc<Actor>(app, cookie, "me");
     const started = await rpc<{ connectionId: string; authorizationUrl: null }>(
       app,
@@ -295,7 +295,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
   });
 
   it("runs Pipedream connection and MCP tool execution through the product registry", async () => {
-    const cookie = await signup(app, `pipedream-${stamp}@rakazo.test`, "Pipedream Connector");
+    const cookie = await signup(app, `pipedream-${stamp}@cadre.test`, "Pipedream Connector");
     const actor = await rpc<Actor>(app, cookie, "me");
     const catalog = await rpc<Array<{ connectorId: string; slug: string; connected: boolean }>>(
       app,
@@ -362,7 +362,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
   });
 
   it("installs Treg and custom MCP sources, discovers tools, and routes both calls", async () => {
-    const cookie = await signup(app, `mcp-connectors-${stamp}@rakazo.test`, "MCP Connectors");
+    const cookie = await signup(app, `mcp-connectors-${stamp}@cadre.test`, "MCP Connectors");
     const actor = await rpc<Actor>(app, cookie, "me");
     const tregCredential = "fake-treg-credential-value";
     const treg = await rpc<{ id: string; secretConfigured: boolean }>(
@@ -438,7 +438,7 @@ describeWithDatabase("Composio catalog reconciliation", () => {
   });
 
   it("imports an OpenAPI connector, keeps its credential encrypted, and routes calls", async () => {
-    const cookie = await signup(app, `api-connector-${stamp}@rakazo.test`, "API Connector");
+    const cookie = await signup(app, `api-connector-${stamp}@cadre.test`, "API Connector");
     const actor = await rpc<Actor>(app, cookie, "me");
     const credential = "test-connector-secret-value";
     const install = await rpc<{

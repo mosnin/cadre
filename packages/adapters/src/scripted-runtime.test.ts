@@ -1,5 +1,5 @@
-import type { AgentRuntimeEvent } from "@rakazo/adapter-kit";
-import { buildBotMessageWakePrompt } from "@rakazo/core";
+import type { AgentRuntimeEvent } from "@cadre/adapter-kit";
+import { buildBotMessageWakePrompt } from "@cadre/core";
 import { describe, expect, it } from "vitest";
 import { inferScript, ScriptedAgentRuntime } from "./scripted-runtime.js";
 

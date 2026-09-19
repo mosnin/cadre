@@ -1,5 +1,5 @@
-import type { CompanyWorkspaces } from "@rakazo/adapters";
-import type { Actor } from "@rakazo/contracts";
+import type { CompanyWorkspaces } from "@cadre/adapters";
+import type { Actor } from "@cadre/contracts";
 import type { Context, Hono } from "hono";
 
 export function mountCompanyWorkspaceRoutes(

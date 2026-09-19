@@ -94,7 +94,7 @@ def bounded_request(req):
     if action not in ('snapshot', 'navigate', 'click', 'fill', 'fill_protected', 'press', 'scroll', 'select', 'tabs', 'select_tab'):
         raise ValueError('Unknown browser action')
     if action == 'fill_protected':
-        if not isinstance(os.environ.get('RAKAZO_PROTECTED_TEXT'), str) or not os.environ.get('RAKAZO_PROTECTED_TEXT'):
+        if not isinstance(os.environ.get('CADRE_PROTECTED_TEXT'), str) or not os.environ.get('CADRE_PROTECTED_TEXT'):
             raise ValueError('Protected text is missing')
         if not isinstance(req.get('secretHost'), str) or not req['secretHost'].strip():
             raise ValueError('A protected fill must name the host the credential belongs to')
@@ -363,7 +363,7 @@ class VisibleBrowser:
                     # request, the snapshot, or this process's arguments. The page is checked
                     # here, immediately before the keystrokes, so a navigation cannot race it.
                     if action == 'fill_protected': self.validate_secret_target(req, ref['backend'], attributes)
-                    self.call('Input.insertText', {'text': os.environ['RAKAZO_PROTECTED_TEXT'] if action == 'fill_protected' else req['text']})
+                    self.call('Input.insertText', {'text': os.environ['CADRE_PROTECTED_TEXT'] if action == 'fill_protected' else req['text']})
                 else:
                     codes = {'Enter': 13, 'Tab': 9, 'Escape': 27, 'ArrowDown': 40, 'ArrowUp': 38, 'Space': 32}
                     for kind in ('keyDown', 'keyUp'):
@@ -408,7 +408,7 @@ class VisibleBrowser:
 
 def main(req):
     bounded_request(req)
-    profile = Path(os.environ.get('RAKAZO_BROWSER_PROFILE', ''))
+    profile = Path(os.environ.get('CADRE_BROWSER_PROFILE', ''))
     if not profile.is_absolute() or not (profile / 'DevToolsActivePort').is_file():
         raise ValueError('Structured browser control is unavailable. Use the visible desktop tools.')
     browser = VisibleBrowser(profile)

@@ -7,7 +7,7 @@ test("message hover shows Reply and Copy; reply links to parent", async ({ page 
     if (message.type() === "warning") warnings.push(message.text());
   });
   const stamp = Date.now();
-  await signup(page, `hover-actions-${stamp}@rakazo.test`, "password12", "Hover Actions");
+  await signup(page, `hover-actions-${stamp}@cadre.test`, "password12", "Hover Actions");
   await completeOnboarding(page);
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
 
@@ -123,7 +123,7 @@ test("message hover shows Reply and Copy; reply links to parent", async ({ page 
 
 test("reply preview jumps to parent outside the loaded page", async ({ page }) => {
   const stamp = Date.now();
-  await signup(page, `hover-page-${stamp}@rakazo.test`, "password12", "Hover Page");
+  await signup(page, `hover-page-${stamp}@cadre.test`, "password12", "Hover Page");
   await completeOnboarding(page);
 
   const parentText = `page-parent-${stamp}`;

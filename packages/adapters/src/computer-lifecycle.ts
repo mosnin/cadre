@@ -6,16 +6,16 @@ import type {
   ComputerRef,
   JobPublisher,
   SandboxProvider,
-} from "@rakazo/adapter-kit";
-import { ACTIVE_RUN_STATUSES, screenLeaseId } from "@rakazo/core";
+} from "@cadre/adapter-kit";
+import { ACTIVE_RUN_STATUSES, screenLeaseId } from "@cadre/core";
 import {
   expireComputerExecutionLeases,
   type Prisma,
   type PrismaClient,
   parseComputerMode,
   type ThreadEvents,
-} from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+} from "@cadre/db";
+import { getLogger } from "@cadre/logging";
 import {
   clearInactiveUserComputerControl,
   expireComputerControl,

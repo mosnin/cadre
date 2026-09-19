@@ -6,10 +6,10 @@ import type {
   ComputerRef,
   JobPublisher,
   SandboxProvider,
-} from "@rakazo/adapter-kit";
-import { routineJobKey, runContinueJob, runJobKey } from "@rakazo/adapter-kit";
-import { type Actor, type Bot, GROUP_MEMBER_MIN } from "@rakazo/contracts";
-import { ACTIVE_RUN_STATUSES } from "@rakazo/core";
+} from "@cadre/adapter-kit";
+import { routineJobKey, runContinueJob, runJobKey } from "@cadre/adapter-kit";
+import { type Actor, type Bot, GROUP_MEMBER_MIN } from "@cadre/contracts";
+import { ACTIVE_RUN_STATUSES } from "@cadre/core";
 import {
   computerScopeKey,
   createRepos,
@@ -18,8 +18,8 @@ import {
   type Prisma,
   type PrismaClient,
   withTransactionRetry,
-} from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+} from "@cadre/db";
+import { getLogger } from "@cadre/logging";
 import { toComputerRef } from "./computer-support.js";
 import { checkpointBeforeComputerStop } from "./computer-workspace.js";
 import { isSandboxGoneError } from "./e2b-sandbox.js";

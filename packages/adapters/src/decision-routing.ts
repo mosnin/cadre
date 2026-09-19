@@ -13,8 +13,8 @@
  * with the description the model reads. With no pool configured there is no routing.
  */
 
-import { actionableChoice, choice, DECISION_CONFIDENCE } from "@rakazo/core";
-import { getLogger } from "@rakazo/logging";
+import { actionableChoice, choice, DECISION_CONFIDENCE } from "@cadre/core";
+import { getLogger } from "@cadre/logging";
 import type { DecisionProvider } from "./jev-decisions.js";
 
 export type ModelCandidate = {

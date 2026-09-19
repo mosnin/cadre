@@ -4,10 +4,10 @@ import {
   type NotificationProvider,
   routineWakeupJob,
   runContinueJob,
-} from "@rakazo/adapter-kit";
-import type { MessageBlock } from "@rakazo/contracts";
-import type { Pool, PrismaClient, ThreadEvents } from "@rakazo/db";
-import { getLogger } from "@rakazo/logging";
+} from "@cadre/adapter-kit";
+import type { MessageBlock } from "@cadre/contracts";
+import type { Pool, PrismaClient, ThreadEvents } from "@cadre/db";
+import { getLogger } from "@cadre/logging";
 import type { PoolClient } from "pg";
 import { returnBotMessageOutcome } from "./bot-messages.js";
 import { scheduleComputerControlExpiry } from "./computer-control.js";
@@ -23,7 +23,7 @@ const DEFAULT_INTERVAL_MS = 30_000;
 const DEFAULT_BATCH_SIZE = 100;
 const ROUTINE_LOOKAHEAD_MS = 60_000;
 const CONTROL_LOOKAHEAD_MS = 60_000;
-// Two keys give Rakazo's lock a namespace without relying on a hash that might collide
+// Two keys give Cadre's lock a namespace without relying on a hash that might collide
 // with an application using the one-key advisory-lock API.
 const RECONCILIATION_LOCK_NAMESPACE = 1_380_019_075;
 const RECONCILIATION_LOCK_ID = 1;

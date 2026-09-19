@@ -4,9 +4,9 @@ import type {
   ConnectorEvent,
   ConnectorProvider,
   ConnectorTool,
-} from "@rakazo/adapter-kit";
-import { connectorHintCanClaimReadOnly } from "@rakazo/core";
-import type { PrismaClient } from "@rakazo/db";
+} from "@cadre/adapter-kit";
+import { connectorHintCanClaimReadOnly } from "@cadre/core";
+import type { PrismaClient } from "@cadre/db";
 import { z } from "zod";
 import {
   combineSignals,

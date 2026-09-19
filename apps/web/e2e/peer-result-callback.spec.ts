@@ -4,7 +4,7 @@ import { activeBotId, captureScreenshot, completeOnboarding, rpc, signup } from 
 test("peer result reaches the requesting conversation live and after reload", async ({
   page,
 }, testInfo) => {
-  await signup(page, `peer-result-${Date.now()}@rakazo.test`, "password12", "Peer Result");
+  await signup(page, `peer-result-${Date.now()}@cadre.test`, "password12", "Peer Result");
   await completeOnboarding(page);
   const botId = activeBotId(page);
   await rpc(page, "bots/create", {

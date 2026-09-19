@@ -60,10 +60,10 @@ describe("the images compose file", () => {
     ]);
     for (const service of appServices) {
       expect(compose.services[service]?.image).toContain("ghcr.io/elie222/rakazo/app");
-      expect(compose.services[service]?.image).toContain("RAKAZO_IMAGE_TAG");
+      expect(compose.services[service]?.image).toContain("CADRE_IMAGE_TAG");
     }
     expect(compose.services.computer?.image).toContain("ghcr.io/elie222/rakazo/computer");
-    expect(compose.services.computer?.image).toContain("RAKAZO_COMPUTER_IMAGE_TAG");
+    expect(compose.services.computer?.image).toContain("CADRE_COMPUTER_IMAGE_TAG");
     expect(compose.services.postgres?.image).toMatch(
       /^\$\{POSTGRES_IMAGE:-postgres:16@sha256:[0-9a-f]{64}\}$/,
     );

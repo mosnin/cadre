@@ -158,5 +158,5 @@ per-machine plugin install. Refresh it with:
 npx skills add typesafe-ai/skills --skill typesafe-ai
 ```
 
-Where this repository's own rules differ, `docs/jev.md` wins: it records what Rakazo actually
+Where this repository's own rules differ, `docs/jev.md` wins: it records what Cadre actually
 does and why, including the two rules no decision here may break.

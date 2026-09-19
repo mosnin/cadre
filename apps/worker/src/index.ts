@@ -1,5 +1,5 @@
-import type { JobPublisher, JobWorkerHost } from "@rakazo/adapter-kit";
-import { loadRootEnv } from "@rakazo/core/node/load-root-env";
+import type { JobPublisher, JobWorkerHost } from "@cadre/adapter-kit";
+import { loadRootEnv } from "@cadre/core/node/load-root-env";
 
 loadRootEnv();
 
@@ -41,19 +41,19 @@ import {
   resolveSandboxProvider,
   ScriptedAgentRuntime,
   SpaceMemoryProviderResolver,
-} from "@rakazo/adapters";
-import { companyOsOAuthFromEnv, createAuth, createCompanyOsCredential } from "@rakazo/auth";
-import { resolveAuthSecret, resolveEncryptionKey, resolveSupervisorToken } from "@rakazo/core";
-import { createDb, createThreadEvents } from "@rakazo/db";
-import { SERVICE_NAMES } from "@rakazo/logging";
-import { createRootLogger } from "@rakazo/logging/axiom";
-import { MarkdownMemoryStore } from "@rakazo/memory";
+} from "@cadre/adapters";
+import { companyOsOAuthFromEnv, createAuth, createCompanyOsCredential } from "@cadre/auth";
+import { resolveAuthSecret, resolveEncryptionKey, resolveSupervisorToken } from "@cadre/core";
+import { createDb, createThreadEvents } from "@cadre/db";
+import { SERVICE_NAMES } from "@cadre/logging";
+import { createRootLogger } from "@cadre/logging/axiom";
+import { MarkdownMemoryStore } from "@cadre/memory";
 import { createWorkerIdentity } from "./worker-identity.js";
 
 const logger = createRootLogger(SERVICE_NAMES.worker);
 
 async function main() {
-  const identity = createWorkerIdentity(process.env.GIT_SHA ?? process.env.RAKAZO_GIT_SHA);
+  const identity = createWorkerIdentity(process.env.GIT_SHA ?? process.env.CADRE_GIT_SHA);
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL is required");
   const { prisma, pool } = createDb(databaseUrl);
