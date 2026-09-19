@@ -25,6 +25,15 @@ export function applyResolvedAppearance(
 ): void {
   if (!root) return;
   root.dataset.theme = appearance;
+  // Third-party components read the Tailwind convention — a `dark` class on
+  // the documentElement — and cannot be told otherwise without editing them.
+  // ElevenLabs' orb is one: it flips its colour ramp on that class, and
+  // without it every orb in the dark theme ramped the wrong way and blew out
+  // to white. The class carries no styles of our own (`@custom-variant dark`
+  // keys on `[data-theme]`), so it costs nothing and it is one place rather
+  // than a patch in every vendored file.
+  root.classList.toggle("dark", appearance === "dark");
+  root.classList.toggle("light", appearance === "light");
   root.style.colorScheme = appearance;
   if (typeof document === "undefined") return;
   const meta = document.querySelector(THEME_COLOR_META);
