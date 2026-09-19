@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GROUP_AVATAR_RING, groupAvatarLayout } from "./group-avatar-layout";
+import { GROUP_AVATAR_RING, groupAvatarLayout } from "./group-avatar-layout.js";
 
 describe("groupAvatarLayout", () => {
   it("keeps a single member at the full size", () => {
