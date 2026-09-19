@@ -51,12 +51,16 @@ request that was being made anyway.
 They are never the reason for a request of their own. The start request also
 runs beside connector discovery, so its 70–500ms is not added to the critical
 path. When the first action is a fetch or a short search, that tool runs while
-the computer provisions, and the result is already in the task. When it is
-`browse`, pursuit starts the moment the computer is up — overlapping the rest of
-prompt assembly — so the first generation sees the page that was already acted
-on instead of spending a turn deciding to call `browser_pursue`. Helper routing
-starts before the helper waits for a slot, so a queued delegate does not pay
-for the decision after it is already allowed to run.
+the computer provisions, and the result is already in the task. Computer
+provision and model-credential resolution start beside start, discovery and
+memory once the run already has a model, so a warm machine is not paid for
+after those return. A run with no model never starts either.
+When the first action is `browse`, pursuit starts the moment the computer is
+up — overlapping the rest of prompt assembly — so the first generation sees the
+page that was already acted on instead of spending a turn deciding to call
+`browser_pursue`. Helper routing starts before the helper waits for a slot, so
+a queued delegate does not pay for the decision after it is already allowed to
+run.
 
 Answers are also remembered. `decision-cache.ts` keys on the model, the state and
 every question with its criteria, so anything that would change an answer changes
@@ -84,6 +88,7 @@ here is the last thing between an agent and an irreversible action.
 | Memory order (`rankMemoryDocuments`) | A **recency sort** that decided which saved facts a run would never see | One `score` per document, one request | The recency order, unchanged |
 | Fetch screen (`screenUntrustedText`) | Nothing; **raises a bar** on pages that try to instruct the agent | `noul` "is this a jailbreak or override?" | The page, unlabeled |
 | Browser page screen | Nothing on `browser_observe` / `browser_act`; **free** on `browser_pursue` because it rides the action request | The same injection `noul`, asked beside the step when the page already has enough text | The page, unlabeled |
+| Connector result screen (`labelUntrustedToolResult`) | Nothing; **raises a bar** on mail, issues, and other connector payloads that try to instruct the agent | The same injection `noul` over the string fields the model reads | The payload, unlabeled |
 | Browser action (`planBrowserTurn`) | A **generation** per browser step, the **next** step's request when the page still has that control, a **navigate** generation that would invent a URL, and the **first** browse generation when start already chose `browse` | One request: `choice` operation + speculative targets + the same questions prefixed `next_` + which known value fills the field + dropdown control and option together + which goal URL to open | The agent deciding, as today |
 | Symbolic find / check / triage | A **generation** that reviews its own diff, files, or log | Scores, nouls, and a closed failure `choice` over evidence the agent already gathered | No findings, with `notChecked` filled |
 

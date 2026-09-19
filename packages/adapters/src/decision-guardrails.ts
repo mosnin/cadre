@@ -81,3 +81,41 @@ export async function labelUntrustedPageText(
   });
   return screen.injected ? markUntrustedFetchText(text) : text;
 }
+
+const RESULT_TEXT_KEYS = ["text", "content", "body", "markdown", "html"] as const;
+
+/**
+ * Label connector or MCP payloads the same way as a fetched page. Only the
+ * string fields a model actually reads are marked; the rest of the object stays.
+ */
+export async function labelUntrustedToolResult(
+  provider: DecisionProvider | undefined,
+  input: { source: string; result: unknown; sessionId?: string; signal?: AbortSignal },
+): Promise<unknown> {
+  const result = input.result;
+  if (typeof result === "string") {
+    return (await labelUntrustedPageText(provider, { ...input, text: result })) ?? result;
+  }
+  if (!result || typeof result !== "object" || Array.isArray(result)) return result;
+  const record = result as Record<string, unknown>;
+  if (typeof record.error === "string") return result;
+  const parts = RESULT_TEXT_KEYS.flatMap((key) => {
+    const value = record[key];
+    return typeof value === "string" && value.trim().length >= 40 ? [value] : [];
+  });
+  if (parts.length === 0) return result;
+  const screen = await screenUntrustedText(provider, {
+    source: input.source,
+    text: parts.join("\n"),
+    sessionId: input.sessionId,
+    signal: input.signal,
+  });
+  if (!screen.injected) return result;
+  const labeled = { ...record };
+  for (const key of RESULT_TEXT_KEYS) {
+    if (typeof labeled[key] === "string") {
+      labeled[key] = markUntrustedFetchText(labeled[key] as string);
+    }
+  }
+  return labeled;
+}

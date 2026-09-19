@@ -170,7 +170,7 @@ import {
   formatPursuedStartPrompt,
   pursueBrowserGoal,
 } from "./decision-browser.js";
-import { labelUntrustedPageText } from "./decision-guardrails.js";
+import { labelUntrustedPageText, labelUntrustedToolResult } from "./decision-guardrails.js";
 import { assessRunFloor } from "./decision-guards.js";
 import { routerCandidates } from "./decision-routing.js";
 import { decideRunStart, skillsImpliedByStart } from "./decision-start.js";
@@ -1174,6 +1174,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
           })),
           connectedProviders: connectedComposio.map((row) => row.provider),
         };
+        const storedComputer = bot.computer;
         const memoryScope = configuredMemory
           ? effectiveMemoryScope(bot.memoryScope, configuredMemory.defaultScope)
           : null;
@@ -1192,6 +1193,24 @@ export function createRunExecutor(deps: ExecutorDeps) {
           credential?.defaultModel ??
           settings?.defaultModelId;
         let runModelId = chosenModelId ?? runDeployment?.model ?? runtimeFallback?.id;
+        // Boot and resolve credentials beside start/discover/memory only when
+        // this run already has a model. Starting a computer with no model
+        // rejected on the missing-model path (no dataDir) and wasted a boot.
+        let provisionPromise =
+          storedComputer && runModelProvider && runModelId
+            ? provisionComputer(deps, storedComputer.id, context, "bot")
+            : undefined;
+        const resolvePromise = runModelProvider
+          ? resolveModelKey(
+              deps,
+              run.userId,
+              run.spaceId,
+              credential,
+              runModelProvider,
+              (values) => runSecrets.push(...values),
+              runAbortController.signal,
+            )
+          : undefined;
         // Only a run nobody chose a model for is routed: an explicit bot, credential or
         // deployment-settings choice is the user's and is never second-guessed.
         const routerPool = chosenModelId ? [] : routerCandidates();
@@ -1321,6 +1340,10 @@ export function createRunExecutor(deps: ExecutorDeps) {
         }
         if (start.model) runModelId = start.model;
         if (!runModelProvider || !runModelId) {
+          await Promise.all([
+            provisionPromise?.catch(() => undefined),
+            resolvePromise?.catch(() => undefined),
+          ]);
           const failed = await deps.events.finalizeRun({
             spaceId: run.spaceId,
             threadId: thread.id,
@@ -1359,24 +1382,25 @@ export function createRunExecutor(deps: ExecutorDeps) {
           }
           return;
         }
-        if (!bot.computer) throw new Error("Bot has no computer");
-        const storedComputer = bot.computer;
+        if (!storedComputer) throw new Error("Bot has no computer");
+        provisionPromise ??= provisionComputer(deps, storedComputer.id, context, "bot");
         const computerMode = parseComputerMode(storedComputer.scope);
         const prefetchPromise = prefetchRunStart(web, context, start, task.prompt, {
           provider: decisions,
           sessionId: runId,
         });
         const [resolved, computer] = await Promise.all([
-          resolveModelKey(
-            deps,
-            run.userId,
-            run.spaceId,
-            credential,
-            runModelProvider,
-            (values) => runSecrets.push(...values),
-            runAbortController.signal,
-          ),
-          provisionComputer(deps, storedComputer.id, context, "bot"),
+          resolvePromise ??
+            resolveModelKey(
+              deps,
+              run.userId,
+              run.spaceId,
+              credential,
+              runModelProvider,
+              (values) => runSecrets.push(...values),
+              runAbortController.signal,
+            ),
+          provisionPromise,
         ]);
         runSecrets.push(...resolved.redact);
         await deps.prisma.run.updateMany({
@@ -3385,7 +3409,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
               }
               if (event.type === "error") result = { error: event.message };
             }
-            return finish(result);
+            return finish(
+              await labelUntrustedToolResult(decisions, {
+                source: `connector:${name}`,
+                result,
+                sessionId: runId,
+                signal: context.signal,
+              }),
+            );
           }
           return finish({ error: `unknown tool ${name}` });
         };
