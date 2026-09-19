@@ -25,14 +25,7 @@ function agentStateFor(state: OrbState): AgentState {
   return null;
 }
 
-export function LiveOrb({
-  color,
-  state,
-}: {
-  color: string;
-  state: OrbState;
-  volume: number;
-}) {
+export function LiveOrb({ color, state }: { color: string; state: OrbState; volume: number }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [onScreen, setOnScreen] = useState(true);
   const [hasBudget, setHasBudget] = useState(false);

@@ -105,9 +105,11 @@ describe("resolveSpaceChatNavigation", () => {
   });
 
   it("remounts when the click is in a different space", () => {
-    expect(resolveSpaceChatNavigation("space-support", "space-personal", "space-personal")).toEqual({
-      nextSpaceId: "space-support",
-      mode: "boundary",
-    });
+    expect(resolveSpaceChatNavigation("space-support", "space-personal", "space-personal")).toEqual(
+      {
+        nextSpaceId: "space-support",
+        mode: "boundary",
+      },
+    );
   });
 });
