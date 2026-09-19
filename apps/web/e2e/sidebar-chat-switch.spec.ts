@@ -35,12 +35,12 @@ test("clicking an agent from a group chat opens that agent", async ({ page }, te
 
   await sidebar.locator(`[data-roster-bot-id="${chiefId}"]`).click();
   await page.waitForURL(new RegExp(`/app/${chiefId}$`));
-  await expect(page.getByPlaceholder("Message Chief")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Message Chief" })).toBeVisible();
 
   await openNavigation(page);
   await sidebar.locator(`[data-roster-bot-id="${writerId}"]`).click();
   await page.waitForURL(new RegExp(`/app/${writerId}$`));
-  await expect(page.getByPlaceholder("Message Sidebar Writer")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Message Sidebar Writer" })).toBeVisible();
 
   await openNavigation(page);
   await sidebar.getByRole("button", { name: /^Sidebar group/ }).click();

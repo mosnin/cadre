@@ -127,7 +127,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ArtifactFileCard } from "../components/ArtifactFileCard";
 import { AskCard } from "../components/AskCard";
 import { AttachmentMenu } from "../components/AttachmentMenu";
@@ -167,7 +167,11 @@ import { markAfterPaint, markOnce } from "../lib/performance";
 import { readRailCollapsed, writeRailCollapsed } from "../lib/rail-collapsed";
 import { clearSpaceSelection, rpc, selectedSpaceId, selectSpace } from "../lib/rpc";
 import { readSeenRunErrorIds, rememberSeenRunErrorId } from "../lib/run-error-storage";
-import { navigateSpaceBoundary, resolveSpaceChatNavigation } from "../lib/space-navigation";
+import {
+  navigateSpaceBoundary,
+  resolveSpaceChatNavigation,
+  shellChatFromPath,
+} from "../lib/space-navigation";
 import { clearTaskDraft, readTaskDraft, writeTaskDraft } from "../lib/task-draft";
 import {
   activeThreadRuns,
@@ -326,7 +330,8 @@ function readCollapsedSidebarSections(userId: string | null | undefined): Set<st
 
 export function ShellPage() {
   const { t } = useLingui();
-  const { botId, groupId } = useParams();
+  const { pathname } = useLocation();
+  const { botId, groupId } = shellChatFromPath(pathname);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   // Mirrors searchParams for effects that only need to read it once on run,

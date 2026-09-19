@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   navigateSpaceBoundary,
   resolveSpaceChatNavigation,
+  shellChatFromPath,
   spaceBoundaryChanged,
 } from "./space-navigation.js";
 
@@ -79,6 +80,20 @@ describe("navigateSpaceBoundary", () => {
     );
     expect(location.assign).not.toHaveBeenCalled();
     expect(location.reload).not.toHaveBeenCalled();
+  });
+});
+
+describe("shellChatFromPath", () => {
+  it("reads a group chat from the group route", () => {
+    expect(shellChatFromPath("/app/g/group-1")).toEqual({ groupId: "group-1" });
+  });
+
+  it("reads an agent from the bot route and drops any group", () => {
+    expect(shellChatFromPath("/app/bot-1")).toEqual({ botId: "bot-1" });
+  });
+
+  it("treats the workspace home as neither", () => {
+    expect(shellChatFromPath("/app")).toEqual({});
   });
 });
 

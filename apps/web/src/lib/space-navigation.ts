@@ -18,6 +18,22 @@ export function spaceBoundaryChanged(
   return previous !== nextSpaceId || currentSpaceId !== nextSpaceId;
 }
 
+/** Group and bot ids from the path, never leftover params from the other route. */
+export function shellChatFromPath(pathname: string): {
+  botId?: string;
+  groupId?: string;
+} {
+  if (typeof pathname !== "string") {
+    throw new Error("shellChatFromPath requires a pathname");
+  }
+  const group = pathname.match(/^\/app\/g\/([^/]+)\/?$/);
+  if (group?.[1]) return { groupId: group[1] };
+  const bot = pathname.match(/^\/app\/([^/]+)\/?$/);
+  const segment = bot?.[1];
+  if (segment && segment !== "admin") return { botId: segment };
+  return {};
+}
+
 export type SpaceChatNavigation = {
   nextSpaceId: string | undefined;
   mode: "soft" | "boundary";
