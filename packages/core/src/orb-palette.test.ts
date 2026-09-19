@@ -63,7 +63,9 @@ describe("orb palette", () => {
   it("keeps the shader pair in the hue and apart so the swirl is a gradient", () => {
     const luma = ([r, g, b]: readonly [number, number, number]) =>
       0.2126 * r + 0.7152 * g + 0.0722 * b;
-    const [dark, light] = orbColors("#26BF8C").map((hex) => parseHex(hex));
+    const [darkHex, lightHex] = orbColors("#26BF8C");
+    const dark = parseHex(darkHex ?? "");
+    const light = parseHex(lightHex ?? "");
     expect(luma(light) - luma(dark)).toBeGreaterThan(0.2);
     expect(luma(dark)).toBeGreaterThan(0.15);
     expect(luma(light)).toBeLessThan(0.9);
