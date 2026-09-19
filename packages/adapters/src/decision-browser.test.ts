@@ -625,6 +625,18 @@ describe("start-path browser helpers", () => {
     ).toContain("CLICK Search");
   });
 
+  it("includes the page already on screen so the first generation does not observe it", () => {
+    const prompt = formatPursuedStartPrompt({
+      status: "done",
+      steps: [{ operation: "CLICK", name: "Search" }],
+      snapshot: { url: "https://flights.example", text: "Zurich to Geneva — 2h" },
+    });
+    expect(prompt).toContain("CLICK Search");
+    expect(prompt).toContain('<browser_page url="https://flights.example">');
+    expect(prompt).toContain("Zurich to Geneva — 2h");
+    expect(prompt).toContain("already on screen");
+  });
+
   it("will not reuse a navigation that is already the page on screen", () => {
     expect(
       actionAppliesToSnapshot(

@@ -193,4 +193,22 @@ describe("prefetching the first start action", () => {
     ).resolves.toBeUndefined();
     expect(fake.lastSearch).toBeUndefined();
   });
+
+  it("returns nothing when fetch or search fails so the run can still generate", async () => {
+    const fake = new FakeWebProvider();
+    fake.fetchError = new Error("timeout");
+    await expect(
+      prefetchRunStart(
+        fake,
+        ctx,
+        { first: "fetch", fetchUrl: "https://docs.example/a" },
+        "Read https://docs.example/a",
+      ),
+    ).resolves.toBeUndefined();
+
+    fake.searchError = new Error("down");
+    await expect(
+      prefetchRunStart(fake, ctx, { first: "search" }, "weather in paris"),
+    ).resolves.toBeUndefined();
+  });
 });

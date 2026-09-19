@@ -72,22 +72,30 @@ Attached-file bytes start downloading beside start — they do not need the
 computer — and are written to the workspace once the machine is up.
 The first generation starts as soon as credentials resolve unless the first
 action is `browse` or the user attached files — those need the machine now.
+Fetch and search still wait for the prefetch they already started, so the
+page or hits can be inlined. Attached files write before browse starts, so
+the two do not share the computer at once.
 Answer, search, fetch, skill, company, code, and computer generate while
 the boot continues. A company-first start injects company-context and
-connected-workspace together, so Operate, Stored, and Company OS do not
-each cost a `skill_read` generation. Fetch, search, and skill-first
+connected-workspace together when this run has a workspace identity, so
+Operate, Stored, and Company OS do not each cost a `skill_read`
+generation on a run that can use them. Fetch, search, and skill-first
 answers are kept only when the harness can act: a URL already in the
 task, a short query that is already the user's wording, or a named
 skill — including when first already chose `skill` and the needed noul
 was shy. A commitment the prefetch or injection path cannot use is
-dropped so the model is not told to repeat work that never started. A later `web_search` or `web_fetch` does not wait either.
+dropped so the model is not told to repeat work that never started.
+A prefetch that fails degrades the same way: the page stays out of the
+prompt and the model fetches. A later `web_search` or `web_fetch` does not wait either.
 The first tool that touches the workspace waits on the same provision
 promise, which a generation has usually already outlasted.
 When the first action is `browse`, pursuit starts the moment start says so and
 the computer is up — overlapping connector discovery, memory ranking, key
 resolution, and prompt assembly — so the first generation sees the page that
 was already acted on instead of spending a turn deciding to call
-`browser_pursue`. A run that only learns the model after start kicks the same
+`browser_pursue` or `browser_observe`. The same page is untrusted data, like
+a tool result: `<fetched_page>`, `<search_results>`, `<browser_progress>`,
+and `<browser_page>` never override the user's request. A run that only learns the model after start kicks the same
 pursuit once provision begins. Group context, messaging identity, approved-effect replay,
 prior progress, the bot directory, and saved logins start beside computer
 provision, so those reads overlap the boot instead of waiting for it.
@@ -264,8 +272,10 @@ Two places use them asymmetrically on purpose:
 - Review takes `routing` to **ask** and `consequential` to **pass**. Stopping to
   ask costs a moment; waving a consequential action through on a shaky read costs
   the action.
-- Routine skip takes `consequential` to **skip**. A run that happened when it
-  needn't is visible in the thread; one that silently didn't is not.
+- Routine skip used `consequential` to **skip**. That path is gone until a
+  change feed exists; the bar is recorded so it is not rebuilt softer. A run
+  that happened when it needn't is visible in the thread; one that silently
+  didn't is not.
 
 ## Configuration
 
