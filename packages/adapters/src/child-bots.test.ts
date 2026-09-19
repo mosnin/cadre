@@ -36,6 +36,29 @@ function noGroupMemberships() {
 }
 
 describe("spawned bot creation", () => {
+  it("refuses a bot named after the user", async () => {
+    const result = await spawnBot(
+      {
+        prisma: {} as unknown as PrismaClient,
+        jobs: { enqueue: vi.fn() } as unknown as JobPublisher,
+      },
+      {
+        spawnedBy: {
+          id: "parent-1",
+          name: "Chief",
+          spaceId: "workspace-1",
+          userId: "user-1",
+        },
+        runId: "run-1",
+        spawnKey: "tool-call-reserved",
+        name: "Elie",
+        userName: "Elie Stern",
+      },
+    );
+
+    expect(result).toEqual({ error: "Cannot create a bot named after the user." });
+  });
+
   it("returns the existing child when a spawn is retried", async () => {
     const findUnique = vi.fn().mockResolvedValue({
       id: "child-1",
