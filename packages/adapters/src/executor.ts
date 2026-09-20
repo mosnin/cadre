@@ -3777,12 +3777,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
           .filter((skill) => !taskPrompt.includes(`Use skill: ${skill.name}`))
           .map((skill) => formatForcedSkillPrompt(skill.name, skill.content));
         const [prefetched, pursued] = await Promise.all([prefetchPromise, browsePromise]);
-        writerOnly = shouldWriteFirstTurn({
-          start,
-          prefetch: prefetched,
-          pursued,
-          hasFileAttachments,
-        });
+        writerOnly =
+          !scripted &&
+          shouldWriteFirstTurn({
+            start,
+            prefetch: prefetched,
+            pursued,
+            hasFileAttachments,
+          });
         if (!writerOnly) {
           const discovered = await discoveredPromise;
           const exposedConnectorTools = discovered.filter(
