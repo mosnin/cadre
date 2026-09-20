@@ -327,9 +327,11 @@ off for workloads that cannot share that context.
 
 ### Routing runs between models
 
-With a pool configured, a run that nobody chose a model for is routed to the cheapest model in
-the pool that suits the request. An explicit bot, credential or deployment-settings choice is
-never overridden, and a decision the model is not confident about keeps the default.
+A run that nobody chose a model for is routed across the Qwen pair by default: 8b for short
+lookups, 235b for long or careful work. An explicit bot, credential or deployment-settings
+choice is never overridden, and a decision the model is not confident about keeps the
+default (`qwen/qwen3-235b-a22b`). Set `JEV_ROUTER_MODELS` to replace the pool, or to `[]` / `0`
+to turn routing off.
 
 ```bash
 JEV_ROUTER_MODELS='[
@@ -339,7 +341,7 @@ JEV_ROUTER_MODELS='[
 ```
 
 Each entry needs a provider model id and a description; the description is all the decision
-model reads about a candidate. An unset or malformed pool routes nothing.
+model reads about a candidate. A malformed pool routes nothing.
 
 ## Choosing a computer provider
 

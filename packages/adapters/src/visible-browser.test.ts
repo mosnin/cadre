@@ -240,3 +240,51 @@ assert 'autocomplete ? 200 : 50' in m['SETTLE']
 print('settled')`),
   ).toContain("settled");
 });
+
+it("reuses one worker session instead of opening a new CDP connection per action", () => {
+  expect(
+    python(`
+import os, pathlib, tempfile, threading, time
+with tempfile.TemporaryDirectory() as root:
+    path = str(pathlib.Path(root) / 'w.sock')
+    seen = []
+    def fake_run(req, browser=None):
+        live = browser if browser is not None else object()
+        seen.append('new' if browser is None else 'reuse')
+        return {'ok': req.get('action')}, live
+    m['serve'].__globals__['run_request'] = fake_run
+    threading.Thread(target=lambda: m['serve'](path), daemon=True).start()
+    for _ in range(50):
+        if os.path.exists(path): break
+        time.sleep(0.02)
+    first = m['call_worker']({'action': 'snapshot'}, path)
+    second = m['call_worker']({'action': 'click', 'snapshotId': 's', 'ref': 'e1'}, path)
+    assert first == {'ok': 'snapshot'}
+    assert second == {'ok': 'click'}
+    assert seen == ['new', 'reuse']
+print('reused')`),
+  ).toContain("reused");
+});
+
+it("does not poll readyState after a click, and warps the visible cursor first", () => {
+  expect(
+    python(`
+popened=[]
+class FakePopen:
+    def __init__(self, argv, **kwargs):
+        popened.append(argv)
+b=m['VisibleBrowser'].__new__(m['VisibleBrowser'])
+b.state={'chrome':{'x':10,'y':20,'chrome':80,'border':0}}
+calls=[]
+b.call=lambda method, params=None: calls.append(method) or {'result':{'value':{}}}
+m['subprocess'].Popen = FakePopen
+b.show_cursor(12, 34)
+assert calls == []
+assert popened[0] == ['xdotool', 'mousemove', '--', '22', '134']
+src=open(${JSON.stringify(script)}).read()
+assert "for _ in range(20)" not in src
+assert "for _ in range(5)" in src
+assert "state['chrome']" in src
+print('pointer')`),
+  ).toContain("pointer");
+});

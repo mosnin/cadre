@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   attachWorkspaceFileToThread,
   currentTurnFilesInstruction,
+  loadCurrentTurnFiles,
   materializeCurrentTurnFiles,
 } from "./thread-artifacts.js";
 
@@ -118,6 +119,55 @@ describe("current-turn thread files", () => {
       },
     ]);
     expect(currentTurnFilesInstruction(files)).toContain('"attachments/artifact-1.pdf"');
+  });
+
+  it("loads artifact bytes without a computer", async () => {
+    const findMany = vi.fn().mockResolvedValue([
+      {
+        id: "artifact-1",
+        name: "notes.txt",
+        mimeType: "text/plain",
+        size: 2,
+        storageKey: "stored-1",
+      },
+    ]);
+    const get = vi.fn().mockResolvedValue(new Uint8Array([9, 8]));
+    const files = await loadCurrentTurnFiles(
+      {
+        prisma: { artifact: { findMany } } as unknown as PrismaClient,
+        artifacts: { get } as unknown as ArtifactStore,
+      },
+      [
+        {
+          kind: "file",
+          artifactId: "artifact-1",
+          name: "notes.txt",
+          mimeType: "text/plain",
+          size: 2,
+        },
+      ],
+      {
+        operationId: "run-1",
+        traceId: "run-1",
+        spaceId: "workspace-1",
+        userId: "user-1",
+        botId: "bot-1",
+        signal: new AbortController().signal,
+      },
+    );
+    expect(files).toEqual([
+      {
+        name: "notes.txt",
+        mimeType: "text/plain",
+        size: 2,
+        path: "attachments/artifact-1.txt",
+        bytes: new Uint8Array([9, 8]),
+      },
+    ]);
+    expect(get).toHaveBeenCalledWith(
+      "stored-1",
+      expect.objectContaining({ spaceId: "workspace-1" }),
+    );
   });
 
   it("does not load images as computer files", async () => {

@@ -28,6 +28,25 @@ export function shouldEnqueueCompaction(
   return nextMessageSeq - compactedUpTo - 1 >= windowSize + batchSize;
 }
 
+/** Enqueue a compaction job when a full batch has already aged out of the window. */
+export async function enqueueHistoryCompaction(
+  jobs: Pick<JobPublisher, "enqueue">,
+  thread: { id: string; nextMessageSeq: number; historyCompactedUpToSeq: number | null },
+): Promise<boolean> {
+  if (
+    !shouldEnqueueCompaction(
+      thread.nextMessageSeq,
+      thread.historyCompactedUpToSeq,
+      HISTORY_WINDOW_SIZE,
+      COMPACTION_BATCH_SIZE,
+    )
+  ) {
+    return false;
+  }
+  await jobs.enqueue(historyCompactJob(thread.id));
+  return true;
+}
+
 export function nextCompactionBatchRange(
   historyCompactedUpToSeq: number | null,
   batchSize: number,
@@ -400,14 +419,5 @@ export async function compactHistory(deps: CompactHistoryDeps, threadId: string)
   // Drain a pre-existing backlog at queue speed rather than one batch per completed run, which
   // for a thread that accumulated thousands of messages before semantic memory was enabled would
   // otherwise leave most of that history in neither the verbatim window nor the external store.
-  if (
-    shouldEnqueueCompaction(
-      latest.nextMessageSeq,
-      latest.historyCompactedUpToSeq,
-      HISTORY_WINDOW_SIZE,
-      COMPACTION_BATCH_SIZE,
-    )
-  ) {
-    await deps.jobs.enqueue(historyCompactJob(threadId));
-  }
+  await enqueueHistoryCompaction(deps.jobs, { id: threadId, ...latest });
 }

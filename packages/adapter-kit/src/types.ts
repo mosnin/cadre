@@ -382,6 +382,8 @@ export interface AgentRunRequest {
   history: Array<{ id?: string; role: "user" | "assistant" | "system"; content: string }>;
   currentTurnImages?: AgentInputImage[];
   tools: ConnectorTool[];
+  /** Empty tools on purpose: the harness already finished the work and the model only writes. */
+  writerOnly?: boolean;
   model: {
     provider: string;
     id: string;

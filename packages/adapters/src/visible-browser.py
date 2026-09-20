@@ -6,6 +6,8 @@ one accessibility snapshot and are invalidated after every action/navigation.
 import json
 import os
 from pathlib import Path
+import socket
+import subprocess
 import sys
 import time
 import uuid
@@ -287,9 +289,30 @@ class VisibleBrowser:
                 self.run(SETTLE, backend, autocomplete)
         except (RuntimeError, TimeoutError, KeyError):
             # A page mid-navigation has no node and no world to wait in, which is the
-            # ordinary case after a click that follows a link. The readiness poll that
-            # follows is the guard that matters.
+            # ordinary case after a click that follows a link. Navigation still polls
+            # readyState briefly; other actions already waited two frames.
             time.sleep(.05)
+
+    def show_cursor(self, viewport_x, viewport_y, origin=None):
+        """Warp the real X cursor so the VNC viewer sees the click. Never blocks the click."""
+        try:
+            origin = origin or self.state.get('chrome') or {}
+            if not origin:
+                origin = self.call('Runtime.evaluate', {
+                    'expression': '({x:window.screenX,y:window.screenY,chrome:Math.max(0,window.outerHeight-window.innerHeight),border:Math.max(0,window.outerWidth-window.innerWidth)})',
+                    'returnByValue': True,
+                })['result'].get('value') or {}
+            sx = int(origin.get('x', 0) + origin.get('border', 0) / 2 + viewport_x)
+            sy = int(origin.get('y', 0) + origin.get('chrome', 0) + viewport_y)
+            env = {**os.environ, 'DISPLAY': os.environ.get('DISPLAY', ':1')}
+            subprocess.Popen(
+                ['xdotool', 'mousemove', '--', str(sx), str(sy)],
+                env=env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            pass
 
     def visible_text(self, fallback):
         try:
@@ -308,11 +331,12 @@ class VisibleBrowser:
         elements, content, refs = snapshot_nodes(nodes)
         snapshot_id = uuid.uuid4().hex
         state = {'snapshotId': snapshot_id, 'target': self.page['targetId'], 'loader': self.loader(), 'refs': refs, 'pages': [p['targetId'] for p in self.pages], 'humanInputEpoch': epoch}
-        current = self.call('Runtime.evaluate', {'expression': '({url:location.href,title:document.title})', 'returnByValue': True})['result'].get('value', {})
+        current = self.call('Runtime.evaluate', {'expression': '({url:location.href,title:document.title,x:window.screenX,y:window.screenY,chrome:Math.max(0,window.outerHeight-window.innerHeight),border:Math.max(0,window.outerWidth-window.innerWidth)})', 'returnByValue': True})['result'].get('value', {})
+        state['chrome'] = {key: current.get(key, 0) for key in ('x', 'y', 'chrome', 'border')}
         text = self.visible_text(content)
         validate_human_input(epoch)
         self.save(state)
-        return {**current, 'snapshotId': snapshot_id, 'elements': elements, 'text': text, 'visible': True}
+        return {'url': current.get('url'), 'title': current.get('title'), 'snapshotId': snapshot_id, 'elements': elements, 'text': text, 'visible': True}
 
     def act(self, req):
         action = bounded_request(req)
@@ -349,6 +373,7 @@ class VisibleBrowser:
             settle_node = ref['backend']
             # Only a combobox opens a suggestion list worth waiting for.
             settle_autocomplete = action in ('fill', 'fill_protected') and ref['role'] == 'combobox'
+            chrome = self.state.get('chrome')
             self.save({})  # Consume refs before mutation, even if the action times out.
             self.call('DOM.scrollIntoViewIfNeeded', {'backendNodeId': ref['backend']})
             if action == 'select':
@@ -361,6 +386,7 @@ class VisibleBrowser:
             elif action == 'click':
                 box = self.call('DOM.getBoxModel', {'backendNodeId': ref['backend']})['model']['content']
                 x, y = sum(box[::2]) / 4, sum(box[1::2]) / 4
+                self.show_cursor(x, y, chrome)
                 for kind in ('mouseMoved', 'mousePressed', 'mouseReleased'):
                     self.call('Input.dispatchMouseEvent', {'type': kind, 'x': x, 'y': y, 'button': 'left' if kind != 'mouseMoved' else 'none', 'clickCount': 1})
             else:
@@ -391,15 +417,14 @@ class VisibleBrowser:
                 # A navigation that has been asked for has not yet replaced the document,
                 # so the old page would still read as ready. Nothing to observe yet.
                 time.sleep(.2)
-            elif action != 'snapshot':
-                self.settle(settle_node, settle_autocomplete)
-            if action != 'snapshot':
-                for _ in range(20):
+                for _ in range(5):
                     try:
                         ready = self.call('Runtime.evaluate', {'expression': 'document.readyState', 'returnByValue': True})['result'].get('value')
                         if ready in ('interactive', 'complete'): break
                     except RuntimeError: pass
-                    time.sleep(.1)
+                    time.sleep(.05)
+            elif action != 'snapshot':
+                self.settle(settle_node, settle_autocomplete)
             pages = [p for p in self.cdp.call('Target.getTargets')['targetInfos'] if p['type'] == 'page']
             self.pages = pages
             self.page = self.visible_page()
@@ -415,17 +440,120 @@ class VisibleBrowser:
 
 
 
-def main(req):
+SOCKET_PATH = os.environ.get('CADRE_BROWSER_SOCKET', '/tmp/cadre-browser-worker.sock')
+
+
+def run_request(req, browser=None):
+    """One action. Reuse the live CDP session when the caller still holds it."""
     bounded_request(req)
     profile = Path(os.environ.get('CADRE_BROWSER_PROFILE', ''))
     if not profile.is_absolute() or not (profile / 'DevToolsActivePort').is_file():
         raise ValueError('Structured browser control is unavailable. Use the visible desktop tools.')
-    browser = VisibleBrowser(profile)
-    try: return browser.act(req)
+    live = browser
+    if live is None:
+        live = VisibleBrowser(profile)
+    try:
+        return live.act(req), live
+    except ValueError:
+        raise
+    except Exception:
+        try: live.cdp.close()
+        except Exception: pass
+        raise
+
+
+def main(req):
+    result, browser = run_request(req)
+    try: return result
     finally: browser.cdp.close()
 
 
+def _read_json_line(conn):
+    data = b''
+    while not data.endswith(b'\n'):
+        chunk = conn.recv(65536)
+        if not chunk:
+            break
+        data += chunk
+        if len(data) > 200000:
+            raise ValueError('Browser request exceeded its size limit.')
+    if not data:
+        raise ValueError('Empty browser request')
+    return json.loads(data.decode())
+
+
+def call_worker(req, path=None):
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.settimeout(20)
+    sock.connect(path or SOCKET_PATH)
+    try:
+        sock.sendall((json.dumps(req) + '\n').encode())
+        return _read_json_line(sock)
+    finally:
+        sock.close()
+
+
+def serve(path=None):
+    """Keep one CDP session and answer JSON-line requests over a unix socket."""
+    target = path or SOCKET_PATH
+    try: os.unlink(target)
+    except FileNotFoundError: pass
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.bind(target)
+    os.chmod(target, 0o600)
+    sock.listen(8)
+    browser = None
+    while True:
+        conn, _unused = sock.accept()
+        try:
+            req = _read_json_line(conn)
+            if req.get('op') == 'ping':
+                conn.sendall(b'{"ok":true}\n')
+                continue
+            secret = req.pop('secretText', None)
+            if isinstance(secret, str) and secret:
+                os.environ['CADRE_PROTECTED_TEXT'] = secret
+            elif 'CADRE_PROTECTED_TEXT' in os.environ and req.get('action') != 'fill_protected':
+                os.environ.pop('CADRE_PROTECTED_TEXT', None)
+            try:
+                result, browser = run_request(req, browser)
+            except ValueError as error:
+                result = {'error': str(error)}
+            except Exception:
+                browser = None
+                result = {'error': 'Browser action could not finish. Take a fresh snapshot or use the visible desktop.'}
+            conn.sendall((json.dumps(result) + '\n').encode())
+        except Exception:
+            try: conn.sendall(b'{"error":"Browser action could not finish. Take a fresh snapshot or use the visible desktop."}\n')
+            except Exception: pass
+        finally:
+            conn.close()
+
+
+def daemonize_and_serve(path=None):
+    pid = os.fork()
+    if pid > 0:
+        socket_path = path or SOCKET_PATH
+        for _ in range(50):
+            if os.path.exists(socket_path):
+                break
+            time.sleep(0.04)
+        os._exit(0)
+    os.setsid()
+    try:
+        sys.stdin.close()
+    except Exception:
+        pass
+    serve(path)
+
+
 if __name__ == '__main__':
-    try: print(json.dumps(main(json.loads(sys.argv[1]))))
+    try:
+        if len(sys.argv) > 1 and sys.argv[1] == '--serve':
+            daemonize_and_serve()
+        elif len(sys.argv) > 1 and sys.argv[1] == '--call':
+            print(json.dumps(call_worker(json.loads(sys.argv[2]))))
+        else:
+            print(json.dumps(main(json.loads(sys.argv[1]))))
     except ValueError as error: print(json.dumps({'error': str(error)}))
     except Exception: print(json.dumps({'error': 'Browser action could not finish. Take a fresh snapshot or use the visible desktop.'}))

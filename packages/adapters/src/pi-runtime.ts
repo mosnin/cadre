@@ -25,7 +25,11 @@ import {
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { isToolPauseResult } from "./approval-effect.js";
 import { builtinAgentTools, SUBAGENT_PARENT_TOOL_NAMES } from "./builtin-tools.js";
+import { computerActSettleMs } from "./computer-tools.js";
+import { routerCandidates } from "./decision-routing.js";
+import { decideRunStart } from "./decision-start.js";
 import { tokenLimit } from "./env-limits.js";
+import { decisionProvider } from "./jev-decisions.js";
 import { PiRuntimeCredentialStore, toOAuthCredential } from "./pi-credentials.js";
 import { registerLocalProvider } from "./pi-local-provider.js";
 import {
@@ -153,7 +157,11 @@ export class PiAgentRuntime implements AgentRuntime {
               // another provider would ship our key to a vendor it was not issued for.
               (request.model.apiKey ??
               (provider === "openrouter" ? process.env.OPENROUTER_API_KEY : undefined));
-        const toolDefs = request.tools.length ? request.tools : builtinAgentTools;
+        const toolDefs = request.writerOnly
+          ? []
+          : request.tools.length
+            ? request.tools
+            : builtinAgentTools;
         const nestedAgents = new Set<Agent>();
         const host: ToolHost = {
           queue,
@@ -682,7 +690,7 @@ function toAgentTool(tool: ConnectorTool, host: ToolHost, exposedName: string): 
         return {
           actions: Array.isArray(raw.actions) ? raw.actions : [],
           observe: raw.observe === undefined ? true : Boolean(raw.observe),
-          settle_ms: Number(raw.settle_ms ?? 350),
+          settle_ms: computerActSettleMs(raw),
         };
       }
       if (tool.name === "list_files") return { path: String(raw.path ?? "") };
@@ -821,8 +829,29 @@ function toAgentTool(tool: ConnectorTool, host: ToolHost, exposedName: string): 
   };
 }
 
+async function modelForHelper(host: ToolHost, task: string): Promise<Model<Api>> {
+  const pool = routerCandidates();
+  if (pool.length < 2 || !task.trim()) return host.model;
+  const start = await decideRunStart(decisionProvider(), {
+    task,
+    candidates: pool,
+    fallbackModel: host.model.id,
+    sessionId: host.request.runId,
+    signal: host.signal,
+  });
+  if (!start.model) return host.model;
+  return (
+    host.models.getModel(host.model.provider, start.model) ??
+    host.models.getModel("openrouter", start.model) ??
+    host.model
+  );
+}
+
 async function executeSubagent(host: ToolHost, executionId: string, args: Record<string, unknown>) {
   if (host.depth > 0) return "Subagents cannot nest further.";
+  const task = String(args.task ?? "").trim();
+  // Route while this helper waits for a slot, so the decision is not added after the queue.
+  const helperModelPromise = modelForHelper(host, task);
   await host.subagentGate.acquire();
   if (host.signal.aborted || host.toolCallBudget.exceeded || host.tokenBudget.exceeded) {
     host.subagentGate.release();
@@ -833,7 +862,6 @@ async function executeSubagent(host: ToolHost, executionId: string, args: Record
     String(args.name ?? "helper")
       .trim()
       .slice(0, 80) || "helper";
-  const task = String(args.task ?? "").trim();
   const extra = args.instructions ? String(args.instructions).trim() : "";
   host.queue.push({
     type: "subagent",
@@ -847,7 +875,8 @@ async function executeSubagent(host: ToolHost, executionId: string, args: Record
   const childDefs = (host.request.tools.length ? host.request.tools : builtinAgentTools).filter(
     (tool) => !SUBAGENT_PARENT_TOOL_NAMES.has(tool.name),
   );
-  const nestedHost: ToolHost = { ...host, depth: 1 };
+  const helperModel = await helperModelPromise;
+  const nestedHost: ToolHost = { ...host, depth: 1, model: helperModel };
   const nested = new Agent({
     streamFn: (m, ctx, options) =>
       host.models.streamSimple(m, ctx, reliableStreamOptions(m, options)),
@@ -865,8 +894,8 @@ async function executeSubagent(host: ToolHost, executionId: string, args: Record
       ]
         .filter(Boolean)
         .join(" "),
-      model: host.model,
-      thinkingLevel: thinkingLevelFor(host.model, host.request.model.thinkingLevel),
+      model: helperModel,
+      thinkingLevel: thinkingLevelFor(helperModel, host.request.model.thinkingLevel),
       tools: toAgentTools(childDefs, nestedHost),
       messages: [],
     },
@@ -915,8 +944,8 @@ async function executeSubagent(host: ToolHost, executionId: string, args: Record
           type: "usage",
           inputTokens: event.message.usage.input ?? 0,
           outputTokens: event.message.usage.output ?? 0,
-          provider: host.model.provider,
-          model: host.model.id,
+          provider: helperModel.provider,
+          model: helperModel.id,
         });
       }
     }

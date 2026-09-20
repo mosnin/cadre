@@ -16,6 +16,7 @@ export const SUBAGENT_PARENT_TOOL_NAMES = new Set([
   // Helpers share the parent display. Durable bots have independent screens.
   "browser_observe",
   "browser_act",
+  "browser_pursue",
   "computer_observe",
   "computer_act",
   "message_user",
@@ -594,6 +595,59 @@ export const builtinAgentTools: ConnectorTool[] = [
       },
       required: ["name"],
     },
+  },
+  {
+    name: "symbolic_find",
+    description:
+      "Rank supplied files against a coding task. Pass paths and short excerpts; returns which files are involved. Does not read the computer itself.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task: { type: "string", description: "The user's original coding task." },
+        files: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              path: { type: "string" },
+              excerpt: { type: "string" },
+            },
+            required: ["path"],
+          },
+        },
+      },
+      required: ["task", "files"],
+    },
+    readOnly: true,
+  },
+  {
+    name: "symbolic_check",
+    description:
+      "Check a unified diff against the user's task. Flags unrelated hunks, weakened tests, and lockfile edits. An empty findings list is not approval.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task: { type: "string", description: "The user's original coding task, word for word." },
+        diff: { type: "string", description: "Unified diff to check." },
+      },
+      required: ["task", "diff"],
+    },
+    readOnly: true,
+  },
+  {
+    name: "symbolic_triage",
+    description:
+      "Classify failures from a test or CI log. Optionally pass the current diff. Does not rerun tests.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task: { type: "string" },
+        log: { type: "string", description: "Test or CI log to split and classify." },
+        diff: { type: "string", description: "Optional unified diff for context." },
+      },
+      required: ["log"],
+    },
+    readOnly: true,
   },
   {
     name: "skill_create",

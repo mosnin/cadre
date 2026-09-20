@@ -12,8 +12,19 @@ function provider(answers: Record<string, unknown>): DecisionProvider {
 }
 
 describe("the router pool", () => {
-  it("is empty unless configured, so nothing routes by default", () => {
-    expect(routerCandidates({} as NodeJS.ProcessEnv)).toEqual([]);
+  it("defaults to the Qwen pair so an unconfigured deployment still routes", () => {
+    expect(routerCandidates({} as NodeJS.ProcessEnv)).toEqual([
+      { model: "qwen/qwen3-8b", description: "Cheap and fast. Short answers, lookups, summaries." },
+      {
+        model: "qwen/qwen3-235b-a22b",
+        description: "Strong reasoning. Long multi-step work and code.",
+      },
+    ]);
+  });
+
+  it("turns routing off when the pool is explicitly emptied", () => {
+    expect(routerCandidates({ JEV_ROUTER_MODELS: "0" } as NodeJS.ProcessEnv)).toEqual([]);
+    expect(routerCandidates({ JEV_ROUTER_MODELS: "[]" } as NodeJS.ProcessEnv)).toEqual([]);
   });
 
   it("reads candidates and their descriptions from configuration", () => {

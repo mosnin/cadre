@@ -1,0 +1,255 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  consumeRunStart,
+  decideRunStart,
+  extractTaskUrls,
+  needsComputerBeforeFirstGeneration,
+  searchQueryForStart,
+  shouldPursueAtStart,
+  skillsImpliedByStart,
+  toolNeedsComputer,
+} from "./decision-start.js";
+import type { DecisionProvider } from "./jev-decisions.js";
+
+const POOL = [
+  { model: "qwen/qwen3-8b", description: "Cheap." },
+  { model: "qwen/qwen3-235b-a22b", description: "Strong." },
+];
+const SKILLS = [
+  { name: "symbolic", description: "Judge a diff." },
+  { name: "company-context", description: "Read company records." },
+];
+
+function answering(answers: Record<string, unknown>): DecisionProvider {
+  return { decide: vi.fn(async () => ({ answers: answers as never, model: "typesafe/jev-1.13" })) };
+}
+
+describe("extracting URLs from a task", () => {
+  it("returns unique http(s) addresses and drops trailing punctuation", () => {
+    expect(extractTaskUrls("see https://a.test/x), and https://a.test/x again.")).toEqual([
+      "https://a.test/x",
+    ]);
+    expect(extractTaskUrls("no links here")).toEqual([]);
+  });
+});
+
+describe("deciding a run from one request", () => {
+  it("asks nothing without a provider or a task", async () => {
+    await expect(decideRunStart(undefined, { task: "t", candidates: POOL })).resolves.toEqual({});
+    await expect(decideRunStart(answering({}), { task: "  " })).resolves.toEqual({});
+  });
+
+  it("asks every applicable question in one request", async () => {
+    const provider = answering({});
+    await decideRunStart(provider, {
+      task: "Read https://docs.example/a and check the auth module",
+      candidates: POOL,
+      skills: SKILLS,
+      company: true,
+    });
+    const request = (provider.decide as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+      questions: Record<string, unknown>;
+    };
+    expect(Object.keys(request.questions)).toEqual([
+      "first",
+      "model",
+      "needed",
+      "skill",
+      "focus",
+      "fetch_url",
+    ]);
+  });
+
+  it("returns the fields the model committed to", async () => {
+    const start = await decideRunStart(
+      answering({
+        first: { type: "choice", choice: "fetch", confidence: 0.9 },
+        model: { type: "choice", choice: "qwen/qwen3-8b", confidence: 0.9 },
+        needed: { type: "noul", noul: 0.9 },
+        skill: { type: "choice", choice: "symbolic", confidence: 0.8 },
+        focus: { type: "choice", choice: "product", confidence: 0.8 },
+        fetch_url: { type: "choice", choice: "https://docs.example/a", confidence: 0.9 },
+      }),
+      {
+        task: "Read https://docs.example/a",
+        candidates: POOL,
+        fallbackModel: "qwen/qwen3-235b-a22b",
+        skills: SKILLS,
+        company: true,
+      },
+    );
+    expect(start).toEqual({
+      first: "fetch",
+      model: "qwen/qwen3-8b",
+      skill: "symbolic",
+      companyFocus: "product",
+      fetchUrl: "https://docs.example/a",
+    });
+  });
+
+  it("ignores a hedge, an abstain, and a model the run would have used anyway", async () => {
+    const start = await decideRunStart(
+      answering({
+        first: { type: "choice", choice: "none_of_these", confidence: 0.99 },
+        model: { type: "choice", choice: "qwen/qwen3-235b-a22b", confidence: 0.99 },
+        needed: { type: "noul", noul: 0.2 },
+        skill: { type: "choice", choice: "symbolic", confidence: 0.99 },
+        focus: { type: "choice", choice: "goals", confidence: 0.2 },
+      }),
+      {
+        task: "t",
+        candidates: POOL,
+        fallbackModel: "qwen/qwen3-235b-a22b",
+        skills: SKILLS,
+        company: true,
+      },
+    );
+    expect(start).toEqual({});
+  });
+
+  it("keeps fetch only when a URL in the task can be pointed at", async () => {
+    const oneUrl = await decideRunStart(
+      answering({
+        first: { type: "choice", choice: "fetch", confidence: 0.9 },
+        fetch_url: { type: "choice", choice: "none_of_these", confidence: 0.99 },
+      }),
+      { task: "Read https://docs.example/a" },
+    );
+    expect(oneUrl).toEqual({ first: "fetch", fetchUrl: "https://docs.example/a" });
+
+    const noUrl = await decideRunStart(
+      answering({ first: { type: "choice", choice: "fetch", confidence: 0.9 } }),
+      { task: "Read the docs" },
+    );
+    expect(noUrl).toEqual({});
+
+    const twoUrls = await decideRunStart(
+      answering({
+        first: { type: "choice", choice: "fetch", confidence: 0.9 },
+        fetch_url: { type: "choice", choice: "none_of_these", confidence: 0.99 },
+      }),
+      { task: "Compare https://a.test/x and https://b.test/y" },
+    );
+    expect(twoUrls).toEqual({});
+  });
+
+  it("injects a named skill when first already committed to skill", async () => {
+    const start = await decideRunStart(
+      answering({
+        first: { type: "choice", choice: "skill", confidence: 0.9 },
+        needed: { type: "noul", noul: 0.2 },
+        skill: { type: "choice", choice: "symbolic", confidence: 0.85 },
+      }),
+      { task: "Judge this diff", skills: SKILLS },
+    );
+    expect(start).toEqual({ first: "skill", skill: "symbolic" });
+  });
+
+  it("drops skill-first when no catalog skill was named", async () => {
+    const start = await decideRunStart(
+      answering({
+        first: { type: "choice", choice: "skill", confidence: 0.9 },
+        needed: { type: "noul", noul: 0.9 },
+        skill: { type: "choice", choice: "none_of_these", confidence: 0.99 },
+      }),
+      { task: "Judge this diff", skills: SKILLS },
+    );
+    expect(start).toEqual({});
+  });
+
+  it("keeps search only when the task is already a short query", async () => {
+    const short = await decideRunStart(
+      answering({ first: { type: "choice", choice: "search", confidence: 0.9 } }),
+      { task: "weather in paris" },
+    );
+    expect(short).toEqual({ first: "search" });
+
+    const long = await decideRunStart(
+      answering({ first: { type: "choice", choice: "search", confidence: 0.9 } }),
+      { task: "x".repeat(401) },
+    );
+    expect(long).toEqual({});
+  });
+});
+
+describe("what a start decision already paid for", () => {
+  it("uses the user's wording as a search query only when it is already a query", () => {
+    expect(searchQueryForStart("  weather in paris  ")).toBe("weather in paris");
+    expect(searchQueryForStart("")).toBeUndefined();
+    expect(searchQueryForStart("x".repeat(401))).toBeUndefined();
+  });
+
+  it("names the skill bodies that should be injected instead of read", () => {
+    expect(skillsImpliedByStart({ skill: "symbolic", first: "code" })).toEqual(["symbolic"]);
+    expect(skillsImpliedByStart({ first: "company" })).toEqual([]);
+    expect(skillsImpliedByStart({ first: "company" }, { companyWorkspace: true })).toEqual([
+      "company-context",
+      "connected-workspace",
+    ]);
+    expect(skillsImpliedByStart({ companyFocus: "goals" })).toEqual([]);
+    expect(skillsImpliedByStart({ companyFocus: "goals" }, { companyWorkspace: true })).toEqual([
+      "company-context",
+      "connected-workspace",
+    ]);
+    expect(skillsImpliedByStart({ first: "answer" })).toEqual([]);
+  });
+
+  it("keeps only the first step the harness can actually run", () => {
+    expect(consumeRunStart({ first: "browse" }, { task: "open the tab", urls: [] })).toEqual({
+      first: "browse",
+    });
+    expect(
+      consumeRunStart(
+        { first: "fetch", fetchUrl: "https://a.test" },
+        { task: "Read https://a.test", urls: ["https://a.test"] },
+      ),
+    ).toEqual({ first: "fetch", fetchUrl: "https://a.test" });
+    expect(
+      consumeRunStart(
+        { first: "fetch" },
+        { task: "Read https://a.test", urls: ["https://a.test"] },
+      ),
+    ).toEqual({ first: "fetch", fetchUrl: "https://a.test" });
+    expect(
+      consumeRunStart(
+        { first: "skill" },
+        { task: "Judge this", urls: [], skillChoice: "symbolic" },
+      ),
+    ).toEqual({ first: "skill", skill: "symbolic" });
+    expect(consumeRunStart({ first: "skill" }, { task: "Judge this", urls: [] })).toEqual({});
+    expect(consumeRunStart({ first: "search" }, { task: "x".repeat(401), urls: [] })).toEqual({});
+    expect(consumeRunStart({ first: "fetch" }, { task: "no url", urls: [] })).toEqual({});
+  });
+
+  it("waits for the computer only when the first step needs the machine now", () => {
+    expect(needsComputerBeforeFirstGeneration("answer", false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration("search", false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration("fetch", false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration("skill", false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration("company", false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration("code", false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration(undefined, false)).toBe(false);
+    expect(needsComputerBeforeFirstGeneration("browse", false)).toBe(true);
+    expect(needsComputerBeforeFirstGeneration("computer", false)).toBe(false);
+    expect(
+      needsComputerBeforeFirstGeneration("computer", false, "open https://flights.example"),
+    ).toBe(true);
+    expect(needsComputerBeforeFirstGeneration("answer", true)).toBe(true);
+    expect(shouldPursueAtStart({ first: "browse" }, "click Search")).toBe(true);
+    expect(shouldPursueAtStart({ first: "computer" }, "open https://flights.example")).toBe(true);
+    expect(shouldPursueAtStart({ first: "computer" }, "open a file")).toBe(false);
+    expect(shouldPursueAtStart({ first: "answer" }, "https://flights.example")).toBe(false);
+  });
+
+  it("waits for the computer only on tools that touch the workspace", () => {
+    expect(toolNeedsComputer("web_search")).toBe(false);
+    expect(toolNeedsComputer("web_fetch")).toBe(false);
+    expect(toolNeedsComputer("message_user")).toBe(false);
+    expect(toolNeedsComputer("skill_read")).toBe(false);
+    expect(toolNeedsComputer("render_plot", { help: true })).toBe(false);
+    expect(toolNeedsComputer("render_plot", { spec: { marks: [] } })).toBe(true);
+    expect(toolNeedsComputer("shell")).toBe(true);
+    expect(toolNeedsComputer("browser_pursue")).toBe(true);
+    expect(toolNeedsComputer("read_file")).toBe(true);
+  });
+});

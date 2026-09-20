@@ -28,6 +28,22 @@ function stoppedComputer(): Error {
   return error;
 }
 
+/** Tiny client: one unix-socket round trip, no CDP import, no script compile. */
+const BROWSER_WORKER_CLIENT = `import json,os,socket,sys
+path=os.environ.get("CADRE_BROWSER_SOCKET","/tmp/cadre-browser-worker.sock")
+s=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
+s.settimeout(20)
+s.connect(path)
+s.sendall(sys.argv[1].encode()+b"\\n")
+data=b""
+while not data.endswith(b"\\n"):
+    chunk=s.recv(65536)
+    if not chunk: break
+    data+=chunk
+    if len(data)>150000: raise SystemExit("snapshot too large")
+sys.stdout.write(data.decode())
+`;
+
 /** Shared Linux desktop protocol; each adapter owns its provider and tenant boundary. */
 export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
   protected abstract owned(computer: ComputerRef, ctx: AdapterContext): Promise<Handle>;
@@ -111,26 +127,89 @@ export abstract class LinuxDesktopSandbox<Handle> implements SandboxProvider {
       await cancellation;
     }
   }
-  async browser(computer: ComputerRef, request: BrowserRequest, context: AdapterContext) {
-    const source = await readFile(new URL("./visible-browser.py", import.meta.url), "utf8");
-    // The secret travels in the environment, not argv: argv is visible to every process in
-    // the sandbox and can land in logs.
-    const { secretText, ...visibleRequest } = request;
+  private browserScript: Promise<string> | undefined;
+  private browserWorkers = new Map<string, Promise<void>>();
+
+  private loadBrowserScript() {
+    this.browserScript ??= readFile(new URL("./visible-browser.py", import.meta.url), "utf8");
+    return this.browserScript;
+  }
+
+  private async runBrowserCommand(
+    computer: ComputerRef,
+    context: AdapterContext,
+    request: {
+      argv: string[];
+      env?: Record<string, string>;
+      timeoutMs?: number;
+    },
+  ) {
     let output = "";
-    for await (const event of this.execute(
-      computer,
-      {
-        argv: ["python3", "-c", source, JSON.stringify(visibleRequest)],
-        env: secretText !== undefined ? { CADRE_PROTECTED_TEXT: secretText } : undefined,
-        timeoutMs: 20000,
-      },
-      context,
-    )) {
+    for await (const event of this.execute(computer, request, context)) {
       if (event.type === "stdout") output += event.data;
       if (event.type === "exit" && event.code !== 0)
         throw new Error("Structured browser control is unavailable.");
       if (output.length > 150000) throw new Error("Browser snapshot exceeded its size limit.");
     }
+    return output;
+  }
+
+  private async callBrowserWorker(
+    computer: ComputerRef,
+    payload: Record<string, unknown>,
+    context: AdapterContext,
+  ) {
+    const output = await this.runBrowserCommand(computer, context, {
+      argv: ["python3", "-c", BROWSER_WORKER_CLIENT, JSON.stringify(payload)],
+      timeoutMs: 20000,
+    });
+    return JSON.parse(output) as Record<string, unknown>;
+  }
+
+  private ensureBrowserWorker(computer: ComputerRef, context: AdapterContext) {
+    const existing = this.browserWorkers.get(computer.id);
+    if (existing) return existing;
+    const started = this.startBrowserWorker(computer, context).catch((error) => {
+      this.browserWorkers.delete(computer.id);
+      throw error;
+    });
+    this.browserWorkers.set(computer.id, started);
+    return started;
+  }
+
+  private async startBrowserWorker(computer: ComputerRef, context: AdapterContext) {
+    const source = await this.loadBrowserScript();
+    await this.runBrowserCommand(computer, context, {
+      argv: ["python3", "-c", source, "--serve"],
+      timeoutMs: 8000,
+    });
+  }
+
+  async browser(computer: ComputerRef, request: BrowserRequest, context: AdapterContext) {
+    const source = await this.loadBrowserScript();
+    // The secret travels in the socket payload or the oneshot environment, never argv.
+    const { secretText, ...visibleRequest } = request;
+    const payload =
+      secretText !== undefined ? { ...visibleRequest, secretText } : { ...visibleRequest };
+    try {
+      await this.ensureBrowserWorker(computer, context);
+      return await this.callBrowserWorker(computer, payload, context);
+    } catch (error) {
+      this.browserWorkers.delete(computer.id);
+      if (
+        error instanceof Error &&
+        (error.message === "Computer access denied" ||
+          error.message === "Incorrect computer provider" ||
+          error.name === "SandboxNotFoundError")
+      ) {
+        throw error;
+      }
+    }
+    const output = await this.runBrowserCommand(computer, context, {
+      argv: ["python3", "-c", source, JSON.stringify(visibleRequest)],
+      env: secretText !== undefined ? { CADRE_PROTECTED_TEXT: secretText } : undefined,
+      timeoutMs: 20000,
+    });
     return JSON.parse(output) as Record<string, unknown>;
   }
   supportsSharedInput(_computer: ComputerRef) {
