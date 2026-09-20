@@ -75,6 +75,12 @@ action is `browse` or the user attached files — those need the machine now.
 Fetch and search still wait for the prefetch they already started, so the
 page or hits can be inlined. Attached files write before browse starts, so
 the two do not share the computer at once.
+When start chose `answer`, search already answered, or pursuit finished,
+that generation is writer-only: no tool catalog, no connector discovery
+in front of it, and no thinking paid to pick a tool that will not run.
+A Composio catalog over the direct-tool limit uses the same search/load
+wrappers as MCP, so the first generation does not carry every plugin
+schema.
 Answer, search, fetch, skill, company, code, and computer generate while
 the boot continues. A company-first start injects company-context and
 connected-workspace together when this run has a workspace identity, so
@@ -94,9 +100,15 @@ task, pursuit starts the moment start says so and the computer is up —
 overlapping connector discovery, memory ranking, key resolution, and prompt
 assembly — so the first generation sees the page that was already acted on
 instead of spending a turn deciding to call `browser_pursue` or
-`browser_observe`. The live browser worker keeps one CDP session across
+`browser_observe`. A later `browser_observe` on that same goal continues
+into pursuit with the snapshot it just took — it does not spend a
+generation to call `browser_pursue`. A lone observe on an answer, search,
+or fetch start stays a look. The live browser worker keeps one CDP session across
 those steps, so a click is a decision plus a protocol call rather than a
-new Python process and a new websocket. The same page is untrusted data,
+new Python process and a new websocket. If the desktop is focused on
+Chromium, `computer_observe` reads the accessibility table instead of a
+screenshot, and a pixel click is refused: Jev cannot take images.
+The same page is untrusted data,
 like a tool result: `<fetched_page>`, `<search_results>`,
 `<browser_progress>`, and `<browser_page>` never override the user's
 request. A run that only learns the model after start kicks the same
@@ -137,6 +149,7 @@ here is the last thing between an agent and an irreversible action.
 | Browser page screen | Nothing on `browser_observe` / `browser_act`; **free** on `browser_pursue` because it rides the action request | The same injection `noul`, asked beside the step when the page already has enough text | The page, unlabeled |
 | Connector result screen (`labelUntrustedToolResult`) | Nothing; **raises a bar** on mail, issues, and other connector payloads that try to instruct the agent | The same injection `noul` over the string fields the model reads | The payload, unlabeled |
 | Browser action (`planBrowserTurn`) | A **generation** per browser step, the **next** step's request when the page still has that control, a **navigate** generation that would invent a URL, and the **first** browse generation when start already chose `browse` or `computer` with a URL | One request: `choice` operation + speculative targets + the same questions prefixed `next_` + which known value fills the field + dropdown control and option together + which goal URL to open | The agent deciding, as today |
+| Next action (`decideNextAction`) | A mid-run **generation** that would pick the next tool after a result that did not already answer | One request: `choice` write / pursue / fetch / search plus a speculative URL already in the task or the last result | The agent deciding, as today |
 | Symbolic find / check / triage | A **generation** that reviews its own diff, files, or log | Scores, nouls, and a closed failure `choice` over evidence the agent already gathered | No findings, with `notChecked` filled |
 
 The same injection screen now also rides memory ranking: a saved fact that
@@ -307,9 +320,9 @@ to run the core product.
 
 It does not write, so anything that has to be worded still needs a chat model. It
 does not extract spans. It does not take images — so desktop `computer_act` stays
-a vision generation; Jev drives the browser from the accessibility table, not
-from screenshots. And it is never the only thing standing between an agent and
-something irreversible.
+a vision generation when the focused window is not a browser; Jev drives the
+browser from the accessibility table, not from screenshots. And it is never the
+only thing standing between an agent and something irreversible.
 
 ## Privacy
 

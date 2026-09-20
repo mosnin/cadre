@@ -157,7 +157,11 @@ export class PiAgentRuntime implements AgentRuntime {
               // another provider would ship our key to a vendor it was not issued for.
               (request.model.apiKey ??
               (provider === "openrouter" ? process.env.OPENROUTER_API_KEY : undefined));
-        const toolDefs = request.tools.length ? request.tools : builtinAgentTools;
+        const toolDefs = request.writerOnly
+          ? []
+          : request.tools.length
+            ? request.tools
+            : builtinAgentTools;
         const nestedAgents = new Set<Agent>();
         const host: ToolHost = {
           queue,

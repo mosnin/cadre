@@ -10,6 +10,7 @@ import type {
   ComputerRef,
   ConnectorCall,
   ConnectorProvider,
+  ConnectorTool,
   JobPublisher,
   ManagedConnectorProvider,
   MemoryStore,
@@ -161,6 +162,14 @@ import {
 } from "./computer-tools.js";
 import { checkpointAfterComputerWork } from "./computer-workspace.js";
 import { sanitizeConnectorError } from "./connector-safety.js";
+import {
+  closedFollowUpUrls,
+  computerActUsesCoordinates,
+  decideNextAction,
+  isBrowserFocusedWindow,
+  shouldPursueAfterObserve,
+  shouldWriteFirstTurn,
+} from "./decision-action.js";
 import {
   type BrowserSnapshot,
   entitiesFromTask,
@@ -1528,9 +1537,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
           : run.trigger === "routine"
             ? "Finished without a written report."
             : undefined;
-        const [discovered, currentTurnImages, memoryContext, scratchpadContext, recalled, start] =
+        const [currentTurnImages, memoryContext, scratchpadContext, recalled, start] =
           await Promise.all([
-            discoveredPromise,
             imagesPromise,
             memoryPromise,
             scratchpadPromise,
@@ -1760,20 +1768,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
           // Cross-owner agent connections only exist for chat-linked bots.
           ...(hasMessagingIdentity ? agentConnectionTools : []),
         ];
-        const exposedConnectorTools = discovered.filter(
-          (tool) => !builtinAgentTools.some((builtin) => builtin.name === tool.name),
-        );
-        const connectorRoutes = new Map(
-          exposedConnectorTools
-            .filter((tool) => tool.route)
-            .map((tool) => [tool.name, tool.route!] as const),
-        );
-        const connectorSchemas = new Map(
-          exposedConnectorTools.map((tool) => [tool.name, tool.inputSchema] as const),
-        );
-        const readOnlyConnectorTools = new Set(
-          exposedConnectorTools.filter((tool) => tool.readOnly).map((tool) => tool.name),
-        );
+        const connectorRoutes = new Map<string, NonNullable<ConnectorTool["route"]>>();
+        const connectorSchemas = new Map<string, ConnectorTool["inputSchema"]>();
+        const readOnlyConnectorTools = new Set<string>();
+        let tools = [...builtins];
+        let writerOnly = false;
         let approvalRulesPromise: Promise<ActionApprovalRule[]> | undefined;
         const loadApprovalRules = () => {
           approvalRulesPromise ??= deps.prisma.actionApprovalRule
@@ -1799,7 +1798,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
             .then((row) => row?.enabled ?? deploymentAutoReviewDefault());
           return autoReviewPreferencePromise;
         };
-        const tools = [...builtins, ...exposedConnectorTools];
         const approvedEffects = await reads.approvedEffects;
         const approvedEffectReplays = createApprovedEffectReplayQueue(approvedEffects);
         const computerInstruction = graphicalToolsAllowed
@@ -1947,6 +1945,37 @@ export function createRunExecutor(deps: ExecutorDeps) {
           return secretPausedToolResult();
         };
 
+        let desktopFocusIsBrowser = false;
+        const pursueLiveBrowser = (
+          goal: string,
+          snapshot?: BrowserSnapshot,
+        ): ReturnType<typeof pursueBrowserGoal> =>
+          pursueBrowserGoal(
+            deps.decisions ?? defaultDecisions,
+            {
+              goal,
+              entities: entitiesFromTask(goal),
+              snapshot,
+              sessionId: runId,
+              signal: context.signal,
+            },
+            {
+              observe: async () =>
+                (await deps.sandbox.browser!(
+                  computer,
+                  { action: "snapshot" },
+                  context,
+                )) as BrowserSnapshot,
+              act: (request) => deps.sandbox.browser!(computer, request as BrowserRequest, context),
+            },
+          );
+        const snapshotFromBrowserResult = (result: unknown): BrowserSnapshot | undefined => {
+          if (!result || typeof result !== "object") return undefined;
+          const page = result as BrowserSnapshot & { snapshot?: BrowserSnapshot };
+          if (page.snapshot?.snapshotId !== undefined) return page.snapshot;
+          if (page.snapshotId !== undefined) return page;
+          return undefined;
+        };
         let guardrailFailure: RunGuardrailError | undefined;
         const applyTool = async (
           name: string,
@@ -2623,13 +2652,19 @@ export function createRunExecutor(deps: ExecutorDeps) {
               };
             }
             return computerScreenToolResult(
-              async () =>
-                labelBrowserToolResult(
+              async () => {
+                const observed = await labelBrowserToolResult(
                   await deps.sandbox.browser!(computer, browserRequest, context),
                   decisions,
                   runId,
                   context.signal,
-                ),
+                );
+                if (name !== "browser_observe" || !shouldPursueAfterObserve(start)) {
+                  return observed;
+                }
+                workspaceCheckpoint.markDirty();
+                return pursueLiveBrowser(task.prompt, snapshotFromBrowserResult(observed));
+              },
               name === "browser_act" ? finish : undefined,
             );
           }
@@ -2637,13 +2672,36 @@ export function createRunExecutor(deps: ExecutorDeps) {
             if (await getActiveTeachingSession(deps.prisma, run.spaceId, run.botId)) {
               return { error: "Teaching is in progress. Stop teaching before using the computer." };
             }
-            return computerScreenToolResult(async () =>
-              formatObservation(await deps.sandbox.observe(computer, context)),
-            );
+            return computerScreenToolResult(async () => {
+              const observation = await deps.sandbox.observe(computer, context);
+              desktopFocusIsBrowser = isBrowserFocusedWindow(observation.activeWindow?.title);
+              if (!desktopFocusIsBrowser || !deps.sandbox.browser) {
+                return formatObservation(observation);
+              }
+              const observed = await labelBrowserToolResult(
+                await deps.sandbox.browser(computer, { action: "snapshot" }, context),
+                decisions,
+                runId,
+                context.signal,
+              );
+              if (!shouldPursueAfterObserve(start)) {
+                return {
+                  activeWindow: observation.activeWindow,
+                  page: observed,
+                };
+              }
+              workspaceCheckpoint.markDirty();
+              return pursueLiveBrowser(task.prompt, snapshotFromBrowserResult(observed));
+            });
           }
           if (name === "computer_act") {
             if (await getActiveTeachingSession(deps.prisma, run.spaceId, run.botId)) {
               return { error: "Teaching is in progress. Stop teaching before using the computer." };
+            }
+            if (desktopFocusIsBrowser && computerActUsesCoordinates(args)) {
+              return {
+                error: "The focused window is the browser. Use browser_pursue or browser_act.",
+              };
             }
             workspaceCheckpoint.markDirty();
             return computerScreenToolResult(async () => {
@@ -2957,12 +3015,36 @@ export function createRunExecutor(deps: ExecutorDeps) {
             return finish({ ok: true });
           }
           if (name === "web_search") {
-            return finish(
-              await webSearchFromTool(web, context, args, {
-                provider: deps.decisions ?? defaultDecisions,
-                sessionId: runId,
-              }),
-            );
+            const searched = await webSearchFromTool(web, context, args, {
+              provider: deps.decisions ?? defaultDecisions,
+              sessionId: runId,
+            });
+            if (
+              !searched ||
+              typeof searched !== "object" ||
+              "error" in searched ||
+              searched.answered
+            ) {
+              return finish(searched);
+            }
+            const next = await decideNextAction(deps.decisions ?? defaultDecisions, {
+              task: task.prompt,
+              lastTool: name,
+              lastResult: JSON.stringify(searched),
+              urls: closedFollowUpUrls(task.prompt, searched),
+              sessionId: runId,
+              signal: context.signal,
+            });
+            if (next?.kind !== "fetch") return finish(searched);
+            return finish({
+              ...searched,
+              fetched: await webFetchFromTool(
+                web,
+                context,
+                { url: next.url },
+                { provider: deps.decisions ?? defaultDecisions, sessionId: runId },
+              ),
+            });
           }
           if (name === "web_fetch") {
             return finish(
@@ -3693,6 +3775,26 @@ export function createRunExecutor(deps: ExecutorDeps) {
           .filter((skill) => !taskPrompt.includes(`Use skill: ${skill.name}`))
           .map((skill) => formatForcedSkillPrompt(skill.name, skill.content));
         const [prefetched, pursued] = await Promise.all([prefetchPromise, browsePromise]);
+        writerOnly = shouldWriteFirstTurn({
+          start,
+          prefetch: prefetched,
+          pursued,
+          hasFileAttachments,
+        });
+        if (!writerOnly) {
+          const discovered = await discoveredPromise;
+          const exposedConnectorTools = discovered.filter(
+            (tool) => !builtinAgentTools.some((builtin) => builtin.name === tool.name),
+          );
+          for (const tool of exposedConnectorTools) {
+            if (tool.route) connectorRoutes.set(tool.name, tool.route);
+            connectorSchemas.set(tool.name, tool.inputSchema);
+            if (tool.readOnly) readOnlyConnectorTools.add(tool.name);
+          }
+          tools = [...builtins, ...exposedConnectorTools];
+        } else {
+          tools = [];
+        }
         const prefetchedBlock = prefetched ? formatPrefetchedStartPrompt(prefetched) : undefined;
         const pursuedBlock = pursued ? formatPursuedStartPrompt(pursued) : undefined;
         const startUntrusted =
@@ -3848,6 +3950,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
               history: runtimeHistory,
               currentTurnImages,
               tools,
+              writerOnly,
               model: {
                 provider: runModelProvider,
                 id: runModelId,

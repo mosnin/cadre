@@ -22,6 +22,7 @@ import { DestinationEmulator } from "./destination-emulator.js";
 const composioSdkState = vi.hoisted(() => ({
   created: [] as Array<{ userId: string; config: Record<string, unknown> }>,
   directoryFails: false,
+  manyTools: false,
   executions: [] as Array<{ tool: string; args: Record<string, unknown> }>,
   sessions: new Map<
     string,
@@ -90,16 +91,25 @@ vi.mock("@composio/core", () => ({
         sessionId: scopedToCanonicalGithub ? "github-session" : "unscoped-session",
         tools: async () =>
           scopedToCanonicalGithub
-            ? [
-                {
+            ? composioSdkState.manyTools
+              ? Array.from({ length: 21 }, (_, index) => ({
                   type: "function",
                   function: {
-                    name: "GITHUB_GET_REPOS",
-                    description: "List GitHub repositories",
+                    name: `TOOL_${index}`,
+                    description: `tool ${index}`,
                     parameters: { type: "object", properties: {} },
                   },
-                },
-              ]
+                }))
+              : [
+                  {
+                    type: "function",
+                    function: {
+                      name: "GITHUB_GET_REPOS",
+                      description: "List GitHub repositories",
+                      parameters: { type: "object", properties: {} },
+                    },
+                  },
+                ]
             : [],
         execute: async (tool: string, args: Record<string, unknown>) => {
           composioSdkState.executions.push({ tool, args });
@@ -329,6 +339,40 @@ describe("composio tool mapping", () => {
       expect(composioSdkState.created.at(-1)?.config.toolkits).toEqual(["GITHUB"]);
     } finally {
       composioSdkState.directoryFails = false;
+      composioToolkitDirectory.invalidate();
+    }
+  });
+
+  it("wraps a large plugin catalog the same way MCP does", async () => {
+    composioSdkState.created.length = 0;
+    composioSdkState.sessions.clear();
+    composioSdkState.manyTools = true;
+    composioToolkitDirectory.invalidate();
+    try {
+      const connector = new ComposioConnector();
+      const tools = await connector.discoverTools({
+        operationId: "composio-lazy",
+        traceId: "composio-lazy",
+        spaceId: "workspace",
+        userId: "user-1",
+        signal: new AbortController().signal,
+        connectedConnections: [
+          {
+            id: "connection-github",
+            connectorId: "composio",
+            externalId: "github",
+            displayName: "GitHub",
+          },
+        ],
+      });
+      expect(tools.map((tool) => tool.name)).toEqual([
+        "composio_search_tools",
+        "composio_load_tool",
+        "composio_execute_tool",
+      ]);
+      expect(tools.some((tool) => tool.name === "TOOL_0")).toBe(false);
+    } finally {
+      composioSdkState.manyTools = false;
       composioToolkitDirectory.invalidate();
     }
   });

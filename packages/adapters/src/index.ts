@@ -25,6 +25,7 @@ export * from "./computer-tools.js";
 export * from "./computer-workspace.js";
 export * from "./daytona-emulator.js";
 export * from "./daytona-sandbox.js";
+export * from "./decision-action.js";
 export * from "./decision-catalog.js";
 export * from "./decision-company.js";
 export * from "./decision-guardrails.js";

@@ -14,7 +14,18 @@ import {
   mergeCatalogWithConnected,
   type ToolkitDirectoryEntry,
 } from "./composio-catalog-cache.js";
+import { rankCatalogHits } from "./decision-catalog.js";
 import { DestinationEmulator } from "./destination-emulator.js";
+import { decisionProvider } from "./jev-decisions.js";
+import {
+  CATALOG_EXECUTE,
+  catalogEntries,
+  DIRECT_TOOL_LIMIT,
+  executeLazyCatalogControl,
+  isLazyCatalogControlRoute,
+  lazyCatalogTools,
+  resolveCatalogCall,
+} from "./lazy-tool-catalog.js";
 import { isVitestRuntime } from "./test-runtime.js";
 
 type ComposioSession = Awaited<ReturnType<Composio["create"]>>;
@@ -300,15 +311,45 @@ export class ComposioConnector implements ComposioProvider {
     return this.listConnectedSlugs(context.userId);
   }
 
-  async discoverTools(context: AdapterContext): Promise<ConnectorTool[]> {
+  private async authorizedTools(context: AdapterContext): Promise<ConnectorTool[]> {
     const toolkits = connectedComposioExternalIds(context);
     if (toolkits.length === 0) return [];
     const session = await this.sessionForExecute(context.userId, toolkits);
-    const raw = await session.tools();
-    return asConnectorTools(raw);
+    return asConnectorTools(await session.tools());
+  }
+
+  async discoverTools(context: AdapterContext): Promise<ConnectorTool[]> {
+    const tools = await this.authorizedTools(context);
+    if (tools.length <= DIRECT_TOOL_LIMIT) return tools;
+    return lazyCatalogTools("composio", "composio", "plugin", catalogEntries(tools));
+  }
+
+  async resolveCall(
+    call: ConnectorCall,
+    context: AdapterContext,
+  ): Promise<{ call: ConnectorCall; tool: ConnectorTool } | undefined> {
+    if (call.route?.resourceId || call.route?.toolName !== CATALOG_EXECUTE) return undefined;
+    return resolveCatalogCall(call, catalogEntries(await this.authorizedTools(context)));
   }
 
   async *execute(call: ConnectorCall, context: AdapterContext): AsyncIterable<ConnectorEvent> {
+    if (isLazyCatalogControlRoute(call.route)) {
+      try {
+        yield* executeLazyCatalogControl(
+          call,
+          catalogEntries(await this.authorizedTools(context)),
+          (resolved) => this.execute(resolved, context),
+          (query, hits) =>
+            rankCatalogHits(decisionProvider(), query, hits, {
+              sessionId: context.runId,
+              signal: context.signal,
+            }),
+        );
+      } catch (error) {
+        yield { type: "error", message: sanitizeComposioError(error) };
+      }
+      return;
+    }
     try {
       const session = await this.sessionForExecute(
         context.userId,

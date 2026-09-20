@@ -112,6 +112,7 @@ async function runWithModel(
   signal = new AbortController().signal,
   thinkingLevel?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max" | null,
   instructions = "",
+  writerOnly = false,
 ) {
   const runtime = new PiAgentRuntime();
   for await (const _event of runtime.run(
@@ -123,6 +124,7 @@ async function runWithModel(
       instructions,
       history: [],
       tools: [],
+      writerOnly,
       model: { provider, id: modelId, thinkingLevel },
       executeTool: vi.fn(async () => ({ ok: true })),
     },
@@ -247,6 +249,11 @@ describe("Pi agent thinking level", () => {
 
   it("keeps reasoning off for the main agent and subagent", async () => {
     expect(await runWithModel("plain-model")).toEqual(["off", "off"]);
+  });
+
+  it("gives a writer-only turn no tools so the model cannot spend a generation picking one", async () => {
+    await runWithModel("plain-model", "test", new AbortController().signal, undefined, "", true);
+    expect(fakeAgentState.toolNames[0]).toEqual([]);
   });
 
   it("normalizes and runs a configured OpenRouter model absent from the static catalog", async () => {
