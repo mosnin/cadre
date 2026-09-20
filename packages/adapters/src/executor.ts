@@ -1946,11 +1946,12 @@ export function createRunExecutor(deps: ExecutorDeps) {
         };
 
         let desktopFocusIsBrowser = false;
-        const pursueLiveBrowser = (
+        const pursueLiveBrowser = async (
           goal: string,
           snapshot?: BrowserSnapshot,
-        ): ReturnType<typeof pursueBrowserGoal> =>
-          pursueBrowserGoal(
+        ): ReturnType<typeof pursueBrowserGoal> => {
+          const ready = await ensureComputer();
+          return pursueBrowserGoal(
             deps.decisions ?? defaultDecisions,
             {
               goal,
@@ -1962,13 +1963,14 @@ export function createRunExecutor(deps: ExecutorDeps) {
             {
               observe: async () =>
                 (await deps.sandbox.browser!(
-                  computer,
+                  ready,
                   { action: "snapshot" },
                   context,
                 )) as BrowserSnapshot,
-              act: (request) => deps.sandbox.browser!(computer, request as BrowserRequest, context),
+              act: (request) => deps.sandbox.browser!(ready, request as BrowserRequest, context),
             },
           );
+        };
         const snapshotFromBrowserResult = (result: unknown): BrowserSnapshot | undefined => {
           if (!result || typeof result !== "object") return undefined;
           const page = result as BrowserSnapshot & { snapshot?: BrowserSnapshot };
