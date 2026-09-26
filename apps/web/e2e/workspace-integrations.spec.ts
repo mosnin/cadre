@@ -51,9 +51,9 @@ for (const width of [375, 1440]) {
     await expect(connections.getByRole("button", { name: "Disconnect Operate" })).toBeVisible();
     await expect(connections.getByRole("button", { name: "Disconnect Stored" })).toBeVisible();
     // A connected Operate asks which bot takes the tasks assigned to this member's agent.
-    await expect(connections.getByRole("combobox", { name: "Bot for Operate tasks" })).toHaveValue(
-      "",
-    );
+    await expect(
+      connections.getByRole("combobox", { name: "Bot for Operate tasks" }),
+    ).toContainText("No bot takes Operate tasks");
     await captureScreenshot(page, testInfo, `workspace-connections-${width}`);
   });
 }
