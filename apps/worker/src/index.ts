@@ -14,6 +14,7 @@ import {
   createDurableStorage,
   createJobReconciler,
   createMessagingContextLoader,
+  createOperateWork,
   createPostgresReconciliationLeadership,
   createRunExecutor,
   createRunSandbox,
@@ -34,6 +35,7 @@ import {
   messagingEnvFromProcess,
   messagingPlatformsFromEnv,
   modalOptions,
+  operateCredentialFrom,
   PiAgentRuntime,
   PipedreamConnector,
   PostgresRealtimeFanout,
@@ -230,6 +232,17 @@ async function main() {
     oauthCredential,
   });
   workforce.start();
+  const operateWork =
+    workspaceIntegrations && pool
+      ? createOperateWork({
+          prisma,
+          pool,
+          events,
+          jobs,
+          credential: operateCredentialFrom(workspaceIntegrations),
+        })
+      : undefined;
+  operateWork?.start();
 
   let storedFlushing = false;
   const storedSyncTimer = setInterval(() => {
@@ -251,6 +264,7 @@ async function main() {
     clearInterval(storedSyncTimer);
     try {
       await workforce.stop();
+      await operateWork?.stop();
       await reconciler.stop();
       // Active runs checkpoint and requeue instead of being killed mid-task by the deploy.
       await executor.stopAll();

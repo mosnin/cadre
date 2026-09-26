@@ -23,6 +23,7 @@ import {
   createDurableStorage,
   createJobReconciler,
   createMessagingContextLoader,
+  createOperateWork,
   createRunExecutor,
   createRunSandbox,
   createRunSecretWriter,
@@ -44,6 +45,7 @@ import {
   McpOAuthBroker,
   messagingPlatformsFromEnv,
   modalOptions,
+  operateCredentialFrom,
   PiAgentRuntime,
   PiOAuthLogins,
   PipedreamConnector,
@@ -92,6 +94,7 @@ import { mountCompanyWorkspaceRoutes } from "./company-workspaces.js";
 import { type AppEnv, loadEnv } from "./env.js";
 import { createMessagingInboundHandler } from "./messaging-inbound.js";
 import { mountMessagingWebhookRoutes } from "./messaging-webhook.js";
+import { mountOperateWorkRoutes } from "./operate-work.js";
 import { createRouter } from "./router.js";
 import { mountVoiceHttpRoutes } from "./voice.js";
 import { mountWebhookHttpRoutes } from "./webhook.js";
@@ -620,6 +623,25 @@ export async function createApp(
     },
     env.webOrigin,
   );
+  if (workspaceIntegrations && created.pool)
+    mountOperateWorkRoutes(
+      app,
+      createOperateWork({
+        prisma,
+        pool: created.pool,
+        events,
+        jobs,
+        credential: operateCredentialFrom(workspaceIntegrations),
+      }),
+      async (c) => {
+        const session = await getSession(sessionHeaders(c.req.raw));
+        if (!session?.user) return null;
+        return requireMembership(prisma, session.user.id, c.req.header("x-cadre-space-id")).catch(
+          () => null,
+        );
+      },
+      env.webOrigin,
+    );
   mountWebhookHttpRoutes(app, { prisma, secrets, events, jobs });
   // Messaging webhooks only exist when the surface is enabled.
   if (messaging) {

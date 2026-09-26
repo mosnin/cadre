@@ -37,6 +37,9 @@ for (const width of [375, 1440]) {
         },
       }),
     );
+    await page.route("**/api/v1/operate-work", (route) =>
+      route.fulfill({ json: { worker: null } }),
+    );
     await openUserMenu(page);
     await page.getByRole("button", { name: "Account settings", exact: true }).click();
     const settings = page.getByTestId("user-settings");
@@ -47,6 +50,10 @@ for (const width of [375, 1440]) {
     await expect(connections).toContainText("Studio memory · Connected");
     await expect(connections.getByRole("button", { name: "Disconnect Operate" })).toBeVisible();
     await expect(connections.getByRole("button", { name: "Disconnect Stored" })).toBeVisible();
+    // A connected Operate asks which bot takes the tasks assigned to this member's agent.
+    await expect(
+      connections.getByRole("combobox", { name: "Bot for Operate tasks" }),
+    ).toContainText("No bot takes Operate tasks");
     await captureScreenshot(page, testInfo, `workspace-connections-${width}`);
   });
 }
