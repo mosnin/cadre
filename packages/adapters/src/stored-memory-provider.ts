@@ -27,14 +27,22 @@ class StoredMemoryProvider implements SemanticMemoryProvider {
     await this.integrations.validateMemoryBot(context, body.botId);
     const credential = await this.integrations.credential("stored", context);
     if (!credential) throw new Error("Reconnect Stored in workspace Settings");
-    const response = await fetch("https://www.stored.to/api/cadre/v1/memory", {
-      method: "POST",
-      headers: { authorization: `Bearer ${credential.token}`, "content-type": "application/json" },
-      body: JSON.stringify({ ...body, workspace: context.spaceId }),
-      redirect: "error",
-      cache: "no-store",
-      signal: AbortSignal.any([context.signal, AbortSignal.timeout(15000)]),
-    });
+    // The configured origin, as the outbox flush uses, so a staging or
+    // self-hosted Stored receives recalls and not only saves.
+    const response = await fetch(
+      `${this.integrations.provider("stored").origin}/api/cadre/v1/memory`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${credential.token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ ...body, workspace: context.spaceId }),
+        redirect: "error",
+        cache: "no-store",
+        signal: AbortSignal.any([context.signal, AbortSignal.timeout(15000)]),
+      },
+    );
     if (!response.ok) throw new Error(`Stored memory request failed (${response.status})`);
     return response.json();
   }

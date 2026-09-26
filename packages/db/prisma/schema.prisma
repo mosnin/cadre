@@ -16,6 +16,7 @@ model User {
   companyWorkspaceStates CompanyWorkspaceOAuthState[]
   codexOAuthGrants CodexOAuthGrant[]
   workforceConnections WorkforceConnection[]
+  operateWorkers OperateWorker[]
   id                          String                       @id
   name                        String
   email                       String
@@ -170,6 +171,7 @@ model Space {
   companyWorkspaceGrants CompanyWorkspaceGrant[]
   companyWorkspaceStates CompanyWorkspaceOAuthState[]
   workforceConnections WorkforceConnection[]
+  operateWorkers OperateWorker[]
   id                          String                       @id
   organizationId              String
   organization                Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -356,6 +358,7 @@ model SpaceVoicePreference {
 model Bot {
   storedMemoryOutbox StoredMemoryOutbox[]
   workforceAssignments WorkforceAssignment[]
+  operateWorker OperateWorker?
   id                String            @id @default(cuid())
   spaceId           String
   space             Space             @relation(fields: [spaceId], references: [id], onDelete: Cascade)
@@ -566,6 +569,7 @@ model Task {
 }
 
 model Run {
+  operateAssignments OperateAssignment[]
   workforceAssignments WorkforceAssignment[]
   id                   String           @id @default(cuid())
   spaceId              String
@@ -1226,6 +1230,46 @@ model WorkforceAssignment {
   @@unique([connectionId, dispatchId])
   @@index([connectionId, acknowledged])
   @@map("workforce_assignments")
+}
+
+/// The bot that works a member's assigned Operate tasks. One per member per
+/// space, because a member's Operate connection is one Operate agent: tasks
+/// assigned to that agent in Operate are claimed and run by this bot.
+model OperateWorker {
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bot Bot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
+  spaceId String
+  userId String
+  botId String @unique
+  enabled Boolean @default(true)
+  lastSyncedAt DateTime?
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  assignments OperateAssignment[]
+  @@unique([spaceId, userId])
+  @@map("operate_workers")
+}
+
+/// One Operate task claimed for a Cadre run. `reported` turns true once the
+/// outcome has been written back to Operate (completed, or released).
+model OperateAssignment {
+  worker OperateWorker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  run Run? @relation(fields: [runId], references: [id], onDelete: SetNull)
+  id String @id @default(cuid())
+  workerId String
+  taskId String
+  title String
+  operateRunId String?
+  runId String?
+  claimedAt DateTime @default(now())
+  reported Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([workerId, reported])
+  @@map("operate_assignments")
 }
 
 

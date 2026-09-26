@@ -23,6 +23,7 @@ A Cadre workspace binds to one Company OS company, one Operate workspace, and on
 - [ ] Operate occurrence ledger, human/agent history API, calendar and daily workflow tests.
 - [ ] Stored organization creation/switching/team journey and additive agent-private memory boundary.
 - [x] Cadre native Operate/Stored/Scalar OAuth bindings, runtime context/tools and memory adapter (see providers.md for what each provider still needs).
+- [x] Operate work: a member picks one bot for the tasks assigned to their Operate agent. The worker loop (`packages/adapters/src/operate-work.ts`) asks `next_task`, loads and acknowledges `get_task_context`, claims, opens an Operate run, and starts a Cadre run with the task as its prompt; when the run ends it finishes the Operate run and completes the task with the bot's summary, or releases it. The prompt points the bot at Company OS `agent_brief` and Stored `get_context_pack` when those are connected. One bot per member, because one Operate grant is one Operate agent.
 - [ ] Company OS to Stored initial snapshot and durable incremental change sync.
 - [ ] Cross-tenant, revocation, duplicate delivery, replay/deletion and migration tests.
 - [ ] Design OS + Component OS + Details UI implementation and rendered review.
