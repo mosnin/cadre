@@ -36,7 +36,7 @@ export function maxSubagentLifetimeMs(env: NodeJS.ProcessEnv = process.env): num
 }
 
 /** Triggers with no person waiting on the thread, so a run may continue across budget segments. */
-const UNATTENDED_TRIGGERS = new Set(["routine", "webhook", "bot_message", "spawn", "hive"]);
+const UNATTENDED_TRIGGERS = new Set(["routine", "webhook", "bot_message", "spawn"]);
 
 /**
  * How many budget segments (each with a fresh time, tool and token budget) a run may

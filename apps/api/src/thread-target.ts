@@ -16,7 +16,6 @@ import {
 import {
   ACTIVE_RUN_STATUSES,
   isActive,
-  defaultGroupTargetId,
   isUserFacingPeerCallback,
   projectMessages,
   resolveGroupTargetBotIds,
@@ -25,8 +24,6 @@ import {
 } from "@cadre/core";
 import {
   appendEventInTransaction,
-  appendHiveUpdated,
-  bumpHive,
   createGroupRepos,
   createRepos,
   createThreadMessageInTransaction,
@@ -63,8 +60,6 @@ export type ThreadTarget =
       groupName: string;
       members: GroupMember[];
       memberBotIds: string[];
-      /** Who answers when nobody is mentioned: the hive leader, else the first member. */
-      defaultBotId: string;
     };
 
 const THREAD_MESSAGE_PAGE_SIZE = 100;
@@ -291,7 +286,6 @@ async function lockAndLoadGroupMembers(
     botId: member.bot.id,
     name: member.bot.name,
     color: member.bot.color,
-    role: member.role,
   }));
 }
 
@@ -321,10 +315,6 @@ export async function resolveThreadTarget(
       color: member.bot.color,
       status: member.bot.runs[0]?.status ?? "idle",
     }));
-    const defaultBotId = defaultGroupTargetId(
-      group.members.map((member) => ({ id: member.bot.id, name: "", role: member.role })),
-    );
-    if (!defaultBotId) throw new IsolationError();
     return {
       kind: "group",
       groupId: group.id,
@@ -332,7 +322,6 @@ export async function resolveThreadTarget(
       groupName: group.name,
       members,
       memberBotIds: members.map((member) => member.botId),
-      defaultBotId,
     };
   }
   throw new IsolationError();
@@ -716,11 +705,7 @@ export async function sendThreadMessage(
       const mentionTargets = splitMentionTargets(input.mentions);
       const targetBotIds = resolveGroupTargetBotIds({
         text: input.text ?? "",
-        members: members.map((member) => ({
-          id: member.botId,
-          name: member.name,
-          role: member.role,
-        })),
+        members: members.map((member) => ({ id: member.botId, name: member.name })),
         explicitMentions: mentionTargets.botMentionIds,
       });
       const { blocks: attachmentBlocks, artifacts } = await resolveGroupSendAttachments(
@@ -852,7 +837,8 @@ export async function reactToThreadMessage(
     }
 
     await tx.message.update({ where: { id: message.id }, data: { thumbsUp } });
-    const botId = target.kind === "bot" ? target.botId : target.defaultBotId;
+    const botId = target.kind === "bot" ? target.botId : target.memberBotIds[0];
+    if (!botId) throw new IsolationError();
 
     let run: { id: string; status: string } | null = null;
     if (thumbsUp && target.kind === "bot") {
@@ -944,25 +930,9 @@ export async function stopThreadRuns(
         message: { threadId: target.threadId },
       },
     });
-    // Stopping a hive's chat stops its work: pause it so nothing restarts until it is resumed.
-    let hiveEventSeq = 0;
-    if (target.kind === "group") {
-      const hive = await tx.hive.findUnique({
-        where: { groupId: target.groupId },
-        select: { id: true, status: true },
-      });
-      if (hive && ["planning", "running"].includes(hive.status)) {
-        await tx.hive.update({ where: { id: hive.id }, data: { status: "paused" } });
-        await bumpHive(tx, hive.id);
-        hiveEventSeq = await appendHiveUpdated(tx, hive.id);
-      }
-    }
-    return { ids, stoppedSubagents, hiveEventSeq };
+    return { ids, stoppedSubagents };
   });
-  const { ids: runIds, stoppedSubagents, hiveEventSeq } = stopped;
-  if (hiveEventSeq > 0) {
-    await deps.events?.notify(target.threadId, hiveEventSeq).catch(() => undefined);
-  }
+  const { ids: runIds, stoppedSubagents } = stopped;
   if (deps.events && deps.jobs && stoppedSubagents.length > 0) {
     await publishCancelledCards(
       { prisma: deps.prisma, events: deps.events, jobs: deps.jobs },

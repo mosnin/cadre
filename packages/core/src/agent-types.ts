@@ -3,7 +3,6 @@ import {
   type AgentTypeDefinition,
   AgentTypeDefinitionsSchema,
 } from "@cadre/contracts";
-import { HIVE_TOOL_NAMES } from "./hive.js";
 import { escapePromptData, oneLine } from "./prompt-data.js";
 
 /**
@@ -46,8 +45,6 @@ export const CHILD_DENIED_TOOL_NAMES = new Set([
   "schedule_cancel",
   "create_space",
   "add_mcp_server",
-  // Hive authority belongs to the member's role and is never inherited by its sub-agents.
-  ...HIVE_TOOL_NAMES,
 ]);
 
 export const COMPUTER_TOOL_NAMES = [

@@ -44,7 +44,6 @@ import {
   ScriptedAgentRuntime,
   SpaceMemoryProviderResolver,
   WorkspaceIntegrations,
-  workerConcurrencyFromEnv,
   workspaceProviderOverridesFromEnv,
 } from "@cadre/adapters";
 import { companyOsOAuthFromEnv, createAuth, createCompanyOsCredential } from "@cadre/auth";
@@ -167,7 +166,7 @@ async function main() {
   const { home, artifacts } = createDurableStorage(dataDir);
   const inMemoryJobs = process.env.WAKEUP_DRIVER === "memory" ? new InMemoryJobQueue() : undefined;
   const jobs: JobPublisher = inMemoryJobs ?? new GraphileJobPublisher(databaseUrl);
-  const jobHost: JobWorkerHost = inMemoryJobs ?? new GraphileJobWorkerHost(databaseUrl, { concurrency: workerConcurrencyFromEnv() });
+  const jobHost: JobWorkerHost = inMemoryJobs ?? new GraphileJobWorkerHost(databaseUrl);
   const executor = createRunExecutor({
     prisma,
     runtime,

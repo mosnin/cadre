@@ -532,10 +532,6 @@ export function describeToolActivity(toolName: string, args: unknown): string {
   if (toolName === "run_subagent") return `Delegating to helper: ${detail(record.name)}`;
   if (toolName === "spawn_agent") return `Starting sub-agent: ${detail(record.description)}`;
   if (toolName === "wait_for_agents") return "Waiting for sub-agents";
-  if (toolName === "hive_plan") return "Planning the hive";
-  if (toolName === "hive_dispatch") return "Dispatching hive tasks";
-  if (toolName === "hive_submit") return `Submitting hive task: ${detail(record.task)}`;
-  if (toolName === "hive_review") return `Reviewing hive task: ${detail(record.task)}`;
   if (toolName === "create_space") return `Creating space: ${detail(record.name)}`;
   if (toolName === "remember") return "Saving a note to memory";
   if (toolName === "web_search") return `Searching the web: ${detail(record.query)}`;
@@ -1102,67 +1098,6 @@ function builtinParameters(tool: ConnectorTool) {
     return Type.Object({ agent_id: Type.String(), reason: Type.Optional(Type.String()) });
   }
   if (tool.name === "list_agents") return Type.Object({});
-  if (tool.name === "hive_set_goal") {
-    const lines = Type.Optional(Type.Array(Type.String({ maxLength: 500 }), { maxItems: 30 }));
-    return Type.Object({
-      summary: Type.Optional(Type.String({ maxLength: 1000 })),
-      target_state: Type.Optional(Type.String({ maxLength: 2000 })),
-      success_metrics: lines,
-      acceptance: lines,
-      constraints: lines,
-      non_goals: lines,
-      deadline: Type.Optional(Type.String()),
-      user_check: Type.Optional(Type.String({ maxLength: 1000 })),
-    });
-  }
-  if (tool.name === "hive_plan") {
-    return Type.Object({
-      tasks: Type.Array(
-        Type.Object({
-          key: Type.String({ minLength: 1, maxLength: 40 }),
-          title: Type.Optional(Type.String({ maxLength: 200 })),
-          brief: Type.Optional(Type.String({ maxLength: 8000 })),
-          depends_on: Type.Optional(Type.Array(Type.String(), { maxItems: 50 })),
-          acceptance: Type.Optional(Type.Array(Type.String({ maxLength: 500 }), { maxItems: 20 })),
-          ownership: Type.Optional(Type.Array(Type.String({ maxLength: 300 }), { maxItems: 20 })),
-          status: Type.Optional(Type.Literal("cancelled")),
-        }),
-        { minItems: 1, maxItems: 50 },
-      ),
-    });
-  }
-  if (tool.name === "hive_dispatch") {
-    return Type.Object({
-      tasks: Type.Optional(Type.Array(Type.String(), { maxItems: 50 })),
-      bot: Type.Optional(Type.String()),
-    });
-  }
-  if (tool.name === "hive_submit") {
-    return Type.Object({
-      task: Type.String(),
-      evidence: Type.Array(
-        Type.Object({
-          kind: Type.Union(
-            ["file", "test", "run", "link", "artifact", "note"].map((kind) => Type.Literal(kind)),
-          ),
-          ref: Type.String({ minLength: 1, maxLength: 1000 }),
-          summary: Type.Optional(Type.String({ maxLength: 2000 })),
-          sha256: Type.Optional(Type.String()),
-        }),
-        { minItems: 1, maxItems: 20 },
-      ),
-      summary: Type.Optional(Type.String({ maxLength: 2000 })),
-    });
-  }
-  if (tool.name === "hive_review") {
-    return Type.Object({
-      task: Type.String(),
-      verdict: Type.Union([Type.Literal("accept"), Type.Literal("rework"), Type.Literal("reject")]),
-      notes: Type.String({ minLength: 1, maxLength: 4000 }),
-      scores: Type.Optional(Type.Record(Type.String(), Type.Number())),
-    });
-  }
-  if (tool.name === "hive_status") return Type.Object({ task: Type.Optional(Type.String()) });
   if (tool.name === "spawn_bot") {
     return Type.Object({
       name: Type.String(),

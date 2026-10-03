@@ -4,7 +4,6 @@ import {
   GROUP_MEMBER_MIN,
   type Group,
   type GroupMember,
-  HIVE_MEMBER_MAX,
   type SpaceGroup,
 } from "@cadre/contracts";
 import type { Prisma, PrismaClient } from "./client.js";
@@ -98,11 +97,12 @@ async function assertOwnedBots(
   prisma: PrismaClient,
   actor: Actor,
   botIds: string[],
-  max = GROUP_MEMBER_MAX,
 ): Promise<GroupMember[]> {
   const unique = [...new Set(botIds)];
-  if (unique.length < GROUP_MEMBER_MIN || unique.length > max) {
-    throw new IsolationError(`Groups require ${GROUP_MEMBER_MIN} to ${max} distinct bots`);
+  if (unique.length < GROUP_MEMBER_MIN || unique.length > GROUP_MEMBER_MAX) {
+    throw new IsolationError(
+      `Groups require ${GROUP_MEMBER_MIN} to ${GROUP_MEMBER_MAX} distinct bots`,
+    );
   }
   const bots = await prisma.bot.findMany({
     where: {
@@ -281,10 +281,7 @@ export function createGroupRepos(prisma: PrismaClient) {
         sectionId?: string | null;
       },
     ): Promise<{ group: Group; cancelledRunIds: string[] }> {
-      // A hive may hold more members than a plain group; the cap is checked once the group is read.
-      const members = input.botIds
-        ? await assertOwnedBots(prisma, actor, input.botIds, HIVE_MEMBER_MAX)
-        : undefined;
+      const members = input.botIds ? await assertOwnedBots(prisma, actor, input.botIds) : undefined;
       const updated = await prisma.$transaction(async (tx) => {
         await lockOwnedGroup(tx, actor, input.groupId);
         const current = await tx.chatGroup.findFirst({
@@ -295,17 +292,11 @@ export function createGroupRepos(prisma: PrismaClient) {
             archivedAt: null,
           },
           include: {
-            members: { select: { botId: true, role: true, bot: { select: { archivedAt: true } } } },
+            members: { select: { botId: true, bot: { select: { archivedAt: true } } } },
             thread: { select: { id: true } },
-            hive: { select: { id: true } },
           },
         });
         if (!current?.thread) throw new IsolationError();
-        if (members && !current.hive && members.length > GROUP_MEMBER_MAX) {
-          throw new IsolationError(
-            `Groups require ${GROUP_MEMBER_MIN} to ${GROUP_MEMBER_MAX} distinct bots`,
-          );
-        }
         if (
           !members &&
           !hasMinimumActiveMembers(
@@ -359,15 +350,9 @@ export function createGroupRepos(prisma: PrismaClient) {
           });
         }
         if (members) {
-          // Members that stay keep their hive role.
-          const roles = new Map(current.members.map((member) => [member.botId, member.role]));
           await tx.chatGroupMember.deleteMany({ where: { groupId: input.groupId } });
           await tx.chatGroupMember.createMany({
-            data: members.map((member) => ({
-              groupId: input.groupId,
-              botId: member.botId,
-              role: roles.get(member.botId) ?? "worker",
-            })),
+            data: members.map((member) => ({ groupId: input.groupId, botId: member.botId })),
           });
         }
         await tx.chatGroup.update({

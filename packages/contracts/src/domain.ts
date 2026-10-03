@@ -1,6 +1,5 @@
 import * as z from "zod";
 import { ThreadMessageSchema } from "./events.js";
-import { HIVE_MEMBER_MAX } from "./hive.js";
 import { Id, MemoryScope, RunStatus, SandboxKind } from "./ids.js";
 import { McpHeadersSchema, McpRemoteEndpointSchema, McpTransportSchema } from "./mcp.js";
 
@@ -176,14 +175,11 @@ export const GroupSchema = z.object({
 });
 export type Group = z.infer<typeof GroupSchema>;
 
-/** Plain groups hold up to GROUP_MEMBER_MAX bots; the cap rises to HIVE_MEMBER_MAX for a hive. */
-const groupBotIds = (max: number) =>
-  z
-    .array(Id)
-    .min(GROUP_MEMBER_MIN)
-    .max(max)
-    .refine((ids) => new Set(ids).size === ids.length, { error: "botIds must be distinct" });
-const GroupBotIds = groupBotIds(GROUP_MEMBER_MAX);
+const GroupBotIds = z
+  .array(Id)
+  .min(GROUP_MEMBER_MIN)
+  .max(GROUP_MEMBER_MAX)
+  .refine((ids) => new Set(ids).size === ids.length, { error: "botIds must be distinct" });
 
 export const CreateGroupInput = z.object({
   name: z.string().trim().min(1).max(80),
@@ -194,7 +190,7 @@ export type CreateGroupInput = z.infer<typeof CreateGroupInput>;
 export const UpdateGroupInput = z.object({
   groupId: Id,
   name: z.string().trim().min(1).max(80).optional(),
-  botIds: groupBotIds(HIVE_MEMBER_MAX).optional(),
+  botIds: GroupBotIds.optional(),
   pinned: z.boolean().optional(),
   sectionId: Id.nullable().optional(),
 });
@@ -803,7 +799,6 @@ export const RunSchema = z.object({
     "webhook",
     "messaging",
     "subagent",
-    "hive",
   ]),
   routineId: Id.nullable(),
   modelProvider: z.string().nullable(),
