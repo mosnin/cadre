@@ -16,7 +16,7 @@ import {
   type UpdateHiveInput,
 } from "@cadre/contracts";
 import { computeRealityLevel, isTerminalTask } from "@cadre/core";
-import type { Prisma, PrismaClient } from "./client.js";
+import { Prisma, type PrismaClient } from "./client.js";
 import { appendEventInTransaction } from "./events.js";
 import { lockOwnedGroup } from "./groups.js";
 import { IsolationError } from "./scope.js";
@@ -511,7 +511,7 @@ export function createHiveRepos(
               ? {
                   external:
                     input.external === null
-                      ? (null as unknown as Prisma.InputJsonValue)
+                      ? Prisma.DbNull
                       : (input.external as Prisma.InputJsonValue),
                 }
               : {}),
