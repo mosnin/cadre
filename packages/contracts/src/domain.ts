@@ -852,6 +852,23 @@ export const ModelConnectInputSchema = z
   });
 export type ModelConnectInput = z.infer<typeof ModelConnectInputSchema>;
 
+/** Subscription logins a desktop client can import from a local CLI. */
+export const ModelOAuthImportProviderSchema = z.enum(["anthropic", "openai-codex"]);
+export const ModelOAuthImportSourceSchema = z.enum(["claude-cli", "codex-cli"]);
+export const ModelOAuthImportInputSchema = z.object({
+  provider: ModelOAuthImportProviderSchema,
+  credential: z.object({
+    access: z.string().min(1).max(16_384),
+    refresh: z.string().min(1).max(16_384),
+    /** Expiry as milliseconds since the Unix epoch. */
+    expires: z.number().finite(),
+    accountId: z.string().min(1).max(512).optional(),
+  }),
+  source: ModelOAuthImportSourceSchema.optional(),
+  label: z.string().max(200).optional(),
+});
+export type ModelOAuthImportInput = z.infer<typeof ModelOAuthImportInputSchema>;
+
 export const ModelOAuthSignInModeSchema = z.enum(["device-code", "auth-url"]);
 export type ModelOAuthSignInMode = z.infer<typeof ModelOAuthSignInModeSchema>;
 

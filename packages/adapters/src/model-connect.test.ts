@@ -49,3 +49,15 @@ describe("modelCredentialDto", () => {
     });
   });
 });
+
+describe("buildModelConnectPlaintext for OpenRouter", () => {
+  it("stores the trimmed OAuth-issued key as a plain api key", async () => {
+    const { buildModelConnectPlaintext } = await import("./model-connect.js");
+    const { parseModelSecret } = await import("./pi-oauth.js");
+    const plaintext = buildModelConnectPlaintext({
+      provider: "openrouter",
+      apiKey: "  sk-or-v1-abcdef123  ",
+    });
+    expect(parseModelSecret(plaintext)).toEqual({ kind: "api_key", key: "sk-or-v1-abcdef123" });
+  });
+});

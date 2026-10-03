@@ -53,6 +53,7 @@ import {
   type MemoryProviderResolver,
   mapScratchpadItem,
   modelCredentialDto,
+  normalizeImportedOAuthCredential,
   type PiOAuthLogins,
   planLiveConnectionSync,
   prepareApiInstall,
@@ -653,6 +654,23 @@ export function createRouter(deps: RouterDeps) {
           throw new ORPCError("NOT_FOUND", { message: result.error });
         }
         return result.value;
+      }),
+      importOAuth: authed.models.importOAuth.handler(async ({ context, input }) => {
+        throwIfAborted(context.signal);
+        let imported: Awaited<ReturnType<typeof normalizeImportedOAuthCredential>>;
+        try {
+          imported = await normalizeImportedOAuthCredential(input, { signal: context.signal });
+        } catch (error) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: error instanceof Error ? error.message : "Could not import that login.",
+          });
+        }
+        return persistModelCredential(deps, context.actor, {
+          provider: input.provider,
+          plaintext: serializeModelSecret({ kind: "oauth", credential: imported.credential }),
+          label: imported.label,
+          signal: context.signal,
+        });
       }),
       cancelOAuth: authed.models.cancelOAuth.handler(async ({ context, input }) => {
         await deps.oauthLogins.cancel(input.loginId, context.actor);

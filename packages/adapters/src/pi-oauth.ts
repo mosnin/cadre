@@ -45,7 +45,7 @@ export const SUBSCRIPTION_SIGN_IN_PROVIDERS: Record<
   },
 };
 
-const MIN_OAUTH_VALIDITY_MS = 5 * 60 * 1000;
+export const MIN_OAUTH_VALIDITY_MS = 5 * 60 * 1000;
 const SIGN_IN_START_WAIT_MS = 30_000;
 
 export type StoredModelSecret =

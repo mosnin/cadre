@@ -1,4 +1,4 @@
-import { listPiCatalog } from "@cadre/adapters";
+import { listPiCatalog, serializeModelSecret } from "@cadre/adapters";
 import type { Actor } from "@cadre/contracts";
 import { describe, expect, it, vi } from "vitest";
 import { persistModelCredential, type RouterDeps } from "./router.js";
@@ -78,5 +78,32 @@ describe("persistModelCredential model selection", () => {
       }),
     ).rejects.toThrow("Choose a model for this provider.");
     expect(put).not.toHaveBeenCalled();
+  });
+});
+
+describe("persistModelCredential for imported subscriptions and OpenRouter", () => {
+  it("stores an imported Claude OAuth credential like finishOAuth and selects the default model", async () => {
+    const { deps, put, preference } = fixture();
+    const result = await persistModelCredential(deps, actor, {
+      provider: "anthropic",
+      label: "Claude Pro/Max (from Claude CLI)",
+      plaintext: serializeModelSecret({
+        kind: "oauth",
+        credential: { type: "oauth", access: "a", refresh: "r", expires: 1 },
+      }),
+    });
+    expect(result.modelId).toBe(listPiCatalog().find((e) => e.provider === "anthropic")!.id);
+    expect(JSON.parse(put.mock.calls[0]![0] as string)).toMatchObject({ type: "oauth" });
+    expect(preference.upsert).toHaveBeenCalled();
+  });
+
+  it("connects OpenRouter with an api key", async () => {
+    const { deps, put } = fixture();
+    const result = await persistModelCredential(deps, actor, {
+      provider: "openrouter",
+      plaintext: "sk-or-v1-abcdef123",
+    });
+    expect(result.modelId).toBe("vendor/deployment-model");
+    expect(put.mock.calls[0]![0]).toBe("sk-or-v1-abcdef123");
   });
 });

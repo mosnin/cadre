@@ -42,6 +42,7 @@ import {
   ModelConnectInputSchema,
   ModelCredentialSchema,
   ModelOAuthBeginSchema,
+  ModelOAuthImportInputSchema,
   RegionCodeSchema,
   ReorderBotsInput,
   RoutineSchema,
@@ -206,6 +207,7 @@ export const appContract = {
         ]),
       ),
     finishOAuth: oc.input(z.object({ loginId: z.string() })).output(ModelCredentialSchema),
+    importOAuth: oc.input(ModelOAuthImportInputSchema).output(ModelCredentialSchema),
     cancelOAuth: oc
       .input(z.object({ loginId: z.string() }))
       .output(z.object({ ok: z.literal(true) })),
