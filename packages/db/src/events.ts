@@ -11,7 +11,7 @@ import {
   sanitizeJsonValue,
 } from "@cadre/core";
 import { getLogger } from "@cadre/logging";
-import type { Prisma, PrismaClient } from "./client.js";
+import { Prisma, type PrismaClient } from "./client.js";
 import { expireComputerExecutionLeases } from "./computers.js";
 import {
   assertRunCanWriteHistory,
@@ -308,7 +308,13 @@ export async function clearThread(
           completedAt: now,
           leaseOwner: null,
           leaseExpiresAt: null,
+          agentResultDeliveredAt: now,
         },
+      });
+      // A cleared thread is not resumed by sub-agents it just cancelled.
+      await tx.run.updateMany({
+        where: { threadId: input.threadId, agentWaitKey: { not: null } },
+        data: { agentWaitKey: null, agentWait: Prisma.DbNull },
       });
       await tx.attempt.updateMany({
         where: { runId: { in: runIds }, status: "running" },

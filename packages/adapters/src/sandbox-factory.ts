@@ -1,9 +1,12 @@
 import type { SandboxProvider } from "@cadre/adapter-kit";
+import type { PrismaClient } from "@cadre/db";
 import { BoxSandboxEmulator } from "./box-emulator.js";
 import { BoxSandboxProvider } from "./box-sandbox.js";
 import { DaytonaSandboxEmulator } from "./daytona-emulator.js";
 import { DaytonaSandboxProvider } from "./daytona-sandbox.js";
 import { DesktopSandboxProvider } from "./desktop-sandbox.js";
+import type { DeviceRelay } from "./device-relay.js";
+import { DeviceSandboxProvider } from "./device-sandbox.js";
 import { DockerSandboxProvider } from "./docker-sandbox.js";
 import { ManagedSandboxEmulator } from "./e2b-emulator.js";
 import { E2BSandboxProvider } from "./e2b-sandbox.js";
@@ -24,6 +27,8 @@ export interface SandboxProviderOptions {
   boxApiKey?: string;
   boxApiUrl?: string;
   dataDir?: string;
+  /** Enables Burst device computers; bots with an assigned device use them. */
+  device?: { prisma: Pick<PrismaClient, "device" | "bot">; relay: DeviceRelay };
 }
 
 function missingRemoteKey(provider: "e2b" | "daytona" | "box", envName: string): SandboxProvider {
@@ -71,11 +76,14 @@ export function createSandboxProvider(kind: string, opts: SandboxProviderOptions
       return new DesktopSandboxProvider({
         root: opts.dataDir,
       });
+    case "device":
+      if (!opts.device) return new NoneSandboxProvider("Device computers are not configured");
+      return new DeviceSandboxProvider(opts.device);
     case "fake":
       return new FakeSandboxProvider();
     default:
       throw new Error(
-        `Unknown SANDBOX_PROVIDER "${kind}". Use none | docker | e2b | daytona | box | e2b-emulator | daytona-emulator | box-emulator | desktop | fake.`,
+        `Unknown SANDBOX_PROVIDER "${kind}". Use none | docker | e2b | daytona | box | e2b-emulator | daytona-emulator | box-emulator | desktop | device | fake.`,
       );
   }
 }

@@ -178,7 +178,7 @@ describe("threadSnapshot", () => {
         findFirst: vi.fn().mockResolvedValue({ seq: 4 }),
         findMany: findManyEvents,
       },
-      run: { findFirst: vi.fn().mockResolvedValue(run) },
+      run: { findFirst: vi.fn().mockResolvedValue(run), findMany: vi.fn().mockResolvedValue([]) },
     };
     const prisma = {
       $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
@@ -242,7 +242,7 @@ describe("threadSnapshot", () => {
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: findManyEvents,
       },
-      run: { findFirst: findFirstRun },
+      run: { findFirst: findFirstRun, findMany: vi.fn().mockResolvedValue([]) },
     };
     const prisma = {
       $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
@@ -304,7 +304,7 @@ describe("threadSnapshot", () => {
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: vi.fn(),
       },
-      run: { findFirst: findFirstRun },
+      run: { findFirst: findFirstRun, findMany: vi.fn().mockResolvedValue([]) },
     };
     const prisma = {
       $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
@@ -340,7 +340,7 @@ describe("threadSnapshot", () => {
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: findManyEvents,
       },
-      run: { findFirst: findFirstRun },
+      run: { findFirst: findFirstRun, findMany: vi.fn().mockResolvedValue([]) },
     };
     const prisma = {
       $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
@@ -389,6 +389,7 @@ describe("threadSnapshot", () => {
         where: {
           threadId: "thread-1",
           status: { in: ["failed", "completed", "cancelled"] },
+          trigger: { not: "subagent" },
         },
         orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
         take: 50,
@@ -399,6 +400,7 @@ describe("threadSnapshot", () => {
         where: {
           threadId: "thread-1",
           status: { in: ["queued", "leased", "running", "waiting_input", "waiting_takeover"] },
+          trigger: { not: "subagent" },
         },
       }),
     );
@@ -744,8 +746,12 @@ function isTerminalRunQuery(where: { status?: { in?: string[] } } | undefined) {
 function groupRunFindMany(input: { active?: unknown[]; terminals?: unknown[] }) {
   return vi
     .fn()
-    .mockImplementation(async (args: { where?: { status?: { in?: string[] } } }) =>
-      isTerminalRunQuery(args.where) ? (input.terminals ?? []) : (input.active ?? []),
+    .mockImplementation(
+      async (args: { where?: { status?: { in?: string[] }; trigger?: unknown } }) => {
+        // Sub-agent runs are looked up separately and never count as the thread's run.
+        if (args.where?.trigger === "subagent") return [];
+        return isTerminalRunQuery(args.where) ? (input.terminals ?? []) : (input.active ?? []);
+      },
     );
 }
 
@@ -881,6 +887,91 @@ describe("stopThreadRuns", () => {
     });
     expect(prisma.computer.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { executionRunId: { in: ["run-a", "run-b"] } } }),
+    );
+  });
+});
+
+describe("sub-agent runs and the thread's run state", () => {
+  it("never reports a running sub-agent as the thread's run but still shows its live card", async () => {
+    const child = { id: "child-1" };
+    const cardEvent = {
+      id: "event-9",
+      threadId: "thread-1",
+      botId: "bot-1",
+      seq: 9,
+      type: "thread.subagent",
+      runId: "child-1",
+      payload: { agentId: "child-1", name: "Look it up", task: "t", status: "running" },
+      createdAt: new Date("2026-08-23T00:00:00.000Z"),
+    };
+    const findFirstRun = vi.fn().mockResolvedValue(null);
+    const findManyRuns = vi.fn().mockResolvedValue([child]);
+    const findManyEvents = vi.fn().mockResolvedValue([cardEvent]);
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([{ id: "thread-1" }]),
+      message: { findMany: vi.fn().mockResolvedValue([]) },
+      event: { findFirst: vi.fn().mockResolvedValue({ seq: 9 }), findMany: findManyEvents },
+      run: { findFirst: findFirstRun, findMany: findManyRuns },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
+    } as unknown as PrismaClient;
+    const target = {
+      kind: "bot",
+      botId: "bot-1",
+      threadId: "thread-1",
+      bot: { computer: null },
+    } as ThreadTarget;
+
+    const snapshot = await threadSnapshot({ prisma }, target);
+
+    expect(findFirstRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ trigger: { not: "subagent" } }),
+      }),
+    );
+    expect(snapshot.run).toBeNull();
+    expect(findManyEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ runId: { in: ["child-1"] }, type: "thread.subagent" }),
+      }),
+    );
+    expect(snapshot.messages).toEqual([
+      expect.objectContaining({
+        id: "subagent:child-1",
+        blocks: [expect.objectContaining({ kind: "subagent", status: "running" })],
+      }),
+    ]);
+  });
+
+  it("clears parked waits when a stop cancels the thread's runs", async () => {
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const findMany = vi.fn().mockResolvedValue([{ id: "run-a" }]);
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      run: { findMany, updateMany },
+      steeringMessage: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
+      computer: {
+        findMany: vi.fn().mockResolvedValue([]),
+        updateMany: vi.fn().mockResolvedValue({}),
+      },
+      computerExecutionLease: {
+        findMany: vi.fn().mockResolvedValue([]),
+        updateMany: vi.fn().mockResolvedValue({}),
+      },
+    } as unknown as PrismaClient;
+    const target = { kind: "bot", botId: "bot-1", threadId: "thread-1" } as unknown as ThreadTarget;
+    const actor = { spaceId: "workspace-1", userId: "user-1" } as Actor;
+    await stopThreadRuns({ prisma, sandbox: {} as SandboxProvider }, actor, target).catch(
+      () => undefined,
+    );
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { threadId: "thread-1", agentWaitKey: { not: null } },
+      }),
     );
   });
 });

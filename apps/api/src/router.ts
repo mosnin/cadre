@@ -53,6 +53,7 @@ import {
   type MemoryProviderResolver,
   mapScratchpadItem,
   modelCredentialDto,
+  normalizeImportedOAuthCredential,
   type PiOAuthLogins,
   planLiveConnectionSync,
   prepareApiInstall,
@@ -97,6 +98,7 @@ import {
   hasMixedOneShotSchedule,
   isOneShotRoutineCrons,
   isVisibleInternalPeerEvent,
+  isVisibleSubagentEvent,
   nextCronDateAcrossStrict,
   PLUGIN_BUNDLE_MAX_BYTES,
   validatePluginBundle,
@@ -138,6 +140,7 @@ import {
   resolveBusyBotName,
   toComputerStatus,
 } from "./computer-status.js";
+import { createDevicesService, type DevicePresence } from "./devices.js";
 import { buildMcpUpdateMaterial } from "./mcp-material.js";
 import {
   chooseFocus,
@@ -158,7 +161,12 @@ import {
   UpdaterProxyError,
 } from "./server-update.js";
 import { assertTeachingSendAllowed, createTaughtSkillsService } from "./taught-skills.js";
-import { isInternalPeerRun, loadAllMessages, loadMessagePage } from "./thread-message-pages.js";
+import {
+  isInternalPeerRun,
+  isSubagentRun,
+  loadAllMessages,
+  loadMessagePage,
+} from "./thread-message-pages.js";
 import {
   reactToThreadMessage,
   resolveThreadTarget,
@@ -355,6 +363,8 @@ export interface RouterDeps {
   composio?: ComposioProvider;
   mcpOAuth?: McpOAuthBroker;
   connectors: ConnectorRegistry;
+  /** Online state and teardown for Burst devices; without it, recent activity decides. */
+  devices?: DevicePresence;
   remoteConnectors?: RemoteConnectorDependencies;
   artifacts: ArtifactStore;
   dataDir: string;
@@ -394,6 +404,7 @@ export function createRouter(deps: RouterDeps) {
     dataDir: deps.dataDir,
   });
   const agentSkills = createAgentSkillsService(deps.prisma);
+  const devices = createDevicesService(deps.prisma, deps.devices);
 
   const authed = os.use(async ({ context, next }) => {
     if (!context.actor) throw new ORPCError("UNAUTHORIZED");
@@ -650,6 +661,23 @@ export function createRouter(deps: RouterDeps) {
         }
         return result.value;
       }),
+      importOAuth: authed.models.importOAuth.handler(async ({ context, input }) => {
+        throwIfAborted(context.signal);
+        let imported: Awaited<ReturnType<typeof normalizeImportedOAuthCredential>>;
+        try {
+          imported = await normalizeImportedOAuthCredential(input, { signal: context.signal });
+        } catch (error) {
+          throw new ORPCError("BAD_REQUEST", {
+            message: error instanceof Error ? error.message : "Could not import that login.",
+          });
+        }
+        return persistModelCredential(deps, context.actor, {
+          provider: input.provider,
+          plaintext: serializeModelSecret({ kind: "oauth", credential: imported.credential }),
+          label: imported.label,
+          signal: context.signal,
+        });
+      }),
       cancelOAuth: authed.models.cancelOAuth.handler(async ({ context, input }) => {
         await deps.oauthLogins.cancel(input.loginId, context.actor);
         return { ok: true as const };
@@ -674,6 +702,18 @@ export function createRouter(deps: RouterDeps) {
         );
         return { ok: true as const };
       }),
+    },
+    devices: {
+      list: authed.devices.list.handler(({ context }) => devices.list(context.actor)),
+      rename: authed.devices.rename.handler(({ context, input }) =>
+        devices.rename(context.actor, input),
+      ),
+      remove: authed.devices.remove.handler(({ context, input }) =>
+        devices.remove(context.actor, input),
+      ),
+      assign: authed.devices.assign.handler(({ context, input }) =>
+        devices.assign(context.actor, input),
+      ),
     },
     bots: {
       list: authed.bots.list.handler(async ({ context }) => repos.listBots(context.actor)),
@@ -729,6 +769,12 @@ export function createRouter(deps: RouterDeps) {
               allowAllTools: assignment.allowAllTools,
               allowedTools: assignment.allowedTools as Prisma.InputJsonValue,
             })),
+          });
+        }
+        if (source.subagentTypes) {
+          await deps.prisma.bot.update({
+            where: { id: duplicate.id },
+            data: { subagentTypes: source.subagentTypes as Prisma.InputJsonValue },
           });
         }
         return duplicate;
@@ -805,6 +851,7 @@ export function createRouter(deps: RouterDeps) {
               ? { modelProvider: input.modelProvider, modelId: input.modelId ?? null }
               : {}),
             ...(input.thinkingLevel !== undefined ? { thinkingLevel } : {}),
+            ...(input.subagentTypes !== undefined ? { subagentTypes: input.subagentTypes } : {}),
           },
         });
         const bots = await repos.listBots(context.actor);
@@ -1115,6 +1162,7 @@ export function createRouter(deps: RouterDeps) {
       subscribe: authed.threads.subscribe.handler(async function* ({ context, input }) {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         const peerRunCache = new Map<string, Promise<boolean>>();
+        const subagentRunCache = new Map<string, Promise<boolean>>();
         for await (const event of deps.events.follow(
           target.threadId,
           input.cursor,
@@ -1125,6 +1173,11 @@ export function createRouter(deps: RouterDeps) {
           if (
             (await isInternalPeerRun(deps.prisma, event.runId, peerRunCache)) &&
             !isVisibleInternalPeerEvent(event)
+          )
+            continue;
+          if (
+            (await isSubagentRun(deps.prisma, event.runId, subagentRunCache)) &&
+            !isVisibleSubagentEvent(event)
           )
             continue;
           yield event;

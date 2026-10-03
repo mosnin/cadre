@@ -23,6 +23,7 @@ import {
   Type,
 } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
+import { ACCESSIBILITY_TOOL_NAMES } from "./accessibility-tools.js";
 import { isToolPauseResult } from "./approval-effect.js";
 import { builtinAgentTools, SUBAGENT_PARENT_TOOL_NAMES } from "./builtin-tools.js";
 import { tokenLimit } from "./env-limits.js";
@@ -515,10 +516,22 @@ export function describeToolActivity(toolName: string, args: unknown): string {
   if (toolName === "open_path") return `Opening ${detail(record.path)}`;
   if (toolName === "render_plot") return "Rendering a chart";
   if (toolName === "add_mcp_server") return `Connecting MCP server: ${detail(record.name)}`;
-  if (toolName === "computer_observe" || toolName === "browser_observe")
+  if (
+    toolName === "computer_observe" ||
+    toolName === "browser_observe" ||
+    toolName === "computer_apps" ||
+    toolName === "computer_app_state"
+  )
     return "Looking at the screen";
-  if (toolName === "computer_act" || toolName === "browser_act") return "Operating the computer";
+  if (
+    toolName === "computer_act" ||
+    toolName === "browser_act" ||
+    ACCESSIBILITY_TOOL_NAMES.has(toolName)
+  )
+    return "Operating the computer";
   if (toolName === "run_subagent") return `Delegating to helper: ${detail(record.name)}`;
+  if (toolName === "spawn_agent") return `Starting sub-agent: ${detail(record.description)}`;
+  if (toolName === "wait_for_agents") return "Waiting for sub-agents";
   if (toolName === "create_space") return `Creating space: ${detail(record.name)}`;
   if (toolName === "remember") return "Saving a note to memory";
   if (toolName === "web_search") return `Searching the web: ${detail(record.query)}`;
@@ -1042,6 +1055,49 @@ function builtinParameters(tool: ConnectorTool) {
       instructions: Type.Optional(Type.String()),
     });
   }
+  if (tool.name === "spawn_agent") {
+    return Type.Object({
+      agent_type: Type.Optional(Type.String()),
+      description: Type.String({ minLength: 1, maxLength: 120 }),
+      prompt: Type.String({ minLength: 1 }),
+      model: Type.Optional(Type.String()),
+      background: Type.Optional(Type.Boolean()),
+      task_id: Type.Optional(Type.String()),
+    });
+  }
+  if (tool.name === "update_plan") {
+    return Type.Object({
+      tasks: Type.Array(
+        Type.Object({
+          id: Type.Optional(Type.String()),
+          title: Type.Optional(Type.String({ maxLength: 200 })),
+          status: Type.Optional(
+            Type.Union(
+              ["pending", "running", "done", "blocked", "cancelled"].map((status) =>
+                Type.Literal(status),
+              ),
+            ),
+          ),
+          notes: Type.Optional(Type.String({ maxLength: 1000 })),
+        }),
+        { minItems: 1, maxItems: 50 },
+      ),
+    });
+  }
+  if (tool.name === "wait_for_agents") {
+    return Type.Object({
+      agent_ids: Type.Optional(Type.Array(Type.String())),
+      mode: Type.Optional(Type.Union([Type.Literal("all"), Type.Literal("any")])),
+      timeout_seconds: Type.Optional(Type.Integer({ minimum: 1, maximum: 600 })),
+    });
+  }
+  if (tool.name === "send_to_agent") {
+    return Type.Object({ agent_id: Type.String(), message: Type.String({ minLength: 1 }) });
+  }
+  if (tool.name === "cancel_agent") {
+    return Type.Object({ agent_id: Type.String(), reason: Type.Optional(Type.String()) });
+  }
+  if (tool.name === "list_agents") return Type.Object({});
   if (tool.name === "spawn_bot") {
     return Type.Object({
       name: Type.String(),

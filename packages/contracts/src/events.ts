@@ -14,6 +14,8 @@ export const ProductEventType = z.enum([
   "thread.meta",
   "thread.computer",
   "thread.subagent",
+  "agent.waiting",
+  "agent.resumed",
   "run.started",
   "run.checkpointed",
   "run.segmented",
@@ -52,6 +54,66 @@ export const MessageRole = z.enum(["user", "bot", "system"]);
 export const BotMessageIntent = z.enum(["request", "result", "question", "status", "fyi"]);
 export type BotMessageIntent = z.infer<typeof BotMessageIntent>;
 
+/**
+ * A sub-agent's live or final state. The first four fields and `result`/`progress` are the
+ * original in-turn `run_subagent` shape; the rest are optional so older clients keep working.
+ * For agent-spawned sub-agents `agentId` is the child run id.
+ */
+export const SubagentStatusSchema = z.enum([
+  "running",
+  "blocked",
+  "completed",
+  "failed",
+  "cancelled",
+]);
+export type SubagentStatus = z.infer<typeof SubagentStatusSchema>;
+
+/** Durable plan ledger rows an agent keeps with update_plan. */
+export const AgentTaskStatusSchema = z.enum(["pending", "running", "done", "blocked", "cancelled"]);
+export type AgentTaskStatus = z.infer<typeof AgentTaskStatusSchema>;
+export const AgentTaskSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  status: AgentTaskStatusSchema,
+  assignedRunId: z.string().nullable(),
+  result: z.string().nullable(),
+  notes: z.string().nullable(),
+  updatedAt: z.string(),
+});
+export type AgentTask = z.infer<typeof AgentTaskSchema>;
+
+export const SubagentBlockSchema = z.object({
+  kind: z.literal("subagent"),
+  agentId: z.string(),
+  name: z.string(),
+  task: z.string(),
+  status: SubagentStatusSchema,
+  progress: z.string().optional(),
+  result: z.string().optional(),
+  /** Child run id (equals agentId for spawned sub-agents). */
+  runId: z.string().optional(),
+  /** Ledger task this sub-agent works on, when spawned with a task_id. */
+  taskId: z.string().optional(),
+  /** Run id of the spawning sub-agent, or null/absent when a top-level run spawned it. */
+  parentAgentId: z.string().nullable().optional(),
+  /** 1 for a direct child of the user-facing run, 2 for its children. */
+  depth: z.number().int().nonnegative().optional(),
+  agentType: z.string().optional(),
+  /** Bot that spawned this sub-agent (the bot whose run called spawn_agent). */
+  spawnedByBotId: z.string().optional(),
+  spawnedByBotName: z.string().optional(),
+  model: z.string().optional(),
+  background: z.boolean().optional(),
+  usage: z
+    .object({
+      inputTokens: z.number().int().nonnegative(),
+      outputTokens: z.number().int().nonnegative(),
+    })
+    .optional(),
+  steps: z.array(z.object({ label: z.string(), count: z.number().int().positive() })).optional(),
+});
+export type SubagentBlock = z.infer<typeof SubagentBlockSchema>;
+
 export const MAX_CHART_DATA_ROWS = 5_000;
 
 const ChartSpec = z.record(z.string(), z.any());
@@ -84,7 +146,22 @@ const ChartBlock = z
     });
   });
 
+/** Live view of an agent's plan ledger (update_plan). One card per bot and thread is updated in place. */
+export const PlanBlockSchema = z.object({
+  kind: z.literal("plan"),
+  items: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      status: AgentTaskStatusSchema,
+      agentId: z.string().optional(),
+    }),
+  ),
+});
+export type PlanBlock = z.infer<typeof PlanBlockSchema>;
+
 export const MessageBlock = z.discriminatedUnion("kind", [
+  PlanBlockSchema,
   z.object({ kind: z.literal("text"), text: z.string() }),
   z.object({
     kind: z.literal("card"),
@@ -151,15 +228,7 @@ export const MessageBlock = z.discriminatedUnion("kind", [
     steps: z.array(z.object({ label: z.string(), count: z.number().int().positive() })),
     durationMs: z.number().int().nonnegative().optional(),
   }),
-  z.object({
-    kind: z.literal("subagent"),
-    agentId: z.string(),
-    name: z.string(),
-    task: z.string(),
-    status: z.enum(["running", "completed", "failed"]),
-    progress: z.string().optional(),
-    result: z.string().optional(),
-  }),
+  SubagentBlockSchema,
   z.object({
     kind: z.literal("child_bot"),
     botId: z.string(),

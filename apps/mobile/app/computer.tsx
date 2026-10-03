@@ -55,7 +55,8 @@ export default function Computer() {
   useEffect(() => setScreenError(null), [embeddedScreenUrl]);
 
   const hasControl = computer?.controlHolder === "user" && computer.controlBotId === botId;
-  const label = computerLabel(computer?.mode, name);
+  const [deviceLabel, setDeviceLabel] = useState<string | null>(null);
+  const label = deviceLabel ?? computerLabel(computer?.mode, name);
 
   useLayoutEffect(() => {
     navigation.setOptions({ title: label });
@@ -78,6 +79,20 @@ export default function Computer() {
     if (!botId) return;
     const status = await rpc<ComputerStatus>("computer/status", { botId });
     setComputer(status);
+    if (status.kind === "device") {
+      try {
+        const [bot, devices] = await Promise.all([
+          rpc<{ deviceId: string | null }>("bots/get", { botId }),
+          rpc<Array<{ id: string; name: string; online: boolean }>>("devices/list", {}),
+        ]);
+        const device = devices.find((entry) => entry.id === bot.deviceId);
+        setDeviceLabel(
+          device ? `${device.name} · ${device.online ? t("online") : t("offline")}` : null,
+        );
+      } catch {
+        // Keep the last known label.
+      }
+    } else setDeviceLabel(null);
     await refreshScreen(options?.screenAttempts ?? 1);
     setReady(true);
     return status;

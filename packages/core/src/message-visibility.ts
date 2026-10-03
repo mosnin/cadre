@@ -88,3 +88,37 @@ export function isVisibleInternalPeerEvent(event: {
     (Array.isArray(event.payload.blocks) && isPeerReceiptBlocks(event.payload.blocks))
   );
 }
+
+/** Trigger of runs an agent spawned with spawn_agent. */
+export const SUBAGENT_RUN_TRIGGER = "subagent";
+
+/** What a spawned sub-agent's run may put in the transcript: its card and human input cards. */
+export function isVisibleSubagentMessageBlocks(blocks: unknown): boolean {
+  return (
+    hasUserInputBlocks(blocks) ||
+    (Array.isArray(blocks) &&
+      blocks.some((block) => block && typeof block === "object" && block.kind === "subagent"))
+  );
+}
+
+/**
+ * Events of a spawned sub-agent's run that clients see. Its own lifecycle, progress and tool
+ * events stay out so the thread's run state follows the user-facing run; the card and anything
+ * needing the person remain.
+ */
+export function isVisibleSubagentEvent(event: {
+  type: string;
+  payload: Record<string, unknown>;
+}): boolean {
+  if (
+    event.type === "thread.subagent" ||
+    event.type === "run.waiting_input" ||
+    event.type === "agent.waiting" ||
+    event.type === "agent.resumed"
+  ) {
+    return true;
+  }
+  if (["thread.ask", "thread.choice", "thread.computer"].includes(event.type)) return true;
+  if (!["thread.message.created", "thread.message.updated"].includes(event.type)) return false;
+  return isVisibleSubagentMessageBlocks(event.payload.blocks);
+}

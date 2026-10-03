@@ -1,6 +1,11 @@
 import type { PrismaClient } from "@cadre/db";
 import { describe, expect, it, vi } from "vitest";
-import { isInternalPeerRun, loadAllMessages, loadMessagePage } from "./thread-message-pages.js";
+import {
+  isInternalPeerRun,
+  isSubagentRun,
+  loadAllMessages,
+  loadMessagePage,
+} from "./thread-message-pages.js";
 
 describe("thread message pages", () => {
   it("caches peer-run classification for live events", async () => {
@@ -576,5 +581,56 @@ describe("thread message pages", () => {
 
     expect(messages.map((message) => message.seq)).toEqual([0, 1, 2, 3, 4]);
     expect(findMany.mock.calls.map(([query]) => query.where.seq?.lt)).toEqual([undefined, 3, 1]);
+  });
+});
+
+describe("sub-agent runs in transcripts", () => {
+  const row = (id: string, runId: string | null, blocks: unknown[], seq: number) => ({
+    id,
+    threadId: "thread-1",
+    seq,
+    role: "bot",
+    blocks,
+    botId: "bot-1",
+    replyToMessageId: null,
+    runId,
+    thumbsUp: false,
+    createdAt: new Date(),
+  });
+
+  it("classifies sub-agent runs and caches the lookup", async () => {
+    const findUnique = vi.fn(async () => ({ trigger: "subagent" }));
+    const prisma = { run: { findUnique } } as unknown as PrismaClient;
+    const cache = new Map<string, Promise<boolean>>();
+    await expect(isSubagentRun(prisma, "child", cache)).resolves.toBe(true);
+    await expect(isSubagentRun(prisma, "child", cache)).resolves.toBe(true);
+    await expect(isSubagentRun(prisma, undefined, cache)).resolves.toBe(false);
+    expect(findUnique).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a sub-agent's card and approval cards but hides anything else it wrote", async () => {
+    const rows = [
+      row("m-user", null, [{ kind: "text", text: "go" }], 4),
+      row(
+        "m-card",
+        "child",
+        [{ kind: "subagent", agentId: "child", name: "x", task: "t", status: "completed" }],
+        3,
+      ),
+      row("m-ask", "child", [{ kind: "ask", text: "Allow?", status: "pending" }], 2),
+      row("m-chatter", "child", [{ kind: "text", text: "internal" }], 1),
+    ];
+    const prisma = {
+      message: { findMany: vi.fn(async () => rows), count: vi.fn(async () => 0) },
+      run: {
+        findMany: vi.fn(async () => [{ id: "child", trigger: "subagent", sourceMessage: null }]),
+      },
+    } as unknown as PrismaClient;
+    const page = await loadMessagePage(prisma, "thread-1", undefined, 50);
+    expect(page.messages.map((message) => message.id).sort()).toEqual([
+      "m-ask",
+      "m-card",
+      "m-user",
+    ]);
   });
 });

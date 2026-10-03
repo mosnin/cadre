@@ -6,6 +6,35 @@ import { McpHeadersSchema, McpRemoteEndpointSchema, McpTransportSchema } from ".
 export const ComputerModeSchema = z.enum(["team", "dedicated"]);
 export type ComputerMode = z.infer<typeof ComputerModeSchema>;
 
+export const DevicePlatformSchema = z.enum(["macos", "linux"]);
+export type DevicePlatform = z.infer<typeof DevicePlatformSchema>;
+
+export const DeviceCapabilitiesSchema = z.object({
+  exec: z.boolean().optional(),
+  files: z.boolean().optional(),
+  screen: z.boolean().optional(),
+  input: z.boolean().optional(),
+  accessibility: z.boolean().optional(),
+  browser: z.boolean().optional(),
+  /** Cadre Code: the device can run coding agent sessions. */
+  code: z.boolean().optional(),
+  multiscreen: z.boolean().optional(),
+  permissions: z.record(z.string(), z.boolean()).optional(),
+});
+export type DeviceCapabilities = z.infer<typeof DeviceCapabilitiesSchema>;
+
+/** A Burst app or daemon that can be a bot's computer. */
+export const DeviceSchema = z.object({
+  id: Id,
+  name: z.string(),
+  platform: DevicePlatformSchema,
+  version: z.string(),
+  online: z.boolean(),
+  lastSeenAt: z.string().nullable(),
+  capabilities: DeviceCapabilitiesSchema,
+});
+export type Device = z.infer<typeof DeviceSchema>;
+
 export const MemoryScopeSchema = z.enum(["isolated", "shared"]);
 export type MemoryScopeValue = z.infer<typeof MemoryScopeSchema>;
 
@@ -52,6 +81,31 @@ export const ThinkingLevelSchema = z.enum([
 ]);
 export type ThinkingLevel = z.infer<typeof ThinkingLevelSchema>;
 
+export const AGENT_TYPE_NAME_PATTERN = /^[a-z][a-z0-9-]{1,31}$/;
+export const MAX_CUSTOM_AGENT_TYPES = 12;
+
+/** A custom sub-agent type a bot may spawn with spawn_agent. Names override built-ins. */
+export const AgentTypeDefinitionSchema = z.object({
+  name: z.string().regex(AGENT_TYPE_NAME_PATTERN, {
+    error:
+      "Agent names are 2-32 characters: lowercase letters, digits and hyphens, starting with a letter",
+  }),
+  description: z.string().trim().min(1).max(500),
+  instructions: z.string().trim().min(1).max(8000),
+  /** Allowed tool names. Omit to allow every tool the spawning run has. */
+  tools: z.array(z.string().trim().min(1).max(80)).max(200).optional(),
+  /** Model id on the bot's current provider. Omit to use the bot's model. */
+  model: z.string().trim().min(1).max(200).optional(),
+});
+export type AgentTypeDefinition = z.infer<typeof AgentTypeDefinitionSchema>;
+
+export const AgentTypeDefinitionsSchema = z
+  .array(AgentTypeDefinitionSchema)
+  .max(MAX_CUSTOM_AGENT_TYPES)
+  .refine((agents) => new Set(agents.map((agent) => agent.name)).size === agents.length, {
+    error: "Agent names must be unique",
+  });
+
 export const BotSchema = z.object({
   id: Id,
   spaceId: Id,
@@ -71,6 +125,8 @@ export const BotSchema = z.object({
   preview: z.string(),
   status: z.string(),
   computerMode: ComputerModeSchema,
+  /** Burst device that is this bot's computer; null uses the deployment's default provider. */
+  deviceId: Id.nullable().default(null),
   updatedAt: z.string(),
   createdAt: z.string(),
   voiceId: z.string().nullable(),
@@ -79,6 +135,8 @@ export const BotSchema = z.object({
   modelId: z.string().nullable(),
   thinkingLevel: ThinkingLevelSchema.nullable(),
   webhookConfigured: z.boolean(),
+  /** Custom temporary sub-agent types this bot may spawn. Absent when the bot has none. */
+  subagentTypes: AgentTypeDefinitionsSchema.optional(),
 });
 export type Bot = z.infer<typeof BotSchema>;
 
@@ -253,6 +311,7 @@ export const UpdateBotInput = z
     modelProvider: z.string().trim().min(1).max(80).nullable().optional(),
     modelId: z.string().trim().min(1).max(200).nullable().optional(),
     thinkingLevel: ThinkingLevelSchema.nullable().optional(),
+    subagentTypes: AgentTypeDefinitionsSchema.optional(),
   })
   .superRefine((value, ctx) => {
     const providerProvided = value.modelProvider !== undefined;
@@ -739,6 +798,7 @@ export const RunSchema = z.object({
     "bot_message",
     "webhook",
     "messaging",
+    "subagent",
   ]),
   routineId: Id.nullable(),
   modelProvider: z.string().nullable(),
@@ -820,6 +880,23 @@ export const ModelConnectInputSchema = z
     }
   });
 export type ModelConnectInput = z.infer<typeof ModelConnectInputSchema>;
+
+/** Subscription logins a desktop client can import from a local CLI. */
+export const ModelOAuthImportProviderSchema = z.enum(["anthropic", "openai-codex"]);
+export const ModelOAuthImportSourceSchema = z.enum(["claude-cli", "codex-cli"]);
+export const ModelOAuthImportInputSchema = z.object({
+  provider: ModelOAuthImportProviderSchema,
+  credential: z.object({
+    access: z.string().min(1).max(16_384),
+    refresh: z.string().min(1).max(16_384),
+    /** Expiry as milliseconds since the Unix epoch. */
+    expires: z.number().finite(),
+    accountId: z.string().min(1).max(512).optional(),
+  }),
+  source: ModelOAuthImportSourceSchema.optional(),
+  label: z.string().max(200).optional(),
+});
+export type ModelOAuthImportInput = z.infer<typeof ModelOAuthImportInputSchema>;
 
 export const ModelOAuthSignInModeSchema = z.enum(["device-code", "auth-url"]);
 export type ModelOAuthSignInMode = z.infer<typeof ModelOAuthSignInModeSchema>;

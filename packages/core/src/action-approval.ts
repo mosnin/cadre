@@ -3,6 +3,15 @@ import type { ActionApprovalRule as StoredActionApprovalRule } from "@cadre/cont
 const APPROVAL_EXEMPT_TOOLS = new Set([
   "computer_observe",
   "computer_act",
+  "computer_apps",
+  "computer_app_state",
+  "computer_click_element",
+  "computer_secondary_action",
+  "computer_scroll_element",
+  "computer_drag",
+  "computer_type",
+  "computer_key",
+  "computer_set_value",
   "list_files",
   "read_file",
   "write_file",
@@ -13,13 +22,26 @@ const APPROVAL_EXEMPT_TOOLS = new Set([
   "request_takeover",
   "request_secret",
   "run_subagent",
+  // Sub-agents inherit this run's approval rules and tool set; they cannot widen either.
+  "spawn_agent",
+  "wait_for_agents",
+  "send_to_agent",
+  "cancel_agent",
+  "list_agents",
+  "update_plan",
   "spawn_bot",
   "schedule_create",
   "schedule_list",
   "schedule_cancel",
 ]);
 
-const APPROVAL_REQUIRED_BUILTIN_TOOLS = new Set(["destination.write", "delete_bot", "archive_bot"]);
+const APPROVAL_REQUIRED_BUILTIN_TOOLS = new Set([
+  "destination.write",
+  "delete_bot",
+  "archive_bot",
+  "code_start",
+  "code_message",
+]);
 const EXPLICIT_APPROVAL_BUILTIN_TOOLS = new Set(["create_space"]);
 
 const READ_ONLY_CONNECTOR_PATTERN = /(^|_)(get|list|search|find|read)(_|$)/i;

@@ -139,6 +139,7 @@ import {
 } from "../components/ComputersUnavailableHint";
 import { MessageDayStamp } from "../components/MessageDayStamp";
 import { MessageHoverMetadata } from "../components/MessageHoverMetadata";
+import { PlanCard, SubagentGroup } from "../components/SubagentCard";
 import { SkillDraftCard } from "../components/teach/SkillDraftCard";
 import { TeachCaptureOverlay } from "../components/teach/TeachCaptureOverlay";
 import { TeachComputerOverlayControl } from "../components/teach/TeachComputerOverlay";
@@ -167,6 +168,7 @@ import { readRailCollapsed, writeRailCollapsed } from "../lib/rail-collapsed";
 import { clearSpaceSelection, rpc, selectedSpaceId, selectSpace } from "../lib/rpc";
 import { readSeenRunErrorIds, rememberSeenRunErrorId } from "../lib/run-error-storage";
 import { navigateSpaceBoundary, spaceBoundaryChanged } from "../lib/space-navigation";
+import { groupSubagentMessages, toPlanItems, toSubagentView } from "../lib/subagents";
 import { clearTaskDraft, readTaskDraft, writeTaskDraft } from "../lib/task-draft";
 import {
   activeThreadRuns,
@@ -4765,6 +4767,7 @@ const Transcript = memo(function Transcript({
     () => new Map(messages.map((message) => [message.id, message])),
     [messages],
   );
+  const subagentGroups = useMemo(() => groupSubagentMessages(messages), [messages]);
   const workingBotName = workingBots.length === 1 ? workingBots[0]?.name : undefined;
   const workingLabel =
     workingBotName != null && workingBotName !== ""
@@ -4896,6 +4899,8 @@ const Transcript = memo(function Transcript({
         ) : null}
         {messages.map((message, index) => {
           if (!message.blocks.some((block) => !isToolActivityBlock(block))) return null;
+          if (subagentGroups.hidden.has(message.id)) return null;
+          const subagentGroup = subagentGroups.groups.get(message.id);
           const peerReceipt = isPeerReceiptBlocks(message.blocks);
           let previousVisible: ThreadMessage | undefined;
           for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
@@ -4912,56 +4917,76 @@ const Transcript = memo(function Transcript({
           return (
             <Fragment key={message.id}>
               {showDay ? <MessageDayStamp createdAt={message.createdAt} /> : null}
-              <div
-                data-message-id={message.id}
-                className={
-                  peerReceipt ? "relative py-0.5" : "group/message relative pt-9 hover:z-20"
-                }
-              >
-                {peerReceipt ? null : (
-                  <MessageHoverActions message={message} onReply={onReply} onReact={onReact} />
-                )}
-                <MessageView
-                  artifactTarget={artifactTarget}
-                  message={message}
-                  canAnswer={message.id === answerableAskMessageId}
-                  onOpenBot={onOpenBot}
-                  onOpenPeerMessages={onOpenPeerMessages}
-                  onAnswer={onAnswer}
-                  speakerName={
-                    peerReceipt
-                      ? undefined
-                      : message.role === "bot"
-                        ? memberName?.(message.botId)
+              {subagentGroup ? (
+                <div data-message-id={message.id} className="relative pt-3">
+                  <SubagentGroup
+                    agents={subagentGroup}
+                    spawner={(() => {
+                      const spawnerId = subagentGroup[0]?.spawnedByBotId ?? message.botId;
+                      const spawnerName = spawnerId ? memberName?.(spawnerId) : undefined;
+                      if (!spawnerId || !spawnerName) return undefined;
+                      return {
+                        botId: spawnerId,
+                        name: spawnerName,
+                        color: peerBot(spawnerId)?.color ?? FALLBACK_BOT_COLOR,
+                      };
+                    })()}
+                  />
+                </div>
+              ) : (
+                <div
+                  data-message-id={message.id}
+                  className={
+                    peerReceipt ? "relative py-0.5" : "group/message relative pt-9 hover:z-20"
+                  }
+                >
+                  {peerReceipt ? null : (
+                    <MessageHoverActions message={message} onReply={onReply} onReact={onReact} />
+                  )}
+                  <MessageView
+                    artifactTarget={artifactTarget}
+                    message={message}
+                    canAnswer={message.id === answerableAskMessageId}
+                    onOpenBot={onOpenBot}
+                    onOpenPeerMessages={onOpenPeerMessages}
+                    onAnswer={onAnswer}
+                    speakerName={
+                      peerReceipt
+                        ? undefined
+                        : message.role === "bot"
+                          ? memberName?.(message.botId)
+                          : undefined
+                    }
+                    memberName={memberName}
+                    peerBot={peerBot}
+                    replyPreview={
+                      message.replyToMessageId
+                        ? messageById.get(message.replyToMessageId)
                         : undefined
-                  }
-                  memberName={memberName}
-                  peerBot={peerBot}
-                  replyPreview={
-                    message.replyToMessageId ? messageById.get(message.replyToMessageId) : undefined
-                  }
-                  replyToMessageId={message.replyToMessageId}
-                  onJumpToMessage={onJumpToMessage}
-                  onRefresh={onRefresh}
-                  onBotChanged={onBotChanged}
-                  onAddRoutine={onAddRoutine}
-                  voiceReady={voiceReady}
-                  speaking={speakingMessageId === message.id}
-                  onSpeak={() => onSpeak(message)}
-                />
-                {!peerReceipt && message.thumbsUp ? (
-                  <button
-                    type="button"
-                    aria-label={t`Remove thumbs-up`}
-                    onClick={() => void onReact(message)}
-                    className={`mt-1 rounded-full border border-border bg-muted px-2 py-0.5 text-xs ${
-                      message.role === "user" ? "ml-auto block" : ""
-                    }`}
-                  >
-                    👍
-                  </button>
-                ) : null}
-              </div>
+                    }
+                    replyToMessageId={message.replyToMessageId}
+                    onJumpToMessage={onJumpToMessage}
+                    onRefresh={onRefresh}
+                    onBotChanged={onBotChanged}
+                    onAddRoutine={onAddRoutine}
+                    voiceReady={voiceReady}
+                    speaking={speakingMessageId === message.id}
+                    onSpeak={() => onSpeak(message)}
+                  />
+                  {!peerReceipt && message.thumbsUp ? (
+                    <button
+                      type="button"
+                      aria-label={t`Remove thumbs-up`}
+                      onClick={() => void onReact(message)}
+                      className={`mt-1 rounded-full border border-border bg-muted px-2 py-0.5 text-xs ${
+                        message.role === "user" ? "ml-auto block" : ""
+                      }`}
+                    >
+                      👍
+                    </button>
+                  ) : null}
+                </div>
+              )}
             </Fragment>
           );
         })}
@@ -5977,42 +6002,11 @@ const MessageView = memo(function MessageView({
           );
         }
         if (block.kind === "subagent") {
-          const running = block.status === "running";
-          const failed = block.status === "failed";
-          return (
-            <div
-              key={i}
-              className="w-[min(420px,90%)] rounded-[18px] border border-border bg-muted px-[18px] py-4"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[15px] font-medium text-foreground" dir="auto">
-                  {block.name}
-                </span>
-                <span
-                  className={`rounded-full px-[11px] py-1 text-[13px] ${
-                    failed
-                      ? "bg-destructive/15 text-destructive"
-                      : running
-                        ? "bg-warning/15 text-warning"
-                        : "bg-success/15 text-success"
-                  }`}
-                  style={{
-                    animation: running ? "rkPulse 1.2s ease-in-out infinite" : undefined,
-                  }}
-                >
-                  {running ? <Trans>subagent</Trans> : block.status}
-                </span>
-              </div>
-              <div className="mt-2 text-[13.5px] text-muted-foreground">{block.task}</div>
-              {block.progress || block.result ? (
-                <div className="mt-2.5 text-[14.5px] leading-[1.5] text-foreground/75">
-                  <ChatMarkdown streaming={running}>
-                    {block.result || block.progress || ""}
-                  </ChatMarkdown>
-                </div>
-              ) : null}
-            </div>
-          );
+          // Standalone fallback; transcripts render sub-agents through groupSubagentMessages.
+          return <SubagentGroup key={i} agents={[toSubagentView(block)]} />;
+        }
+        if ((block.kind as string) === "plan") {
+          return <PlanCard key={i} items={toPlanItems(block)} />;
         }
         if (block.kind === "child_bot") {
           const removed = block.status === "deleted" || block.status === "archived";

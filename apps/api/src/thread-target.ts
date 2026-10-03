@@ -1,5 +1,11 @@
 import { type JobPublisher, runContinueJob } from "@cadre/adapter-kit";
-import { cancelComputerRunWork, screenLeaseIdForRun, toComputerRef } from "@cadre/adapters";
+import {
+  cancelComputerRunWork,
+  publishCancelledCards,
+  SUBAGENT_RUN_SELECT,
+  screenLeaseIdForRun,
+  toComputerRef,
+} from "@cadre/adapters";
 import {
   type Actor,
   GROUP_MEMBER_MIN,
@@ -14,6 +20,7 @@ import {
   projectMessages,
   resolveGroupTargetBotIds,
   runFailureError,
+  SUBAGENT_RUN_TRIGGER,
 } from "@cadre/core";
 import {
   appendEventInTransaction,
@@ -23,7 +30,7 @@ import {
   expireComputerExecutionLeases,
   IsolationError,
   lockOwnedGroup,
-  type Prisma,
+  Prisma,
   type PrismaClient,
   type ThreadEvents,
   touchGroupUpdatedAt,
@@ -202,6 +209,30 @@ function sendResult(message: { seq: number }, runs: Array<{ id: string; taskId: 
   };
 }
 
+/** Live cards of sub-agents still running, kept apart from the thread's own run state. */
+async function loadActiveSubagentEvents(tx: Prisma.TransactionClient, threadId: string) {
+  const running = await tx.run.findMany({
+    where: {
+      threadId,
+      trigger: SUBAGENT_RUN_TRIGGER,
+      status: { in: [...ACTIVE_RUN_STATUSES] },
+    },
+    select: { id: true },
+  });
+  if (running.length === 0) return [];
+  return tx.event.findMany({
+    where: {
+      threadId,
+      runId: { in: running.map((run) => run.id) },
+      type: "thread.subagent",
+    },
+    orderBy: { seq: "asc" },
+  });
+}
+
+/** Spawned sub-agent runs run beside the thread's own run and never make it busy. */
+const NOT_SUBAGENT_RUN = { trigger: { not: SUBAGENT_RUN_TRIGGER } } as const;
+
 export async function cancelSupersededQueuedRuns(
   tx: Prisma.TransactionClient,
   input: { threadId: string; botIds: string[]; keepRunIds: string[] },
@@ -334,6 +365,7 @@ export async function threadSnapshot(
               botId: target.botId,
               threadId: target.threadId,
               status: { in: [...ACTIVE_RUN_STATUSES, "failed"] },
+              ...NOT_SUBAGENT_RUN,
             },
             include: { sourceMessage: { select: { blocks: true } } },
             // The id tiebreak keeps ordering deterministic under equal
@@ -354,6 +386,7 @@ export async function threadSnapshot(
                   botId: target.botId,
                   threadId: target.threadId,
                   status: { in: ["failed", "completed", "cancelled"] },
+                  ...NOT_SUBAGENT_RUN,
                 },
                 orderBy: [{ createdAt: "desc" }, { id: "desc" }],
                 select: { id: true },
@@ -374,7 +407,13 @@ export async function threadSnapshot(
                 orderBy: { seq: "asc" },
               })
             : [];
-        return { messagePage, last, run: currentRun, liveEvents };
+        const subagentEvents = await loadActiveSubagentEvents(tx, target.threadId);
+        return {
+          messagePage,
+          last,
+          run: currentRun,
+          liveEvents: [...liveEvents, ...subagentEvents].sort((a, b) => a.seq - b.seq),
+        };
       }),
     ]);
     return {
@@ -401,6 +440,7 @@ export async function threadSnapshot(
         where: {
           threadId: target.threadId,
           status: { in: [...ACTIVE_RUN_STATUSES] },
+          ...NOT_SUBAGENT_RUN,
         },
         include: { sourceMessage: { select: { blocks: true } } },
         orderBy: { createdAt: "desc" },
@@ -411,6 +451,7 @@ export async function threadSnapshot(
         where: {
           threadId: target.threadId,
           status: { in: ["failed", "completed", "cancelled"] },
+          ...NOT_SUBAGENT_RUN,
         },
         orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
         take: 50,
@@ -430,12 +471,13 @@ export async function threadSnapshot(
             orderBy: { seq: "asc" },
           })
         : [];
+    const subagentEvents = await loadActiveSubagentEvents(tx, target.threadId);
     return {
       messagePage,
       last,
       activeRuns,
       terminalRun: pickLatestTerminalRun(recentTerminals),
-      liveEvents,
+      liveEvents: [...liveEvents, ...subagentEvents].sort((a, b) => a.seq - b.seq),
     };
   });
   return {
@@ -583,6 +625,7 @@ export async function sendThreadMessage(
             threadId: target.threadId,
             botId: target.botId,
             status: { in: [...ACTIVE_RUN_STATUSES] },
+            ...NOT_SUBAGENT_RUN,
           },
           select: { id: true, taskId: true, status: true },
         });
@@ -690,6 +733,7 @@ export async function sendThreadMessage(
           threadId: target.threadId,
           botId: { in: targetBotIds },
           status: { in: [...ACTIVE_RUN_STATUSES] },
+          ...NOT_SUBAGENT_RUN,
         },
         select: { id: true, taskId: true, botId: true, status: true },
       });
@@ -799,7 +843,7 @@ export async function reactToThreadMessage(
     let run: { id: string; status: string } | null = null;
     if (thumbsUp && target.kind === "bot") {
       const busy = await tx.run.findFirst({
-        where: { botId, status: { in: ["running", "queued", "leased"] } },
+        where: { botId, status: { in: ["running", "queued", "leased"] }, ...NOT_SUBAGENT_RUN },
         select: { id: true },
       });
       if (!busy) {
@@ -844,11 +888,13 @@ export async function stopThreadRuns(
   deps: {
     prisma: PrismaClient;
     sandbox: import("@cadre/adapter-kit").SandboxProvider;
+    events?: ThreadEvents;
+    jobs?: JobPublisher;
   },
   actor: Actor,
   target: ThreadTarget,
 ) {
-  const runIds = await deps.prisma.$transaction(async (tx) => {
+  const stopped = await deps.prisma.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM threads WHERE id = ${target.threadId} FOR UPDATE`;
     const ids = (
       await tx.run.findMany({
@@ -859,9 +905,24 @@ export async function stopThreadRuns(
         select: { id: true },
       })
     ).map((run) => run.id);
+    const stoppedSubagents = await tx.run.findMany({
+      where: { id: { in: ids }, trigger: SUBAGENT_RUN_TRIGGER },
+      select: SUBAGENT_RUN_SELECT,
+    });
     await tx.run.updateMany({
       where: { id: { in: ids }, status: { in: [...ACTIVE_RUN_STATUSES] } },
-      data: { status: "cancelled", completedAt: new Date() },
+      data: {
+        status: "cancelled",
+        completedAt: new Date(),
+        // Stopped sub-agents never wake the bot with a report.
+        agentResultDeliveredAt: new Date(),
+      },
+    });
+    // A coordinator parked in wait_for_agents must not be resumed by the sub-agents this stop
+    // just cancelled.
+    await tx.run.updateMany({
+      where: { threadId: target.threadId, agentWaitKey: { not: null } },
+      data: { agentWaitKey: null, agentWait: Prisma.DbNull },
     });
     await tx.steeringMessage.deleteMany({
       where: {
@@ -869,8 +930,15 @@ export async function stopThreadRuns(
         message: { threadId: target.threadId },
       },
     });
-    return ids;
+    return { ids, stoppedSubagents };
   });
+  const { ids: runIds, stoppedSubagents } = stopped;
+  if (deps.events && deps.jobs && stoppedSubagents.length > 0) {
+    await publishCancelledCards(
+      { prisma: deps.prisma, events: deps.events, jobs: deps.jobs },
+      stoppedSubagents,
+    ).catch(() => undefined);
+  }
   const computers = runIds.length
     ? await deps.prisma.computer.findMany({
         where: { executionRunId: { in: runIds } },

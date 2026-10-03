@@ -15,6 +15,7 @@ import type {
 } from "@cadre/adapter-kit";
 import type { PrismaClient } from "@cadre/db";
 import { DesktopSandboxProvider } from "./desktop-sandbox.js";
+import { DeviceSandboxProvider } from "./device-sandbox.js";
 import { createSandboxProvider, type SandboxProviderOptions } from "./sandbox-factory.js";
 
 export function sandboxKindForBot(envKind: string, computerHost: string | null | undefined) {
@@ -23,6 +24,31 @@ export function sandboxKindForBot(envKind: string, computerHost: string | null |
 }
 
 export function createRunSandbox(
+  kind: string,
+  opts: SandboxProviderOptions & { prisma?: PrismaClient },
+): SandboxProvider {
+  const base = createBaseRunSandbox(kind, opts);
+  // A bot with an assigned device uses it whatever the deployment default is.
+  if (!opts.device || kind === "device") return base;
+  const { prisma, relay } = opts.device;
+  return new DeviceAwareSandbox(
+    base,
+    new DeviceSandboxProvider({ prisma, relay }),
+    async (request, context) =>
+      Boolean(
+        await prisma.bot.findFirst({
+          where: {
+            id: context.botId ?? request.botId,
+            spaceId: context.spaceId,
+            deviceId: { not: null },
+          },
+          select: { id: true },
+        }),
+      ),
+  );
+}
+
+function createBaseRunSandbox(
   kind: string,
   opts: SandboxProviderOptions & { prisma?: PrismaClient },
 ): SandboxProvider {
@@ -55,9 +81,12 @@ export function createRunSandbox(
 
 export class HostAwareSandbox implements SandboxProvider {
   constructor(
-    private readonly isolated: SandboxProvider,
-    private readonly host: SandboxProvider,
-    private readonly hostEnabled: () => Promise<boolean>,
+    protected readonly isolated: SandboxProvider,
+    protected readonly host: SandboxProvider,
+    protected readonly hostEnabled: (
+      request: { botId: string },
+      context: AdapterContext,
+    ) => Promise<boolean>,
   ) {}
 
   describe() {
@@ -85,7 +114,8 @@ export class HostAwareSandbox implements SandboxProvider {
       this.isolated.describe().capabilities.persistentRunning &&
       request.providerRef &&
       request.providerKind === this.host.describe().id;
-    const provider = preserveLiveLegacy || (await this.hostEnabled()) ? this.host : this.isolated;
+    const provider =
+      preserveLiveLegacy || (await this.hostEnabled(request, context)) ? this.host : this.isolated;
     const providerKind = provider.describe().id;
     return provider.provision(
       {
@@ -94,6 +124,18 @@ export class HostAwareSandbox implements SandboxProvider {
       },
       context,
     );
+  }
+
+  accessibility(
+    computer: ComputerRef,
+    request: { tool: string; args?: Record<string, unknown> },
+    context: AdapterContext,
+  ) {
+    const provider = this.route(computer);
+    if (!provider.accessibility) {
+      return Promise.reject(new Error("Accessibility control is unavailable on this computer."));
+    }
+    return provider.accessibility(computer, request, context);
   }
 
   prepare(computer: ComputerRef, context: AdapterContext) {
@@ -230,5 +272,23 @@ export class HostAwareSandbox implements SandboxProvider {
 
   destroy(computer: ComputerRef, context: AdapterContext) {
     return this.route(computer).destroy(computer, context);
+  }
+}
+
+/** Routes a bot to its assigned device; every other computer stays with the configured provider. */
+export class DeviceAwareSandbox extends HostAwareSandbox {
+  override async provision(
+    request: Parameters<SandboxProvider["provision"]>[0],
+    context: AdapterContext,
+  ) {
+    const provider = (await this.hostEnabled(request, context)) ? this.host : this.isolated;
+    const kind = provider.describe().id;
+    return provider.provision(
+      {
+        ...request,
+        providerRef: request.providerKind === kind ? request.providerRef : undefined,
+      },
+      context,
+    );
   }
 }

@@ -195,6 +195,49 @@ describe("thread event reduction", () => {
     });
   });
 
+  it("keeps nested sub-agent fields and updates in place", () => {
+    const initial = snapshot([]);
+    const started = reduceThreadSnapshot(
+      initial,
+      event({
+        type: "thread.subagent",
+        seq: 5,
+        payload: { agentId: "p", name: "P", task: "t", status: "running" },
+      }),
+    );
+    const child = reduceThreadSnapshot(
+      started!,
+      event({
+        type: "thread.subagent",
+        seq: 6,
+        payload: {
+          agentId: "c",
+          name: "C",
+          task: "t",
+          status: "running",
+          parentAgentId: "p",
+          depth: 1,
+          agentType: "researcher",
+        },
+      }),
+    );
+    const cancelled = reduceThreadSnapshot(
+      child!,
+      event({
+        type: "thread.subagent",
+        seq: 7,
+        payload: { agentId: "p", name: "P", task: "t", status: "cancelled" },
+      }),
+    );
+    expect(cancelled?.messages.map((item) => item.id)).toEqual(["subagent:p", "subagent:c"]);
+    expect(cancelled?.messages[0]?.blocks[0]).toMatchObject({ status: "cancelled" });
+    expect(cancelled?.messages[1]?.blocks[0]).toMatchObject({
+      parentAgentId: "p",
+      depth: 1,
+      agentType: "researcher",
+    });
+  });
+
   it("replaces transient progress and a matching live subagent with the durable message", () => {
     const initial = snapshot([
       message("durable", [{ kind: "text", text: "old value" }]),

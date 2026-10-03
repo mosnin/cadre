@@ -179,3 +179,30 @@ it("routes in-place updates to the actual provider and returns unsupported witho
   expect(await sandbox.updateImage(ref, ctx)).toEqual(ref);
   expect(updateImage).toHaveBeenCalledOnce();
 });
+
+describe("accessibility routing", () => {
+  it("forwards accessibility calls to the provider that owns the computer", async () => {
+    const isolated = new FakeSandboxProvider();
+    const host = new DesktopSandboxProvider();
+    const accessibility = vi.fn(async () => ({ content: [{ type: "text" as const, text: "ok" }] }));
+    const sandbox = new HostAwareSandbox(
+      isolated,
+      Object.assign(host, { accessibility }),
+      async () => true,
+    );
+    const result = await sandbox.accessibility(
+      { kind: "desktop", ref: "x" } as never,
+      { tool: "list_apps" },
+      ctx as never,
+    );
+    expect(result).toEqual({ content: [{ type: "text", text: "ok" }] });
+    expect(accessibility).toHaveBeenCalledOnce();
+    await expect(
+      sandbox.accessibility(
+        { kind: "fake", ref: "y" } as never,
+        { tool: "list_apps" },
+        ctx as never,
+      ),
+    ).rejects.toThrow("Accessibility control is unavailable");
+  });
+});

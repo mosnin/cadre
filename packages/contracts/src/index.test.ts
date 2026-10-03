@@ -4,9 +4,11 @@ import {
   BOT_DESCRIPTION_MAX_LENGTH,
   BOT_INSTRUCTIONS_MAX_LENGTH,
   BOT_TITLE_MAX_LENGTH,
+  BotSchema,
   CreateBotInput,
   CreateGroupInput,
   canReactToThreadMessage,
+  DeviceSchema,
   McpServerConfigInput,
   MessageBlock,
   ModelOAuthBeginSchema,
@@ -284,6 +286,73 @@ describe("contracts", () => {
         name: "combined",
         spec: { marks: [{ data: rows.slice(0, 2_500) }] },
         data: rows.slice(0, 2_501),
+      }).success,
+    ).toBe(false);
+  });
+
+  it("describes Burst devices and assignment", () => {
+    expect(
+      DeviceSchema.parse({
+        id: "device-1",
+        name: "Studio Mac",
+        platform: "macos",
+        version: "1.0.0",
+        online: true,
+        lastSeenAt: null,
+        capabilities: { accessibility: true, permissions: { accessibility: true } },
+      }),
+    ).toMatchObject({ online: true });
+    expect(DeviceSchema.safeParse({ id: "d", name: "n", platform: "windows" }).success).toBe(false);
+    expect(appContract.devices.list).toBeDefined();
+    expect(appContract.devices.rename).toBeDefined();
+    expect(appContract.devices.remove).toBeDefined();
+    expect(appContract.devices.assign).toBeDefined();
+  });
+
+  it("keeps older bot payloads valid without a device", () => {
+    const shape = BotSchema.shape;
+    expect(shape.deviceId.parse(undefined)).toBeNull();
+    expect(shape.deviceId.parse("device-1")).toBe("device-1");
+  });
+});
+
+describe("sub-agent contract", () => {
+  it("keeps the original subagent block valid and accepts the new optional fields", () => {
+    const legacy = { kind: "subagent", agentId: "a", name: "n", task: "t", status: "running" };
+    expect(MessageBlock.safeParse(legacy).success).toBe(true);
+    const full = {
+      ...legacy,
+      status: "blocked",
+      runId: "a",
+      parentAgentId: null,
+      depth: 1,
+      agentType: "researcher",
+      spawnedByBotId: "bot-1",
+      spawnedByBotName: "Atlas",
+      taskId: "t1",
+      model: "m",
+      background: true,
+      usage: { inputTokens: 1, outputTokens: 2 },
+      steps: [{ label: "web_fetch", count: 1 }],
+    };
+    expect(MessageBlock.safeParse(full).success).toBe(true);
+    expect(MessageBlock.safeParse({ ...legacy, status: "cancelled" }).success).toBe(true);
+    expect(MessageBlock.safeParse({ ...legacy, status: "nope" }).success).toBe(false);
+  });
+
+  it("accepts the subagent run trigger and validates subagentTypes on bot updates", () => {
+    expect(RunActivityRowSchema.shape.trigger.safeParse("subagent").success).toBe(true);
+    const base = { botId: "bot-1" };
+    expect(
+      UpdateBotInput.safeParse({
+        ...base,
+        subagentTypes: [{ name: "scribe", description: "d", instructions: "i" }],
+      }).success,
+    ).toBe(true);
+    expect(
+      UpdateBotInput.safeParse({
+        ...base,
+        subagentTypes: [{ name: "Bad Name", description: "d", instructions: "i" }],
       }).success,
     ).toBe(false);
   });
