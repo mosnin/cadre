@@ -32,7 +32,9 @@ import { computersAreUnavailable } from "../../components/ComputersUnavailableHi
 import { DevicePicker } from "../../components/DevicesSection";
 import { ElasticRangeSlider } from "../../components/ElasticRangeSlider";
 import { rpc } from "../../lib/rpc";
+import { type AgentTypeDraft, agentTypesValid, normalizeAgentTypes } from "../../lib/subagents";
 import { thinkingSliderIndex } from "../../lib/thinking-slider";
+import { AgentTypesEditor } from "./agent-types-editor";
 
 const ScratchpadSection = lazy(() =>
   import("../ScratchpadSection").then((module) => ({ default: module.ScratchpadSection })),
@@ -212,6 +214,7 @@ export function BotSettings({
     modelProvider?: string | null;
     modelId?: string | null;
     thinkingLevel?: ThinkingLevel | null;
+    subagentTypes?: AgentTypeDraft[];
   }) => Promise<void>;
   onExport: () => Promise<void>;
   onStartComputer: () => Promise<void>;
@@ -232,6 +235,8 @@ export function BotSettings({
     bot.modelProvider && bot.modelId ? modelOptionKey(bot.modelProvider, bot.modelId) : "",
   );
   const [thinkingLevel, setThinkingLevel] = useState(bot.thinkingLevel ?? "");
+  const savedAgents = (bot as Bot & { subagentTypes?: AgentTypeDraft[] }).subagentTypes ?? [];
+  const [agents, setAgents] = useState<AgentTypeDraft[]>(savedAgents);
   const [credentials, setCredentials] = useState<ModelCredential[]>([]);
   const [catalog, setCatalog] = useState<ModelCatalogEntry[]>([]);
   const [me, setMe] = useState<Me | null>(null);
@@ -471,6 +476,7 @@ export function BotSettings({
             />
           </div>
         ) : null}
+        <AgentTypesEditor agents={agents} onChange={setAgents} />
         {memoryProviderConfigured ? (
           <div className="mt-4 text-[14px] text-muted-foreground">
             <Trans>Memory scope</Trans>
@@ -533,8 +539,15 @@ export function BotSettings({
         <Button
           disabled={saving}
           onClick={() => {
+            if (!agentTypesValid(agents)) {
+              setError(t`Fix the sub-agent type names before saving.`);
+              return;
+            }
             setSaving(true);
             setError(null);
+            const nextAgents = normalizeAgentTypes(agents);
+            const agentsChanged =
+              JSON.stringify(nextAgents) !== JSON.stringify(normalizeAgentTypes(savedAgents));
             const selected = modelKey ? parseModelOptionKey(modelKey) : null;
             const nextName = name.trim();
             const nextTitle = title.trim();
@@ -552,6 +565,7 @@ export function BotSettings({
               memoryScope,
               autoSpeak,
               voiceId: voiceId || null,
+              ...(agentsChanged ? { subagentTypes: nextAgents } : {}),
               modelProvider: selected?.provider ?? null,
               modelId: selected?.modelId ?? null,
               // Only clear thinking when catalog metadata is available; otherwise

@@ -98,6 +98,7 @@ import {
   hasMixedOneShotSchedule,
   isOneShotRoutineCrons,
   isVisibleInternalPeerEvent,
+  isVisibleSubagentEvent,
   nextCronDateAcrossStrict,
   PLUGIN_BUNDLE_MAX_BYTES,
   validatePluginBundle,
@@ -160,7 +161,12 @@ import {
   UpdaterProxyError,
 } from "./server-update.js";
 import { assertTeachingSendAllowed, createTaughtSkillsService } from "./taught-skills.js";
-import { isInternalPeerRun, loadAllMessages, loadMessagePage } from "./thread-message-pages.js";
+import {
+  isInternalPeerRun,
+  isSubagentRun,
+  loadAllMessages,
+  loadMessagePage,
+} from "./thread-message-pages.js";
 import {
   reactToThreadMessage,
   resolveThreadTarget,
@@ -765,6 +771,12 @@ export function createRouter(deps: RouterDeps) {
             })),
           });
         }
+        if (source.subagentTypes) {
+          await deps.prisma.bot.update({
+            where: { id: duplicate.id },
+            data: { subagentTypes: source.subagentTypes as Prisma.InputJsonValue },
+          });
+        }
         return duplicate;
       }),
       reorder: authed.bots.reorder.handler(async ({ context, input }) => {
@@ -839,6 +851,7 @@ export function createRouter(deps: RouterDeps) {
               ? { modelProvider: input.modelProvider, modelId: input.modelId ?? null }
               : {}),
             ...(input.thinkingLevel !== undefined ? { thinkingLevel } : {}),
+            ...(input.subagentTypes !== undefined ? { subagentTypes: input.subagentTypes } : {}),
           },
         });
         const bots = await repos.listBots(context.actor);
@@ -1149,6 +1162,7 @@ export function createRouter(deps: RouterDeps) {
       subscribe: authed.threads.subscribe.handler(async function* ({ context, input }) {
         const target = await resolveThreadTarget(deps.prisma, context.actor, input);
         const peerRunCache = new Map<string, Promise<boolean>>();
+        const subagentRunCache = new Map<string, Promise<boolean>>();
         for await (const event of deps.events.follow(
           target.threadId,
           input.cursor,
@@ -1159,6 +1173,11 @@ export function createRouter(deps: RouterDeps) {
           if (
             (await isInternalPeerRun(deps.prisma, event.runId, peerRunCache)) &&
             !isVisibleInternalPeerEvent(event)
+          )
+            continue;
+          if (
+            (await isSubagentRun(deps.prisma, event.runId, subagentRunCache)) &&
+            !isVisibleSubagentEvent(event)
           )
             continue;
           yield event;

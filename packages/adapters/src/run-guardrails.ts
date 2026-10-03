@@ -18,6 +18,23 @@ export function maxRunTokens(env: NodeJS.ProcessEnv = process.env): number {
   return boundedLimit(env.MAX_RUN_TOKENS, 500_000, 2_000_000);
 }
 
+/** Depth of the deepest sub-agent: a top-level run is 0, its children 1, theirs 2. */
+export const MAX_SUBAGENT_DEPTH = 2;
+/** Sub-agents of one root run that may be queued or running at once. */
+export const MAX_CONCURRENT_SUBAGENTS_PER_ROOT = 8;
+/** Sub-agents one root run (and its descendants) may ever spawn. */
+export const MAX_SUBAGENTS_PER_ROOT = 32;
+
+/** Tokens the whole sub-agent tree of one root run may use, summed over its usage records. */
+export function maxTreeTokens(env: NodeJS.ProcessEnv = process.env): number {
+  return maxRunTokens(env) * 2;
+}
+
+/** How long one sub-agent may take from start before the reconciler fails it. */
+export function maxSubagentLifetimeMs(env: NodeJS.ProcessEnv = process.env): number {
+  return maxRunDurationMs(env) * 2;
+}
+
 /** Triggers with no person waiting on the thread, so a run may continue across budget segments. */
 const UNATTENDED_TRIGGERS = new Set(["routine", "webhook", "bot_message", "spawn"]);
 
@@ -131,7 +148,7 @@ export function advanceRunGuardrail(
   const canonicalArgs = canonical(args);
   // Observation tools take no arguments, so every call looks identical. Repeating them is
   // how a browser or desktop task verifies each step, not a loop.
-  if (isArgumentless(canonicalArgs)) {
+  if (isArgumentless(canonicalArgs) || POLLING_TOOLS.has(name)) {
     return { count: state.count + 1, recent: state.recent, automation };
   }
   // Persist only a digest, never tool arguments or secrets. Text between calls cannot reset it.
@@ -146,6 +163,9 @@ export function advanceRunGuardrail(
   }
   return { count: state.count + 1, recent: [...state.recent, key].slice(-24), automation };
 }
+
+// Waiting on sub-agents is polling by design: the same call repeats until they finish.
+const POLLING_TOOLS = new Set(["wait_for_agents", "list_agents"]);
 
 function isArgumentless(canonicalArgs: unknown): boolean {
   if (canonicalArgs == null) return true;

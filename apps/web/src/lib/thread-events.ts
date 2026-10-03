@@ -19,6 +19,7 @@ import {
   subagentBlockFromPayload,
   upsertMessageById,
 } from "@cadre/core";
+import { withSubagentExtras } from "./subagents.js";
 
 const runTriggers = new Set<Run["trigger"]>([
   "user",
@@ -413,7 +414,7 @@ export function reduceThreadSnapshot(
     return { ...prev, cursor: event.seq, messages: [...remaining, next] };
   }
   if (event.type === "thread.subagent") {
-    const block = subagentBlockFromPayload(event.payload);
+    const block = withSubagentExtras(subagentBlockFromPayload(event.payload), event.payload);
     const next: ThreadMessage = {
       id: `subagent:${block.agentId}`,
       threadId: event.threadId,
@@ -424,6 +425,13 @@ export function reduceThreadSnapshot(
       runId: event.runId,
       createdAt: event.createdAt,
     };
+    // Update an existing agent in place so nested groups keep a stable order.
+    const existing = prev.messages.findIndex((message) => message.id === next.id);
+    if (existing >= 0) {
+      const messages = prev.messages.slice();
+      messages[existing] = { ...next, seq: prev.messages[existing]?.seq ?? next.seq };
+      return { ...prev, cursor: event.seq, messages };
+    }
     const without: ThreadMessage[] = [];
     const kept: ThreadMessage[] = [];
     for (const message of prev.messages) {

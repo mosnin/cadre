@@ -1,5 +1,11 @@
 import type { MessageBlock, ThreadMessage, ThreadMessagePage } from "@cadre/contracts";
-import { hasUserInputBlocks, isPeerReceiptBlocks, isUserFacingPeerCallback } from "@cadre/core";
+import {
+  hasUserInputBlocks,
+  isPeerReceiptBlocks,
+  isUserFacingPeerCallback,
+  isVisibleSubagentMessageBlocks,
+  SUBAGENT_RUN_TRIGGER,
+} from "@cadre/core";
 import type { Prisma, PrismaClient } from "@cadre/db";
 
 type MessageDb = PrismaClient | Prisma.TransactionClient;
@@ -99,16 +105,27 @@ async function withoutPeerRunMessages<T extends { runId: string | null; blocks: 
 ): Promise<T[]> {
   const runIds = [...new Set(rows.flatMap((row) => (row.runId ? [row.runId] : [])))];
   if (runIds.length === 0) return rows;
-  const peerRuns = await prisma.run.findMany({
-    where: { id: { in: runIds }, trigger: "bot_message" },
-    select: { id: true, sourceMessage: { select: { blocks: true } } },
+  const internalRuns = await prisma.run.findMany({
+    where: { id: { in: runIds }, trigger: { in: ["bot_message", SUBAGENT_RUN_TRIGGER] } },
+    select: { id: true, trigger: true, sourceMessage: { select: { blocks: true } } },
   });
+  const subagentRunIds = new Set(
+    internalRuns.filter((run) => run.trigger === SUBAGENT_RUN_TRIGGER).map((run) => run.id),
+  );
   const peerRunIds = new Set(
-    peerRuns
-      .filter((run) => !isUserFacingPeerCallback(run.sourceMessage?.blocks))
+    internalRuns
+      .filter(
+        (run) =>
+          run.trigger !== SUBAGENT_RUN_TRIGGER &&
+          !isUserFacingPeerCallback(run.sourceMessage?.blocks),
+      )
       .map((run) => run.id),
   );
   return rows.filter((row) => {
+    if (row.runId && subagentRunIds.has(row.runId)) {
+      // A sub-agent's thread presence is its card and any approval it needs from the person.
+      return isVisibleSubagentMessageBlocks(row.blocks);
+    }
     if (!row.runId || !peerRunIds.has(row.runId) || hasUserInputBlocks(row.blocks)) return true;
     // Keep compact sent/received receipts; clients render them as chips.
     const blocks = row.blocks as MessageBlock[];
@@ -116,6 +133,23 @@ async function withoutPeerRunMessages<T extends { runId: string | null; blocks: 
       (block) => block.kind === "bot_message_sent" || block.kind === "bot_message_received",
     );
   });
+}
+
+/** True for runs spawned by an agent with spawn_agent; they never count as the thread's run. */
+export async function isSubagentRun(
+  prisma: MessageDb,
+  runId: string | undefined,
+  cache: Map<string, Promise<boolean>>,
+): Promise<boolean> {
+  if (!runId) return false;
+  let subagent = cache.get(runId);
+  if (!subagent) {
+    subagent = prisma.run
+      .findUnique({ where: { id: runId }, select: { trigger: true } })
+      .then((run) => run?.trigger === SUBAGENT_RUN_TRIGGER);
+    cache.set(runId, subagent);
+  }
+  return subagent;
 }
 
 export async function isInternalPeerRun(

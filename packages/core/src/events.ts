@@ -128,6 +128,23 @@ export function projectMessages(
       event.type === "run.cancelled"
     ) {
       clearLive(event);
+      // A spawned sub-agent's id is its run id. If the run ended without a final
+      // thread.subagent event, close its live row instead of leaving it running.
+      const liveChild = event.runId ? liveSubagents.get(event.runId) : undefined;
+      const liveBlock = liveChild?.blocks[0];
+      if (liveChild && liveBlock?.kind === "subagent" && liveBlock.status === "running") {
+        liveChild.blocks = [
+          {
+            ...liveBlock,
+            status:
+              event.type === "run.completed"
+                ? "completed"
+                : event.type === "run.cancelled"
+                  ? "cancelled"
+                  : "failed",
+          },
+        ];
+      }
     }
   }
   for (const live of liveSubagents.values()) messages.push(live);
@@ -305,15 +322,51 @@ export function subagentBlockFromPayload(
   payload: Record<string, unknown>,
 ): Extract<MessageBlock, { kind: "subagent" }> {
   const status = payload.status;
-  return {
+  const block: Extract<MessageBlock, { kind: "subagent" }> = {
     kind: "subagent",
     agentId: String(payload.agentId ?? ""),
     name: String(payload.name ?? "subagent"),
     task: String(payload.task ?? ""),
-    status: status === "completed" || status === "failed" ? status : "running",
+    status:
+      status === "completed" ||
+      status === "failed" ||
+      status === "cancelled" ||
+      status === "blocked"
+        ? status
+        : "running",
     progress: payload.progress ? String(payload.progress) : undefined,
     result: payload.result ? String(payload.result) : undefined,
   };
+  // Spawned sub-agents carry their place in the tree; in-turn helpers do not.
+  if (typeof payload.runId === "string") block.runId = payload.runId;
+  if (typeof payload.parentAgentId === "string" || payload.parentAgentId === null) {
+    block.parentAgentId = payload.parentAgentId;
+  }
+  if (typeof payload.depth === "number" && Number.isInteger(payload.depth) && payload.depth >= 0) {
+    block.depth = payload.depth;
+  }
+  if (typeof payload.agentType === "string") block.agentType = payload.agentType;
+  if (typeof payload.taskId === "string") block.taskId = payload.taskId;
+  if (typeof payload.spawnedByBotId === "string") block.spawnedByBotId = payload.spawnedByBotId;
+  if (typeof payload.spawnedByBotName === "string") {
+    block.spawnedByBotName = payload.spawnedByBotName;
+  }
+  if (typeof payload.model === "string") block.model = payload.model;
+  if (typeof payload.background === "boolean") block.background = payload.background;
+  const usage = asRecord(payload.usage);
+  if (typeof usage.inputTokens === "number" && typeof usage.outputTokens === "number") {
+    block.usage = { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens };
+  }
+  if (Array.isArray(payload.steps)) {
+    const steps = payload.steps.flatMap((step) => {
+      const row = asRecord(step);
+      return typeof row.label === "string" && typeof row.count === "number" && row.count > 0
+        ? [{ label: row.label, count: Math.floor(row.count) }]
+        : [];
+    });
+    if (steps.length > 0) block.steps = steps;
+  }
+  return block;
 }
 
 export function redactSecrets(value: string, secrets: string[]): string {

@@ -213,6 +213,7 @@ export function speechFromBlocks(blocks: MessageBlock[]): string {
       if (block.kind === "subagent") {
         if (block.status === "running") return `${block.name} is working on ${block.task}`;
         if (block.status === "failed") return `${block.name} failed`;
+        if (block.status === "cancelled") return `${block.name} was cancelled`;
         return block.result || `${block.name} finished`;
       }
       if (block.kind === "card") {

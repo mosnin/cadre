@@ -17,6 +17,7 @@ import {
 } from "./computer-lifecycle.js";
 import { runNotificationsEnabled } from "./executor.js";
 import { isUnattendedTrigger, unattendedWaitMs } from "./run-guardrails.js";
+import { reconcileSubagents } from "./subagents.js";
 import { isUserProgressClientNonce } from "./user-progress.js";
 
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -453,6 +454,15 @@ export function createJobReconciler(
           ? { at: lastControl.controlLeaseExpiresAt, id: lastControl.id }
           : undefined;
       if (!controlCursor) controlScanDeadline = undefined;
+
+      // Sub-agent backstop: parked waits and deadlines, unclaimed reports, orphaned children.
+      if (deps.events) {
+        await reconcileSubagents({
+          prisma: deps.prisma,
+          events: deps.events,
+          jobs: deps.jobs,
+        }).catch((error) => getLogger().error("reconcile subagents", error));
+      }
     })().finally(() => {
       reconciling = undefined;
     });

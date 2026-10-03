@@ -22,6 +22,13 @@ const APPROVAL_EXEMPT_TOOLS = new Set([
   "request_takeover",
   "request_secret",
   "run_subagent",
+  // Sub-agents inherit this run's approval rules and tool set; they cannot widen either.
+  "spawn_agent",
+  "wait_for_agents",
+  "send_to_agent",
+  "cancel_agent",
+  "list_agents",
+  "update_plan",
   "spawn_bot",
   "schedule_create",
   "schedule_list",

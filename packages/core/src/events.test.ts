@@ -731,3 +731,108 @@ describe("sanitizeUtf16ForJson", () => {
     });
   });
 });
+
+describe("nested sub-agent projection", () => {
+  const event = (seq: number, type: string, payload: Record<string, unknown>, runId?: string) => ({
+    id: `e${seq}`,
+    threadId: "t1",
+    botId: "bot-1",
+    seq,
+    type,
+    runId,
+    payload,
+    createdAt: new Date(2026, 0, 1, 0, 0, seq),
+  });
+
+  it("projects each spawned sub-agent as its own card carrying its place in the tree", () => {
+    const messages = projectMessages([
+      event(
+        1,
+        "thread.subagent",
+        {
+          agentId: "child",
+          runId: "child",
+          name: "Research",
+          task: "t",
+          status: "running",
+          parentAgentId: null,
+          depth: 1,
+          agentType: "researcher",
+          spawnedByBotId: "bot-1",
+          spawnedByBotName: "Atlas",
+          taskId: "task-1",
+          steps: [{ label: "web_fetch", count: 2 }],
+        },
+        "child",
+      ),
+      event(
+        2,
+        "thread.subagent",
+        {
+          agentId: "grand",
+          runId: "grand",
+          name: "Dig",
+          task: "t2",
+          status: "blocked",
+          parentAgentId: "child",
+          depth: 2,
+          usage: { inputTokens: 5, outputTokens: 6 },
+        },
+        "grand",
+      ),
+    ]);
+    const blocks = messages.flatMap((message) => message.blocks);
+    expect(blocks).toEqual([
+      expect.objectContaining({
+        agentId: "child",
+        parentAgentId: null,
+        depth: 1,
+        agentType: "researcher",
+        spawnedByBotId: "bot-1",
+        spawnedByBotName: "Atlas",
+        taskId: "task-1",
+        steps: [{ label: "web_fetch", count: 2 }],
+      }),
+      expect.objectContaining({
+        agentId: "grand",
+        parentAgentId: "child",
+        depth: 2,
+        status: "blocked",
+        usage: { inputTokens: 5, outputTokens: 6 },
+      }),
+    ]);
+  });
+
+  it("closes a live card when its run ends without a final card, and prefers the durable card", () => {
+    const live = projectMessages([
+      event(1, "thread.subagent", { agentId: "c", name: "n", task: "t", status: "running" }, "c"),
+      event(2, "run.cancelled", {}, "c"),
+    ]);
+    expect(live[0]!.blocks[0]).toMatchObject({ status: "cancelled" });
+    const durable = projectMessages([
+      event(1, "thread.subagent", { agentId: "c", name: "n", task: "t", status: "running" }, "c"),
+      event(
+        2,
+        "thread.message.created",
+        {
+          messageId: "m1",
+          role: "bot",
+          blocks: [
+            {
+              kind: "subagent",
+              agentId: "c",
+              name: "n",
+              task: "t",
+              status: "completed",
+              result: "ok",
+            },
+          ],
+        },
+        "c",
+      ),
+      event(3, "thread.subagent", { agentId: "c", name: "n", task: "t", status: "running" }, "c"),
+    ]);
+    expect(durable).toHaveLength(1);
+    expect(durable[0]!.blocks[0]).toMatchObject({ status: "completed" });
+  });
+});

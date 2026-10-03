@@ -1,5 +1,6 @@
 import {
   type Actor,
+  AgentTypeDefinitionsSchema,
   BOT_COLORS,
   type Bot,
   type BotSection,
@@ -42,6 +43,7 @@ function mapBot(
     thinkingLevel?: string | null;
     webhookSecretId?: string | null;
     deviceId?: string | null;
+    subagentTypes?: unknown;
   },
   preview = "",
   status = "idle",
@@ -49,6 +51,9 @@ function mapBot(
   if (!bot.thread) {
     throw new IsolationError("Bot is missing its thread");
   }
+  const parsedAgents = AgentTypeDefinitionsSchema.safeParse(bot.subagentTypes ?? []);
+  const customAgents =
+    parsedAgents.success && parsedAgents.data.length > 0 ? parsedAgents.data : null;
   return {
     id: bot.id,
     spaceId: bot.spaceId,
@@ -77,6 +82,7 @@ function mapBot(
     modelId: bot.modelId ?? null,
     thinkingLevel: (bot.thinkingLevel as Bot["thinkingLevel"]) ?? null,
     webhookConfigured: Boolean(bot.webhookSecretId),
+    ...(customAgents ? { subagentTypes: customAgents } : {}),
   };
 }
 

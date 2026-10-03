@@ -2268,6 +2268,116 @@ type MessageActionProps = Pick<
   "onLongPress" | "accessibilityActions" | "onAccessibilityAction"
 >;
 
+function MobileSubagentCard({
+  block,
+  agentType,
+  depth,
+  spawnerName,
+  actionProps,
+}: {
+  block: Extract<MessageBlock, { kind: "subagent" }>;
+  agentType?: string;
+  depth: number;
+  spawnerName?: string;
+  actionProps: MessageActionProps;
+}) {
+  const colorScheme = useResolvedAppearance();
+  const tokens = mobileTokens();
+  const { t } = useI18n();
+  const status: string = block.status;
+  const [open, setOpen] = useState(status === "blocked");
+  const running = status === "running";
+  const failed = status === "failed";
+  const known = running || failed || status === "completed";
+  const statusLabel = running
+    ? t("Running")
+    : failed
+      ? t("Failed")
+      : status === "completed"
+        ? t("Completed")
+        : status === "cancelled"
+          ? t("Cancelled")
+          : status === "blocked"
+            ? t("Needs your approval")
+            : status === "interrupted"
+              ? t("Interrupted")
+              : status;
+  const summary = running ? block.progress : block.result?.split("\n").find((line) => line.trim());
+  return (
+    <Pressable
+      {...actionProps}
+      onPress={() => setOpen((value) => !value)}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+      style={{
+        width: "90%",
+        marginStart: depth * 14,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: tokens.border,
+        backgroundColor: tokens.card,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+      }}
+    >
+      {spawnerName ? (
+        <Text style={{ color: tokens.mutedForeground, fontSize: 12.5, marginBottom: 4 }}>
+          {spawnerName}
+        </Text>
+      ) : null}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: tokens.foreground, fontSize: 15, fontWeight: "600" }}>
+            {block.name || t("Sub-agent")}
+          </Text>
+          {agentType ? (
+            <Text style={{ color: tokens.mutedForeground, fontSize: 12.5 }}>
+              {t("Sub-agent · {type}", { type: agentType })}
+            </Text>
+          ) : null}
+        </View>
+        <Text
+          style={{
+            color: failed
+              ? tokens.destructive
+              : running || status === "blocked"
+                ? tokens.warning
+                : known
+                  ? tokens.success
+                  : tokens.mutedForeground,
+            fontSize: 13,
+          }}
+        >
+          {statusLabel}
+        </Text>
+      </View>
+      {open ? (
+        <>
+          {block.task ? (
+            <Text style={{ color: tokens.mutedForeground, marginTop: 8, fontSize: 13.5 }}>
+              {block.task}
+            </Text>
+          ) : null}
+          {block.result || block.progress ? (
+            <View style={{ marginTop: 8 }}>
+              <ChatMarkdown palette={tokens} colorScheme={colorScheme} streaming={running}>
+                {(running ? block.progress : block.result) || block.result || block.progress || ""}
+              </ChatMarkdown>
+            </View>
+          ) : null}
+        </>
+      ) : summary ? (
+        <Text
+          numberOfLines={1}
+          style={{ color: tokens.mutedForeground, marginTop: 6, fontSize: 13.5 }}
+        >
+          {summary}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
 const MessageBubble = memo(function MessageBubble({
   botId,
   botName,
@@ -2295,7 +2405,6 @@ const MessageBubble = memo(function MessageBubble({
   onPreviewMarkdown: (target: MarkdownArtifactPreviewTarget) => void;
   actionProps: MessageActionProps;
 }) {
-  const colorScheme = useResolvedAppearance();
   const tokens = mobileTokens();
   const { t } = useI18n();
   const [peerExpanded, setPeerExpanded] = useState(false);
@@ -2407,60 +2516,74 @@ const MessageBubble = memo(function MessageBubble({
   const special = message.blocks.find(
     (block) => block.kind === "subagent" || block.kind === "child_bot",
   );
-  if (special?.kind === "subagent") {
-    const running = special.status === "running";
-    const failed = special.status === "failed";
-    return (
-      <Pressable
-        {...actionProps}
-        style={{
-          width: "90%",
-          borderRadius: 18,
-          borderWidth: 1,
-          borderColor: tokens.border,
-          backgroundColor: tokens.card,
-          paddingHorizontal: 16,
-          paddingVertical: 14,
-        }}
-      >
+  const planBlock = message.blocks.find((block) => (block.kind as string) === "plan") as
+    | { items?: unknown }
+    | undefined;
+  if (planBlock) {
+    const items = (Array.isArray(planBlock.items) ? planBlock.items : []).flatMap(
+      (item: unknown, index: number) => {
+        const o = (item ?? {}) as { id?: unknown; title?: unknown; status?: unknown };
+        return typeof o.title === "string" && o.title
+          ? [{ id: String(o.id ?? index), title: o.title, status: String(o.status ?? "pending") }]
+          : [];
+      },
+    );
+    if (items.length > 0) {
+      return (
         <View
           style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            gap: 8,
+            width: "90%",
+            borderRadius: 18,
+            borderWidth: 1,
+            borderColor: tokens.border,
+            backgroundColor: tokens.card,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            gap: 4,
           }}
         >
           <Text style={{ color: tokens.foreground, fontSize: 15, fontWeight: "600" }}>
-            {special.name || t("subagent")}
+            {t("Plan")}
           </Text>
-          <Text
-            style={{
-              color: failed ? tokens.destructive : running ? tokens.warning : tokens.success,
-              fontSize: 13,
-            }}
-          >
-            {running
-              ? t("Running")
-              : special.status === "failed"
-                ? t("Failed")
-                : special.status === "completed"
-                  ? t("Completed")
-                  : special.status}
-          </Text>
+          {items.map((item) => (
+            <Text
+              key={item.id}
+              style={{
+                color:
+                  item.status === "done" || item.status === "cancelled"
+                    ? tokens.mutedForeground
+                    : item.status === "blocked"
+                      ? tokens.warning
+                      : tokens.foreground,
+                fontSize: 13.5,
+              }}
+            >
+              {item.status === "done" ? "✓" : item.status === "running" ? "…" : "○"} {item.title}
+            </Text>
+          ))}
         </View>
-        {special.task ? (
-          <Text style={{ color: tokens.mutedForeground, marginTop: 8, fontSize: 13.5 }}>
-            {special.task}
-          </Text>
-        ) : null}
-        {special.result || special.progress ? (
-          <View style={{ marginTop: 8 }}>
-            <ChatMarkdown palette={tokens} colorScheme={colorScheme} streaming={running}>
-              {special.result || special.progress || ""}
-            </ChatMarkdown>
-          </View>
-        ) : null}
-      </Pressable>
+      );
+    }
+  }
+  if (special?.kind === "subagent") {
+    const extra = special as typeof special & {
+      agentType?: string;
+      depth?: number;
+      spawnedByBotId?: string;
+      spawnedByBotName?: string;
+    };
+    const spawnerName = groupId
+      ? (members?.find((member) => member.botId === extra.spawnedByBotId)?.name ??
+        extra.spawnedByBotName)
+      : undefined;
+    return (
+      <MobileSubagentCard
+        block={special}
+        agentType={extra.agentType}
+        depth={Math.min(extra.depth ?? 0, 3)}
+        spawnerName={spawnerName}
+        actionProps={actionProps}
+      />
     );
   }
   if (special?.kind === "child_bot") {
