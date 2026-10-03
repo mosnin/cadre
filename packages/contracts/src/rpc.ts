@@ -75,12 +75,21 @@ import {
   VoiceStatusSchema,
 } from "./domain.js";
 import { ProductEventSchema } from "./events.js";
+import {
+  CreateHiveInput,
+  HiveDetailSchema,
+  HiveFromGroupInput,
+  HiveSchema,
+  HiveSetRoleInput,
+  UpdateHiveInput,
+} from "./hive.js";
 import { Id, IsoDate } from "./ids.js";
 import { RunsListOutputSchema } from "./runs.js";
 import { SearchQueryOutputSchema } from "./search.js";
 
 const botId = z.object({ botId: Id });
 const groupId = z.object({ groupId: Id });
+const hiveId = z.object({ hiveId: Id });
 
 const threadTarget = z
   .object({
@@ -256,6 +265,18 @@ export const appContract = {
     archive: oc.input(groupId).output(z.object({ ok: z.literal(true) })),
     restore: oc.input(groupId).output(z.object({ ok: z.literal(true) })),
     remove: oc.input(groupId).output(z.object({ ok: z.literal(true) })),
+  },
+  hives: {
+    create: oc.input(CreateHiveInput).output(HiveDetailSchema),
+    fromGroup: oc.input(HiveFromGroupInput).output(HiveDetailSchema),
+    get: oc.input(hiveId).output(HiveDetailSchema),
+    byGroup: oc.input(groupId).output(HiveDetailSchema.nullable()),
+    list: oc.output(z.array(HiveSchema)),
+    update: oc.input(UpdateHiveInput).output(HiveSchema),
+    setRole: oc.input(HiveSetRoleInput).output(HiveDetailSchema),
+    pause: oc.input(hiveId).output(HiveSchema),
+    resume: oc.input(hiveId).output(HiveSchema),
+    cancel: oc.input(hiveId).output(HiveSchema),
   },
   botSections: {
     list: oc.output(z.array(BotSectionSchema)),

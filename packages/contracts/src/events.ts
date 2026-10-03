@@ -47,6 +47,8 @@ export const ProductEventType = z.enum([
   "group.created",
   "group.updated",
   "group.handoff",
+  "hive.updated",
+  "hive.task.updated",
 ]);
 export type ProductEventType = z.infer<typeof ProductEventType>;
 

@@ -4,6 +4,7 @@ export { codexMcpTools } from "./codex-mcp.js";
 export * from "./desktop.js";
 export * from "./domain.js";
 export * from "./events.js";
+export * from "./hive.js";
 export * from "./ids.js";
 export * from "./mcp.js";
 export * from "./openai-compatible-ui.js";

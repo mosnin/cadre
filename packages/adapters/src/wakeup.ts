@@ -42,6 +42,14 @@ export class GraphileJobPublisher implements JobPublisher {
   }
 }
 
+/** `WORKER_CONCURRENCY`: background jobs one worker process runs at once. Unset keeps 4. */
+export function workerConcurrencyFromEnv(env: NodeJS.ProcessEnv = process.env): number {
+  const value = Number(env.WORKER_CONCURRENCY);
+  return Number.isInteger(value) && value > 0 ? Math.min(value, 256) : DEFAULT_WORKER_CONCURRENCY;
+}
+
+const DEFAULT_WORKER_CONCURRENCY = 4;
+
 export class GraphileJobWorkerHost implements JobWorkerHost {
   private runner: Runner | undefined;
 
@@ -70,9 +78,12 @@ export class GraphileJobWorkerHost implements JobWorkerHost {
         },
       ]),
     );
+    const concurrency = this.options.concurrency ?? DEFAULT_WORKER_CONCURRENCY;
     this.runner = await run({
       connectionString: this.connectionString,
-      concurrency: this.options.concurrency ?? 4,
+      concurrency,
+      // Graphile needs a connection per running job plus its own; its default pool is 10.
+      ...(concurrency + 2 > 10 ? { maxPoolSize: concurrency + 2 } : {}),
       pollInterval: this.options.pollInterval ?? 500,
       noHandleSignals: this.options.noHandleSignals,
       taskList,

@@ -211,6 +211,7 @@ model Space {
   secrets                     Secret[]
   siteLogins                  SiteLogin[]
   chatGroups                  ChatGroup[]
+  hives                       Hive[]
 
   @@unique([id, organizationId])
   @@index([organizationId, createdAt])
@@ -464,6 +465,7 @@ model ChatGroup {
   members    ChatGroupMember[]
   thread     Thread?
   artifacts  Artifact[]
+  hive       Hive?
 
   @@index([spaceId, userId, archivedAt, pinned, updatedAt])
   @@index([sectionId])
@@ -476,6 +478,8 @@ model ChatGroupMember {
   group     ChatGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   botId     String
   bot       Bot       @relation(fields: [botId], references: [id], onDelete: NoAction)
+  /// Hive role: leader, orchestrator, auditor, worker or observer. Plain groups keep the default.
+  role      String    @default("worker")
   createdAt DateTime  @default(now())
 
   @@unique([groupId, botId])
@@ -986,6 +990,7 @@ model UsageRecord {
   createdAt    DateTime @default(now())
 
   @@index([spaceId, userId, createdAt])
+  @@index([runId])
   @@map("usage_records")
 }
 
@@ -1440,4 +1445,128 @@ model AgentTask {
   @@index([rootRunId])
   @@index([assignedRunId])
   @@map("agent_tasks")
+}
+
+/// A group chat bound to one project, run as a goal, a work graph and evidence-based review.
+model Hive {
+  id           String     @id @default(cuid())
+  groupId      String     @unique
+  group        ChatGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  spaceId      String
+  space        Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  userId       String
+  /// { summary, targetState, successMetrics[], acceptance[], constraints[], nonGoals[], deadline? }
+  goal         Json
+  /// planning | running | paused | accepted | cancelled
+  status       String     @default("planning")
+  realityLevel Int        @default(0)
+  budgetTokens Int
+  /// Informational link to an external project: { provider: "operate", workspaceId?, projectId?, taskId?, url? }
+  external     Json?
+  /// Bumped on every change; orders hive and task updates for clients.
+  seq          Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  tasks        HiveTask[]
+  wakes        HiveWake[]
+
+  @@index([spaceId, userId, status])
+  @@map("hives")
+}
+
+model HiveTask {
+  id              String               @id @default(cuid())
+  hiveId          String
+  hive            Hive                 @relation(fields: [hiveId], references: [id], onDelete: Cascade)
+  /// Short handle the planner chooses (unique per hive); tools accept the key or the id.
+  key             String
+  parentId        String?
+  title           String
+  brief           String               @db.Text
+  /// [{ id, text }]
+  acceptance      Json                 @default("[]")
+  ownership       String[]
+  assigneeBotId   String?
+  creatorBotId    String?
+  /// pending | ready | running | in_review | rework | accepted | failed | blocked | cancelled
+  status          String               @default("pending")
+  /// Completed review rounds that ended in rework.
+  attempts        Int                  @default(0)
+  runId           String?
+  claimLeaseUntil DateTime?
+  /// Counts dispatches; with the task id it keys the worker run so a dispatch is idempotent.
+  claimFence      Int                  @default(0)
+  seq             Int                  @default(0)
+  position        Int                  @default(0)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  dependencies    HiveTaskDependency[] @relation("HiveTaskDependsOn")
+  dependents      HiveTaskDependency[] @relation("HiveTaskDependedBy")
+  evidence        HiveEvidence[]
+  receipts        HiveReceipt[]
+
+  @@unique([hiveId, key])
+  @@index([hiveId, status])
+  @@index([runId])
+  @@map("hive_tasks")
+}
+
+model HiveTaskDependency {
+  taskId      String
+  task        HiveTask @relation("HiveTaskDependsOn", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOnId String
+  dependsOn   HiveTask @relation("HiveTaskDependedBy", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, dependsOnId])
+  @@index([dependsOnId])
+  @@map("hive_task_dependencies")
+}
+
+model HiveEvidence {
+  id          String   @id @default(cuid())
+  taskId      String
+  task        HiveTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  /// file | test | run | link | artifact | note
+  kind        String
+  ref         String
+  summary     String   @db.Text
+  sha256      String?
+  authorBotId String
+  runId       String?
+  createdAt   DateTime @default(now())
+
+  @@index([taskId, createdAt])
+  @@map("hive_evidence")
+}
+
+model HiveReceipt {
+  id           String   @id @default(cuid())
+  taskId       String
+  task         HiveTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  auditorBotId String
+  /// accept | rework | reject
+  verdict      String
+  notes        String   @db.Text
+  scores       Json?
+  createdAt    DateTime @default(now())
+
+  @@index([taskId, createdAt])
+  @@map("hive_receipts")
+}
+
+/// A durable reason to wake a bot of the hive. One run answers every pending wake of that bot.
+model HiveWake {
+  id         String    @id @default(cuid())
+  hiveId     String
+  hive       Hive      @relation(fields: [hiveId], references: [id], onDelete: Cascade)
+  botId      String
+  /// Unique idempotency key of the state change that asked for the wake.
+  key        String    @unique
+  reason     String    @db.Text
+  runId      String?
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([hiveId, consumedAt])
+  @@map("hive_wakes")
 }

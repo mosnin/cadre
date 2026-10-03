@@ -21,6 +21,7 @@ export const RunActivityRowSchema = z.object({
     "webhook",
     "messaging",
     "subagent",
+    "hive",
   ]),
   notificationsEnabled: z.boolean(),
   promptSnippet: z.string(),

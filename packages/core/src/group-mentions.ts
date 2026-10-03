@@ -1,7 +1,14 @@
 export type GroupMemberRef = {
   id: string;
   name: string;
+  /** Hive role. Plain groups have none (or the default worker). */
+  role?: string;
 };
+
+/** Who answers a message that mentions nobody: a hive's leader, else the first member. */
+export function defaultGroupTargetId(members: readonly GroupMemberRef[]): string | undefined {
+  return (members.find((member) => member.role === "leader") ?? members[0])?.id;
+}
 
 const MENTION_PATTERN = /@([A-Za-z0-9][A-Za-z0-9_-]{0,39})/g;
 
@@ -49,9 +56,8 @@ export function resolveGroupTargetBotIds(input: {
     }
   }
 
-  if (targetIds.size === 0 && input.members[0]) {
-    targetIds.add(input.members[0].id);
-  }
+  const fallbackId = defaultGroupTargetId(input.members);
+  if (targetIds.size === 0 && fallbackId) targetIds.add(fallbackId);
 
   return [...targetIds];
 }
