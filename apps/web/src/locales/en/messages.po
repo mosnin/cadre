@@ -264,7 +264,7 @@ msgstr "Add remote MCP server"
 msgid "Add server"
 msgstr "Add server"
 
-#: src/pages/shell/agent-types-editor.tsx:99
+#: src/pages/shell/agent-types-editor.tsx:96
 msgid "Add sub-agent type"
 msgstr "Add sub-agent type"
 
@@ -610,13 +610,13 @@ msgstr "Booting live desktop…"
 msgid "bot"
 msgstr "bot"
 
-#: src/pages/AccountSettingsOverlay.tsx:174
-msgid "Bot"
-msgstr "Bot"
-
 #. js-lingui-explicit-id
 #: src/lib/browser-notifications.ts:71
 #: src/pages/Shell.tsx:1991
+msgid "Bot"
+msgstr "Bot"
+
+#: src/pages/AccountSettingsOverlay.tsx:174
 msgid "Bot"
 msgstr "Bot"
 
@@ -2188,7 +2188,7 @@ msgstr "Instance API key"
 msgid "Instruction"
 msgstr "Instruction"
 
-#: src/pages/shell/agent-types-editor.tsx:65
+#: src/pages/shell/agent-types-editor.tsx:62
 #: src/pages/WorkforceOverlay.tsx:326
 msgid "Instructions"
 msgstr "Instructions"
@@ -2460,7 +2460,7 @@ msgstr "minutes"
 msgid "Model"
 msgstr "Model"
 
-#: src/pages/shell/agent-types-editor.tsx:83
+#: src/pages/shell/agent-types-editor.tsx:80
 msgid "Model (optional)"
 msgstr "Model (optional)"
 
@@ -3134,7 +3134,7 @@ msgstr "Remove schedule"
 msgid "Remove skill {0}"
 msgstr "Remove skill {0}"
 
-#: src/pages/shell/agent-types-editor.tsx:47
+#: src/pages/shell/agent-types-editor.tsx:44
 msgid "Remove sub-agent type"
 msgstr "Remove sub-agent type"
 
@@ -3718,23 +3718,23 @@ msgstr "Stored encrypted"
 msgid "Sub-agent · {0}"
 msgstr "Sub-agent · {0}"
 
-#: src/pages/shell/agent-types-editor.tsx:56
+#: src/pages/shell/agent-types-editor.tsx:53
 msgid "Sub-agent type description"
 msgstr "Sub-agent type description"
 
-#: src/pages/shell/agent-types-editor.tsx:64
+#: src/pages/shell/agent-types-editor.tsx:61
 msgid "Sub-agent type instructions"
 msgstr "Sub-agent type instructions"
 
-#: src/pages/shell/agent-types-editor.tsx:82
+#: src/pages/shell/agent-types-editor.tsx:79
 msgid "Sub-agent type model"
 msgstr "Sub-agent type model"
 
-#: src/pages/shell/agent-types-editor.tsx:36
+#: src/pages/shell/agent-types-editor.tsx:33
 msgid "Sub-agent type name"
 msgstr "Sub-agent type name"
 
-#: src/pages/shell/agent-types-editor.tsx:71
+#: src/pages/shell/agent-types-editor.tsx:68
 msgid "Sub-agent type tools"
 msgstr "Sub-agent type tools"
 
@@ -3812,10 +3812,6 @@ msgstr "Team Computer"
 #: src/pages/RoutineEditor.tsx:60
 msgid "Teams message"
 msgstr "Teams message"
-
-#: src/pages/shell/agent-types-editor.tsx:28
-msgid "Templates this bot can spawn as temporary sub-agents, next to the built-in ones."
-msgstr "Templates this bot can spawn as temporary sub-agents, next to the built-in ones."
 
 #: src/components/teach/SkillDraftCard.tsx:145
 msgid "Test"
@@ -3949,7 +3945,7 @@ msgstr "Tool sources"
 msgid "Tools and skills"
 msgstr "Tools and skills"
 
-#: src/pages/shell/agent-types-editor.tsx:72
+#: src/pages/shell/agent-types-editor.tsx:69
 msgid "Tools, comma separated (optional)"
 msgstr "Tools, comma separated (optional)"
 
@@ -4175,7 +4171,7 @@ msgstr "When to use"
 msgid "When to use it"
 msgstr "When to use it"
 
-#: src/pages/shell/agent-types-editor.tsx:57
+#: src/pages/shell/agent-types-editor.tsx:54
 msgid "When to use this sub-agent"
 msgstr "When to use this sub-agent"
 

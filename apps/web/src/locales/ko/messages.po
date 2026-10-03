@@ -264,7 +264,7 @@ msgstr "원격 MCP 서버 추가"
 msgid "Add server"
 msgstr "서버 추가"
 
-#: src/pages/shell/agent-types-editor.tsx:99
+#: src/pages/shell/agent-types-editor.tsx:96
 msgid "Add sub-agent type"
 msgstr ""
 
@@ -610,15 +610,15 @@ msgstr "라이브 데스크톱 시작 중…"
 msgid "bot"
 msgstr "Bot"
 
-#: src/pages/AccountSettingsOverlay.tsx:174
-msgid "Bot"
-msgstr ""
-
 #. js-lingui-explicit-id
 #: src/lib/browser-notifications.ts:71
 #: src/pages/Shell.tsx:1991
 msgid "Bot"
 msgstr "Bot"
+
+#: src/pages/AccountSettingsOverlay.tsx:174
+msgid "Bot"
+msgstr ""
 
 #: src/pages/Shell.tsx:4651
 msgid "Bot screen"
@@ -2188,7 +2188,7 @@ msgstr "인스턴스 API 키"
 msgid "Instruction"
 msgstr "실행할 내용"
 
-#: src/pages/shell/agent-types-editor.tsx:65
+#: src/pages/shell/agent-types-editor.tsx:62
 #: src/pages/WorkforceOverlay.tsx:326
 msgid "Instructions"
 msgstr ""
@@ -2460,7 +2460,7 @@ msgstr "분"
 msgid "Model"
 msgstr "모델"
 
-#: src/pages/shell/agent-types-editor.tsx:83
+#: src/pages/shell/agent-types-editor.tsx:80
 msgid "Model (optional)"
 msgstr ""
 
@@ -3134,7 +3134,7 @@ msgstr "일정 제거"
 msgid "Remove skill {0}"
 msgstr "작업 기술 {0} 삭제"
 
-#: src/pages/shell/agent-types-editor.tsx:47
+#: src/pages/shell/agent-types-editor.tsx:44
 msgid "Remove sub-agent type"
 msgstr ""
 
@@ -3718,23 +3718,23 @@ msgstr "암호화해 저장"
 msgid "Sub-agent · {0}"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:56
+#: src/pages/shell/agent-types-editor.tsx:53
 msgid "Sub-agent type description"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:64
+#: src/pages/shell/agent-types-editor.tsx:61
 msgid "Sub-agent type instructions"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:82
+#: src/pages/shell/agent-types-editor.tsx:79
 msgid "Sub-agent type model"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:36
+#: src/pages/shell/agent-types-editor.tsx:33
 msgid "Sub-agent type name"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:71
+#: src/pages/shell/agent-types-editor.tsx:68
 msgid "Sub-agent type tools"
 msgstr ""
 
@@ -3812,10 +3812,6 @@ msgstr "팀 컴퓨터"
 #: src/pages/RoutineEditor.tsx:60
 msgid "Teams message"
 msgstr "Teams 메시지"
-
-#: src/pages/shell/agent-types-editor.tsx:28
-msgid "Templates this bot can spawn as temporary sub-agents, next to the built-in ones."
-msgstr ""
 
 #: src/components/teach/SkillDraftCard.tsx:145
 msgid "Test"
@@ -3949,7 +3945,7 @@ msgstr "도구 소스"
 msgid "Tools and skills"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:72
+#: src/pages/shell/agent-types-editor.tsx:69
 msgid "Tools, comma separated (optional)"
 msgstr ""
 
@@ -4175,7 +4171,7 @@ msgstr "언제 사용할지"
 msgid "When to use it"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:57
+#: src/pages/shell/agent-types-editor.tsx:54
 msgid "When to use this sub-agent"
 msgstr ""
 

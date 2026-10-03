@@ -24,9 +24,6 @@ export function AgentTypesEditor({
   return (
     <div className="mt-5" data-testid="agent-types-editor">
       <div className="text-[14px] text-muted-foreground">{t`Sub-agent types`}</div>
-      <p className="mt-1 text-[13px] text-muted-foreground">
-        {t`Templates this bot can spawn as temporary sub-agents, next to the built-in ones.`}
-      </p>
       {agents.map((agent, index) => {
         const issue = issueText(agent.name);
         return (

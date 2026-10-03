@@ -264,7 +264,7 @@ msgstr "रिमोट MCP सर्वर जोड़ें"
 msgid "Add server"
 msgstr "सर्वर जोड़ें"
 
-#: src/pages/shell/agent-types-editor.tsx:99
+#: src/pages/shell/agent-types-editor.tsx:96
 msgid "Add sub-agent type"
 msgstr ""
 
@@ -610,15 +610,15 @@ msgstr "लाइव डेस्कटॉप शुरू हो रहा ह�
 msgid "bot"
 msgstr "बॉट"
 
-#: src/pages/AccountSettingsOverlay.tsx:174
-msgid "Bot"
-msgstr ""
-
 #. js-lingui-explicit-id
 #: src/lib/browser-notifications.ts:71
 #: src/pages/Shell.tsx:1991
 msgid "Bot"
 msgstr "बॉट"
+
+#: src/pages/AccountSettingsOverlay.tsx:174
+msgid "Bot"
+msgstr ""
 
 #: src/pages/Shell.tsx:4651
 msgid "Bot screen"
@@ -2188,7 +2188,7 @@ msgstr "इंस्टेंस API कुंजी"
 msgid "Instruction"
 msgstr "निर्देश"
 
-#: src/pages/shell/agent-types-editor.tsx:65
+#: src/pages/shell/agent-types-editor.tsx:62
 #: src/pages/WorkforceOverlay.tsx:326
 msgid "Instructions"
 msgstr ""
@@ -2460,7 +2460,7 @@ msgstr "मिनट"
 msgid "Model"
 msgstr "मॉडल"
 
-#: src/pages/shell/agent-types-editor.tsx:83
+#: src/pages/shell/agent-types-editor.tsx:80
 msgid "Model (optional)"
 msgstr ""
 
@@ -3134,7 +3134,7 @@ msgstr ""
 msgid "Remove skill {0}"
 msgstr "स्किल {0} हटाएं"
 
-#: src/pages/shell/agent-types-editor.tsx:47
+#: src/pages/shell/agent-types-editor.tsx:44
 msgid "Remove sub-agent type"
 msgstr ""
 
@@ -3718,23 +3718,23 @@ msgstr "एन्क्रिप्टेड रूप में संग्र
 msgid "Sub-agent · {0}"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:56
+#: src/pages/shell/agent-types-editor.tsx:53
 msgid "Sub-agent type description"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:64
+#: src/pages/shell/agent-types-editor.tsx:61
 msgid "Sub-agent type instructions"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:82
+#: src/pages/shell/agent-types-editor.tsx:79
 msgid "Sub-agent type model"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:36
+#: src/pages/shell/agent-types-editor.tsx:33
 msgid "Sub-agent type name"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:71
+#: src/pages/shell/agent-types-editor.tsx:68
 msgid "Sub-agent type tools"
 msgstr ""
 
@@ -3811,10 +3811,6 @@ msgstr "टीम कंप्यूटर"
 
 #: src/pages/RoutineEditor.tsx:60
 msgid "Teams message"
-msgstr ""
-
-#: src/pages/shell/agent-types-editor.tsx:28
-msgid "Templates this bot can spawn as temporary sub-agents, next to the built-in ones."
 msgstr ""
 
 #: src/components/teach/SkillDraftCard.tsx:145
@@ -3949,7 +3945,7 @@ msgstr "टूल स्रोत"
 msgid "Tools and skills"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:72
+#: src/pages/shell/agent-types-editor.tsx:69
 msgid "Tools, comma separated (optional)"
 msgstr ""
 
@@ -4175,7 +4171,7 @@ msgstr "कब उपयोग करें"
 msgid "When to use it"
 msgstr ""
 
-#: src/pages/shell/agent-types-editor.tsx:57
+#: src/pages/shell/agent-types-editor.tsx:54
 msgid "When to use this sub-agent"
 msgstr ""
 
