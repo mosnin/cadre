@@ -17,6 +17,7 @@ import {
 } from "./computer-lifecycle.js";
 import { runNotificationsEnabled } from "./executor.js";
 import { isUnattendedTrigger, unattendedWaitMs } from "./run-guardrails.js";
+import { reconcileHives } from "./hives.js";
 import { reconcileSubagents } from "./subagents.js";
 import { isUserProgressClientNonce } from "./user-progress.js";
 
@@ -106,7 +107,7 @@ export function createPostgresReconciliationLeadership(
   };
 }
 
-const UNATTENDED_TRIGGERS = ["routine", "webhook", "bot_message", "spawn"].filter(
+const UNATTENDED_TRIGGERS = ["routine", "webhook", "bot_message", "spawn", "hive"].filter(
   isUnattendedTrigger,
 );
 const UNATTENDED_WAIT_EXPIRED =
@@ -462,6 +463,12 @@ export function createJobReconciler(
           events: deps.events,
           jobs: deps.jobs,
         }).catch((error) => getLogger().error("reconcile subagents", error));
+        // Hive backstop: lost workers, unwoken reviewers, budget pauses, undrained wakes.
+        await reconcileHives({
+          prisma: deps.prisma,
+          events: deps.events,
+          jobs: deps.jobs,
+        }).catch((error) => getLogger().error("reconcile hives", error));
       }
     })().finally(() => {
       reconciling = undefined;

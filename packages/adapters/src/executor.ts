@@ -197,6 +197,7 @@ import { handoffToGroupBot, loadGroupContext } from "./group-handoff.js";
 import {
   afterHiveRunEnded,
   type HiveCaller,
+  HIVE_BUDGET_MESSAGE,
   hiveBudgetBlocksRun,
   hiveDispatch,
   hivePlan,
@@ -1545,6 +1546,33 @@ export function createRunExecutor(deps: ExecutorDeps) {
             sessionId: runId,
           });
           if (routed) runModelId = routed;
+        }
+        // A hive that spent its token budget pauses before this turn starts. The runs the hive
+        // itself started stop; a person's own message in the chat is still answered.
+        if (
+          thread.groupId &&
+          !isSubagent &&
+          (await hiveBudgetBlocksRun(deps, run, thread.groupId)) &&
+          run.trigger === HIVE_RUN_TRIGGER
+        ) {
+          const failed = await deps.events.finalizeRun({
+            spaceId: run.spaceId,
+            threadId: thread.id,
+            botId: bot.id,
+            runId,
+            taskId: run.taskId,
+            attemptId: attempt.id,
+            leaseOwner: workerId,
+            leaseFence: fence,
+            outcome: "failed",
+            error: HIVE_BUDGET_MESSAGE,
+          });
+          if (failed) {
+            await afterHiveRunEnded(deps, run).catch((error) =>
+              getLogger().error("hive run end", error),
+            );
+          }
+          return;
         }
         if (!runModelProvider || !runModelId) {
           const failed = await deps.events.finalizeRun({

@@ -60,6 +60,8 @@ const EVIDENCE_PER_SUBMIT = 20;
 const KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/;
 const FROZEN = ["running", "in_review", "accepted", "failed", "cancelled"];
 
+export const HIVE_BUDGET_MESSAGE = "The hive token budget is used up; the hive is paused.";
+
 /** A rule the tool call broke; the message goes back to the model as the tool result. */
 class HiveToolError extends Error {}
 
