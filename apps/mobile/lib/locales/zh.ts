@@ -1,4 +1,6 @@
 export const ZH_MESSAGES: Record<string, string> = {
+  online: "在线",
+  offline: "离线",
   "Reload library": "重新加载资料库",
   "Changes saved. Reload the library to see them.": "更改已保存。重新加载资料库即可查看。",
   Back: "返回",

@@ -4,9 +4,11 @@ import {
   BOT_DESCRIPTION_MAX_LENGTH,
   BOT_INSTRUCTIONS_MAX_LENGTH,
   BOT_TITLE_MAX_LENGTH,
+  BotSchema,
   CreateBotInput,
   CreateGroupInput,
   canReactToThreadMessage,
+  DeviceSchema,
   McpServerConfigInput,
   MessageBlock,
   ModelOAuthBeginSchema,
@@ -286,5 +288,30 @@ describe("contracts", () => {
         data: rows.slice(0, 2_501),
       }).success,
     ).toBe(false);
+  });
+
+  it("describes Burst devices and assignment", () => {
+    expect(
+      DeviceSchema.parse({
+        id: "device-1",
+        name: "Studio Mac",
+        platform: "macos",
+        version: "1.0.0",
+        online: true,
+        lastSeenAt: null,
+        capabilities: { accessibility: true, permissions: { accessibility: true } },
+      }),
+    ).toMatchObject({ online: true });
+    expect(DeviceSchema.safeParse({ id: "d", name: "n", platform: "windows" }).success).toBe(false);
+    expect(appContract.devices.list).toBeDefined();
+    expect(appContract.devices.rename).toBeDefined();
+    expect(appContract.devices.remove).toBeDefined();
+    expect(appContract.devices.assign).toBeDefined();
+  });
+
+  it("keeps older bot payloads valid without a device", () => {
+    const shape = BotSchema.shape;
+    expect(shape.deviceId.parse(undefined)).toBeNull();
+    expect(shape.deviceId.parse("device-1")).toBe("device-1");
   });
 });

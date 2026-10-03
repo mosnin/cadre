@@ -25,6 +25,7 @@ import {
   CreateRoutineInput,
   CreateScratchpadItemInput,
   DeploymentSettingsSchema,
+  DeviceSchema,
   ExportManifestSchema,
   GroupDetailSchema,
   GroupSchema,
@@ -211,6 +212,15 @@ export const appContract = {
     setDefault: oc
       .input(z.object({ provider: z.string(), modelId: z.string() }))
       .output(z.object({ ok: z.literal(true) })),
+  },
+  devices: {
+    list: oc.output(z.array(DeviceSchema)),
+    rename: oc
+      .input(z.object({ deviceId: Id, name: z.string().trim().min(1).max(80) }))
+      .output(DeviceSchema),
+    remove: oc.input(z.object({ deviceId: Id })).output(z.object({ ok: z.literal(true) })),
+    /** A device becomes the bot's computer; null returns the bot to the deployment default. */
+    assign: oc.input(z.object({ botId: Id, deviceId: Id.nullable() })).output(BotSchema),
   },
   bots: {
     list: oc.output(z.array(BotSchema)),

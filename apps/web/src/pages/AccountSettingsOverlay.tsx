@@ -26,6 +26,7 @@ import {
   ComputersUnavailableHint,
   computersAreUnavailable,
 } from "../components/ComputersUnavailableHint";
+import { DevicesSection } from "../components/DevicesSection";
 import { SiteLoginsSettings } from "../components/SiteLoginsSettings";
 import { SoftwareUpdateSection } from "../components/SoftwareUpdateSection";
 import { authClient } from "../lib/auth";
@@ -283,6 +284,7 @@ export function AccountSettingsOverlay({
                     </p>
                   </div>
                   <ChangePasswordSection />
+                  <DevicesSection />
                   {canAdmin && (
                     <Link
                       to="/app/admin"

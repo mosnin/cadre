@@ -39,6 +39,7 @@ model User {
   voiceCredentials            UserVoiceCredential[]
   secrets                     Secret[]
   siteLogins                  SiteLogin[]
+  devices                     Device[]
   mcpServers                  McpServer[]
   botSections                 BotSection[]
   actionApprovalRules         ActionApprovalRule[]
@@ -382,6 +383,8 @@ model Bot {
   computerId        String?
   computer          Computer?         @relation(fields: [computerId], references: [id], onDelete: SetNull)
   computerSwitching Boolean           @default(false)
+  deviceId          String?
+  device            Device?           @relation(fields: [deviceId], references: [id], onDelete: SetNull)
   voiceId           String?
   autoSpeak         Boolean           @default(false)
   modelProvider     String?
@@ -406,6 +409,7 @@ model Bot {
   @@index([spaceId, userId, archivedAt, pinned, updatedAt])
   @@index([sectionId])
   @@index([computerId])
+  @@index([deviceId])
   @@index([parentBotId])
   @@map("bots")
 }
@@ -1347,4 +1351,42 @@ model StoredMemoryOutbox {
   attempts Int @default(0)
   @@index([nextAttemptAt], map: "stored_memory_outbox_due")
   @@map("stored_memory_outbox")
+}
+
+/// A Burst device (Mac app or Linux daemon) that acts as a bot's computer. The id is the
+/// client-generated device id, stable per machine and account.
+model Device {
+  id           String      @id
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  platform     String
+  version      String
+  capabilities Json
+  lastSeenAt   DateTime    @default(now())
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  revokedAt    DateTime?
+  bots         Bot[]
+  rpcs         DeviceRpc[]
+
+  @@index([userId])
+  @@map("devices")
+}
+
+/// One request relayed to a device. status: pending | delivered | completed | failed | expired.
+model DeviceRpc {
+  id        String   @id @default(cuid())
+  deviceId  String
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  request   Json
+  status    String   @default("pending")
+  result    Json?
+  error     Json?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([deviceId, status])
+  @@index([expiresAt])
+  @@map("device_rpcs")
 }

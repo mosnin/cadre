@@ -1,4 +1,5 @@
 import type {
+  AccessibilityToolResult,
   AdapterContext,
   AdapterDescriptor,
   AgentRunRequest,
@@ -118,6 +119,12 @@ export interface SandboxProvider {
     request: BrowserRequest,
     context: AdapterContext,
   ): Promise<Record<string, unknown>>;
+  /** Accessibility-tree tools; only computers that report the capability implement it. */
+  accessibility?(
+    computer: ComputerRef,
+    request: { tool: string; args?: Record<string, unknown> },
+    context: AdapterContext,
+  ): Promise<AccessibilityToolResult>;
   observe(computer: ComputerRef, context: AdapterContext): Promise<ComputerObservation>;
   act(
     computer: ComputerRef,

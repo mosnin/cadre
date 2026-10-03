@@ -41,6 +41,7 @@ function mapBot(
     modelId?: string | null;
     thinkingLevel?: string | null;
     webhookSecretId?: string | null;
+    deviceId?: string | null;
   },
   preview = "",
   status = "idle",
@@ -67,6 +68,7 @@ function mapBot(
     preview,
     status,
     computerMode: bot.computer ? parseComputerMode(bot.computer.scope) : "team",
+    deviceId: bot.deviceId ?? null,
     createdAt: bot.createdAt.toISOString(),
     updatedAt: bot.updatedAt.toISOString(),
     voiceId: bot.voiceId ?? null,
@@ -468,6 +470,28 @@ export function createRepos(prisma: PrismaClient) {
           botIds.map((id, position) => tx.bot.update({ where: { id }, data: { position } })),
         );
       });
+    },
+
+    /** Point a bot at one of its owner's devices, or back at the default computer with null. */
+    async setBotDevice(actor: Actor, botId: string, deviceId: string | null): Promise<Bot> {
+      const bot = await prisma.bot.findFirst({
+        where: { id: botId, spaceId: actor.spaceId, userId: actor.userId },
+        select: { id: true },
+      });
+      if (!bot) throw new IsolationError();
+      if (deviceId !== null) {
+        const device = await prisma.device.findFirst({
+          where: { id: deviceId, userId: actor.userId, revokedAt: null },
+          select: { id: true },
+        });
+        if (!device) throw new IsolationError();
+      }
+      const updated = await prisma.bot.update({
+        where: { id: botId },
+        data: { deviceId },
+        include: { thread: true, computer: true },
+      });
+      return mapBot(updated);
     },
 
     async setBotComputer(actor: Actor, botId: string, mode: ComputerMode): Promise<Bot> {

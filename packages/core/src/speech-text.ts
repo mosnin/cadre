@@ -180,8 +180,11 @@ export function narrateTool(toolName: string): string | null {
     [/^(grep|search|glob|find)$/, "searching"],
     [/^(web_?search|websearch)$/, "searching the web"],
     [/^(web_?fetch|fetch)$/, "reading a page"],
-    [/^(screenshot|computer_observe)$/, "looking at the screen"],
-    [/^(click|type_text|press_key|scroll|computer_batch|computer_act)$/, "using the computer"],
+    [/^(screenshot|computer_observe|computer_apps|computer_app_state)$/, "looking at the screen"],
+    [
+      /^(click|type_text|press_key|scroll|computer_batch|computer_act|computer_(click_element|secondary_action|scroll_element|drag|type|key|set_value))$/,
+      "using the computer",
+    ],
     [/^open_url$/, "opening a page"],
     [/^list_bots$/, "checking who's around"],
     [/^ask_bot$/, "asking a teammate"],

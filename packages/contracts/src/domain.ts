@@ -6,6 +6,35 @@ import { McpHeadersSchema, McpRemoteEndpointSchema, McpTransportSchema } from ".
 export const ComputerModeSchema = z.enum(["team", "dedicated"]);
 export type ComputerMode = z.infer<typeof ComputerModeSchema>;
 
+export const DevicePlatformSchema = z.enum(["macos", "linux"]);
+export type DevicePlatform = z.infer<typeof DevicePlatformSchema>;
+
+export const DeviceCapabilitiesSchema = z.object({
+  exec: z.boolean().optional(),
+  files: z.boolean().optional(),
+  screen: z.boolean().optional(),
+  input: z.boolean().optional(),
+  accessibility: z.boolean().optional(),
+  browser: z.boolean().optional(),
+  /** Cadre Code: the device can run coding agent sessions. */
+  code: z.boolean().optional(),
+  multiscreen: z.boolean().optional(),
+  permissions: z.record(z.string(), z.boolean()).optional(),
+});
+export type DeviceCapabilities = z.infer<typeof DeviceCapabilitiesSchema>;
+
+/** A Burst app or daemon that can be a bot's computer. */
+export const DeviceSchema = z.object({
+  id: Id,
+  name: z.string(),
+  platform: DevicePlatformSchema,
+  version: z.string(),
+  online: z.boolean(),
+  lastSeenAt: z.string().nullable(),
+  capabilities: DeviceCapabilitiesSchema,
+});
+export type Device = z.infer<typeof DeviceSchema>;
+
 export const MemoryScopeSchema = z.enum(["isolated", "shared"]);
 export type MemoryScopeValue = z.infer<typeof MemoryScopeSchema>;
 
@@ -71,6 +100,8 @@ export const BotSchema = z.object({
   preview: z.string(),
   status: z.string(),
   computerMode: ComputerModeSchema,
+  /** Burst device that is this bot's computer; null uses the deployment's default provider. */
+  deviceId: Id.nullable().default(null),
   updatedAt: z.string(),
   createdAt: z.string(),
   voiceId: z.string().nullable(),

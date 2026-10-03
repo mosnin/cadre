@@ -28,6 +28,8 @@ import { t } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Plus, X } from "lucide-react";
 import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
+import { computersAreUnavailable } from "../../components/ComputersUnavailableHint";
+import { DevicePicker } from "../../components/DevicesSection";
 import { ElasticRangeSlider } from "../../components/ElasticRangeSlider";
 import { rpc } from "../../lib/rpc";
 import { thinkingSliderIndex } from "../../lib/thinking-slider";
@@ -414,6 +416,13 @@ export function BotSettings({
         }
       >
         <ComputerModePicker value={computerMode} onChange={setComputerMode} />
+        <DevicePicker
+          botId={bot.id}
+          deviceId={bot.deviceId}
+          hasCloudComputer={Boolean(
+            me && me.sandboxProvider !== "device" && !computersAreUnavailable(me.sandboxProvider),
+          )}
+        />
         <Suspense fallback={null}>
           <ScratchpadSection botId={bot.id} />
         </Suspense>

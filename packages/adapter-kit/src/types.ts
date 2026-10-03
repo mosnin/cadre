@@ -164,6 +164,14 @@ export interface AgentToolExecutionResult {
   details: unknown;
 }
 
+/** Result of one accessibility tool on a computer that exposes them (a Burst device). */
+export interface AccessibilityToolResult {
+  content: Array<
+    { type: "text"; text: string } | { type: "image"; data: string; mimeType: string }
+  >;
+  isError?: boolean;
+}
+
 export interface ControlLeaseRef {
   leaseId: string;
   holder: "user" | "bot";

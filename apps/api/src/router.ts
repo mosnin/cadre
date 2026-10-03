@@ -138,6 +138,7 @@ import {
   resolveBusyBotName,
   toComputerStatus,
 } from "./computer-status.js";
+import { createDevicesService, type DevicePresence } from "./devices.js";
 import { buildMcpUpdateMaterial } from "./mcp-material.js";
 import {
   chooseFocus,
@@ -355,6 +356,8 @@ export interface RouterDeps {
   composio?: ComposioProvider;
   mcpOAuth?: McpOAuthBroker;
   connectors: ConnectorRegistry;
+  /** Online state and teardown for Burst devices; without it, recent activity decides. */
+  devices?: DevicePresence;
   remoteConnectors?: RemoteConnectorDependencies;
   artifacts: ArtifactStore;
   dataDir: string;
@@ -394,6 +397,7 @@ export function createRouter(deps: RouterDeps) {
     dataDir: deps.dataDir,
   });
   const agentSkills = createAgentSkillsService(deps.prisma);
+  const devices = createDevicesService(deps.prisma, deps.devices);
 
   const authed = os.use(async ({ context, next }) => {
     if (!context.actor) throw new ORPCError("UNAUTHORIZED");
@@ -674,6 +678,18 @@ export function createRouter(deps: RouterDeps) {
         );
         return { ok: true as const };
       }),
+    },
+    devices: {
+      list: authed.devices.list.handler(({ context }) => devices.list(context.actor)),
+      rename: authed.devices.rename.handler(({ context, input }) =>
+        devices.rename(context.actor, input),
+      ),
+      remove: authed.devices.remove.handler(({ context, input }) =>
+        devices.remove(context.actor, input),
+      ),
+      assign: authed.devices.assign.handler(({ context, input }) =>
+        devices.assign(context.actor, input),
+      ),
     },
     bots: {
       list: authed.bots.list.handler(async ({ context }) => repos.listBots(context.actor)),

@@ -1,4 +1,6 @@
-/** Empty or remote provider without a key becomes none so services can boot for signup. */
+/**
+ * `device` needs no credential: computers are Burst devices the users own, so it passes through.
+ * Empty or remote provider without a key becomes none so services can boot for signup. */
 export function resolveSandboxProvider(source: NodeJS.ProcessEnv = process.env): string {
   const configured = source.SANDBOX_PROVIDER;
   if (configured !== undefined && !configured.trim()) return "none";

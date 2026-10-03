@@ -47,14 +47,11 @@ projects:
                 sync: false
               - key: STORAGE_GATEWAY_TOKEN
                 sync: false
+              # Bots use the user's own Burst device as their computer. Set
+              # SANDBOX_PROVIDER=fly with FLY_COMPUTER_APP, FLY_API_TOKEN and
+              # FLY_COMPUTER_IMAGE to offer cloud computers instead.
               - key: SANDBOX_PROVIDER
-                value: fly
-              - key: FLY_COMPUTER_APP
-                sync: false
-              - key: FLY_API_TOKEN
-                sync: false
-              - key: FLY_COMPUTER_IMAGE
-                sync: false
+                value: device
               - key: AGENT_RUNTIME
                 value: pi
               - key: PI_DEFAULT_PROVIDER
