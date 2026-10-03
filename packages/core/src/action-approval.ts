@@ -29,6 +29,13 @@ const APPROVAL_EXEMPT_TOOLS = new Set([
   "cancel_agent",
   "list_agents",
   "update_plan",
+  // Hive tools are role-gated state transitions the server validates; they touch no outside system.
+  "hive_set_goal",
+  "hive_plan",
+  "hive_dispatch",
+  "hive_submit",
+  "hive_review",
+  "hive_status",
   "spawn_bot",
   "schedule_create",
   "schedule_list",

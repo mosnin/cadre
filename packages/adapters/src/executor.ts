@@ -26,7 +26,7 @@ import {
   routineWakeupJob,
   runContinueJob,
 } from "@cadre/adapter-kit";
-import type { MessageBlock, RunStatus } from "@cadre/contracts";
+import type { HiveRole, MessageBlock, RunStatus } from "@cadre/contracts";
 import { ATTACHMENT_MAX_BYTES, isAttachmentImageMimeType } from "@cadre/contracts";
 import {
   type ActionApprovalRule,
@@ -34,6 +34,7 @@ import {
   appendToolCallSegment,
   applyJudgeDecision,
   assertTransition,
+  attributePeerMessages,
   blocksToAgentHistoryText,
   botMessageAllowsSilence,
   clipAgentText,
@@ -47,7 +48,10 @@ import {
   findAgentType,
   formatSkillRunPrompt,
   formatSkillsCatalogInstruction,
+  HIVE_RUN_TRIGGER,
+  hiveToolsForRole,
   inferAttachmentMimeType,
+  isHiveTool,
   isMessagingChannelRun,
   isOneShotRoutineCrons,
   isTerminal,
@@ -190,6 +194,19 @@ import { resolveDeploymentModel } from "./deployment-model.js";
 import type { DeviceRelay } from "./device-relay.js";
 import { isSandboxGoneError } from "./e2b-sandbox.js";
 import { handoffToGroupBot, loadGroupContext } from "./group-handoff.js";
+import {
+  afterHiveRunEnded,
+  type HiveCaller,
+  hiveBudgetBlocksRun,
+  hiveDispatch,
+  hivePlan,
+  hiveReview,
+  hiveSetGoal,
+  hiveStatus,
+  hiveSubmit,
+  loadHiveCaller,
+  renderHivePrompt,
+} from "./hives.js";
 import {
   COMPACTION_BATCH_SIZE,
   formatCompactedSummary,
@@ -339,6 +356,7 @@ const READ_ONLY_AGENT_TOOLS = new Set([
   "cancel_agent",
   "list_agents",
   "update_plan",
+  "hive_status",
   "recall_memory",
   "schedule_list",
   "scratchpad_list",
@@ -1247,7 +1265,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             where: { threadId: run.threadId },
             orderBy: { seq: "desc" },
             take: LEGACY_HISTORY_WINDOW_SIZE,
-            select: { id: true, seq: true, role: true, runId: true, blocks: true },
+            select: { id: true, seq: true, role: true, runId: true, botId: true, blocks: true },
           }),
           run.trigger === "bot_message"
             ? loadBotMessageContext(deps.prisma, run.sourceMessageId)
@@ -1359,19 +1377,57 @@ export function createRunExecutor(deps: ExecutorDeps) {
         const discoveredPromise = deps.connector
           ? deps.connector.discoverTools(context)
           : Promise.resolve([]);
-        const threadContext = threadContextForRun(run.trigger, {
-          messages: [...messages].reverse().map((m) => ({
-            id: m.id,
-            seq: m.seq,
-            role: (m.role === "user" ? "user" : m.role === "system" ? "system" : "assistant") as
-              | "user"
-              | "assistant"
-              | "system",
-            content: blocksToAgentHistoryText(m.blocks as MessageBlock[]),
-          })),
-          summary: thread.historyCompactionSummary,
-          historyCompactedUpToSeq: thread.historyCompactedUpToSeq,
-        });
+        // In a hive this bot has a role; sub-agents never hold hive authority.
+        const hiveCaller: HiveCaller | null = isSubagent
+          ? null
+          : await loadHiveCaller(deps.prisma, {
+              threadId: thread.id,
+              groupId: thread.groupId,
+              botId: bot.id,
+              runId,
+            });
+        // The auditor judges evidence and a worker does one brief: neither reads the chat.
+        const cleanHiveContext =
+          run.trigger === HIVE_RUN_TRIGGER &&
+          (hiveCaller?.role === "auditor" || hiveCaller?.role === "worker");
+        // In a group, other bots' messages are labelled with their name, not replayed as this
+        // bot's own turns.
+        const peerBotIds = thread.groupId
+          ? [...new Set(messages.flatMap((m) => (m.botId && m.botId !== bot.id ? [m.botId] : [])))]
+          : [];
+        const peerNames = new Map(
+          peerBotIds.length > 0
+            ? (
+                await deps.prisma.bot.findMany({
+                  where: { id: { in: peerBotIds } },
+                  select: { id: true, name: true },
+                })
+              ).map((peer) => [peer.id, peer.name] as const)
+            : [],
+        );
+        const threadContext = threadContextForRun(
+          run.trigger,
+          {
+            messages: attributePeerMessages(
+              [...messages].reverse().map((m) => ({
+                id: m.id,
+                seq: m.seq,
+                role: (m.role === "user"
+                  ? "user"
+                  : m.role === "system"
+                    ? "system"
+                    : "assistant") as "user" | "assistant" | "system",
+                content: blocksToAgentHistoryText(m.blocks as MessageBlock[]),
+                botId: thread.groupId ? m.botId : null,
+              })),
+              bot.id,
+              peerNames,
+            ),
+            summary: thread.historyCompactionSummary,
+            historyCompactedUpToSeq: thread.historyCompactedUpToSeq,
+          },
+          { cleanContext: cleanHiveContext },
+        );
         const compactedHistory = selectCompactedHistory({
           messages: threadContext.messages,
           summary: threadContext.summary,
@@ -1681,6 +1737,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             groupId: thread.groupId,
             trigger: policyTrigger,
             semanticMemoryEnabled,
+            hiveRole: hiveCaller?.role,
           }),
           // Cross-owner agent connections only exist for chat-linked bots.
           ...(hasMessagingIdentity ? agentConnectionTools : []),
@@ -3565,6 +3622,15 @@ export function createRunExecutor(deps: ExecutorDeps) {
             }
             return finish(planned.ok ? { tasks: planned.tasks } : { error: planned.error });
           }
+          if (hiveCaller && isHiveTool(name)) {
+            const hiveArgs = redactSecretsDeep(args, runSecrets);
+            if (name === "hive_set_goal") return finish(await hiveSetGoal(deps, hiveCaller, hiveArgs));
+            if (name === "hive_plan") return finish(await hivePlan(deps, hiveCaller, hiveArgs));
+            if (name === "hive_dispatch") return finish(await hiveDispatch(deps, hiveCaller, hiveArgs));
+            if (name === "hive_submit") return finish(await hiveSubmit(deps, hiveCaller, hiveArgs));
+            if (name === "hive_review") return finish(await hiveReview(deps, hiveCaller, hiveArgs));
+            return finish(await hiveStatus(deps, hiveCaller, hiveArgs));
+          }
           if (name === "create_space") {
             try {
               const space = await createSpaceForMember(deps.prisma, {
@@ -3888,6 +3954,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             throw error;
           }
         };
+        const hivePrompt = hiveCaller ? await renderHivePrompt(deps.prisma, hiveCaller) : undefined;
         const spawnEnabled = allowedToolNames.has("spawn_agent");
         const planLedgerText = isSubagent
           ? undefined
@@ -3945,6 +4012,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
                       ),
                   groupContext ? undefined : renderUserIdentity({ name: ownerName }),
                   groupContext,
+                  hivePrompt ? redactSecrets(hivePrompt, runSecrets) : undefined,
                   messagingContext,
                   memoryContext ? redactSecrets(memoryContext, runSecrets) : undefined,
                   scratchpadContext ? redactSecrets(scratchpadContext, runSecrets) : undefined,
@@ -4521,6 +4589,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
             await afterRunEnded(deps, run).catch((error) =>
               getLogger().error("subagent wake", error),
             );
+            if (thread.groupId) {
+              await afterHiveRunEnded(deps, run).catch((error) =>
+                getLogger().error("hive run end", error),
+              );
+            }
           }
           if (completed.continuationRunId) {
             await deps.jobs
@@ -4677,6 +4750,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
             await afterRunEnded(deps, run).catch((wakeError) =>
               getLogger().error("subagent wake", wakeError),
             );
+            if (thread.groupId) {
+              await afterHiveRunEnded(deps, run).catch((hiveError) =>
+                getLogger().error("hive run end", hiveError),
+              );
+            }
           }
           if (failed.continuationRunId) {
             await deps.jobs
@@ -4874,13 +4952,17 @@ export function selectBuiltinToolsForRun(options: {
   groupId: string | null;
   trigger: string;
   semanticMemoryEnabled: boolean;
+  /** The bot's role in the hive of this thread; hive tools exist only for it, and only there. */
+  hiveRole?: HiveRole | null;
 }) {
+  const hiveTools = new Set<string>(hiveToolsForRole(options.hiveRole));
   return selectMemoryTools(
     filterBuiltinToolsForRun(
       filterBuiltinToolsForThread(
         filterImageReturningComputerTools(
           builtinAgentTools.filter(
             (tool) =>
+              (!isHiveTool(tool.name) || hiveTools.has(tool.name)) &&
               (options.browserToolsAllowed ||
                 !["browser_observe", "browser_act", "browser_pursue"].includes(tool.name)) &&
               (options.accessibilityToolsAllowed || !ACCESSIBILITY_TOOL_NAMES.has(tool.name)) &&
@@ -4903,8 +4985,9 @@ export function threadContextForRun<T>(
     summary: string | null;
     historyCompactedUpToSeq: number | null;
   },
+  options: { cleanContext?: boolean } = {},
 ) {
-  return trigger === "routine" || trigger === SUBAGENT_RUN_TRIGGER
+  return trigger === "routine" || trigger === SUBAGENT_RUN_TRIGGER || options.cleanContext
     ? {
         messages: [] as T[],
         summary: null,
