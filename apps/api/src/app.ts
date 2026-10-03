@@ -18,6 +18,7 @@ import {
   type ConnectorRegistry,
   companyWorkspaceConfig,
   createBackgroundJobHandlers,
+  createCodeModelGateway,
   createCompanyOsWorkforce,
   createConnectorStack,
   createDurableStorage,
@@ -28,6 +29,7 @@ import {
   createRunSecretWriter,
   createWebProvider,
   type DestinationEmulator,
+  type DeviceRelay,
   destroyBot,
   EmailEmulator,
   EncryptedSecretStore,
@@ -42,11 +44,13 @@ import {
   isPipedreamEnabled,
   McpConnector,
   McpOAuthBroker,
+  MemoryDeviceRelay,
   messagingPlatformsFromEnv,
   modalOptions,
   PiAgentRuntime,
   PiOAuthLogins,
   PipedreamConnector,
+  PostgresDeviceRelay,
   PostgresRealtimeFanout,
   pipedreamConfigFromEnv,
   pushTokenPath,
@@ -86,9 +90,11 @@ import { ORPCError, onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { mountCodeRoutes } from "./code-routes.js";
 import { mountCodexMcp } from "./codex-mcp-http.js";
 import { mountCodexOAuth } from "./codex-oauth-http.js";
 import { mountCompanyWorkspaceRoutes } from "./company-workspaces.js";
+import { mountDeviceRoutes } from "./device-routes.js";
 import { type AppEnv, loadEnv } from "./env.js";
 import { createMessagingInboundHandler } from "./messaging-inbound.js";
 import { mountMessagingWebhookRoutes } from "./messaging-webhook.js";
@@ -109,6 +115,7 @@ export interface AppHandles {
   messaging?: MessagingSurface;
   email?: TransactionalEmailProvider;
   executor: ReturnType<typeof createRunExecutor>;
+  deviceRelay: DeviceRelay;
   stop: () => Promise<void>;
 }
 
@@ -188,7 +195,13 @@ export async function createApp(
   const jobKind = env.wakeupDriver;
   const inMemoryJobs = jobKind === "memory" ? new InMemoryJobQueue() : undefined;
   const jobs = inMemoryJobs ?? new GraphileJobPublisher(env.databaseUrl);
+  // Serves Burst device computers. Postgres lets the worker reach a device whose stream this
+  // process holds; without a database (single process) requests relay in memory.
+  const deviceRelay: DeviceRelay = created.pool
+    ? new PostgresDeviceRelay({ prisma, connectionString: env.realtimeDatabaseUrl })
+    : new MemoryDeviceRelay();
   const sandbox: SandboxProvider = createRunSandbox(env.sandboxProvider, {
+    device: { prisma, relay: deviceRelay },
     supervisorUrl: env.sandboxSupervisorUrl,
     supervisorToken: env.sandboxSupervisorToken,
     modal: modalOptions(),
@@ -338,6 +351,7 @@ export async function createApp(
     prisma,
     runtime,
     sandbox,
+    deviceRelay,
     memory,
     memoryProviders,
     home,
@@ -381,6 +395,10 @@ export async function createApp(
       ? { provider: "openai", apiKey: env.deploymentVoiceKey, voiceId: "coral" }
       : undefined;
   const router = createRouter({
+    devices: {
+      isOnline: (id) => deviceRelay.isOnline(id),
+      disconnect: (id) => deviceRelay.revoke(id),
+    },
     admin: {
       emails: env.adminEmails,
       bootstrapTokenHash: env.adminBootstrapTokenHash,
@@ -560,6 +578,37 @@ export async function createApp(
     if (matched) return c.newResponse(response.body, response);
     await next();
   });
+  mountDeviceRoutes(app, {
+    prisma,
+    relay: deviceRelay,
+    authenticate: async (c) => {
+      const origin = c.req.header("origin");
+      if (origin && !isTrustedOrigin(origin, env)) return null;
+      const session = await getSession(sessionHeaders(c.req.raw));
+      return session?.user ? { userId: session.user.id } : null;
+    },
+  });
+  mountCodeRoutes(app, {
+    gateway: createCodeModelGateway({
+      prisma,
+      secretStore: secrets,
+      deploymentModelKey: env.deploymentModelKey,
+    }),
+    authenticate: async (c) => {
+      const origin = c.req.header("origin");
+      if (origin && !isTrustedOrigin(origin, env)) return null;
+      const session = await getSession(sessionHeaders(c.req.raw));
+      if (!session?.user) return null;
+      return requireMembership(prisma, session.user.id, c.req.header("x-cadre-space-id")).catch(
+        () => null,
+      );
+    },
+    recordUsage: async (actor, usage) => {
+      await prisma.usageRecord.create({
+        data: { spaceId: actor.spaceId, userId: actor.userId, ...usage },
+      });
+    },
+  });
   mountVoiceHttpRoutes(app, { prisma, secrets, deploymentVoice }, async (c) => {
     const session = await getSession(sessionHeaders(c.req.raw));
     if (!session?.user) return null;
@@ -682,12 +731,14 @@ export async function createApp(
     messaging,
     email,
     executor,
+    deviceRelay,
     stop: async () => {
       oauthLogins.abortAll();
       await email?.drain?.();
       await reconciler?.stop();
       await jobs.close();
       await realtime.close();
+      await deviceRelay.close();
       await connector.stop();
       await mcp.close();
       await prisma.$disconnect().catch(() => undefined);

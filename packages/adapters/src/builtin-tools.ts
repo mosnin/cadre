@@ -1,4 +1,6 @@
 import type { ConnectorTool } from "@cadre/adapter-kit";
+import { ACCESSIBILITY_TOOL_NAMES, accessibilityAgentTools } from "./accessibility-tools.js";
+import { CODE_TOOL_NAMES, codeAgentTools } from "./code-tools.js";
 
 export const DELEGATION_TOOL_NAMES = new Set([
   "run_subagent",
@@ -18,6 +20,8 @@ export const SUBAGENT_PARENT_TOOL_NAMES = new Set([
   "browser_act",
   "computer_observe",
   "computer_act",
+  ...ACCESSIBILITY_TOOL_NAMES,
+  ...CODE_TOOL_NAMES,
   "message_user",
   "ask_user",
   "request_secret",
@@ -32,6 +36,8 @@ export const SUBAGENT_PARENT_TOOL_NAMES = new Set([
 ]);
 
 export const builtinAgentTools: ConnectorTool[] = [
+  ...accessibilityAgentTools,
+  ...codeAgentTools,
   {
     name: "browser_observe",
     description:

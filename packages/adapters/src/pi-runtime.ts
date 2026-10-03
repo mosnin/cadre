@@ -23,6 +23,7 @@ import {
   Type,
 } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
+import { ACCESSIBILITY_TOOL_NAMES } from "./accessibility-tools.js";
 import { isToolPauseResult } from "./approval-effect.js";
 import { builtinAgentTools, SUBAGENT_PARENT_TOOL_NAMES } from "./builtin-tools.js";
 import { tokenLimit } from "./env-limits.js";
@@ -515,9 +516,19 @@ export function describeToolActivity(toolName: string, args: unknown): string {
   if (toolName === "open_path") return `Opening ${detail(record.path)}`;
   if (toolName === "render_plot") return "Rendering a chart";
   if (toolName === "add_mcp_server") return `Connecting MCP server: ${detail(record.name)}`;
-  if (toolName === "computer_observe" || toolName === "browser_observe")
+  if (
+    toolName === "computer_observe" ||
+    toolName === "browser_observe" ||
+    toolName === "computer_apps" ||
+    toolName === "computer_app_state"
+  )
     return "Looking at the screen";
-  if (toolName === "computer_act" || toolName === "browser_act") return "Operating the computer";
+  if (
+    toolName === "computer_act" ||
+    toolName === "browser_act" ||
+    ACCESSIBILITY_TOOL_NAMES.has(toolName)
+  )
+    return "Operating the computer";
   if (toolName === "run_subagent") return `Delegating to helper: ${detail(record.name)}`;
   if (toolName === "create_space") return `Creating space: ${detail(record.name)}`;
   if (toolName === "remember") return "Saving a note to memory";

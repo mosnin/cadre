@@ -36,6 +36,7 @@ import {
   modalOptions,
   PiAgentRuntime,
   PipedreamConnector,
+  PostgresDeviceRelay,
   PostgresRealtimeFanout,
   pipedreamConfigFromEnv,
   resolveDeploymentModel,
@@ -74,7 +75,12 @@ async function main() {
   // Same resolver the API uses, so both processes agree on provider, model and key.
   const { key: deploymentModelKey } = resolveDeploymentModel();
   const sandboxProvider = resolveSandboxProvider(process.env);
+  const deviceRelay = new PostgresDeviceRelay({
+    prisma,
+    connectionString: process.env.REALTIME_DATABASE_URL ?? databaseUrl,
+  });
   const sandbox = createRunSandbox(sandboxProvider, {
+    device: { prisma, relay: deviceRelay },
     supervisorUrl: process.env.SANDBOX_SUPERVISOR_URL ?? "http://127.0.0.1:7091",
     supervisorToken: sandboxProvider === "docker" ? resolveSupervisorToken(process.env) : undefined,
     modal: modalOptions(),
@@ -165,6 +171,7 @@ async function main() {
     prisma,
     runtime,
     sandbox,
+    deviceRelay,
     memory: new MarkdownMemoryStore(prisma),
     memoryProviders,
     home,
@@ -257,6 +264,7 @@ async function main() {
       await jobHost.stop();
       await jobs.close();
       await realtime.close();
+      await deviceRelay.close();
       await connector.stop();
       await mcp.close();
       await prisma.$disconnect().catch(() => undefined);
