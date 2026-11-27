@@ -301,4 +301,4 @@ else
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
 fi
 
-echo "Cadre is starting at http://127.0.0.1:5173"
+echo "The Cadre API is starting at http://127.0.0.1:3100"

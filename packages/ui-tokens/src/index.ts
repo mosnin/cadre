@@ -7,7 +7,7 @@ export type ResolvedAppearance = "light" | "dark";
 export const UI_APPEARANCE_STORAGE_KEY = "cadre.uiAppearance";
 
 /**
- * Semantic palette shared by web, Electron, and Expo. Names follow the shadcn
+ * Semantic palette shared by the marketing site and Expo. Names follow the shadcn
  * convention so the same slot means the same thing on every surface: a `border`
  * is always a border and never a fill.
  */

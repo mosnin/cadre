@@ -1,6 +1,6 @@
 # Platform administration
 
-The web and Electron administration screen is available at `/app/admin`, and through Account settings for administrators and eligible bootstrap accounts. Native mobile users can open the responsive web screen; the native app does not expose administrative controls. The shared RPC contract enforces the same authorization for every client.
+The administration screen lived in the Cadre web app, which is gone: the web is now Burst's hosted client ([WEB.md](./WEB.md)). The native app does not expose administrative controls. The administration RPC contract and its authorization are unchanged.
 
 ## Bootstrap
 

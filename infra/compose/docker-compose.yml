@@ -124,19 +124,5 @@ services:
       data-init:
         condition: service_completed_successfully
 
-  web:
-    build:
-      context: ../..
-      dockerfile: infra/compose/Dockerfile
-    command: ["pnpm", "--filter", "@cadre/web", "preview", "--host", "0.0.0.0", "--port", "5173"]
-    environment:
-      API_PROXY_TARGET: http://api:3100
-      SCREEN_PROXY_SECRET: ${SCREEN_PROXY_SECRET:?Set SCREEN_PROXY_SECRET in .env}
-      CADRE_HOST: ${CADRE_HOST:-localhost}
-    ports:
-      - "127.0.0.1:5173:5173"
-    depends_on:
-      - api
-
 volumes:
   pgdata:

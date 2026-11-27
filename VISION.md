@@ -21,7 +21,7 @@ A managed Cadre service may improve convenience, but it does not become a hidden
 
 ## One product across every surface
 
-Web, Electron, mobile, and messaging surfaces expose the same bots and durable state through shared product contracts.
+Burst Desktop, the hosted Burst web client, mobile, and messaging surfaces expose the same bots and durable state through shared product contracts.
 Core workflows work on every applicable surface or degrade safely for an explicit reason.
 Shared behavior, orchestration, and reusable interface logic live in shared packages.
 Platform-specific code is reserved for native navigation, storage, permissions, and interactions that genuinely differ.
@@ -60,6 +60,7 @@ One bot has one continuous visible thread because continuity is part of its iden
 Team Computers share a persisted browser identity and isolate simultaneous live desktops when supported because shared login state and safe concurrency are both required.
 Private Computers isolate the entire working home because some trust boundaries must be stronger than collaboration convenience.
 Connections belong to the user or space rather than requiring repetitive per-bot setup because bots differ through role and state, not account plumbing.
+Cadre is becoming Burst, in stages. The local app is Burst Desktop and the web is Burst's hosted client, which reaches the person's own machines or cloud colonies through the Burst Connect relay; both are built from the Burst repository, which carries T3 Code's MIT attribution, and no T3 Code source is copied here. The API, worker, mobile app, and marketing site stay in this repository until later stages.
 
 ## Scope
 

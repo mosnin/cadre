@@ -4,7 +4,7 @@ The signed-in product is a long-running API, a Graphile Worker, Postgres, and a 
 
 ## Local (source checkout)
 
-Same as the README quick start: `.env` from `.env.example`, Postgres via Compose, `pnpm sandbox:build`, `pnpm dev`, then [http://127.0.0.1:5173](http://127.0.0.1:5173). Electron: `pnpm --filter @cadre/desktop dev` while that stack is up, choosing **Existing instance** with that address. The desktop app's **This computer** option instead installs and runs the published images itself with Docker Compose (see [Published images](#published-images-no-checkout)), which clashes with `pnpm dev` on port 5173.
+Same as the README quick start: `.env` from `.env.example`, Postgres via Compose, `pnpm sandbox:build`, `pnpm dev`, then the API answers on `http://127.0.0.1:3100`. The web UI is Burst's hosted client ([WEB.md](./WEB.md)); the mobile app connects to this API directly.
 
 ## Published images (no checkout)
 
@@ -87,28 +87,25 @@ Signup and local Docker computers work without an E2B account. Optional remote p
 `SANDBOX_PROVIDER` to `e2b`, `daytona`, or `box` and add the matching API key. Compose requires
 `SANDBOX_SUPERVISOR_TOKEN` for the Docker path; leave it empty and `compose up` fails closed.
 
-Optional: set `OPENROUTER_API_KEY` or connect a model in the UI after signup.
+Optional: set `OPENROUTER_API_KEY`, or connect a model from the mobile app after signup.
 
 The example defaults to `edge` (main builds). Every publish is multi-arch (`amd64` + `arm64`), so
 arm64 hosts need no special tag. Do not assume `latest` is present until a stable release exists.
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The first registered user becomes the
-deployment owner. Put TLS in front of `:5173` for a public host and set the three public origins to
-that HTTPS URL.
+The API listens on `http://127.0.0.1:3100`. The first registered user becomes the deployment
+owner.
 
-Images Compose binds web to loopback (`127.0.0.1:5173`). Terminate TLS on the host and proxy
-there. Vite preview same-origin-proxies `/api` and `/rpc`, so do not expose `:3100`. Set
-`BETTER_AUTH_URL`, `WEB_ORIGIN`, and `API_URL` to that same HTTPS origin, and set
-`CADRE_HOST` to its hostname (for example, `app.example.com`).
+Images Compose binds the API to loopback (`127.0.0.1:3100`). For a public host, terminate TLS on
+the host and proxy there, and set `BETTER_AUTH_URL`, `WEB_ORIGIN`, and `API_URL` to that HTTPS
+origin.
 
 ```Caddyfile
 app.example.com {
-	reverse_proxy 127.0.0.1:5173
+	reverse_proxy 127.0.0.1:3100
 }
 ```
 
-Open **Agent computer** on a bot, or send a message that uses the desktop, to see
-the local Docker computer. For in-stack Caddy plus remote E2B computers, use the
+For in-stack Caddy plus remote E2B computers, use the
 [production Compose](#public-single-vm-deployment) path and `infra/compose/Caddyfile.prod`
 instead of this host proxy.
 
@@ -118,23 +115,22 @@ instead of this host proxy.
 2. Set `OPENROUTER_API_KEY` (and `COMPOSIO_API_KEY` if you want Plugins).
 3. Build the computer image: `pnpm sandbox:build` (Compose also builds it via the `computer` service).
 4. `docker compose --env-file .env -f infra/compose/docker-compose.yml up --build`
-5. Open the web origin (`http://127.0.0.1:5173` by default). The first registered user becomes the deployment owner.
+5. The API answers on `http://127.0.0.1:3100`. The first registered user becomes the deployment owner.
 
 On Windows, if an older clone with `core.autocrlf=true` leaves the computer pane hung on boot (`bash\r` in sandbox logs): from a clean worktree, set `git config core.autocrlf false`, run `git add --renormalize . && git checkout -- .`, then rebuild with `pnpm sandbox:build`.
 
-Compose runs Postgres, the sandbox supervisor (Docker socket), API, worker, and a Vite preview of the web app. Bot computers are sibling containers (`cadre/computer:local`) on separate per-bot networks; only the supervisor and screen proxy join each one. The API process does not get an unrestricted Docker socket; the supervisor owns the lifecycle.
+Compose runs Postgres, the sandbox supervisor (Docker socket), API, and worker. Bot computers are sibling containers (`cadre/computer:local`) on separate per-bot networks; only the supervisor joins each one. The API process does not get an unrestricted Docker socket; the supervisor owns the lifecycle.
 
 Postgres is published on **loopback only** (`127.0.0.1:5433` on the host). Do not expose that port on a public VPS. Change `POSTGRES_PASSWORD` and keep Postgres on an internal network when you deploy remotely.
 
 The Docker supervisor is not published as its own image and is not exposed on the host. It runs from
 the app image, stays on the internal Compose network, and holds the Docker socket because access to
 it is equivalent to control of the Docker host. Docker sandboxes require `SANDBOX_SUPERVISOR_TOKEN`
-(API, worker, supervisor). `SCREEN_PROXY_SECRET` signs browser-screen capabilities (API and web
-proxy). Keep both distinct from `BETTER_AUTH_SECRET`.
+(API, worker, supervisor). `SCREEN_PROXY_SECRET` signs browser-screen capabilities. Keep both distinct from `BETTER_AUTH_SECRET`.
 
 New credentials use versioned AES-GCM with per-record salt and row-bound AAD. Legacy ciphertext stays readable.
 
-On a VPS, put TLS in front of `:5173` (or serve the web build behind your proxy) and set:
+On a VPS, put TLS in front of `:3100` and set:
 
 ```env
 BETTER_AUTH_URL=https://app.example.com
@@ -259,7 +255,7 @@ Only configure an endpoint you control: prompts, attachments, and tool results s
 leave Cadre through this URL. Leave `CADRE_LOCAL_MODELS` blank to disable the provider.
 
 Each user can also connect their own OpenAI-compatible endpoint from **Connect a model** /
-**Settings → Models** on web and mobile. Choose **OpenAI-compatible**, enter the server base URL
+**Settings → Models** in the mobile app. Choose **OpenAI-compatible**, enter the server base URL
 (for example `http://127.0.0.1:8000/v1` for Rapid-MLX, Ollama, LM Studio, llama.cpp, or vLLM),
 the exact model id from that server, and an optional API key. By default Cadre only allows
 loopback, RFC1918, and `host.docker.internal` targets. To permit public hostnames, set
@@ -343,7 +339,7 @@ model reads about a candidate. An unset or malformed pool routes nothing.
 
 ## Choosing a computer provider
 
-The Electron desktop app is a client of the same API. Docker and E2B still apply. On first launch, Electron asks the deployment owner whether bots should keep using Docker or run on this Mac as you. `SANDBOX_PROVIDER=desktop` is a separate, explicit provider that always runs commands on the service host.
+`SANDBOX_PROVIDER=desktop` is a separate, explicit provider that always runs commands on the service host.
 
 - **Published images** (`docker-compose.images.yml`) default to `SANDBOX_PROVIDER=docker` with a
   local supervisor and published `ghcr.io/mosnin/cadre/computer` image. No E2B account required.
@@ -361,9 +357,8 @@ The Electron desktop app is a client of the same API. Docker and E2B still apply
   workspace under `/home/user/cadre-home`, and refreshes a two-hour TTL. A Box currently exposes one
   shared desktop, so concurrent Team bots can still use shell and files but only one can use
   graphical tools at a time.
-- **Desktop provider** / **This Mac** runs commands on the API/worker host. Docker stays the default.
-  The Electron app asks once; if you choose This Mac, bots can use working directories under your home
-  folder. Do not enable it on a public or shared service. macOS does not show its own permission
+- **Desktop provider** runs commands on the API/worker host. Docker stays the default. Bots can
+  use working directories under the service account's home folder. Do not enable it on a public or shared service. macOS does not show its own permission
   dialog for this.
 - **Fake** is only an emulator for verification.
 - **None** boots the product without a computer host (fallback when Docker/supervisor is not
@@ -379,7 +374,7 @@ This dumps Postgres (`pg_dump`) and archives `data/` into `backups/<stamp>/`.
 
 ## Public single-VM deployment
 
-`infra/compose/docker-compose.prod.yml` runs the hosted product with Postgres, the API, worker, web app,
+`infra/compose/docker-compose.prod.yml` runs the hosted product with Postgres, the API, worker,
 and automatic HTTPS through Caddy. It uses E2B for bot computers, so the VM never exposes a Docker
 supervisor or browser containers. The root-equivalent updater sidecar is an explicit opt-in profile.
 
@@ -446,7 +441,7 @@ curl --fail https://app.example.com/health
 ```
 
 **Build, do not pull, for a first deployment.** `CADRE_IMAGE_TAG` ships as `local`, a tag no
-registry serves, so the commands above build `api`, `worker`, and `web` from the checkout you just
+registry serves, so the commands above build `api` and `worker` from the checkout you just
 cloned. The opt-in command under [Updater sidecar](#updater-sidecar) builds `updater` when needed.
 Running `docker compose … pull` first — as earlier versions of this page told you to — fails outright
 with `error from registry: denied` whenever the tag you are on has not been published, and there is
@@ -486,9 +481,9 @@ substitute for an encrypted off-host backup or provider snapshot.
 A Compose deployment on a published release tag upgrades by moving that tag:
 
 ```bash
-docker compose --env-file .env -f infra/compose/docker-compose.prod.yml pull api worker web
+docker compose --env-file .env -f infra/compose/docker-compose.prod.yml pull api worker
 docker compose --env-file .env -f infra/compose/docker-compose.prod.yml \
-  up -d --wait --pull never api worker web
+  up -d --wait --pull never api worker
 ```
 
 A deployment on the default `local` tag has no registry to pull from, so it upgrades by rebuilding
@@ -497,11 +492,11 @@ the checkout instead:
 ```bash
 git pull
 GIT_SHA=$(git rev-parse HEAD) docker compose --env-file .env -f infra/compose/docker-compose.prod.yml \
-  up -d --wait --pull never --build api worker web
+  up -d --wait --pull never --build api worker
 ```
 
-`up --wait` does not report success until the new API is healthy and the worker and web containers
-are running. The API's start command runs `prisma migrate deploy` before it serves, so migration
+`up --wait` does not report success until the new API is healthy and the worker container
+is running. The API's start command runs `prisma migrate deploy` before it serves, so migration
 failure keeps health red. A failed CLI recreate does not auto-roll back; recover with the previous
 `CADRE_IMAGE_TAG` (or rebuild `local`) and `up -d --wait --pull never`.
 
@@ -551,7 +546,7 @@ this repository that is:
 
 | Image | Contents |
 | --- | --- |
-| `ghcr.io/mosnin/cadre/app` | api, worker, web, and sandbox supervisor — one image, multiple commands |
+| `ghcr.io/mosnin/cadre/app` | api, worker, and sandbox supervisor — one image, multiple commands |
 | `ghcr.io/mosnin/cadre/computer` | Linux desktop used as each bot computer |
 | `ghcr.io/mosnin/cadre/updater` | the updater sidecar, plus the Docker CLI |
 
@@ -686,7 +681,7 @@ as that allows:
 - The process environment carries only updater settings (`CADRE_UPDATER_TOKEN`, deploy path,
   image name, project name). Application secrets stay in the bind-mounted `.env` that Compose
   reads for interpolation; they are not loaded into this container.
-- The Docker CLI lives only in the updater image. The api, worker, and web containers keep
+- The Docker CLI lives only in the updater image. The api and worker containers keep
   `cap_drop: ALL` and no socket.
 
 Enabling the `updater` profile requires `CADRE_UPDATER_TOKEN` to be a dedicated random value (at
@@ -707,10 +702,9 @@ To run a hosted product (same codebase):
 5. Choose computers: **`SANDBOX_PROVIDER=e2b`**, `daytona`, or `box` with the matching provider key for a public or multi-user production service. Each Team or Private Computer reconnects to its sandbox id (`providerRef`), while workspace state is checkpointed outside the provider at run completion, explicit stop, and idle suspension. If that sandbox is gone—or the deployment changes providers—the replacement is hydrated from Cadre's copy. Idle computers pause after `SANDBOX_IDLE_MS` (default 10 minutes) and resume on the next message or Take control. Docker remains the local and trusted single-machine default.
 6. A Hetzner CX22 (2 vCPU / 4 GB) is enough for API + worker + Postgres when E2B owns the desktops. 2 GB works for a quiet box; 8 GB is only needed if you also run Docker computers on that same machine.
 7. Set public HTTPS `WEB_ORIGIN` / `BETTER_AUTH_URL` / `API_URL`, secrets, and an OpenRouter (or other Pi) deployment key if you want to skip per-user model keys.
-8. Put the web app behind the same origin as `/api` and `/rpc` (Vite preview proxy, or a reverse proxy). Docker noVNC connections use short-lived signed `/novnc/*` capabilities; do not replace that route with an unrestricted port proxy.
-9. Deploy `apps/www` to your public website and point `app.example.com` (or similar) at the product origin.
-10. Turn on `SIGNUP_ALLOWLIST` until you want open registration. There is no Cadre-managed model billing in version 1 — users bring keys.
+8. Deploy `apps/www` to your public website and point `app.example.com` (or similar) at the product origin.
+9. Turn on `SIGNUP_ALLOWLIST` until you want open registration. There is no Cadre-managed model billing in version 1 — users bring keys.
 
-Expo / desktop installers are clients of that origin (`EXPO_PUBLIC_API_URL`, `CADRE_WEB_URL`). They are not a Cloud control plane.
+Expo builds are clients of that origin (`EXPO_PUBLIC_API_URL`). They are not a Cloud control plane.
 
 The iOS and Android app can also point at a self-hosted origin at runtime. On the sign-in screen, tap **Use a custom server** and enter the same HTTPS origin as `WEB_ORIGIN` (for example `https://app.example.com`). Store builds still default to `EXPO_PUBLIC_API_URL`; the in-app setting is an override for people running their own API. Changing the server signs the device out of any previous session.

@@ -218,12 +218,6 @@ export function updateSteps(input: UpdatePlanInput): UpdateStep[] {
       args: ["--filter", "@cadre/db", "run", "generate"],
     },
     {
-      id: "build",
-      label: "Build the web app",
-      command: "pnpm",
-      args: ["--filter", "@cadre/web", "run", "build"],
-    },
-    {
       id: "migrate",
       label: "Apply database migrations",
       command: "pnpm",
@@ -258,7 +252,7 @@ export function restartSupervisorAdvice(supervisor: RestartSupervisor): string {
   if (supervisor.kind !== "none") {
     return `Cadre will exit after updating and ${supervisor.label} will start it on the new code.`;
   }
-  return `No process supervisor was detected, so Cadre will not exit on its own. Restart the API, worker, and web processes yourself, or set ${RESTART_SUPERVISOR_ENV} to the supervisor that restarts them (for example "docker" with restart: unless-stopped, or run under systemd with Restart=always).`;
+  return `No process supervisor was detected, so Cadre will not exit on its own. Restart the API and worker processes yourself, or set ${RESTART_SUPERVISOR_ENV} to the supervisor that restarts them (for example "docker" with restart: unless-stopped, or run under systemd with Restart=always).`;
 }
 
 export type UpdateAvailability =

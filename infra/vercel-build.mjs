@@ -1,4 +1,4 @@
-import { cp, mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 
 const runtime = new URL(process.env.API_PROXY_TARGET ?? "");
 if (
@@ -19,44 +19,20 @@ if (
 ) {
   throw new Error("MARKETING_ORIGIN must be an HTTPS origin");
 }
-await mkdir(".vercel/output", { recursive: true });
-await cp("apps/web/dist", ".vercel/output/static", { recursive: true });
+// The web app moved to Burst's hosted client (docs/WEB.md). This gateway only proxies the API,
+// which the Burst apps sign in to, and serves the marketing site on every other path.
+await mkdir(".vercel/output/static", { recursive: true });
 await writeFile(
   ".vercel/output/config.json",
   JSON.stringify({
     version: 3,
     routes: [
-      {
-        src: "/app/oauth/codex/?",
-        headers: { "content-security-policy": "frame-ancestors 'none'", "x-frame-options": "DENY" },
-        continue: true,
-      },
       ...["api", "rpc"].map((prefix) => ({
         src: `/${prefix}/(.*)`,
         dest: `${runtime.origin}/${prefix}/$1`,
         headers: { "cache-control": "private, no-store", "x-vercel-enable-rewrite-caching": "0" },
       })),
-      ...(marketing
-        ? [
-            { src: "/", dest: `${marketing.origin}/` },
-            {
-              src: "/((?:product|solutions|guides)(?:/.*)?|about/?|pricing/?)",
-              dest: `${marketing.origin}/$1`,
-            },
-            { src: "/(_next|svg)/(.*)", dest: `${marketing.origin}/$1/$2` },
-            {
-              src: "/(icon.svg|apple-icon.svg|sitemap.xml|robots.txt)",
-              dest: `${marketing.origin}/$1`,
-            },
-            {
-              src: "/brand/(openrouter-ink.svg|openrouter-cloud.svg)",
-              dest: `${marketing.origin}/brand/$1`,
-            },
-          ]
-        : []),
-      { handle: "filesystem" },
-      { src: "/assets/(.*)", status: 404 },
-      { src: "/(.*)", dest: "/index.html", headers: { "cache-control": "no-store" } },
+      ...(marketing ? [{ src: "/(.*)", dest: `${marketing.origin}/$1` }] : []),
     ],
   }),
 );

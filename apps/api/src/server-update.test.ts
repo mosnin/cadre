@@ -58,7 +58,7 @@ describe("server update install kind", () => {
     });
     expect(status.installKind).toBe("compose");
     expect(status.supported).toBe(false);
-    expect(status.manualCommands[0]).toMatch(/docker compose .*pull api worker web/);
+    expect(status.manualCommands[0]).toMatch(/docker compose .*pull api worker/);
     expect(status.manualCommands[1]).toMatch(/up -d --wait --pull never/);
   });
 
@@ -77,7 +77,7 @@ describe("server update install kind", () => {
     expect(status.installKind).toBe("compose");
     expect(status.manualCommands.some((line) => line.includes("--build"))).toBe(true);
     expect(status.manualCommands.some((line) => line.includes("git pull"))).toBe(true);
-    expect(status.manualCommands.some((line) => /\bpull api worker web\b/.test(line))).toBe(false);
+    expect(status.manualCommands.some((line) => /\bpull api worker\b/.test(line))).toBe(false);
   });
 
   it("detects sidecar when health and authenticated state succeed", async () => {

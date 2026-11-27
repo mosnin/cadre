@@ -5,9 +5,13 @@
 
 ![Cadre — AI teammates you actually own](./docs/readme-hero.png)
 
-Cadre is an open-source platform for running persistent AI teammates. It is available on the web,
-as an Electron desktop app, and through an Expo mobile app. Bring your own model and computer
-provider, or run the complete stack locally.
+Cadre is an open-source platform for running persistent AI teammates. Bring your own model and
+computer provider, or run the complete stack locally.
+
+Cadre is becoming [Burst](https://github.com/mosnin/burst). The desktop app is now Burst Desktop,
+and the Cadre web address serves Burst's hosted web client ([docs/WEB.md](./docs/WEB.md)). This
+repository still holds the API, worker, Expo mobile app, and marketing site; they move in later
+stages.
 
 Cadre is in beta. Learn more at [cadre.to](https://cadre.to).
 
@@ -29,8 +33,7 @@ https://github.com/user-attachments/assets/dccdeddb-2134-4a56-8eed-b2e591736b1c
 ## Stack
 
 - TypeScript
-- React 19, Vite, and Tailwind CSS
-- Electron and Expo
+- React 19 and Expo
 - Hono and oRPC
 - PostgreSQL and Prisma
 - Better Auth
@@ -49,11 +52,8 @@ curl -fsSLO https://raw.githubusercontent.com/mosnin/cadre/main/infra/compose/in
 bash install-images.sh
 ```
 
-The installer downloads the Compose files, creates `.env` with random secrets, and starts Cadre.
-It preserves an existing `.env` when rerun.
-
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173), create an account, and connect a model.
-Local Docker computers are on by default. Optional remote providers: `e2b`, `daytona`, or `box`
+The installer downloads the Compose files, creates `.env` with random secrets, and starts the Cadre
+API at `http://127.0.0.1:3100`. It preserves an existing `.env` when rerun. Local Docker computers are on by default. Optional remote providers: `e2b`, `daytona`, or `box`
 with the matching API key.
 
 Default image tag is `edge` (main builds, `linux/amd64` + `linux/arm64`). Details and tags:
@@ -69,7 +69,7 @@ For an agent-assisted install, use [SETUP_PROMPT.md](./SETUP_PROMPT.md).
 ## Run on a server
 
 Bots stay on when the backend runs on a server. Use the same installer on a VPS, then connect from
-the desktop app, the mobile app, or a browser.
+the mobile app.
 
 ```bash
 bash install-images.sh --prepare-only
@@ -77,9 +77,8 @@ bash install-images.sh --prepare-only
 bash install-images.sh
 ```
 
-Put HTTPS in front of port 5173; [docs/self-host.md](./docs/self-host.md#public-single-vm-deployment)
-covers the Caddy setup and host hardening. In the desktop app choose **Existing instance** and enter
-the `https://` address.
+Put HTTPS in front of port 3100; [docs/self-host.md](./docs/self-host.md#public-single-vm-deployment)
+covers the Caddy setup and host hardening.
 
 ## Local development (source checkout)
 
@@ -115,55 +114,24 @@ pnpm sandbox:build
 pnpm dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173), create an account, connect a model, and create
-your first bot.
+The API listens on `http://127.0.0.1:3100`.
 
 For deployment, provider selection, backups, and upgrades, see the
 [self-hosting guide](./docs/self-host.md).
 
-## Desktop and mobile
+## Mobile
 
-The Electron and Expo apps are clients of the same Cadre API used by the web app.
-
-With the development stack running, launch Electron with:
-
-```bash
-pnpm --filter @cadre/desktop dev
-```
-
-On first run the desktop app asks whether to run Cadre on this computer or connect to an existing
-server. **This computer** installs and starts the published images with Docker Compose (the same
-files as `infra/compose/install-images.sh`) under the app's data directory, so Docker Desktop,
-OrbStack, or Docker Engine must be installed; the app links to them when it is not. Installed
-builds pin the image tag to their own version; unpackaged builds pull `edge`. Developers running
-`pnpm dev` should pick **Existing instance** with `http://127.0.0.1:5173` instead. Public servers
-must use HTTPS; HTTP is accepted only for loopback and private LAN addresses (not link-local). The
-app verifies Cadre's health endpoint before saving, and later launches go straight to that
-instance. The stack keeps running after the app quits; **Stop Local Stack** in the application
-menu turns it off.
-
-Use **Change Cadre Server…** in the application menu to reconnect. Closing that window without
-saving returns to the previous instance. For development automation, set `CADRE_WEB_URL` to point
-the shell somewhere else without changing the saved instance, or `CADRE_FORCE_SETUP=1` to run
-setup again.
-
-Mobile build and release instructions live in [docs/mobile-release.md](./docs/mobile-release.md).
-
-## UI language
-
-The web (and Electron-hosted) UI supports English, Deutsch, 한국어, Türkçe, हिन्दी,
-Português (Brasil), and 简体中文 under **Settings → Language**. The Expo app supports
-English and 简体中文 under **Account → Language**. The marketing homepage (`apps/www`) is
-available in en/de/ko/zh via footer language links (`/`, `/de/`, `/ko/`, `/zh/`); other
-marketing pages stay English.
+The Expo app is a client of the Cadre API. Build and release instructions live in
+[docs/mobile-release.md](./docs/mobile-release.md). The Expo app supports English and 简体中文
+under **Account → Language**; the marketing homepage (`apps/www`) is available in en/de/ko/zh.
 
 ## Development
 
-Cadre is a TypeScript monorepo built with React, Electron, Expo, Hono, Postgres, Prisma, Graphile
-Worker, and Pi.
+Cadre is a TypeScript monorepo built with React, Expo, Hono, Postgres, Prisma, Graphile Worker,
+and Pi.
 
 ```text
-apps/       web, api, worker, desktop, mobile, and public website
+apps/       api, worker, mobile, and public website
 packages/   domain, contracts, persistence, adapters, UI, and test tooling
 infra/      local services and computer images
 docs/       architecture, operations, and release guides
@@ -176,7 +144,6 @@ pnpm lint
 pnpm check
 pnpm test
 pnpm test:integration
-pnpm test:e2e
 ```
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for the development workflow and test matrix.
@@ -186,10 +153,6 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the development workflow and test m
 ```bash
 pnpm test              # unit, property, and in-process contract tests
 pnpm test:integration  # Postgres journeys, Graphile jobs, LISTEN/NOTIFY
-pnpm test:e2e          # Playwright against the emulated stack
-pnpm test:e2e -- --sandbox=e2b # the same deterministic suite against real E2B
-pnpm test:e2e -- --sandbox=daytona # the same suite against real Daytona
-pnpm test:e2e -- --sandbox=box # the same suite against real Box
 pnpm test:topology     # local Docker + Graphile worker recovery (needs Docker)
 pnpm test:canary       # live OpenRouter / E2B / Box canaries
 # explicit real vision-model + real E2B desktop acceptance test:
@@ -198,15 +161,11 @@ COMPUTER_E2E_MODEL=<vision-capable-openrouter-model-id> pnpm test:computer
 
 - [Self-hosting](./docs/self-host.md)
 - [Computer runtime and isolation](./docs/computer-runtime.md)
-- [Desktop releases](./docs/desktop-release.md)
+- [Web (Burst hosted client)](./docs/WEB.md)
 - [Mobile releases](./docs/mobile-release.md)
-- [Performance testing](./docs/performance.md)
 
 ## Contributing
 
-The Playwright workflow can also be started manually with **Sandbox provider** set to `e2b`, `daytona`, or `box`.
-Those options require `E2B_API_KEY`, `DAYTONA_API_KEY`, or `BOX_API_KEY`, keep the deterministic scripted agent runtime, and destroy
-the provider machines after the run. The default and all automatic runs remain on `fake`.
 Contributions are welcome. Please read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull
 request. For security vulnerabilities, follow [SECURITY.md](./SECURITY.md) instead of filing a public
 issue.

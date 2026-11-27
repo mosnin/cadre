@@ -2,24 +2,8 @@ name: Playwright
 
 on:
   workflow_dispatch:
-    inputs:
-      sandbox_provider:
-        description: Sandbox provider
-        required: true
-        type: choice
-        options:
-          - fake
-          - e2b
-          - daytona
-          - box
-        default: fake
   workflow_call:
     inputs:
-      sandbox_provider:
-        description: Sandbox provider
-        required: false
-        type: string
-        default: fake
       publish_report:
         description: Publish this run to the persistent visual dashboard
         required: false
@@ -36,15 +20,6 @@ on:
         required: false
       S3_SECRET_ACCESS_KEY:
         description: Secret key used to publish visual reports
-        required: false
-      E2B_API_KEY:
-        description: E2B API key used only when the E2B sandbox is selected
-        required: false
-      DAYTONA_API_KEY:
-        description: Daytona API key used only when the Daytona sandbox is selected
-        required: false
-      BOX_API_KEY:
-        description: Box API key used only when the Box sandbox is selected
         required: false
 
 permissions:
@@ -74,48 +49,17 @@ jobs:
         timeout-minutes: 5
         # Skip --with-deps: GitHub ubuntu-latest already has Chromium's OS libraries,
         # and apt-get against azure.archive.ubuntu.com can stall until the job timeout.
-        run: pnpm --filter @cadre/web exec playwright install chromium
-      - name: Validate E2B credentials
-        if: inputs.sandbox_provider == 'e2b'
-        env:
-          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
-        run: test -n "$E2B_API_KEY"
-      - name: Validate Daytona credentials
-        if: inputs.sandbox_provider == 'daytona'
-        env:
-          DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
-        run: test -n "$DAYTONA_API_KEY"
-      - name: Validate Box credentials
-        if: inputs.sandbox_provider == 'box'
-        env:
-          BOX_API_KEY: ${{ secrets.BOX_API_KEY }}
-        run: test -n "$BOX_API_KEY"
-      - name: Run Playwright tests
-        id: playwright_tests
-        env:
-          PLAYWRIGHT_PRODUCTION: "1"
-          COMPONENT_BUILD_RECEIPT: "1"
-          SANDBOX_TEST_PROVIDER: ${{ inputs.sandbox_provider }}
-          E2B_API_KEY: ${{ inputs.sandbox_provider == 'e2b' && secrets.E2B_API_KEY || '' }}
-          DAYTONA_API_KEY: ${{ inputs.sandbox_provider == 'daytona' && secrets.DAYTONA_API_KEY || '' }}
-          BOX_API_KEY: ${{ inputs.sandbox_provider == 'box' && secrets.BOX_API_KEY || '' }}
-        run: pnpm test:e2e -- --sandbox="$SANDBOX_TEST_PROVIDER"
-      # Marketing homepage only: separate config so product chromium does not start Astro.
-      # Runs after product e2e so shared apps/web/test-results is not wiped by the product run.
+        run: pnpm --filter @cadre/www exec playwright install chromium
       - name: Run marketing homepage E2E
-        id: www_playwright_tests
-        if: always() && (steps.playwright_tests.outcome == 'success' || steps.playwright_tests.outcome == 'failure')
+        id: playwright_tests
         run: pnpm --filter @cadre/www e2e
       - name: Record Playwright result
         if: always() && inputs.upload_artifacts
         env:
           PLAYWRIGHT_RESULT: ${{ steps.playwright_tests.outcome }}
-          WWW_PLAYWRIGHT_RESULT: ${{ steps.www_playwright_tests.outcome }}
         run: |
           mkdir -p test-report/e2e
-          if [[ "$PLAYWRIGHT_RESULT" == "success" && "$WWW_PLAYWRIGHT_RESULT" == "success" ]]; then
-            printf 'success\n' > test-report/e2e/outcome.txt
-          elif [[ "$PLAYWRIGHT_RESULT" == "success" && ( "$WWW_PLAYWRIGHT_RESULT" == "skipped" || -z "$WWW_PLAYWRIGHT_RESULT" ) ]]; then
+          if [[ "$PLAYWRIGHT_RESULT" == "success" ]]; then
             printf 'success\n' > test-report/e2e/outcome.txt
           else
             printf 'failure\n' > test-report/e2e/outcome.txt
@@ -127,9 +71,7 @@ jobs:
           name: playwright-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             playwright-report
-            playwright-report-www
-            apps/web/dist/component-build-receipt.json
-            apps/web/test-results
+            apps/www/test-results
             test-report/e2e
           retention-days: 7
           if-no-files-found: warn
@@ -143,7 +85,7 @@ jobs:
           S3_BUCKET: ${{ vars.S3_BUCKET }}
           S3_ENDPOINT: ${{ vars.S3_ENDPOINT }}
           PLAYWRIGHT_PUBLIC_BASE_URL: ${{ vars.PLAYWRIGHT_PUBLIC_BASE_URL }}
-          PLAYWRIGHT_RESULT: ${{ steps.playwright_tests.outcome == 'success' && steps.www_playwright_tests.outcome == 'success' && 'success' || 'failure' }}
+          PLAYWRIGHT_RESULT: ${{ steps.playwright_tests.outcome == 'success' && 'success' || 'failure' }}
           PLAYWRIGHT_RUN_ATTEMPT: ${{ github.run_attempt }}
           PLAYWRIGHT_RUN_ID: ${{ github.run_id }}
           PLAYWRIGHT_RUN_NUMBER: ${{ github.run_number }}

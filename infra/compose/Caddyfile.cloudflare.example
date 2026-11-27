@@ -45,8 +45,6 @@ http://{$CADRE_HOST:app.example.com} {
 	}
 
 	handle {
-		reverse_proxy web:5173 {
-			import deploy_retry
-		}
+		respond 404
 	}
 }

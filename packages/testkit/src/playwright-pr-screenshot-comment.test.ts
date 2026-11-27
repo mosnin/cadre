@@ -12,9 +12,9 @@ describe("specStemsFromChangedPaths", () => {
   it("extracts Playwright spec stems from changed paths", () => {
     expect(
       specStemsFromChangedPaths([
-        "apps/web/e2e/tool-activity-shell.spec.ts",
-        "apps/web/src/components/ToolActivity.tsx",
-        "apps/web/e2e/tool-activity-disclosure.spec.ts",
+        "apps/www/e2e/tool-activity-shell.spec.ts",
+        "apps/www/src/components/Header.astro",
+        "apps/www/e2e/tool-activity-disclosure.spec.ts",
         "README.md",
       ]),
     ).toEqual(["tool-activity-disclosure", "tool-activity-shell"]);
@@ -77,7 +77,7 @@ describe("selectPlaywrightPrFeatureFrames", () => {
 
   it("includes CHANGED checkpoints only when their spec is in the PR diff", () => {
     const selection = selectPlaywrightPrFeatureFrames({
-      changedPaths: ["apps/web/e2e/tool-activity-disclosure.spec.ts"],
+      changedPaths: ["apps/www/e2e/tool-activity-disclosure.spec.ts"],
       screenshots: [
         screenshot({
           comparison: "changed",
@@ -111,7 +111,7 @@ describe("selectPlaywrightPrFeatureFrames", () => {
 
   it("returns an empty selection for suite-vs-main drift only", () => {
     const selection = selectPlaywrightPrFeatureFrames({
-      changedPaths: ["apps/web/src/components/ToolActivity.tsx"],
+      changedPaths: ["apps/www/src/components/Header.astro"],
       screenshots: [
         screenshot({
           comparison: "changed",
@@ -142,7 +142,7 @@ describe("selectPlaywrightPrFeatureFrames", () => {
     );
 
     const selection = selectPlaywrightPrFeatureFrames({
-      changedPaths: ["apps/web/e2e/tool-activity-shell.spec.ts"],
+      changedPaths: ["apps/www/e2e/tool-activity-shell.spec.ts"],
       limit: 8,
       screenshots,
     });
@@ -174,7 +174,7 @@ describe("buildPlaywrightPrScreenshotComment", () => {
   it("names NEW frames with direct PNG links and keeps gallery links secondary", () => {
     const body = buildPlaywrightPrScreenshotComment({
       ...urls,
-      changedPaths: ["apps/web/e2e/tool-activity-shell.spec.ts"],
+      changedPaths: ["apps/www/e2e/tool-activity-shell.spec.ts"],
       screenshots: [
         screenshot({
           comparison: "new",
@@ -202,7 +202,7 @@ describe("buildPlaywrightPrScreenshotComment", () => {
   it("includes spec-touched CHANGED frames after NEW frames", () => {
     const body = buildPlaywrightPrScreenshotComment({
       ...urls,
-      changedPaths: ["apps/web/e2e/tool-activity-disclosure.spec.ts"],
+      changedPaths: ["apps/www/e2e/tool-activity-disclosure.spec.ts"],
       screenshots: [
         screenshot({
           comparison: "changed",
@@ -238,7 +238,7 @@ describe("buildPlaywrightPrScreenshotComment", () => {
   it("says so in one line when only suite drift remains", () => {
     const body = buildPlaywrightPrScreenshotComment({
       ...urls,
-      changedPaths: ["apps/web/src/components/ToolActivity.tsx"],
+      changedPaths: ["apps/www/src/components/Header.astro"],
       screenshots: [
         screenshot({
           comparison: "changed",
@@ -267,7 +267,7 @@ describe("buildPlaywrightPrScreenshotComment", () => {
 
     const body = buildPlaywrightPrScreenshotComment({
       ...urls,
-      changedPaths: ["apps/web/e2e/tool-activity-shell.spec.ts"],
+      changedPaths: ["apps/www/e2e/tool-activity-shell.spec.ts"],
       screenshots,
     });
 

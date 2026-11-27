@@ -34,7 +34,7 @@ const publishWorkflow = parse(readFileSync(publishWorkflowFile, "utf8")) as {
   };
 };
 
-const appServices = ["api", "worker", "web", "supervisor"] as const;
+const appServices = ["api", "worker", "supervisor"] as const;
 const FIRST_PARTY_IMAGE = /ghcr\.io\/mosnin\/cadre\/([a-z0-9][a-z0-9._-]*)/g;
 
 function firstPartyImageNames(value: unknown): string[] {
@@ -55,7 +55,6 @@ describe("the images compose file", () => {
       "data-init",
       "postgres",
       "supervisor",
-      "web",
       "worker",
     ]);
     for (const service of appServices) {
@@ -152,8 +151,8 @@ describe("the images compose file", () => {
     }
   });
 
-  it("publishes the web UI on loopback only", () => {
-    expect(compose.services.web?.ports).toEqual(["127.0.0.1:5173:5173"]);
+  it("publishes the API on loopback only", () => {
+    expect(compose.services.api?.ports).toEqual(["127.0.0.1:3100:3100"]);
     expect(compose.services.postgres?.ports).toBeUndefined();
     expect(compose.services.supervisor?.ports).toBeUndefined();
   });

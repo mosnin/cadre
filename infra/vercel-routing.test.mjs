@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -12,9 +12,6 @@ for (const marketing of ["https://marketing.example.com", ""]) {
   test(`gateway routing with marketing ${marketing ? "enabled" : "disabled"}`, async () => {
     const cwd = await mkdtemp(join(tmpdir(), "cadre-routing-"));
     try {
-      await mkdir(join(cwd, "apps/web/dist/assets"), { recursive: true });
-      await writeFile(join(cwd, "apps/web/dist/index.html"), "application shell");
-      await writeFile(join(cwd, "apps/web/dist/assets/app.js"), "application script");
       execFileSync(process.execPath, [build], {
         cwd,
         env: {
@@ -26,45 +23,11 @@ for (const marketing of ["https://marketing.example.com", ""]) {
       const config = JSON.parse(await readFile(join(cwd, ".vercel/output/config.json"), "utf8"));
       const resolve = (path) => {
         for (const route of config.routes) {
-          if (route.handle === "filesystem") {
-            if (["/assets/app.js", "/index.html"].includes(path)) return path;
-            continue;
-          }
-          if (route.continue) continue;
           const pattern = new RegExp(`^${route.src}$`);
           if (pattern.test(path)) return path.replace(pattern, route.dest);
         }
+        return null;
       };
-      for (const path of [
-        "/",
-        "/product/workers",
-        "/product/computers",
-        "/product/company-os",
-        "/solutions/client-reporting",
-        "/guides/first-task",
-        "/about",
-        "/pricing",
-        "/pricing/",
-        "/product/missing",
-        "/_next/static/chunk.js",
-        "/svg/logo.svg",
-      ]) {
-        assert.equal(resolve(path), marketing ? `${marketing}${path}` : "/index.html", path);
-      }
-      for (const path of [
-        "/login",
-        "/signup",
-        "/sign-in",
-        "/sign-up",
-        "/forgot-password",
-        "/reset-password",
-        "/app",
-        "/app/oauth/codex",
-        "/productivity",
-        "/pricing-settings",
-      ]) {
-        assert.equal(resolve(path), "/index.html", path);
-      }
       for (const path of [
         "/api/auth/capabilities",
         "/api/auth/sign-in/email",
@@ -73,13 +36,26 @@ for (const marketing of ["https://marketing.example.com", ""]) {
       ]) {
         assert.equal(resolve(path), `https://runtime.example.com${path}`, path);
       }
-      assert.equal(resolve("/assets/app.js"), "/assets/app.js");
-      assert.equal(
-        await readFile(join(cwd, ".vercel/output/static/index.html"), "utf8"),
-        "application shell",
-      );
+      for (const path of ["/", "/pricing", "/guides/first-task", "/privacy/", "/login", "/app"]) {
+        assert.equal(resolve(path), marketing ? `${marketing}${path}` : null, path);
+      }
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }
   });
 }
+
+test("gateway refuses a runtime that is not an HTTPS origin", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "cadre-routing-"));
+  try {
+    assert.throws(() =>
+      execFileSync(process.execPath, [build], {
+        cwd,
+        env: { ...process.env, API_PROXY_TARGET: "http://runtime.example.com" },
+        stdio: "pipe",
+      }),
+    );
+  } finally {
+    await rm(cwd, { recursive: true, force: true });
+  }
+});
