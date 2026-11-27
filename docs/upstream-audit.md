@@ -2,6 +2,8 @@
 
 Baseline: `elie222/cadre` commit `f17887a2724d6cd457abe406a17c4c8721d0c013`. The fork preserves its Pi agent runtime, bot/thread model, persistent computer UI, file and browser tools, model selector, routines, groups, and native clients. This inventory covers every changed or added tracked path against that baseline at this release.
 
+Later change: `apps/web` and `apps/desktop` were removed when Cadre began moving to Burst ([WEB.md](./WEB.md)). Their rows below record what changed at the time of this audit.
+
 ## Corrections
 
 The public domain previously served a different Hermes application. It now points to this Cadre fork. Making Company OS the only hosted login was an unjustified first-run dependency; production now uses the original email/password account flow (`AUTH_PROVIDER=local`). Company OS credentials do not activate an integration when that mode is selected, and its Workforce entry is hidden. Those optional modules remain dormant to preserve prior work; they are not prerequisites for a bot, model, computer, or task. No Company OS development is included in this correction.

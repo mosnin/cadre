@@ -23,14 +23,13 @@ pnpm dev
 | --- | --- |
 | `pnpm test` | Default. Units, properties, and in-process contracts. Scripted runtime, fake sandbox, in-memory wakeup — no live connector or model-provider calls. |
 | `pnpm test:integration` | Postgres via Testcontainers: product journeys, authorization, executor lifecycle, Graphile / LISTEN/NOTIFY. Needs Docker. |
-| `pnpm test:e2e` | Playwright against the emulated API. Needs Docker. |
 | `pnpm test:topology` | Local product-path smoke: Docker computer + Graphile worker recovery. Needs Docker. Not PR CI. |
 | `pnpm test:canary` | Live OpenRouter / E2B canaries. Needs keys. Not PR CI. |
 | `pnpm test:computer` | Real vision model + E2B desktop. Needs keys; see README. Not PR CI. |
 | `pnpm check` | TypeScript (`tsc`) across the monorepo. |
 | `pnpm lint` | Biome lint and format check. |
 
-CI runs `pnpm lint`, `pnpm check`, production builds (including Electron preload smoke), `pnpm test`, `pnpm test:integration`, and `pnpm test:e2e` on every PR.
+CI runs `pnpm lint`, `pnpm check`, production builds, `pnpm test`, `pnpm test:integration`, and the marketing-site Playwright suite on every PR.
 
 ## Secrets and configuration
 

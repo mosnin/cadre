@@ -9,7 +9,7 @@
     "node": "^22.22.2 || ^24.0.0 || >=26.0.0"
   },
   "scripts": {
-    "dev": "cross-env COREPACK_ENABLE_DOWNLOAD_PROMPT=0 turbo dev --filter=@cadre/api --filter=@cadre/worker --filter=@cadre/web --filter=@cadre/sandbox-supervisor",
+    "dev": "cross-env COREPACK_ENABLE_DOWNLOAD_PROMPT=0 turbo dev --filter=@cadre/api --filter=@cadre/worker --filter=@cadre/sandbox-supervisor",
     "build": "turbo build",
     "check": "turbo check",
     "lint": "biome check .",
@@ -20,13 +20,10 @@
     "test": "vitest run",
     "test:compose-smoke": "bash infra/compose/run-smokes.sh",
     "test:integration": "tsx packages/testkit/src/cli/harness.ts --integration",
-    "test:e2e": "tsx packages/testkit/src/cli/harness.ts --e2e",
     "test:mobile-screenshots": "pnpm --filter @cadre/db generate && tsx packages/testkit/src/cli/mobile-screenshots.ts",
     "test:topology": "tsx packages/testkit/src/cli/topology.ts",
     "test:canary": "tsx packages/testkit/src/cli/canary.ts",
     "test:computer": "tsx packages/testkit/src/cli/computer.ts",
-    "perf:desktop": "tsx packages/testkit/src/cli/desktop-performance.ts",
-    "perf:compare": "tsx packages/testkit/src/cli/compare-performance.ts",
     "compose:up": "docker compose --env-file .env -f infra/compose/docker-compose.yml up --build",
     "compose:down": "docker compose --env-file .env -f infra/compose/docker-compose.yml down -v"
   },
@@ -55,7 +52,6 @@
       "svgo@>=4.0.0 <4.1.0": "4.1.0"
     },
     "patchedDependencies": {
-      "app-builder-lib@26.15.3": "patches/app-builder-lib@26.15.3.patch",
       "decode-uri-component@0.5.0": "patches/decode-uri-component@0.5.0.patch"
     }
   }

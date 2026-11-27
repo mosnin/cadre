@@ -139,7 +139,6 @@ describe("updateSteps", () => {
       "merge",
       "install",
       "generate",
-      "build",
       "migrate",
     ]);
   });

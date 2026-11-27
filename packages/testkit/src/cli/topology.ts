@@ -38,12 +38,10 @@ async function main() {
       "computer-image",
       "supervisor",
       "api",
-      "web",
       "worker",
     ]);
     await waitForHealth(baseUrl, 120_000);
     await waitForWorker(compose, 60_000);
-    await waitForComposeHealth(compose, "web", 60_000);
 
     compose(["stop", "worker"]);
     cookie = await signup(baseUrl);
@@ -92,14 +90,7 @@ async function main() {
       JSON.stringify(
         {
           ok: true,
-          topology: [
-            "postgres",
-            "api",
-            "web-proxy",
-            "graphile-worker",
-            "supervisor",
-            "docker-computer",
-          ],
+          topology: ["postgres", "api", "graphile-worker", "supervisor", "docker-computer"],
           recovery: "queued while worker stopped, completed after worker restart",
           runId: sent.runId,
         },
@@ -226,29 +217,6 @@ async function waitForWorker(
   throw new Error("Graphile worker did not become ready");
 }
 
-async function waitForComposeHealth(
-  compose: (args: string[], capture?: boolean) => string,
-  service: string,
-  timeoutMs: number,
-) {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    const containerId = compose(["ps", "--quiet", service], true).trim();
-    if (containerId) {
-      const status = docker([
-        "inspect",
-        containerId,
-        "--format",
-        "{{.State.Health.Status}}",
-      ]).trim();
-      if (status === "healthy") return;
-      if (status === "unhealthy") throw new Error(`${service} became unhealthy`);
-    }
-    await delay(500);
-  }
-  throw new Error(`${service} did not become healthy`);
-}
-
 function docker(args: string[]) {
   return command("docker", args, process.env, true);
 }
@@ -258,7 +226,6 @@ function assertComputerNetworkIsolation(
   projectName: string,
 ) {
   const supervisorId = compose(["ps", "--quiet", "supervisor"], true).trim();
-  const webId = compose(["ps", "--quiet", "web"], true).trim();
   const networkNames = isolatedSupervisorNetworks(supervisorId, projectName);
   if (networkNames.length !== 1) {
     throw new Error(`expected one isolated computer network: ${JSON.stringify(networkNames)}`);
@@ -266,9 +233,7 @@ function assertComputerNetworkIsolation(
   const peers = JSON.parse(
     docker(["network", "inspect", networkNames[0]!, "--format", "{{json .Containers}}"]),
   ) as Record<string, { Name?: string }>;
-  const computerIds = Object.keys(peers).filter(
-    (containerId) => containerId !== supervisorId && containerId !== webId,
-  );
+  const computerIds = Object.keys(peers).filter((containerId) => containerId !== supervisorId);
   if (computerIds.length !== 1) {
     throw new Error(`expected one computer peer: ${JSON.stringify(Object.values(peers))}`);
   }
@@ -292,7 +257,7 @@ function assertComputerNetworkIsolation(
   ) {
     throw new Error(`computer hardening is incomplete: ${JSON.stringify(spec)}`);
   }
-  const expected = new Set([computerId, supervisorId, webId]);
+  const expected = new Set([computerId, supervisorId]);
   const actual = Object.keys(peers);
   if (actual.length !== expected.size || actual.some((containerId) => !expected.has(containerId))) {
     const peerNames = Object.values(peers).flatMap((peer) => (peer.Name ? [peer.Name] : []));

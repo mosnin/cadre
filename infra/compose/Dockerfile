@@ -6,11 +6,10 @@ WORKDIR /app
 COPY --chmod=755 . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @cadre/db generate
-RUN CADRE_ALLOW_DEV_SECRETS=1 pnpm --filter @cadre/web build
-RUN install -d -m 750 -o node -g node /data /app/apps/web/node_modules/.vite-temp
+RUN install -d -m 750 -o node -g node /data
 ARG GIT_SHA
 ENV NODE_ENV=production
 ENV GIT_SHA=$GIT_SHA
-EXPOSE 3100 5173 7091
+EXPOSE 3100 7091
 USER node
 CMD ["pnpm", "--filter", "@cadre/api", "start"]

@@ -1,0 +1,60 @@
+name: deploy web
+
+# Builds Burst's hosted web client from the commit pinned in scripts/burst-web.sh and deploys it
+# to Cloudflare. Manual only, and it stops before building unless every setting exists.
+# See docs/WEB.md.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Burst web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      T3CODE_RELAY_URL: ${{ vars.T3CODE_RELAY_URL }}
+      T3CODE_HOSTED_APP_URL: ${{ vars.T3CODE_HOSTED_APP_URL }}
+      BURST_WEB_ENVIRONMENT_HOSTS: ${{ vars.BURST_WEB_ENVIRONMENT_HOSTS }}
+      BURST_SOCIAL_PROVIDERS: ${{ vars.BURST_SOCIAL_PROVIDERS }}
+      BURST_WEB_CSP_CONNECT_SRC: ${{ vars.BURST_WEB_CSP_CONNECT_SRC }}
+      BURST_WEB_CSP_IMG_SRC: ${{ vars.BURST_WEB_CSP_IMG_SRC }}
+      BURST_WEB_CSP_REPORT_ONLY: ${{ vars.BURST_WEB_CSP_REPORT_ONLY }}
+    steps:
+      - name: Require settings
+        env:
+          HAS_CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+          HAS_CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+        run: |
+          missing=()
+          for name in T3CODE_RELAY_URL T3CODE_HOSTED_APP_URL BURST_WEB_ENVIRONMENT_HOSTS; do
+            [[ -n "${!name}" ]] || missing+=("variable $name")
+          done
+          [[ "$HAS_CLOUDFLARE_API_TOKEN" == true ]] || missing+=("secret CLOUDFLARE_API_TOKEN")
+          [[ "$HAS_CLOUDFLARE_ACCOUNT_ID" == true ]] || missing+=("secret CLOUDFLARE_ACCOUNT_ID")
+          if ((${#missing[@]})); then
+            printf 'Missing repository setting: %s\n' "${missing[@]}" >&2
+            exit 1
+          fi
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Fetch the pinned Burst commit
+        run: bash scripts/burst-web.sh checkout .burst
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: .burst/desktop/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .burst/desktop/package.json
+      - name: Build and deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bash scripts/burst-web.sh deploy .burst

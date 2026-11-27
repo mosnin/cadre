@@ -195,34 +195,6 @@ services:
       api:
         condition: service_healthy
 
-  web:
-    image: ${CADRE_IMAGE:-ghcr.io/mosnin/cadre/app}:${CADRE_IMAGE_TAG:-edge}
-    restart: unless-stopped
-    command: ["pnpm", "--filter", "@cadre/web", "preview", "--host", "0.0.0.0", "--port", "5173"]
-    init: true
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    pids_limit: 128
-    mem_limit: 512m
-    environment:
-      NODE_ENV: production
-      API_PROXY_TARGET: http://api:3100
-      CADRE_HOST: ${CADRE_HOST:-localhost}
-      # Set only by the packaged desktop app. Its authenticated probe prevents a
-      # source dev server on the same host port from impersonating this stack.
-      CADRE_DESKTOP_STACK_TOKEN: ${CADRE_DESKTOP_STACK_TOKEN:-}
-      CADRE_IMAGE_TAG: ${CADRE_IMAGE_TAG:-edge}
-      SCREEN_PROXY_SECRET: ${SCREEN_PROXY_SECRET:?Set SCREEN_PROXY_SECRET in .env}
-    ports:
-      - "127.0.0.1:5173:5173"
-    networks:
-      - app
-    depends_on:
-      api:
-        condition: service_healthy
-
 volumes:
   pgdata:
   appdata:

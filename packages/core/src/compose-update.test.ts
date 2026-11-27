@@ -193,11 +193,11 @@ describe("strategy and mode selection", () => {
       ...COMPOSE_MANUAL_UPGRADE_COMMANDS,
       "# Local tag (rebuild from checkout)",
       "git pull",
-      "GIT_SHA=$(git rev-parse HEAD) docker compose --env-file .env -f infra/compose/docker-compose.prod.yml up -d --wait --pull never --build api worker web",
+      "GIT_SHA=$(git rev-parse HEAD) docker compose --env-file .env -f infra/compose/docker-compose.prod.yml up -d --wait --pull never --build api worker",
     ]);
     expect(manualUpgradeCommands("compose", { imageTag: "local" })).toEqual([
       "git pull",
-      "GIT_SHA=$(git rev-parse HEAD) docker compose --env-file .env -f infra/compose/docker-compose.prod.yml up -d --wait --pull never --build api worker web",
+      "GIT_SHA=$(git rev-parse HEAD) docker compose --env-file .env -f infra/compose/docker-compose.prod.yml up -d --wait --pull never --build api worker",
     ]);
     expect(manualUpgradeCommands("compose", { imageTag: "sha-abc" })).toEqual([
       ...COMPOSE_MANUAL_UPGRADE_COMMANDS,
@@ -222,7 +222,6 @@ describe("compose argv construction", () => {
         "pull",
         "api",
         "worker",
-        "web",
       ],
     });
   });
@@ -270,7 +269,7 @@ describe("compose argv construction", () => {
 
   it("names the services explicitly so a bare up cannot sweep the whole project", () => {
     const args = composeUpArgv(target).args;
-    expect(args.slice(-3)).toEqual(["api", "worker", "web"]);
+    expect(args.slice(-2)).toEqual(["api", "worker"]);
   });
 });
 

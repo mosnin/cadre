@@ -16,7 +16,7 @@ set -euo pipefail
 : "${PLAYWRIGHT_BRANCH:?PLAYWRIGHT_BRANCH is required}"
 
 report_dir="${PLAYWRIGHT_REPORT_DIR:-playwright-report}"
-test_results_dir="${PLAYWRIGHT_TEST_RESULTS_DIR:-apps/web/test-results}"
+test_results_dir="${PLAYWRIGHT_TEST_RESULTS_DIR:-apps/www/test-results}"
 publish_report="${PLAYWRIGHT_PUBLISH_REPORT:-true}"
 
 if [[ "$publish_report" != "true" && "$publish_report" != "false" ]]; then

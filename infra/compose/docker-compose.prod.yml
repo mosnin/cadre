@@ -131,36 +131,6 @@ services:
       api:
         condition: service_healthy
 
-  web:
-    image: ${CADRE_IMAGE:-ghcr.io/mosnin/cadre/app}:${CADRE_IMAGE_TAG:-local}
-    build:
-      context: ../..
-      dockerfile: infra/compose/Dockerfile
-      args:
-        GIT_SHA: ${GIT_SHA:-}
-    restart: unless-stopped
-    command: ["pnpm", "--filter", "@cadre/web", "preview", "--host", "0.0.0.0", "--port", "5173"]
-    init: true
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    pids_limit: 128
-    mem_limit: 512m
-    environment:
-      NODE_ENV: production
-      API_PROXY_TARGET: http://api:3100
-      CADRE_HOST: ${CADRE_HOST:-app.example.com}
-      SCREEN_PROXY_SECRET: ${SCREEN_PROXY_SECRET:?Set SCREEN_PROXY_SECRET in .env}
-    expose:
-      - "5173"
-    networks:
-      - edge
-      - app
-    depends_on:
-      api:
-        condition: service_healthy
-
   # The updater holds the Docker socket, which is root-equivalent on the host, so it is opt-in and
   # deliberately the narrowest service here: no `ports` (nothing on the host), only the dedicated
   # `control` network shared with the API, and no `env_file` — secrets stay in the bind-mounted
@@ -248,8 +218,8 @@ services:
     tmpfs:
       - /tmp
     depends_on:
-      web:
-        condition: service_started
+      api:
+        condition: service_healthy
 
 volumes:
   pgdata:

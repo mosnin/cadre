@@ -15,7 +15,7 @@ import {
  */
 export const PUBLISHED_IMAGE_REPO = "mosnin/cadre";
 
-/** The published server image. One image runs api, worker, and web. */
+/** The published server image. One image runs api and worker. */
 export const OFFICIAL_SERVER_IMAGE = `ghcr.io/${PUBLISHED_IMAGE_REPO}/app`;
 /** The updater sidecar's image, published alongside the server image but tagged independently. */
 export const OFFICIAL_UPDATER_IMAGE = `ghcr.io/${PUBLISHED_IMAGE_REPO}/updater`;
@@ -43,7 +43,7 @@ export const COMPOSE_PROJECT_NAME_OVERRIDE_ENV = "CADRE_COMPOSE_PROJECT_NAME";
  * the update, and recreating it would kill the run half way through. `postgres` and `caddy` are
  * absent because neither uses the Cadre image.
  */
-export const RECREATED_SERVICES = ["api", "worker", "web"] as const;
+export const RECREATED_SERVICES = ["api", "worker"] as const;
 
 const IMAGE_TAG = /^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$/;
 const IMAGE_NAME_SEGMENT = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
@@ -346,14 +346,14 @@ export function resolveInstallKind(input: {
 
 /** Exact host commands from docs/self-host.md for Compose on a published release tag. */
 export const COMPOSE_PULL_UPGRADE_COMMANDS = [
-  "docker compose --env-file .env -f infra/compose/docker-compose.prod.yml pull api worker web",
-  "docker compose --env-file .env -f infra/compose/docker-compose.prod.yml up -d --wait --pull never api worker web",
+  "docker compose --env-file .env -f infra/compose/docker-compose.prod.yml pull api worker",
+  "docker compose --env-file .env -f infra/compose/docker-compose.prod.yml up -d --wait --pull never api worker",
 ] as const;
 
 /** Exact host commands from docs/self-host.md for Compose on the default `local` tag. */
 export const COMPOSE_LOCAL_BUILD_UPGRADE_COMMANDS = [
   "git pull",
-  "GIT_SHA=$(git rev-parse HEAD) docker compose --env-file .env -f infra/compose/docker-compose.prod.yml up -d --wait --pull never --build api worker web",
+  "GIT_SHA=$(git rev-parse HEAD) docker compose --env-file .env -f infra/compose/docker-compose.prod.yml up -d --wait --pull never --build api worker",
 ] as const;
 
 /** @deprecated Prefer {@link COMPOSE_PULL_UPGRADE_COMMANDS}; kept for call-site clarity in tests. */

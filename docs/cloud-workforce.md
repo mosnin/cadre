@@ -1,10 +1,10 @@
 # Cadre cloud workforce
 
-Cadre is a cloud deployment of Cadre with managed computers and a Company OS workforce connection. The upstream local, desktop, mobile, and other provider paths remain available. Cloud configuration is optional.
+Cadre is a cloud deployment of Cadre with managed computers and a Company OS workforce connection. The upstream local, mobile, and other provider paths remain available. Cloud configuration is optional.
 
 ## Deployment
 
-- Vercel serves the web app. Set `API_PROXY_TARGET` to the HTTPS origin of the API service; `infra/vercel-build.mjs` generates same-origin API routing without baking account configuration into source.
+- Vercel proxies `/api` and `/rpc` to the API service and serves the marketing site everywhere else. Set `API_PROXY_TARGET` to the HTTPS origin of the API service and, optionally, `MARKETING_ORIGIN`; `infra/vercel-build.mjs` generates the routing without baking account configuration into source. The web UI is Burst's hosted client on Cloudflare ([WEB.md](./WEB.md)).
 - Render runs the API and job worker with PostgreSQL. `render.yaml` describes the resources. `infra/render-start.mjs` generates the Prisma client, applies migrations, then supervises both processes so a stale dashboard filter cannot skip database setup.
 - Modal runs one isolated Linux desktop per computer. Build with `uv run --with modal python infra/modal/build_image.py` and configure the returned image ID and Modal credentials on the runtime.
 - Cloudflare hosts the screen gateway and R2 object store. Deploy `infra/cloudflare/wrangler.jsonc`, then set `SCREEN_PROXY_SECRET` and `STORAGE_GATEWAY_TOKEN` with Wrangler secrets. Set the same values on the runtime. Configure `SCREEN_GATEWAY_ORIGIN` and `R2_GATEWAY_URL` to the Worker origin and `STORAGE_PROVIDER=r2-gateway`.
@@ -28,9 +28,9 @@ Agent homes use immutable, integrity-checked blobs and revision manifests with c
 
 ## Verification
 
-The deterministic adapter tests cover tenant boundaries, missing-computer recovery, control leases, object integrity, concurrent revision updates, and symlink escape prevention. The workforce PostgreSQL test opts in with `VERIFY_DATABASE=1` and `DATABASE_URL`; its Company OS peer is mocked. The browser workforce test mocks the integration response and captures desktop/mobile light/dark states. Provider canaries are separate from these offline tests and must verify real storage, desktop streaming, cancellation, and an authorized model run before production acceptance.
+The deterministic adapter tests cover tenant boundaries, missing-computer recovery, control leases, object integrity, concurrent revision updates, and symlink escape prevention. The workforce PostgreSQL test opts in with `VERIFY_DATABASE=1` and `DATABASE_URL`; its Company OS peer is mocked. Provider canaries are separate from these offline tests and must verify real storage, desktop streaming, cancellation, and an authorized model run before production acceptance.
 
-The native mobile app does not yet expose workforce setup. Configure the connection in the responsive web app; spawned bots and conversations use the existing shared runtime.
+The native mobile app does not yet expose workforce setup, and the Cadre web app that did is gone; spawned bots and conversations use the existing shared runtime.
 
 
 ## Company OS sign-in
@@ -70,7 +70,7 @@ returned by the browser session/status endpoints. Workers update their encrypted
 MCP credential when a grant refreshes. Changing the authorized company requires
 reconnecting the original workforce company; it cannot silently redirect work.
 
-Hosted login is supported in the web app. The native mobile client points to the
+Hosted login was supported in the Cadre web app, which is gone. The native mobile client points to the
 web login for this mode; local email/password installations keep native sign-in.
 The black icon is inverted for dark mode, the favicon follows the system theme,
 and the social sharing card lives under `/brand/cadre-social.png`.

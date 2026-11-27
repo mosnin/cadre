@@ -16,7 +16,7 @@ The sidebar displays the selected workspace's conversations. Storage, memory, sk
 
 The OAuth client requests context read, context write and branch creation. Company OS consent determines the actual grant. Tokens are encrypted server-side, refresh is serialized across processes, and callback state is single-use and bound to the initiating Cadre session and workspace. Cadre removes local access on disconnect and attempts upstream revocation; if the provider is unavailable, the user can revoke the remaining grant in Company OS. The immutable company binding remains.
 
-Web and Electron use the same Settings flow. Native mobile can use the web app to connect a workspace; it retains the existing native workspace navigation rather than embedding the browser OAuth flow.
+This Settings flow lived in the Cadre web app, which is gone ([WEB.md](../WEB.md)). Native mobile keeps its workspace navigation but does not embed the browser OAuth flow, so connecting a workspace currently has no Cadre client.
 
 ## Redis / Upstash assessment
 
